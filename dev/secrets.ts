@@ -3,10 +3,10 @@
  * PowerShell ConvertFrom-SecureString hex format the native layer uses. Used
  * only by the localhost dev bridge. PowerShell always runs hidden with a fixed
  * -Command string; the secret material is fed via stdin, never argv. The
-t * plaintext is never logged.
+ * plaintext is never logged.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export function appDataDir(): string {
@@ -91,14 +91,13 @@ function stripBom(s: string): string {
   return s.startsWith(BOM) ? s.slice(BOM.length) : s;
 }
 
-/** Returns decrypted secret string or null if file missing/undecryptable. */
-export function readSecret(name: string): string | null {
-  if (process.platform !== 'win32') return null;
+export type SecretReadResult =
+  { status: 'ok'; value: string } | { status: 'missing' | 'unreadable' | 'unsupported' };
+
+/** Distinguish absent files from damaged/inaccessible secrets without exposing details. */
+export function readSecretResult(name: string): SecretReadResult {
+  if (process.platform !== 'win32') return { status: 'unsupported' };
   const p = secretPath(name);
-  if (!existsSync(p)) {
-    decrypted.delete(p);
-    return null;
-  }
   try {
     const raw = stripBom(readFileSync(p, 'utf8')).trim();
     const hex = raw
@@ -106,26 +105,38 @@ export function readSecret(name: string): string | null {
       .map((s) => s.trim())
       .filter(Boolean)
       .pop();
-    if (!hex || hex.length % 2 !== 0 || !HEX_RE.test(hex)) {
+    if (!hex || hex.length > 65_536 || hex.length % 2 !== 0 || !HEX_RE.test(hex)) {
       decrypted.delete(p);
-      return null;
+      return { status: 'unreadable' };
     }
     const hit = decrypted.get(p);
-    if (hit?.cipher === hex) return hit.value;
+    if (hit?.cipher === hex)
+      return hit.value ? { status: 'ok', value: hit.value } : { status: 'unreadable' };
     try {
       const plain = runPsi(DECRYPT_SCRIPT, hex);
       const cleaned = stripBom(plain).trimEnd();
       const value = cleaned.length ? cleaned : null;
       decrypted.set(p, { cipher: hex, value });
-      return value;
+      return value ? { status: 'ok', value } : { status: 'unreadable' };
     } catch {
       decrypted.set(p, { cipher: hex, value: null });
-      return null;
+      return { status: 'unreadable' };
     }
-  } catch {
+  } catch (error) {
     decrypted.delete(p);
-    return null;
+    return {
+      status:
+        error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT'
+          ? 'missing'
+          : 'unreadable',
+    };
   }
+}
+
+/** Compatibility helper for callers that treat any unavailable secret as signed out. */
+export function readSecret(name: string): string | null {
+  const result = readSecretResult(name);
+  return result.status === 'ok' ? result.value : null;
 }
 
 export function readJsonSecret<T>(name: string): T | null {

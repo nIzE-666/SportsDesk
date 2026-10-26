@@ -2,6 +2,7 @@ export type ApiErrorCode =
   | 'UnknownSource'
   | 'InvalidPath'
   | 'MissingKey'
+  | 'KeyUnreadable'
   | 'Unauthorized'
   | 'NotFound'
   | 'RateLimited'
@@ -20,6 +21,8 @@ const MESSAGES: Record<ApiErrorCode, string> = {
   UnknownSource: 'Неизвестный источник данных.',
   InvalidPath: 'Недопустимый путь запроса.',
   MissingKey: 'Ключ PitchAPI не настроен. Добавьте ключ в настройках.',
+  KeyUnreadable:
+    'Сохранённый ключ PitchAPI не удалось прочитать или расшифровать. Введите ключ заново в настройках под текущей учётной записью Windows.',
   Unauthorized: 'Провайдер отклонил доступ. Проверьте ключ или сессию.',
   NotFound: 'Запрошенные данные не найдены у провайдера.',
   RateLimited: 'Провайдер ограничил запросы. Попробуйте позже.',

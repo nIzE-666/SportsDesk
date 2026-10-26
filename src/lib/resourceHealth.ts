@@ -53,8 +53,7 @@ let snapshot: HealthSnapshot = Object.freeze({
   retrying: false,
   autoRetryPending: false,
 });
-let lastFetchedAt: string | null = null,
-  timer: ReturnType<typeof setTimeout> | null = null;
+let timer: ReturnType<typeof setTimeout> | null = null;
 let cycling = false,
   onlineBound = false,
   sequence = 0,
@@ -153,9 +152,6 @@ function ensure(source: string, path: string) {
   states.set(key, s);
   return s;
 }
-function noteTime(value: string) {
-  if (value && (!lastFetchedAt || value > lastFetchedAt)) lastFetchedAt = value;
-}
 function recovered(key: string) {
   if (typeof window !== 'undefined')
     window.dispatchEvent(new CustomEvent('sportsdesk-data-recovered', { detail: { key } }));
@@ -191,7 +187,6 @@ export function recordFreshSuccess(source: string, path: string, fetchedAt: stri
   s.fetchedAt = fetchedAt;
   s.attempt = 0;
   s.nextAt = 0;
-  noteTime(fetchedAt);
   emit();
   if (failed) recovered(s.key);
   clearTimer();
@@ -203,7 +198,6 @@ export function recordStale(source: string, path: string, fetchedAt: string, fai
   s.fetchedAt = fetchedAt;
   s.failure = failure ? toApiFailure(failure) : null;
   s.nextAt = Date.now() + (BACKOFF[Math.min(s.attempt, 4)] ?? 60000);
-  noteTime(fetchedAt);
   emit();
   scheduleRetry();
 }
@@ -332,7 +326,6 @@ export function __resetForTest() {
   onlineBound = false;
   cycling = false;
   sequence = 0;
-  lastFetchedAt = null;
   activeSources = null;
   snapshot = Object.freeze({
     failures: Object.freeze([]),

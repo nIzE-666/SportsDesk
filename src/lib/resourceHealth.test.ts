@@ -159,6 +159,7 @@ describe('resourceHealth', () => {
 
   it.each([
     'MissingKey',
+    'KeyUnreadable',
     'Unauthorized',
     'InvalidPath',
     'BadPayload',

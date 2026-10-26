@@ -1,0 +1,56 @@
+[
+  {
+    "path": "date/2026-10-26?status=all",
+    "now": "2026-10-26T12:00:00Z",
+    "statuses": ["finished"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-25?status=all",
+    "now": "2026-10-26T12:00:00Z",
+    "statuses": ["finished", "cancelled"],
+    "ttl": 600000
+  },
+  {
+    "path": "date/2026-10-25?status=all",
+    "now": "2026-10-26T00:05:00Z",
+    "statuses": ["live"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-25?status=all",
+    "now": "2026-10-26T00:05:00Z",
+    "statuses": ["scheduled"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-25?status=all",
+    "now": "2026-10-26T00:05:00Z",
+    "statuses": ["unexpected"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-27?status=all",
+    "now": "2026-10-26T12:00:00Z",
+    "statuses": ["scheduled"],
+    "ttl": 900000
+  },
+  {
+    "path": "date/2026-10-27?status=all",
+    "now": "2026-10-27T00:00:00Z",
+    "statuses": ["scheduled"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-27?status=all",
+    "now": "2026-10-26T12:00:00Z",
+    "statuses": ["live"],
+    "ttl": 60000
+  },
+  {
+    "path": "date/2026-10-25?status=all",
+    "now": "2026-10-26T12:00:00Z",
+    "statuses": [],
+    "ttl": 600000
+  }
+]

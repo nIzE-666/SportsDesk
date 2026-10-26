@@ -70,6 +70,8 @@ pub enum BridgeError {
     InvalidPath,
     #[error("Ключ PitchAPI не настроен. Добавьте ключ в настройках.")]
     MissingKey,
+    #[error("Сохранённый ключ PitchAPI не удалось прочитать или расшифровать. Введите ключ заново в настройках под текущей учётной записью Windows.")]
+    KeyUnreadable,
     #[error("Провайдер отклонил доступ. Проверьте ключ или сессию.")]
     Unauthorized,
     #[error("Запрошенные данные не найдены у провайдера.")]
@@ -108,6 +110,7 @@ impl BridgeError {
             Self::UnknownSource => "UnknownSource",
             Self::InvalidPath => "InvalidPath",
             Self::MissingKey => "MissingKey",
+            Self::KeyUnreadable => "KeyUnreadable",
             Self::Unauthorized => "Unauthorized",
             Self::NotFound => "NotFound",
             Self::RateLimited => "RateLimited",
@@ -323,9 +326,54 @@ impl Concurrency {
     }
 }
 
+fn pitch_date_ttl(path: &str, payload: &Value, now: i64) -> i64 {
+    let day = path
+        .strip_prefix("date/")
+        .unwrap_or("")
+        .split('?')
+        .next()
+        .unwrap_or("");
+    let Ok(date) = chrono::NaiveDate::parse_from_str(day, "%Y-%m-%d") else {
+        return 60_000;
+    };
+    let Some(today) = chrono::DateTime::from_timestamp_millis(now).map(|d| d.date_naive()) else {
+        return 60_000;
+    };
+    if date == today {
+        return 60_000;
+    }
+    let Some(fixtures) = payload
+        .get("data")
+        .unwrap_or(payload)
+        .get("matches")
+        .and_then(Value::as_array)
+    else {
+        return 60_000;
+    };
+    let statuses: Vec<_> = fixtures
+        .iter()
+        .map(|m| crate::sports::status(&[m.get("status").and_then(Value::as_str).unwrap_or("")]))
+        .collect();
+    if statuses.contains(&"live") {
+        return 60_000;
+    }
+    if date > today {
+        return 15 * 60_000;
+    }
+    // Delayed or unclassified games remain fresh after midnight.
+    if statuses
+        .iter()
+        .all(|s| ["finished", "cancelled", "postponed"].contains(s))
+    {
+        10 * 60_000
+    } else {
+        60_000
+    }
+}
+
 fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
     if source == "pitch" && path.starts_with("date/") {
-        return 60_000;
+        return pitch_date_ttl(path, payload, now_ms());
     }
     let p = path.to_ascii_lowercase();
     if source == "openf1" {
@@ -424,8 +472,12 @@ async fn fetch_upstream(
         Some(
             tauri::async_runtime::spawn_blocking(|| secrets::read_secret(SecretName::PitchApi))
                 .await
-                .map_err(|_| BridgeError::MissingKey)?
-                .map_err(|_| BridgeError::MissingKey)?,
+                .map_err(|_| BridgeError::KeyUnreadable)?
+                .map_err(|error| match error {
+                    secrets::SecretError::NotFound => BridgeError::MissingKey,
+                    secrets::SecretError::Unsupported => BridgeError::Config,
+                    _ => BridgeError::KeyUnreadable,
+                })?,
         )
     } else {
         None
@@ -544,6 +596,40 @@ static LAST_PRUNE: Mutex<Option<i64>> = Mutex::new(None);
 #[cfg(test)]
 mod runtime_tests {
     use super::*;
+    #[test]
+    fn adjacent_day_cache_policy_matches_frontend_and_handles_midnight() {
+        let cases: Value =
+            serde_json::from_str(include_str!("../../src/shared/pitchDateCacheCases.json"))
+                .unwrap();
+        for case in cases.as_array().unwrap() {
+            let now = chrono::DateTime::parse_from_rfc3339(case["now"].as_str().unwrap())
+                .unwrap()
+                .timestamp_millis();
+            let matches: Vec<_> = case["statuses"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|status| serde_json::json!({"status":status}))
+                .collect();
+            assert_eq!(
+                pitch_date_ttl(
+                    case["path"].as_str().unwrap(),
+                    &serde_json::json!({"data":{"matches":matches}}),
+                    now
+                ),
+                case["ttl"].as_i64().unwrap(),
+                "{case}"
+            );
+        }
+        assert_eq!(
+            pitch_date_ttl(
+                "date/2020-01-01",
+                &serde_json::json!({"data":{}}),
+                1_700_000_000_000
+            ),
+            60_000
+        );
+    }
     fn run(future: impl std::future::Future<Output = ()>) {
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -685,6 +771,7 @@ mod runtime_tests {
         }
         for error in [
             BridgeError::MissingKey,
+            BridgeError::KeyUnreadable,
             BridgeError::Unauthorized,
             BridgeError::InvalidPath,
             BridgeError::BadPayload,

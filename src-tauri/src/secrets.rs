@@ -22,8 +22,10 @@ impl SecretName {
 pub enum SecretError {
     #[error("Хранилище секретов доступно только в Windows.")]
     Unsupported,
-    #[error("Секрет не найден или не может быть расшифрован.")]
-    NotAvailable,
+    #[error("Секрет не найден.")]
+    NotFound,
+    #[error("Сохранённый секрет не удалось прочитать или расшифровать.")]
+    Unreadable,
     #[error("Не удалось сохранить секрет.")]
     WriteFailed,
 }
@@ -55,17 +57,17 @@ fn decode_hex(raw: &str) -> Result<Vec<u8>, SecretError> {
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .last()
-        .ok_or(SecretError::NotAvailable)?;
+        .ok_or(SecretError::Unreadable)?;
     if hex.is_empty()
         || hex.len() > 65_536
         || hex.len() % 2 != 0
         || !hex.bytes().all(|b| b.is_ascii_hexdigit())
     {
-        return Err(SecretError::NotAvailable);
+        return Err(SecretError::Unreadable);
     }
     (0..hex.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| SecretError::NotAvailable))
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| SecretError::Unreadable))
         .collect()
 }
 fn encode_hex(bytes: &[u8]) -> String {
@@ -120,16 +122,16 @@ mod dpapi {
                 &mut output.0,
             )
         }
-        .map_err(|_| SecretError::NotAvailable)?;
+        .map_err(|_| SecretError::Unreadable)?;
         let bytes = output.bytes();
         if bytes.is_empty() || bytes.len() % 2 != 0 {
-            return Err(SecretError::NotAvailable);
+            return Err(SecretError::Unreadable);
         }
         let mut units: Vec<u16> = bytes
             .chunks_exact(2)
             .map(|b| u16::from_le_bytes([b[0], b[1]]))
             .collect();
-        let value = String::from_utf16(&units).map_err(|_| SecretError::NotAvailable);
+        let value = String::from_utf16(&units).map_err(|_| SecretError::Unreadable);
         for unit in &mut units {
             unsafe {
                 std::ptr::write_volatile(unit, 0);
@@ -137,7 +139,7 @@ mod dpapi {
         }
         let value = value?.trim_end_matches(['\r', '\n']).to_owned();
         if value.is_empty() {
-            Err(SecretError::NotAvailable)
+            Err(SecretError::Unreadable)
         } else {
             Ok(value)
         }
@@ -174,7 +176,13 @@ mod dpapi {
 }
 
 fn read_secret_at(path: &Path) -> Result<String, SecretError> {
-    let raw = std::fs::read_to_string(path).map_err(|_| SecretError::NotAvailable)?;
+    let raw = std::fs::read_to_string(path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            SecretError::NotFound
+        } else {
+            SecretError::Unreadable
+        }
+    })?;
     let bytes = decode_hex(&raw)?;
     #[cfg(windows)]
     {
@@ -253,8 +261,18 @@ mod tests {
         let last = bytes.len() - 1;
         bytes[last] ^= 1;
         std::fs::write(&path, encode_hex(&bytes)).unwrap();
-        assert!(read_secret_at(&path).is_err());
-        std::fs::remove_file(path).unwrap();
+        assert!(matches!(
+            read_secret_at(&path),
+            Err(SecretError::Unreadable)
+        ));
+        std::fs::write(&path, "not a DPAPI payload").unwrap();
+        assert!(matches!(
+            read_secret_at(&path),
+            Err(SecretError::Unreadable)
+        ));
+        std::fs::remove_file(&path).unwrap();
+        assert!(matches!(read_secret_at(&path), Err(SecretError::NotFound)));
+        assert!(matches!(read_secret_at(&dir), Err(SecretError::Unreadable)));
         std::fs::remove_dir(dir).unwrap();
     }
     #[test]

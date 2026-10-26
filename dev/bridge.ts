@@ -10,7 +10,8 @@ import { readJsonBody, RequestBodyError } from './requestBody';
  */
 import type { Plugin, Connect } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { readSecret, writeSecret, SECRET_FILES } from './secrets';
+import { readSecret, readSecretResult, writeSecret, SECRET_FILES } from './secrets';
+import { pitchDateCacheTtl } from '../src/lib/pitchDateCache';
 import * as kino from './kinopub';
 
 const BASES: Record<string, string> = {
@@ -142,7 +143,8 @@ function reserveOpenF1(): Promise<void> {
 
 function ttlFor(source: string, path: string, payload: unknown): number {
   const p = path.toLowerCase();
-  if (source === 'pitch' && (p.startsWith('date/') || p.startsWith('matches/'))) return 60_000;
+  if (source === 'pitch' && p.startsWith('date/')) return pitchDateCacheTtl(path, payload);
+  if (source === 'pitch' && p.startsWith('matches/')) return 60_000;
   if (source === 'openf1') return 24 * 60 * 60 * 1000;
   if (p.includes('standing')) return 15 * 60 * 1000;
   if (source === 'sportscore' && (p.includes('premier-league') || p.includes('spanish-la-liga'))) {
@@ -253,10 +255,17 @@ async function fetchUpstream(
     'user-agent': 'SportsDesk/1.0 (+personal desktop app)',
   };
   if (source === 'pitch') {
-    const key = readSecret(SECRET_FILES.pitch);
-    if (!key)
+    const key = readSecretResult(SECRET_FILES.pitch);
+    if (key.status === 'missing')
       throw new DataError('MissingKey', 'Ключ PitchAPI не настроен. Добавьте ключ в настройках.');
-    headers['x-api-key'] = key;
+    if (key.status === 'unsupported')
+      throw new DataError('Config', 'Хранилище секретов доступно только в Windows.');
+    if (key.status !== 'ok')
+      throw new DataError(
+        'KeyUnreadable',
+        'Сохранённый ключ PitchAPI не удалось прочитать или расшифровать. Введите ключ заново в настройках под текущей учётной записью Windows.',
+      );
+    headers['x-api-key'] = key.value;
   }
 
   inflight++;

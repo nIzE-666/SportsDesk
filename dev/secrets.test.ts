@@ -5,7 +5,7 @@ vi.mock('node:fs', () => ({
   existsSync: (p: string) => fake.files.has(p),
   mkdirSync: vi.fn(),
   readFileSync: (p: string) => {
-    if (!fake.files.has(p)) throw new Error('missing');
+    if (!fake.files.has(p)) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
     return fake.files.get(p);
   },
   writeFileSync: (p: string, value: string) => {
@@ -38,6 +38,24 @@ windowsTest(
     expect(fake.exec).toHaveBeenCalledTimes(2);
   },
 );
+windowsTest('distinguishes missing, malformed, failed decrypt and a replaced secret', async () => {
+  const secrets = await import('./secrets');
+  const path = secrets.secretPath('pitchapi');
+  expect(secrets.readSecretResult('pitchapi')).toEqual({ status: 'missing' });
+  fake.files.set(path, 'malformed');
+  expect(secrets.readSecretResult('pitchapi')).toEqual({ status: 'unreadable' });
+  expect(fake.exec).not.toHaveBeenCalled();
+  fake.files.set(path, 'aa00');
+  fake.exec.mockImplementationOnce(() => {
+    throw new Error('decrypt failed');
+  });
+  expect(secrets.readSecretResult('pitchapi')).toEqual({ status: 'unreadable' });
+  expect(secrets.readSecretResult('pitchapi')).toEqual({ status: 'unreadable' });
+  expect(fake.exec).toHaveBeenCalledOnce();
+  fake.files.set(path, 'bb00');
+  fake.exec.mockReturnValue('test-value');
+  expect(secrets.readSecretResult('pitchapi')).toEqual({ status: 'ok', value: 'test-value' });
+});
 windowsTest(
   'invalidates plaintext immediately after a successful set_pitch_key write',
   async () => {
