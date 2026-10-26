@@ -1,0 +1,116 @@
+[
+  {
+    "id": "m_4RVGoC",
+    "season": "2025/2026",
+    "round_name": "1/2",
+    "date": "2026-04-29",
+    "status": "finished",
+    "home_team": {
+      "id": "t_3NIiXl",
+      "name": "Atl\u00e9tico Madrid",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/e7ed0850dc75498dd5989ac217e4c9345476f9967d89385e5ece1ef5bcd8a330.webp"
+    },
+    "away_team": {
+      "id": "t_1gkhxH",
+      "name": "Arsenal",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/cc89aa6a111b43694223ca0506940e05f825369c259a6c8bf4ab8cf8b080a05b.webp"
+    },
+    "score_home": 1,
+    "score_away": 1
+  },
+  {
+    "id": "m_2LFZ9e",
+    "season": "2025/2026",
+    "round_name": "1/2",
+    "date": "2026-05-05",
+    "status": "finished",
+    "home_team": {
+      "id": "t_1gkhxH",
+      "name": "Arsenal",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/cc89aa6a111b43694223ca0506940e05f825369c259a6c8bf4ab8cf8b080a05b.webp"
+    },
+    "away_team": {
+      "id": "t_3NIiXl",
+      "name": "Atl\u00e9tico Madrid",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/e7ed0850dc75498dd5989ac217e4c9345476f9967d89385e5ece1ef5bcd8a330.webp"
+    },
+    "score_home": 1,
+    "score_away": 0
+  },
+  {
+    "id": "m_0lctzj",
+    "season": "2025/2026",
+    "round_name": "1/2",
+    "date": "2026-05-06",
+    "status": "finished",
+    "home_team": {
+      "id": "t_1cpjqO",
+      "name": "Bayern M\u00fcnchen",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/1e2afd379a7d354c930f790c1f9ab0c2b50654cf4d47f20ffb269b8cfe309bca.webp"
+    },
+    "away_team": {
+      "id": "t_41iFW3",
+      "name": "Paris Saint-Germain",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/79197b8594269f02679ffd055d230e2095d99bde56994d5bc4d6b6a01a1ada13.webp"
+    },
+    "score_home": 1,
+    "score_away": 1
+  },
+  {
+    "id": "m_0DIsqq",
+    "season": "2025/2026",
+    "round_name": "final",
+    "date": "2026-05-30",
+    "status": "finished",
+    "home_team": {
+      "id": "t_41iFW3",
+      "name": "Paris Saint-Germain",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/79197b8594269f02679ffd055d230e2095d99bde56994d5bc4d6b6a01a1ada13.webp"
+    },
+    "away_team": {
+      "id": "t_1gkhxH",
+      "name": "Arsenal",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/cc89aa6a111b43694223ca0506940e05f825369c259a6c8bf4ab8cf8b080a05b.webp"
+    },
+    "score_home": 1,
+    "score_away": 1
+  },
+  {
+    "id": "m_0KZSEg",
+    "season": "2026/2027",
+    "round_name": "2",
+    "date": "2026-10-14",
+    "status": "finished",
+    "home_team": {
+      "id": "t_2yHOns",
+      "name": "Slovan Bratislava",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/19a562f7f6053ae9daba69ad68f5a9be26220b39c30e9f0081ab0ab089b441d8.webp"
+    },
+    "away_team": {
+      "id": "t_0iJNOA",
+      "name": "VfB Stuttgart",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/3e4064e2cf85702db11b273fb3d69d3bad241733eba932255961f48a2a08b452.webp"
+    },
+    "score_home": 0,
+    "score_away": 3
+  },
+  {
+    "id": "m_2PAfzG",
+    "season": "2026/2027",
+    "round_name": "2",
+    "date": "2026-10-14",
+    "status": "finished",
+    "home_team": {
+      "id": "t_4Wrrym",
+      "name": "Shakhtar Donetsk",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/457b04795e1905f9d7ca7e967d13a8c19883a168ff968db24b9023334b4254d2.webp"
+    },
+    "away_team": {
+      "id": "t_2jeqmO",
+      "name": "AEK Athens",
+      "image_url": "https://cdn.pitchapi.dev/images/teams/7a5e1ea3a61aa9dad0ed73f67c8617b24633f76185bc91c8fab87cf6a69f46fe.webp"
+    },
+    "score_home": 3,
+    "score_away": 1
+  }
+]

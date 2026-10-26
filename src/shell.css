@@ -1,0 +1,349 @@
+/* Final shell layout: sport themes and controls share the same semantic tokens. */
+html[data-scheme='light'] body {
+  background: #f3f6fb;
+  color: #17202e;
+}
+.topbar {
+  gap: 14px;
+  padding-inline: 20px;
+}
+.brand {
+  min-width: 170px;
+  width: 170px;
+  flex-shrink: 0;
+}
+.sport-toggle button {
+  padding: 10px 12px;
+  color: var(--muted);
+}
+.nav-item,
+.competition-nav button,
+.header-date,
+.icon-button,
+.nav-caption,
+.sidebar-heading > span,
+.sidebar-foot,
+.sidebar-foot small,
+.brand-text small,
+.collapse-btn {
+  color: var(--muted);
+}
+.topbar-actions {
+  gap: 12px;
+}
+.profile-monogram {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.history-back {
+  flex-shrink: 0;
+}
+.app-root[data-scheme='light'][data-theme='epl'] {
+  --accent: #235eab;
+  --accent-rgb: 35, 94, 171;
+}
+.app-root[data-scheme='light'] .hero-content > p,
+.app-root[data-scheme='light'] .hero-small-label,
+.app-root[data-scheme='light'] .hero-secondary {
+  color: var(--text);
+}
+.app-root[data-scheme='light'] .hero-collapse {
+  background: #ffffffde;
+  color: var(--text);
+}
+.hero-collapse {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #101827de;
+  color: #eef3ff;
+  font-size: 12px;
+}
+.mode-hero.hero-compact {
+  min-height: 148px;
+}
+.hero-compact .hero-content {
+  max-width: 76%;
+  padding: 23px 28px;
+}
+.hero-compact .hero-content h1 {
+  font-size: clamp(25px, 2.2vw, 34px);
+  margin: 9px 0;
+  letter-spacing: -0.7px;
+}
+.hero-compact .hero-content > p,
+.hero-compact .hero-watermark {
+  display: none;
+}
+.hero-compact .hero-actions {
+  gap: 14px;
+}
+.sidebar-today {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+.sidebar-today h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  margin: 0 8px 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.sidebar-today > button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 9px;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 10px 9px;
+  min-width: 0;
+}
+.sidebar-today > button:hover {
+  background: var(--panel2);
+  border-color: var(--line);
+}
+.sidebar-today strong {
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.sidebar-today small,
+.today-kind {
+  color: var(--muted);
+  font-size: 12px;
+}
+.today-kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.sidebar-today p {
+  margin: 5px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.shell.collapsed .sidebar-today {
+  display: none;
+}
+.sidebar-heading > span,
+.nav-caption {
+  letter-spacing: 0.06em;
+  white-space: normal;
+  line-height: 1.5;
+}
+.sidebar {
+  overflow-y: auto;
+}
+.content-inner {
+  animation: content-enter 0.2s ease-out;
+}
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.notification-preferences {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+.notification-preferences fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 16px;
+}
+.notification-preferences legend {
+  padding: 0 7px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.notification-preferences label,
+.notification-preferences summary {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notification-preferences label {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+}
+.settings-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+}
+.notification-preferences input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+.notification-teams {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.notification-teams .settings-checks {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.backup-folder {
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel2);
+}
+.shortcut-control {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.diagnostics-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 15px;
+  min-width: 0;
+}
+.diagnostics-grid small {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.diagnostic-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+.diagnostics-panel details {
+  margin: 18px 0;
+}
+.diagnostics-panel summary {
+  cursor: pointer;
+}
+.settings-row {
+  flex-wrap: wrap;
+}
+@media (max-width: 1260px) {
+  .header-date {
+    display: none;
+  }
+  .topbar-actions .watch-shortcut span {
+    display: none;
+  }
+  .brand {
+    width: 160px;
+    min-width: 160px;
+  }
+  .sport-toggle button {
+    padding-inline: 9px;
+  }
+  .shell {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+  .sidebar {
+    padding-inline: 9px;
+  }
+  .content {
+    padding: 22px;
+  }
+  .nav-item {
+    padding-inline: 9px;
+    gap: 9px;
+  }
+}
+@media (max-width: 1050px) {
+  .topbar {
+    gap: 8px;
+  }
+  .brand {
+    min-width: 40px;
+    width: 40px;
+  }
+  .brand-text {
+    display: none;
+  }
+  .sport-toggle button {
+    font-size: 12px;
+  }
+  .shell {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+  .sidebar-today {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .topbar {
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+  .topbar-actions {
+    gap: 8px;
+  }
+  .sport-toggle {
+    order: 3;
+    width: 100%;
+    justify-content: space-around;
+  }
+  .sport-toggle button {
+    flex: 1;
+  }
+  .content {
+    padding: 14px;
+  }
+  .hero-content,
+  .hero-compact .hero-content {
+    max-width: 100%;
+    padding: 55px 20px 20px;
+  }
+  .hero-content h1 {
+    font-size: 30px;
+  }
+  .hero-collapse {
+    top: 10px;
+  }
+  .diagnostics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .notification-teams .settings-checks {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-inner {
+    animation: none;
+  }
+}

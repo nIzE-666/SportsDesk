@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      try {
+        var scheme = localStorage.getItem('sportsdesk.scheme') === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.scheme = scheme;
+        document.documentElement.style.colorScheme = scheme;
+        document.documentElement.style.backgroundColor = scheme === 'light' ? '#f3f6fb' : '#0b101c';
+      } catch (_) {}
+    </script>
+    <title>SportsDesk</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

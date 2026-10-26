@@ -1,0 +1,49 @@
+[package]
+name = "sportsdesk"
+version = "1.4.0"
+description = "SportsDesk - personal desktop sports, F1 and live TV hub"
+authors = ["SportsDesk"]
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+name = "sportsdesk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "brotli", "deflate"] }
+tokio = { version = "1", features = ["time", "sync"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+thiserror = "2"
+url = "2"
+sha2 = "0.10"
+base64 = "0.22"
+unicode-normalization = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+chrono-tz = "0.10"
+
+[target.'cfg(windows)'.dependencies]
+window-vibrancy = "0.5"
+windows = { version = "0.58", features = ["Win32_Security_Cryptography", "Win32_Foundation", "Win32_System_Memory", "Win32_System_Threading"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

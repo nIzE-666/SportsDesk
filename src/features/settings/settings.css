@@ -1,0 +1,157 @@
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 980px;
+}
+
+.settings-view h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+  letter-spacing: 0.2px;
+}
+
+.settings-section {
+  padding: 18px 18px 20px;
+}
+
+.settings-section.inner,
+.panel.inner {
+  background: var(--panel2);
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row input,
+.settings-row select {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.settings-row input:focus,
+.settings-row select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.settings-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.settings-warn {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+  font-size: 13px;
+}
+
+.settings-dl {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 8px 14px;
+  margin: 8px 0 0;
+}
+
+.settings-dl dt {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.settings-dl dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.kino-device {
+  padding: 14px;
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.kino-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--accent);
+}
+
+[data-sport='f1'] .kino-code {
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+  .settings-dl {
+    grid-template-columns: 1fr;
+  }
+}
+.update-source-label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 18px 0 8px;
+}
+.update-source-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.update-source-row input {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel2);
+  color: var(--text);
+  font-size: 13px;
+}
+.updates-panel progress {
+  display: block;
+  width: 100%;
+  accent-color: var(--accent);
+  margin: 14px 0;
+}
+.update-notes {
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.update-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel2);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+.update-notice > span {
+  flex: 1;
+}

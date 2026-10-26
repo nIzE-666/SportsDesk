@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal capabilities for the SportsDesk main window",
+  "windows": ["main", "mini"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default",
+    "opener:default",
+    "notification:default",
+    "window-state:default",
+    "dialog:default",
+    "updater:default"
+  ]
+}

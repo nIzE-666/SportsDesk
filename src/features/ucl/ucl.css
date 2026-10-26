@@ -1,0 +1,529 @@
+.ucl-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ucl-view > .section-heading {
+  margin-bottom: 0;
+}
+.ucl-season {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ucl-season > label {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.ucl-season select {
+  font-size: 12px;
+}
+.ucl-insights {
+  margin: 0 0 5px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.metric-star {
+  color: var(--accent);
+  font-size: 26px;
+}
+.ucl-match-list .game-row {
+  grid-template-columns: 125px minmax(0, 1fr) 60px minmax(0, 1fr) 15px;
+  gap: 20px;
+}
+.ucl-match-list .game-team {
+  font-size: 13px;
+}
+.ucl-match-list .game-row:first-child {
+  border-top: 0;
+}
+.ucl-table-scroll {
+  overflow-x: auto;
+}
+.ucl-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+.ucl-table th {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 12px 10px;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--line);
+}
+.ucl-table th:nth-child(2) {
+  text-align: left;
+}
+.ucl-table td {
+  padding: 13px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.ucl-table td:nth-child(2) {
+  text-align: left;
+  min-width: 150px;
+}
+.ucl-table td button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 12.5px;
+}
+.ucl-table td button strong {
+  font-weight: 550;
+}
+.ucl-table td:last-child b {
+  color: var(--text);
+  font-size: 12px;
+}
+.ucl-table tbody tr:last-child td {
+  border: 0;
+}
+.ucl-table tbody tr:hover {
+  background: #ffffff04;
+}
+.ucl-table .direct td:first-child > span {
+  color: #a7a0ff;
+  background: #a7a0ff13;
+}
+.ucl-table .playoff td:first-child > span {
+  color: #63bde7;
+  background: #63bde713;
+}
+.ucl-table td:first-child > span {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.ucl-table.compact td {
+  padding: 13px 5px;
+  font-size: 12px;
+}
+.ucl-table.compact td button {
+  font-size: 12px;
+  gap: 8px;
+}
+.ucl-table.compact td:nth-child(2) {
+  min-width: 120px;
+}
+.table-legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 0 0 15px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.table-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.table-legend i {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: #a7a0ff;
+}
+.table-legend span:nth-child(2) i {
+  background: #63bde7;
+}
+.table-legend small {
+  font-size: 12px;
+  flex: 1;
+  line-height: 1.6;
+  min-width: 250px;
+}
+.ucl-logo-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+}
+.ucl-logo-wall button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 15px 7px;
+  background: #ffffff02;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+.ucl-logo-wall button:hover {
+  background: var(--panel2);
+  border-color: var(--line);
+}
+.ucl-logo-wall span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.bracket-intro {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: var(--accent);
+  border-left: 2px solid var(--accent);
+  background: rgba(var(--accent-rgb), 0.04);
+  border-radius: 0 9px 9px 0;
+  padding: 15px 18px;
+}
+.bracket-intro p {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.bracket-intro small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.bracket-intro > .chip {
+  margin-left: auto;
+}
+.knockout-scroll {
+  overflow-x: auto;
+  padding: 0 0 15px;
+}
+.knockout-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  gap: 20px;
+  min-width: 1120px;
+}
+.stage-heading {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+  padding: 15px 0 16px;
+  min-height: 83px;
+}
+.stage-heading > small {
+  font-size: 12px;
+  letter-spacing: 1.8px;
+  color: var(--muted);
+}
+.stage-heading h3 {
+  font-size: 14px;
+  margin: 8px 0 0;
+  font-weight: 550;
+}
+.stage-heading > span {
+  position: absolute;
+  top: 16px;
+  right: 4px;
+  font-size: 27px;
+  font-weight: 750;
+  color: rgba(var(--accent-rgb), 0.13);
+}
+.stage-ties {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+}
+.bracket-tie {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.tie-main {
+  display: block;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  padding: 13px;
+}
+.tie-main > small {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 13px;
+}
+.tie-main > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.tie-main strong {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tie-main b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.tie-winner strong,
+.tie-winner b {
+  color: var(--accent);
+  font-weight: 750;
+}
+.tie-main em {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: normal;
+  line-height: 1.7;
+}
+.tie-main:hover {
+  background: #ffffff04;
+}
+.tie-legs {
+  border-top: 1px solid var(--line);
+  padding: 4px 10px;
+  background: #0001;
+}
+.tie-legs button {
+  border: 0;
+  background: none;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  padding: 11px 0;
+  color: var(--text);
+  font-size: 12px;
+}
+.tie-legs button > b {
+  margin-left: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tie-legs small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.final-tie {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.06);
+}
+.stage-final h3 {
+  color: var(--accent);
+}
+.tie-placeholder {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  color: var(--muted);
+  background: #ffffff02;
+}
+.tie-placeholder > svg {
+  color: var(--accent);
+  opacity: 0.5;
+}
+.tie-placeholder strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.tie-placeholder small {
+  font-size: 12px;
+  line-height: 1.8;
+  opacity: 0.65;
+}
+.ucl-stat-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.ucl-stat-summary small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ucl-stat-summary strong {
+  display: block;
+  color: var(--accent);
+  font-size: 32px;
+  letter-spacing: -1px;
+  margin: 10px 0 0;
+}
+.scorer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.scorer-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(145deg, #ffffff05, transparent), var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px 12px 19px;
+}
+.scorer-card:hover {
+  border-color: var(--accent);
+}
+.scorer-rank {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.scorer-photo {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ffffff06;
+  margin-bottom: 7px;
+}
+.scorer-card > strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.scorer-card > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.scorer-value {
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 9px;
+  line-height: 1.2;
+}
+.scorer-value > small {
+  display: block;
+  font-weight: 400;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.player-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 25px;
+  background: #030717d9;
+  backdrop-filter: blur(10px);
+}
+.ucl-player-modal {
+  position: relative;
+  width: 470px;
+  max-width: 100%;
+  padding: 35px;
+  text-align: center;
+  box-shadow: 0 30px 90px #0009;
+}
+.ucl-player-modal > .eyebrow {
+  display: block;
+  margin-bottom: 30px;
+}
+.ucl-player-modal > .team-badge {
+  border-radius: 50%;
+  background: #ffffff07;
+  padding: 5px;
+}
+.ucl-player-modal h2 {
+  font-size: 27px;
+  margin: 20px 0 6px;
+  letter-spacing: -0.7px;
+}
+.ucl-player-modal > p {
+  font-size: 12.5px;
+  line-height: 1.8;
+}
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+.ucl-player-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin: 22px 0;
+  padding: 20px 0;
+  gap: 10px;
+}
+.ucl-player-metrics strong {
+  display: block;
+  font-size: 23px;
+}
+.ucl-player-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.ucl-player-modal > .text-link {
+  display: flex;
+  justify-content: center;
+  margin: 17px auto 0;
+}
+@media (max-width: 1250px) {
+  .scorer-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ucl-season {
+    gap: 7px;
+  }
+  .ucl-season > label {
+    display: none;
+  }
+}
+@media (max-width: 800px) {
+  .ucl-stat-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .scorer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ucl-season > .ghost-btn {
+    display: none;
+  }
+  .ucl-match-list .game-row {
+    grid-template-columns: 74px minmax(0, 1fr) 40px minmax(0, 1fr);
+    gap: 7px;
+  }
+  .ucl-match-list .game-team {
+    font-size: 12px;
+  }
+  .section-heading h2 {
+    font-size: 23px;
+  }
+  .ucl-logo-wall {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  }
+}

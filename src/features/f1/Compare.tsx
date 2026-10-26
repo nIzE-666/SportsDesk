@@ -1,0 +1,318 @@
+import { DriverPortrait } from './DriverPortraits';
+import { ArrowLeftRight, Trophy } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { useViewState } from '../../lib/useViewState';
+import { useApiResource } from './api';
+import { ComparisonChart } from './ComparisonChart';
+import { parseDriverStandings } from './parsing';
+import { useSeason } from './SeasonContext';
+import { SourceBar, State, TeamDot } from './shared';
+import { teamColor } from './teamColors';
+import { useWeekendSeason } from './useWeekendSeason';
+import type { WeekendSeason } from './weekendData';
+import { buildWeekendComparison } from './weekendData';
+
+const EMPTY: WeekendSeason = {
+  races: [],
+  sprints: [],
+  qualifying: [],
+  issues: [],
+  stale: false,
+  fetchedAt: '',
+};
+const number = (value: number | null | undefined) =>
+  value === null || value === undefined
+    ? '—'
+    : value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+export function Compare() {
+  const { year } = useSeason();
+  const { data, busy, error, reload } = useWeekendSeason(year);
+  const [a, setA] = useViewState(`f1.${year}.compare.a`, 'max_verstappen');
+  const [b, setB] = useViewState(`f1.${year}.compare.b`, '');
+  const [round, setRound] = useViewState(`f1.${year}.compare.round`, 'season');
+  const standing = useApiResource(
+    `${year}-comparison-standing`,
+    `${year}/driverStandings.json`,
+    parseDriverStandings,
+  );
+  const drivers = useMemo(() => {
+    const map = new Map<
+      string,
+      { id: string; name: string; code: string; team: string; teamId: string }
+    >();
+    for (const race of [...(data?.races ?? []), ...(data?.sprints ?? [])])
+      for (const row of race.Results)
+        map.set(row.Driver.driverId, {
+          id: row.Driver.driverId,
+          name: `${row.Driver.givenName} ${row.Driver.familyName}`,
+          code: row.Driver.code ?? row.Driver.familyName.slice(0, 3).toUpperCase(),
+          team: row.Constructor.name,
+          teamId: row.Constructor.constructorId,
+        });
+    for (const race of data?.qualifying ?? [])
+      for (const row of race.QualifyingResults)
+        if (!map.has(row.Driver.driverId))
+          map.set(row.Driver.driverId, {
+            id: row.Driver.driverId,
+            name: `${row.Driver.givenName} ${row.Driver.familyName}`,
+            code: row.Driver.code ?? row.Driver.familyName.slice(0, 3).toUpperCase(),
+            team: row.Constructor.name,
+            teamId: row.Constructor.constructorId,
+          });
+    return [...map.values()].sort((x, y) => x.name.localeCompare(y.name));
+  }, [data]);
+  useEffect(() => {
+    if (!drivers.length) return;
+    if (!drivers.some((driver) => driver.id === a))
+      setA(drivers.find((driver) => driver.teamId === 'red_bull')?.id ?? drivers[0]!.id);
+    if (!drivers.some((driver) => driver.id === b))
+      setB(
+        drivers.find((driver) => driver.teamId === 'mercedes' && driver.id !== a)?.id ??
+          drivers.find((driver) => driver.id !== a)?.id ??
+          '',
+      );
+  }, [drivers, a, b]);
+  const all = useMemo(() => buildWeekendComparison(data ?? EMPTY, a, b), [data, a, b]);
+  const selectedRound =
+    round === 'season' || all.series.some((row) => String(row.round) === round) ? round : 'season';
+  const comparison = useMemo(
+    () => buildWeekendComparison(data ?? EMPTY, a, b, selectedRound),
+    [data, a, b, selectedRound],
+  );
+  const driverA = drivers.find((driver) => driver.id === a),
+    driverB = drivers.find((driver) => driver.id === b);
+  if (busy && !data)
+    return (
+      <State kind="loading" title="Собираем уикенды сезона…">
+        Гонки, спринты и квалификации загружаются с проверкой полноты страниц.
+      </State>
+    );
+  if (error && !data)
+    return (
+      <State kind="error" title="Сравнение недоступно">
+        {error}{' '}
+        <button className="text-link" onClick={reload}>
+          Повторить
+        </button>
+      </State>
+    );
+  if (!drivers.length) return <State kind="empty" title="Результаты ещё не опубликованы" />;
+  const metrics = [
+    { key: 'racePoints', label: 'Очки в гонках' },
+    { key: 'sprintPoints', label: 'Очки в спринтах' },
+    { key: 'points', label: 'Всего очков' },
+    { key: 'starts', label: 'Стартов в гонках' },
+    { key: 'wins', label: 'Побед в гонках' },
+    { key: 'podiums', label: 'Подиумов в гонках' },
+    { key: 'sprintStarts', label: 'Стартов в спринтах' },
+    { key: 'sprintWins', label: 'Побед в спринтах' },
+    { key: 'dnf', label: 'Сходов в гонках' },
+  ] as const;
+  return (
+    <div className="season-comparison">
+      <div className="panel comparison-picker">
+        <ArrowLeftRight size={18} />
+        <select aria-label="Первый пилот" value={a} onChange={(event) => setA(event.target.value)}>
+          {drivers.map((driver) => (
+            <option key={driver.id} value={driver.id}>
+              {driver.name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="icon-button"
+          aria-label="Поменять пилотов местами"
+          onClick={() => {
+            setA(b);
+            setB(a);
+          }}
+        >
+          <ArrowLeftRight size={17} />
+        </button>
+        <select aria-label="Второй пилот" value={b} onChange={(event) => setB(event.target.value)}>
+          {drivers.map((driver) => (
+            <option key={driver.id} value={driver.id}>
+              {driver.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Период сравнения"
+          value={selectedRound}
+          onChange={(event) => setRound(event.target.value)}
+        >
+          <option value="season">Весь сезон {year}</option>
+          {all.series.map((row) => (
+            <option key={row.round} value={row.round}>
+              {row.round}. {row.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {error && (
+        <p className="settings-note" role="alert">
+          {error} Показана предыдущая загрузка.{' '}
+          <button className="text-link" onClick={reload}>
+            Повторить
+          </button>
+        </p>
+      )}
+      {data?.issues.map((issue) => (
+        <p className="settings-note" role="status" key={issue}>
+          {issue}{' '}
+          <button className="text-link" onClick={reload}>
+            Повторить
+          </button>
+        </p>
+      ))}
+      <div className="versus-grid">
+        {[
+          { driver: driverA, total: comparison.a, color: '#ff6763' },
+          { driver: driverB, total: comparison.b, color: '#71b9ff' },
+        ].map(({ driver, total, color }, index) => {
+          const official = standing.data?.standings.find(
+            (row) => row.Driver.driverId === driver?.id,
+          )?.points;
+          const officialPoints =
+            official !== undefined && Number.isFinite(Number(official)) ? Number(official) : null;
+          return (
+            <section key={index} className="panel versus-driver" style={{ borderTopColor: color }}>
+              <DriverPortrait name={driver?.name ?? 'Пилот'} size={76} />
+              <div>
+                <span className="eyebrow">ПИЛОТ {index === 0 ? 'A' : 'B'}</span>
+                <h2>{driver?.name ?? '—'}</h2>
+                <p>
+                  <TeamDot color={teamColor(driver?.teamId ?? '')} />
+                  {driver?.team ?? '—'}
+                </p>
+                {selectedRound === 'season' && (
+                  <p className="muted small">
+                    В опубликованном зачёте: {number(officialPoints)} очков
+                    {officialPoints !== null &&
+                    total.points !== null &&
+                    Math.abs(officialPoints - total.points) > 0.001 ? (
+                      <span className="points-difference">
+                        {' '}
+                        · отличается на {number(officialPoints - total.points)}
+                      </span>
+                    ) : null}
+                  </p>
+                )}
+              </div>
+              <div className="versus-points">
+                <strong style={{ color }}>{number(total.points)}</strong>
+                <small>гонки + спринты</small>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <section className="panel">
+        <div className="section-title">
+          <h2>
+            <Trophy size={16} /> Уикенды в цифрах
+          </h2>
+          <span className="muted small">
+            {selectedRound === 'season' ? `Сезон ${year}` : comparison.series[0]?.name}
+          </span>
+        </div>
+        <div className="comparison-metrics">
+          {metrics.map((metric) => (
+            <div key={metric.key}>
+              <strong>{number(comparison.a[metric.key])}</strong>
+              <span>{metric.label}</span>
+              <strong>{number(comparison.b[metric.key])}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="h2h-line">
+          <span>{comparison.headToHead.a}</span>
+          <p>
+            Выше на финише гонки
+            <small>Оба финишировали в {comparison.headToHead.compared} гонках</small>
+          </p>
+          <span>{comparison.headToHead.b}</span>
+        </div>
+        {data?.qualifying === null ? (
+          <p className="muted small">Сравнение квалификаций недоступно.</p>
+        ) : (
+          <div className="h2h-line">
+            <span>{comparison.qualifyingHeadToHead.a}</span>
+            <p>
+              Выше в квалификации
+              <small>
+                Парных результатов: {comparison.qualifyingHeadToHead.compared}. Штрафы на стартовой
+                решётке сюда не входят.
+              </small>
+            </p>
+            <span>{comparison.qualifyingHeadToHead.b}</span>
+          </div>
+        )}
+        <p className="muted small">
+          Очки взяты из опубликованных результатов гонок и спринтов. Квалификация очков не приносит.
+          Зачёт может отличаться из-за санкций или разного времени публикации; его значение показано
+          отдельно.
+        </p>
+      </section>
+      <ComparisonChart
+        series={comparison.series}
+        a={driverA?.name ?? 'Пилот A'}
+        b={driverB?.name ?? 'Пилот B'}
+      />
+      <section className="panel comparison-races">
+        <h3>Каждый этап крупным планом</h3>
+        <p className="muted small">
+          К — квалификация, Г — финиш гонки. «—» означает отсутствие результата.
+        </p>
+        <div className="f1-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Этап</th>
+                <th>{driverA?.code} · К</th>
+                <th>Г</th>
+                <th>Гонка / спринт</th>
+                <th>Всего</th>
+                <th>{driverB?.code} · К</th>
+                <th>Г</th>
+                <th>Гонка / спринт</th>
+                <th>Всего</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.series.map((row) => (
+                <tr key={row.round}>
+                  <td>
+                    {row.round}. {row.name}
+                  </td>
+                  <td>{row.aQualifying ?? '—'}</td>
+                  <td>{row.aPosition ?? '—'}</td>
+                  <td>
+                    {number(row.aRacePoints)} / {number(row.aSprintPoints)}
+                  </td>
+                  <td>{number(row.aPoints)}</td>
+                  <td>{row.bQualifying ?? '—'}</td>
+                  <td>{row.bPosition ?? '—'}</td>
+                  <td>
+                    {number(row.bRacePoints)} / {number(row.bSprintPoints)}
+                  </td>
+                  <td>{number(row.bPoints)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <SourceBar
+        source="Jolpica"
+        fetchedAt={data?.fetchedAt ?? null}
+        stale={data?.stale ?? false}
+        onRefresh={() => {
+          reload();
+          standing.reload();
+        }}
+        refreshing={busy}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,149 @@
+.race-pace-panel {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.pace-driver-selectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.pace-driver-selector {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-top: 2px solid #ff7771;
+  border-radius: 12px;
+  background: var(--panel2);
+  min-width: 0;
+}
+.pace-driver-selector.b {
+  border-top-color: #69b7ff;
+}
+.pace-driver-selector label {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+.pace-driver-selector label > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pace-driver-selector select {
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+.pace-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.pace-controls > label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.pace-controls input {
+  accent-color: var(--accent);
+}
+.pace-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.pace-summary > div {
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: 12px;
+}
+.pace-summary span {
+  font-size: 13px;
+}
+.pace-summary strong {
+  font-size: clamp(23px, 2vw, 30px);
+  font-variant-numeric: tabular-nums;
+}
+.pace-summary small {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.pace-chart {
+  width: 100%;
+  min-width: 0;
+}
+.pace-warnings {
+  display: grid;
+  gap: 7px;
+  padding: 14px 16px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pace-warnings p {
+  margin: 0;
+}
+.pace-tyres {
+  display: grid;
+  gap: 14px;
+}
+.pace-tyres > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+}
+.pace-tyre-track {
+  position: relative;
+  height: 27px;
+  border-radius: 5px;
+  background: var(--panel2);
+  overflow: hidden;
+}
+.pace-tyre-track > span {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0a1420;
+  border-right: 2px solid var(--panel);
+}
+.pace-lap-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--accent);
+  padding: 12px 0;
+}
+.pace-lap-details table {
+  width: 100%;
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .pace-summary {
+    grid-template-columns: 1fr;
+  }
+  .pace-driver-selectors {
+    grid-template-columns: 1fr;
+  }
+  .pace-tyres > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

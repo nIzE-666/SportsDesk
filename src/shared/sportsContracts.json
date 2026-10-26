@@ -1,0 +1,123 @@
+{
+  "teams": [
+    {
+      "name": "Barcelona",
+      "aliases": ["Barcelona", "FC Barcelona", "Barcelona FC", "CF Barcelona", "Барселона"]
+    },
+    { "name": "Real Madrid", "aliases": ["Real Madrid", "Real Madrid CF", "Реал Мадрид"] },
+    { "name": "Liverpool", "aliases": ["Liverpool", "Liverpool FC", "FC Liverpool", "Ливерпуль"] },
+    {
+      "name": "Manchester City",
+      "aliases": ["Manchester City", "Man City", "Manchester City FC", "Манчестер Сити"]
+    },
+    {
+      "name": "Inter Miami",
+      "aliases": [
+        "Inter Miami",
+        "Inter Miami CF",
+        "Club Internacional de Futbol Miami",
+        "Интер Майами"
+      ]
+    },
+    {
+      "name": "Brighton",
+      "aliases": [
+        "Brighton",
+        "Brighton & Hove Albion",
+        "Brighton and Hove Albion",
+        "Brighton Hove Albion",
+        "Брайтон"
+      ]
+    },
+    { "name": "Arsenal", "aliases": ["Arsenal", "Arsenal FC", "FC Arsenal", "Арсенал"] },
+    { "name": "Chelsea", "aliases": ["Chelsea", "Chelsea FC", "FC Chelsea", "Челси"] },
+    {
+      "name": "Atletico Madrid",
+      "aliases": [
+        "Atletico Madrid",
+        "Atlético Madrid",
+        "Atletico de Madrid",
+        "Atlético de Madrid",
+        "Atletico Madrid CF",
+        "Club Atlético de Madrid",
+        "Атлетико Мадрид"
+      ]
+    },
+    {
+      "name": "Real Betis",
+      "aliases": ["Real Betis", "Real Betis Balompie", "Real Betis Balompié", "Betis", "Реал Бетис"]
+    }
+  ],
+  "statuses": {
+    "finished": [
+      "ft",
+      "aet",
+      "fin",
+      "finish",
+      "finished",
+      "ended",
+      "end",
+      "full",
+      "fulltime",
+      "afterpenalties",
+      "afterextratime",
+      "completed",
+      "afterpen",
+      "pen"
+    ],
+    "cancelled": ["cancelled", "canceled", "abandoned", "walkover", "awarded"],
+    "postponed": ["postponed", "suspended", "interrupted", "delayed"],
+    "live": [
+      "live",
+      "inplay",
+      "playing",
+      "progress",
+      "inprogress",
+      "ht",
+      "half",
+      "halftime",
+      "1h",
+      "2h",
+      "1st",
+      "2nd",
+      "1sthalf",
+      "2ndhalf",
+      "firsthalf",
+      "secondhalf",
+      "extratime",
+      "penalties"
+    ],
+    "scheduled": ["sched", "scheduled", "upcoming", "notstarted", "pending", "tbd", "ns"]
+  },
+  "favoriteCases": [
+    { "team": "FC Arsenal", "favorite": "Arsenal", "matches": true },
+    { "team": "Arsenal W", "favorite": "Arsenal", "matches": false },
+    { "team": "Arsenal U21", "favorite": "Arsenal", "matches": false },
+    { "team": "Arsenal Women", "favorite": "Arsenal", "matches": false },
+    { "team": "Barcelona SC", "favorite": "Barcelona", "matches": false },
+    { "team": "FC Barcelona", "favorite": "Barcelona", "matches": true },
+    { "team": "Atlético de Madrid", "favorite": "Atletico Madrid", "matches": true },
+    { "team": "Brighton & Hove Albion", "favorite": "Brighton", "matches": true },
+    { "team": "Inter Miami CF", "favorite": "Inter Miami", "matches": true },
+    { "team": "Bayern München", "favorite": "Bayern Munchen", "matches": true },
+    { "team": "Manchester City U21", "favorite": "Man City", "matches": false },
+    { "team": "Real Madrid Castilla", "favorite": "Real Madrid", "matches": false },
+    { "team": "Liverpool FC", "favorite": "Liverpool", "matches": true },
+    { "team": "Liverpool Montevideo", "favorite": "Liverpool", "matches": false },
+    { "team": "Arsenal", "favorite": "Arsenal W", "matches": false }
+  ],
+  "statusCases": [
+    { "status": "HT", "text": "", "expected": "live" },
+    { "status": "2H", "text": "", "expected": "live" },
+    { "status": "in_progress", "text": "", "expected": "live" },
+    { "status": "First half", "text": "", "expected": "live" },
+    { "status": "not_started", "text": "", "expected": "scheduled" },
+    { "status": "finished", "text": "HT", "expected": "finished" },
+    { "status": "cancelled", "text": "live", "expected": "cancelled" },
+    { "status": "postponed", "text": "live", "expected": "postponed" },
+    { "status": "Brighton", "text": "", "expected": "unknown" },
+    { "status": "other", "text": "FT", "expected": "finished" },
+    { "status": "not playing", "text": "", "expected": "unknown" },
+    { "status": "scheduled", "text": "HT", "expected": "live" }
+  ]
+}
