@@ -3,6 +3,8 @@ import { usePageScroll } from '../../lib/usePageScroll';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, GitBranch, Search, Trophy, X } from 'lucide-react';
 import { ModeHero } from '../../components/ModeHero';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
@@ -67,6 +69,7 @@ function Inner({
   onTabChange: (tab: CupTab) => void;
 }) {
   const storageKey = `sportsdesk.cup.${competition.id}.season`;
+  const broadcast = useInterfaceDesign() === 'broadcast';
   const [season, setSeason] = useState<string>(() => getString(storageKey) || '');
   const [currentSeason, setCurrentSeason] = useState('');
   const rounds =
@@ -302,31 +305,43 @@ function Inner({
 
       {tab === 'overview' && (
         <>
-          <ModeHero
-            mode="ucl"
-            eyebrow={competition.eyebrow}
-            title={
-              <>
-                Европейские
-                <br />
-                <em>вечера.</em>
-              </>
-            }
-            description="Матчи турнира, сетка плей-офф и участники — только подтверждённые данные провайдеров."
-          >
-            <button className="primary-btn" onClick={() => chooseTab('bracket')}>
-              Турнирная сетка <GitBranch size={15} />
-            </button>
-            <button
-              className="hero-secondary"
-              onClick={() => {
-                setStatus('upcoming');
-                chooseTab('matches');
-              }}
+          {broadcast ? (
+            <FeaturedMatchCover
+              sport="ucl"
+              match={selectFeaturedMatch(matches)}
+              league={competition.title}
+              season={season}
+              loading={loading}
+              onOpenMatch={openMatch}
+              onSeeAllMatches={() => chooseTab('matches')}
+            />
+          ) : (
+            <ModeHero
+              mode="ucl"
+              eyebrow={competition.eyebrow}
+              title={
+                <>
+                  Европейские
+                  <br />
+                  <em>вечера.</em>
+                </>
+              }
+              description="Матчи турнира, сетка плей-офф и участники — только подтверждённые данные провайдеров."
             >
-              Ближайшие матчи <ChevronRight size={12} />
-            </button>
-          </ModeHero>
+              <button className="primary-btn" onClick={() => chooseTab('bracket')}>
+                Турнирная сетка <GitBranch size={15} />
+              </button>
+              <button
+                className="hero-secondary"
+                onClick={() => {
+                  setStatus('upcoming');
+                  chooseTab('matches');
+                }}
+              >
+                Ближайшие матчи <ChevronRight size={12} />
+              </button>
+            </ModeHero>
+          )}
           <div className="insights-row ucl-insights">
             <div>
               <Trophy size={18} />

@@ -18,6 +18,8 @@ import { useFavorites, matchInvolvesFavorite } from './FavoritesProvider';
 import type { UseFootballResult } from './useFootballData';
 import type { MatchSummary } from './types';
 import { formatDateTime, getUserTimezone } from './storage';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
 
 export interface DashboardProps {
   data: UseFootballResult;
@@ -52,6 +54,7 @@ function FeedRow({ m, onOpenMatch }: { m: MatchSummary; onOpenMatch: (id: string
 }
 
 export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: DashboardProps) {
+  const broadcast = useInterfaceDesign() === 'broadcast';
   const { teamIds, favoriteTeamNames, seedFromCatalogue, toggleTeam } = useFavorites();
   useEffect(() => seedFromCatalogue(data.teams), [data.teams, seedFromCatalogue]);
   const league = data.leagues.find((l) => l.id === data.selectedLeagueId);
@@ -103,6 +106,28 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
 
   const next = favUpcoming[0];
   const favTotal = favUpcoming.length + favResults.length;
+  const featured = selectFeaturedMatch(
+    data.matches,
+    (m) =>
+      teamIds.includes(m.home_team.id) ||
+      teamIds.includes(m.away_team.id) ||
+      matchInvolvesFavorite(m.home_team.name, m.away_team.name, favoriteTeamNames),
+  );
+  const resultsBlock = leagueResults.length > 0 && (
+    <>
+      <div className={broadcast ? 'section-title' : 'section-title dashboard-sub'}>
+        <h2>
+          <Trophy size={15} /> {broadcast ? 'Последние матчи' : 'Финальный свисток'}
+        </h2>
+        <span className="muted small">{league?.name}</span>
+      </div>
+      <div className="recent-games">
+        {leagueResults.slice(0, 4).map((m) => (
+          <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
+        ))}
+      </div>
+    </>
+  );
 
   // Экспорт в календарь: будущие матчи отслеживаемых команд -> .ics с VALARM.
   const [calBusy, setCalBusy] = useState(false);
@@ -185,112 +210,90 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     }
   };
 
-  return (
-    <div className="football-dashboard">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">ВАШ ЛИЧНЫЙ СПОРТИВНЫЙ ЦЕНТР</span>
-          <h2>
-            Мой обзор<span className="heading-dot">.</span>
-          </h2>
-        </div>
-        <button className="ghost-btn" onClick={data.reload} disabled={data.matchesLoading}>
-          <RefreshCw size={14} /> Обновить
-        </button>
-      </div>
-      <ModeHero
-        eyebrow={`${league?.name ?? 'ФУТБОЛ'} / ${data.season ?? ''}`}
-        title={
-          <>
-            В центре
-            <br />
-            <em>вашей игры.</em>
-          </>
-        }
-        description="Расписание выбранной лиги — слева. Матчи команд, за которыми вы следите, — в отдельной колонке. Всё в одном месте."
-      >
-        <button className="primary-btn" onClick={onSeeAllMatches}>
-          Перейти к матчам <ArrowUpRight size={16} />
-        </button>
-        <span className="hero-small-label">
-          <i className="status-dot" />
-          Ваш сезон начинается здесь
-        </span>
-      </ModeHero>
-      <div className="insights-row">
-        <div>
-          <Heart size={18} />
-          <span>
-            <strong>{favoriteTeamNames.length || '—'}</strong>
-            <small>клубов под присмотром</small>
-          </span>
-        </div>
-        <div>
-          <CalendarDays size={18} />
-          <span>
-            <strong>{leagueUpcoming.length}</strong>
-            <small>матчей {league?.name ?? 'лиги'} впереди</small>
-          </span>
-        </div>
-        <div className="next-insight">
-          <Clock3 size={18} />
-          <span>
-            <strong>
-              {next ? formatDateTime(next.time_utc, getUserTimezone()) : 'Нет ближайшего матча'}
-            </strong>
-            <small>
-              {next ? `${next.home_team.name} — ${next.away_team.name}` : 'Среди ваших клубов'}
-            </small>
-          </span>
-        </div>
-      </div>
-      <div className="calendar-export-bar">
-        <button className="ghost-btn" onClick={() => void exportToCalendar()} disabled={calBusy}>
-          <CalendarPlus size={14} /> {calBusy ? 'Сохраняем…' : 'Матчи в календарь (.ics)'}
-        </button>
-        <span className="muted small">
-          {calMessage ??
-            'Будущие матчи отслеживаемых команд — с системным напоминанием за 15 минут.'}
+  const insightsBlock = (
+    <div className="insights-row">
+      <div>
+        <Heart size={18} />
+        <span>
+          <strong>{favoriteTeamNames.length || '—'}</strong>
+          <small>клубов под присмотром</small>
         </span>
       </div>
-      <section className="favorite-section">
-        <div className="section-title">
-          <h2>
-            <Heart size={16} /> Ваши клубы
-          </h2>
-          <span className="muted small">Звёздочка убирает из списка</span>
-        </div>
-        <div className="club-rail">
-          {favoriteTeams.map((t) => (
-            <div className="club-tile-wrap" key={t.id}>
-              <button
-                className="club-tile"
-                onClick={() => onOpenTeam(t.id, t.name)}
-                title={`Открыть ${t.name}`}
-              >
-                <span className="club-logo">
-                  <TeamBadge name={t.name} imageUrl={t.image_url} size={33} />
-                </span>
-                <strong>{t.name}</strong>
-                <small>{t.leagueName}</small>
-              </button>
-              <button
-                className="club-star"
-                onClick={() => toggleTeam(t.id)}
-                aria-label={`Убрать ${t.name} из отслеживаемых`}
-                title="Убрать из отслеживаемых"
-              >
-                <Star size={12} fill="currentColor" />
-              </button>
-            </div>
-          ))}
-        </div>
-        {!favoriteTeams.length && !data.matchesLoading && (
-          <p className="muted small">
-            Добавьте команды звёздочкой в разделе «Матчи» — они появятся здесь и в колонке справа.
-          </p>
-        )}
-      </section>
+      <div>
+        <CalendarDays size={18} />
+        <span>
+          <strong>{leagueUpcoming.length}</strong>
+          <small>матчей {league?.name ?? 'лиги'} впереди</small>
+        </span>
+      </div>
+      <div className="next-insight">
+        <Clock3 size={18} />
+        <span>
+          <strong>
+            {next ? formatDateTime(next.time_utc, getUserTimezone()) : 'Нет ближайшего матча'}
+          </strong>
+          <small>
+            {next ? `${next.home_team.name} — ${next.away_team.name}` : 'Среди ваших клубов'}
+          </small>
+        </span>
+      </div>
+    </div>
+  );
+
+  const calendarExportBlock = (
+    <div className="calendar-export-bar">
+      <button className="ghost-btn" onClick={() => void exportToCalendar()} disabled={calBusy}>
+        <CalendarPlus size={14} /> {calBusy ? 'Сохраняем…' : 'Матчи в календарь (.ics)'}
+      </button>
+      <span className="muted small">
+        {calMessage ?? 'Будущие матчи отслеживаемых команд — с системным напоминанием за 15 минут.'}
+      </span>
+    </div>
+  );
+
+  const favoriteClubsBlock = (
+    <section className="favorite-section">
+      <div className="section-title">
+        <h2>
+          <Heart size={16} /> Ваши клубы
+        </h2>
+        <span className="muted small">Звёздочка убирает из списка</span>
+      </div>
+      <div className="club-rail">
+        {favoriteTeams.map((t) => (
+          <div className="club-tile-wrap" key={t.id}>
+            <button
+              className="club-tile"
+              onClick={() => onOpenTeam(t.id, t.name)}
+              title={`Открыть ${t.name}`}
+            >
+              <span className="club-logo">
+                <TeamBadge name={t.name} imageUrl={t.image_url} size={33} />
+              </span>
+              <strong>{t.name}</strong>
+              <small>{t.leagueName}</small>
+            </button>
+            <button
+              className="club-star"
+              onClick={() => toggleTeam(t.id)}
+              aria-label={`Убрать ${t.name} из отслеживаемых`}
+              title="Убрать из отслеживаемых"
+            >
+              <Star size={12} fill="currentColor" />
+            </button>
+          </div>
+        ))}
+      </div>
+      {!favoriteTeams.length && !data.matchesLoading && (
+        <p className="muted small">
+          Добавьте команды звёздочкой в разделе «Матчи» — они появятся здесь и в колонке справа.
+        </p>
+      )}
+    </section>
+  );
+
+  const noticesBlock = (
+    <>
       {data.matchesLoading && data.matches.length === 0 && data.allMatches.length === 0 && (
         <LoadingBlock label="Собираем ваш спортивный день…" rows={4} />
       )}
@@ -301,66 +304,128 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           onRetry={data.reload}
         />
       )}
-      <div className="editorial-grid">
-        <section className="panel schedule-card">
-          <div className="section-title">
+    </>
+  );
+
+  const editorialBlock = (
+    <div className="editorial-grid">
+      <section className="panel schedule-card">
+        {broadcast && resultsBlock}
+        <div
+          className={
+            broadcast && leagueResults.length ? 'section-title dashboard-sub' : 'section-title'
+          }
+        >
+          <h2>
+            <CalendarDays size={17} />{' '}
+            {broadcast ? 'Дальше по расписанию' : `${league?.name ?? 'Лига'} · расписание`}
+          </h2>
+          <button className="text-link" onClick={onSeeAllMatches}>
+            Все матчи <ChevronRight size={14} />
+          </button>
+        </div>
+        <div className="game-list">
+          {leagueUpcoming.slice(0, broadcast ? 4 : 7).map((m) => (
+            <MatchRow key={m.id} match={m} onClick={() => onOpenMatch(m.id)} />
+          ))}
+        </div>
+        {data.matches.length > 0 && !leagueUpcoming.length && !data.matchesLoading && (
+          <EmptyBlock
+            title="Следим за расписанием"
+            message={`Будущие матчи ${league?.name ?? 'лиги'} в сезоне ${data.season ?? ''} пока не опубликованы.`}
+          />
+        )}
+        {!broadcast && resultsBlock}
+      </section>
+      <section className="panel recent-card">
+        <div className="section-title">
+          <h2>
+            <Heart size={17} /> За кем вы следите
+          </h2>
+          <span className="muted small">{favTotal ? `${favTotal} матчей` : ''}</span>
+        </div>
+        <div className="recent-games">
+          {favUpcoming.slice(0, 4).map((m) => (
+            <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
+          ))}
+          {favResults.slice(0, 3).map((m) => (
+            <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
+          ))}
+        </div>
+        {data.allMatches.length > 0 && !favTotal && !data.matchesLoading && (
+          <EmptyBlock
+            title="Пока никого под присмотром"
+            message="Отметьте команды звёздочкой в разделе «Матчи» — их расписание и результаты появятся в этой колонке."
+          />
+        )}
+      </section>
+    </div>
+  );
+
+  return (
+    <div className="football-dashboard">
+      <div className="section-heading">
+        <div>
+          {!broadcast && <span className="eyebrow">ВАШ ЛИЧНЫЙ СПОРТИВНЫЙ ЦЕНТР</span>}
+          {broadcast ? (
+            <h1>Ваш спорт сегодня</h1>
+          ) : (
             <h2>
-              <CalendarDays size={17} /> {league?.name ?? 'Лига'} · расписание
+              Мой обзор<span className="heading-dot">.</span>
             </h2>
-            <button className="text-link" onClick={onSeeAllMatches}>
-              Все матчи <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="game-list">
-            {leagueUpcoming.slice(0, 7).map((m) => (
-              <MatchRow key={m.id} match={m} onClick={() => onOpenMatch(m.id)} />
-            ))}
-          </div>
-          {data.matches.length > 0 && !leagueUpcoming.length && !data.matchesLoading && (
-            <EmptyBlock
-              title="Следим за расписанием"
-              message={`Будущие матчи ${league?.name ?? 'лиги'} в сезоне ${data.season ?? ''} пока не опубликованы.`}
-            />
           )}
-          {leagueResults.length > 0 && (
-            <>
-              <div className="section-title dashboard-sub">
-                <h2>
-                  <Trophy size={15} /> Финальный свисток
-                </h2>
-                <span className="muted small">{league?.name}</span>
-              </div>
-              <div className="recent-games">
-                {leagueResults.slice(0, 4).map((m) => (
-                  <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-        <section className="panel recent-card">
-          <div className="section-title">
-            <h2>
-              <Heart size={17} /> За кем вы следите
-            </h2>
-            <span className="muted small">{favTotal ? `${favTotal} матчей` : ''}</span>
-          </div>
-          <div className="recent-games">
-            {favUpcoming.slice(0, 4).map((m) => (
-              <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
-            ))}
-            {favResults.slice(0, 3).map((m) => (
-              <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
-            ))}
-          </div>
-          {data.allMatches.length > 0 && !favTotal && !data.matchesLoading && (
-            <EmptyBlock
-              title="Пока никого под присмотром"
-              message="Отметьте команды звёздочкой в разделе «Матчи» — их расписание и результаты появятся в этой колонке."
-            />
-          )}
-        </section>
+        </div>
+        <button className="ghost-btn" onClick={data.reload} disabled={data.matchesLoading}>
+          <RefreshCw size={14} /> Обновить
+        </button>
       </div>
+      {broadcast ? (
+        <FeaturedMatchCover
+          match={featured}
+          league={league?.name ?? 'Футбол'}
+          season={data.season}
+          loading={data.matchesLoading}
+          onOpenMatch={onOpenMatch}
+          onSeeAllMatches={onSeeAllMatches}
+        />
+      ) : (
+        <ModeHero
+          eyebrow={`${league?.name ?? 'ФУТБОЛ'} / ${data.season ?? ''}`}
+          title={
+            <>
+              В центре
+              <br />
+              <em>вашей игры.</em>
+            </>
+          }
+          description="Расписание выбранной лиги — слева. Матчи команд, за которыми вы следите, — в отдельной колонке. Всё в одном месте."
+        >
+          <button className="primary-btn" onClick={onSeeAllMatches}>
+            Перейти к матчам <ArrowUpRight size={16} />
+          </button>
+          <span className="hero-small-label">
+            <i className="status-dot" />
+            Ваш сезон начинается здесь
+          </span>
+        </ModeHero>
+      )}
+      {broadcast ? (
+        <>
+          {noticesBlock}
+          {editorialBlock}
+          {favoriteClubsBlock}
+          {insightsBlock}
+          {calendarExportBlock}
+        </>
+      ) : (
+        <>
+          {insightsBlock}
+          {calendarExportBlock}
+          {favoriteClubsBlock}
+          {noticesBlock}
+          {editorialBlock}
+        </>
+      )}
       <div className="source-foot">
         Матчи и подробная статистика: PitchAPI
         {data.fetchedAt ? ` · Обновлено ${formatDateTime(data.fetchedAt, getUserTimezone())}` : ''}

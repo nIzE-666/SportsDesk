@@ -24,6 +24,7 @@ import { BackupPanel } from './BackupPanel';
 import { ShortcutControl } from './ShortcutControl';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { profileEntries, allowedProfileKey } from './profileBackup';
+import { DesignChooser } from '../../components/DesignChooser';
 
 interface SecretStatus {
   pitch: boolean;
@@ -432,6 +433,33 @@ export function SettingsView() {
         </div>
       )}
 
+      <section className="panel settings-section">
+        <div className="section-title">
+          <h2>{lightTheme ? <Sun size={15} /> : <Moon size={15} />} Внешний вид</h2>
+          <span className="chip">{lightTheme ? 'Светлая' : 'Тёмная'}</span>
+        </div>
+        <DesignChooser />
+        <div className="settings-actions">
+          <button
+            className="ghost-btn"
+            onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}
+          >
+            {lightTheme ? 'Перейти на тёмную' : 'Перейти на светлую'}
+          </button>
+          <button
+            className="ghost-btn"
+            onClick={() => setDensity(compactTables ? 'default' : 'compact')}
+            aria-pressed={compactTables}
+          >
+            <Rows3 size={14} /> {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
+          </button>
+        </div>
+        <p className="settings-note">
+          Тема и плотность применяются сразу и запоминаются. На Windows 11 окно также использует
+          системный Mica-эффект, если он доступен.
+        </p>
+      </section>
+
       <BackupPanel />
       <DiagnosticsPanel />
       <section className="panel settings-section">
@@ -470,32 +498,6 @@ export function SettingsView() {
           </button>
         </div>
         {keyMessage && <p className="settings-note">{keyMessage}</p>}
-      </section>
-
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h2>{lightTheme ? <Sun size={15} /> : <Moon size={15} />} Внешний вид</h2>
-          <span className="chip">{lightTheme ? 'Светлая' : 'Тёмная'}</span>
-        </div>
-        <div className="settings-actions">
-          <button
-            className="ghost-btn"
-            onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}
-          >
-            {lightTheme ? 'Перейти на тёмную' : 'Перейти на светлую'}
-          </button>
-          <button
-            className="ghost-btn"
-            onClick={() => setDensity(compactTables ? 'default' : 'compact')}
-            aria-pressed={compactTables}
-          >
-            <Rows3 size={14} /> {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
-          </button>
-        </div>
-        <p className="settings-note">
-          Тема и плотность применяются сразу и запоминаются. На Windows 11 окно также использует
-          системный Mica-эффект, если он доступен.
-        </p>
       </section>
 
       <section className="panel settings-section">

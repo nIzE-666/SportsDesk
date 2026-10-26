@@ -55,12 +55,11 @@ fn decode_hex(raw: &str) -> Result<Vec<u8>, SecretError> {
         .trim_start_matches('\u{feff}')
         .lines()
         .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .last()
+        .rfind(|s| !s.is_empty())
         .ok_or(SecretError::Unreadable)?;
     if hex.is_empty()
         || hex.len() > 65_536
-        || hex.len() % 2 != 0
+        || !hex.len().is_multiple_of(2)
         || !hex.bytes().all(|b| b.is_ascii_hexdigit())
     {
         return Err(SecretError::Unreadable);
@@ -124,7 +123,7 @@ mod dpapi {
         }
         .map_err(|_| SecretError::Unreadable)?;
         let bytes = output.bytes();
-        if bytes.is_empty() || bytes.len() % 2 != 0 {
+        if bytes.is_empty() || !bytes.len().is_multiple_of(2) {
             return Err(SecretError::Unreadable);
         }
         let mut units: Vec<u16> = bytes

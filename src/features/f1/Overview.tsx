@@ -22,6 +22,9 @@ import { teamColor, withAlpha } from './teamColors';
 import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
 import { useSeason } from './SeasonContext';
 import { SourceBar, State, TeamDot, DriverName } from './shared';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { EventCover } from '../../components/EventCover';
+import { racePresentation } from './calendarModel';
 
 /**
  * Latest verified race results.
@@ -65,23 +68,14 @@ function transformLatest(payload: unknown): LatestRaceData {
 function SessionRow({ label, d }: { label: string; d?: { date?: string; time?: string } }) {
   const dt = d?.date ? parseUtc(d.date, d.time) : null;
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '110px minmax(0,1fr)',
-        gap: 8,
-        fontSize: 12.5,
-        padding: '4px 0',
-        borderBottom: '1px solid rgba(38,40,46,0.5)',
-      }}
-    >
+    <div className="f1-session-row">
       <span className="f1-muted">{label}</span>
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(dt)}</span>
     </div>
   );
 }
 
-function WeekendCard({ race }: { race: JolpicaRace }) {
+function WeekendCard({ race, broadcast = false }: { race: JolpicaRace; broadcast?: boolean }) {
   const sessions: Array<{ label: string; d?: { date?: string; time?: string } }> = [];
   if (race.FirstPractice) sessions.push({ label: 'Практика 1', d: race.FirstPractice });
   if (race.SprintQualifying || race.SprintShootout)
@@ -101,9 +95,11 @@ function WeekendCard({ race }: { race: JolpicaRace }) {
     <div className="f1-card hl">
       <div className="f1-card-head">
         <div>
-          <div className="f1-eyebrow">Следующий Гран-при · Раунд {race.round}</div>
+          <div className="f1-eyebrow">
+            {broadcast ? racePresentation(race).title : 'Следующий Гран-при'} · Раунд {race.round}
+          </div>
           <h2 className="f1-title" style={{ marginTop: 4 }}>
-            {race.raceName}
+            {broadcast ? 'Расписание уикенда' : race.raceName}
           </h2>
           <div className="f1-muted" style={{ marginTop: 3 }}>
             {circuit.circuitName}
@@ -422,7 +418,8 @@ interface RosterRow {
  * de-duplicate by driverId. If latest results are unavailable we do NOT claim
  * that Constructors[] season history is the current roster.
  */
-export function Overview() {
+export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) => void } = {}) {
+  const broadcast = useInterfaceDesign() === 'broadcast';
   const { year } = useSeason();
   const schedule = useApiResource(
     `${year}-overview-schedule`,
@@ -545,192 +542,76 @@ export function Overview() {
 
   // Show the "no current lineup" hint when latest results missing.
   const showLineupWarning = !latest.loading && !latestHasResults && favTeams.length > 0;
+  const coverRace = next ?? lastFinishedRace;
 
   return (
-    <div className="f1-grid" style={{ gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-        {schedule.loading && !schedule.data ? (
-          <State kind="loading" title="Загрузка календаря сезона…" />
-        ) : null}
-        {schedule.error && !schedule.data ? (
-          <State kind="error" title="Календарь недоступен">
-            {schedule.error}
-          </State>
-        ) : null}
-        {schedule.data && races.length === 0 ? (
-          <State kind="empty" title={`Календарь сезона ${year} пуст`}>
-            Провайдер не вернул этапы для этого сезона.
-          </State>
-        ) : null}
-        {schedule.data && races.length > 0 && !next ? (
-          <State kind="empty" title={`Сезон ${year} завершён`}>
-            Все гонки в календаре по данным провайдера уже прошли.
-          </State>
-        ) : null}
-        {next ? <WeekendCard race={next} /> : null}
-
-        {latest.loading && !latestData ? (
-          <State kind="loading" title="Загрузка результатов последней гонки…" />
-        ) : null}
-        {latest.error && !latestData ? (
-          <State kind="error" title="Результаты последней гонки недоступны">
-            {latest.error}
-          </State>
-        ) : null}
-        {!latest.loading && !latest.error ? (
-          <LatestRaceCard
-            last={latestData ?? EMPTY_LATEST}
-            fallbackRound={lastFinishedRace ? Number(lastFinishedRace.round) : null}
-          />
-        ) : null}
-        {latestData ? (
-          <SourceBar
-            source={latest.source}
-            fetchedAt={latest.fetchedAt}
-            stale={latest.stale}
-            onRefresh={latest.reload}
-            refreshing={latest.loading}
-          />
-        ) : null}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-        <div className="f1-card">
-          <div className="f1-card-head">
-            <div className="f1-eyebrow">Чемпионат · Сезон {year}</div>
-            <Users size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
-          </div>
-          {dStand.loading && !dStand.data ? (
-            <State kind="loading" title="Загрузка лидеров…" />
+    <>
+      {broadcast && (
+        <EventCover
+          sport="f1"
+          eyebrow={`Формула 1 · Сезон ${year}${coverRace ? ` · Этап ${coverRace.round}` : ''}`}
+        >
+          <h2>{coverRace ? racePresentation(coverRace).title : `Календарь сезона ${year}`}</h2>
+          {coverRace ? (
+            <>
+              <strong>{formatDateTime(parseUtc(coverRace.date, coverRace.time))}</strong>
+              <p>{coverRace.Circuit.circuitName}</p>
+              <div className="event-cover-actions">
+                {onOpenCalendar && (
+                  <button className="primary-btn" onClick={() => onOpenCalendar(coverRace.round)}>
+                    Открыть уикенд <CalendarClock size={16} />
+                  </button>
+                )}
+                <span className="event-cover-status">
+                  {next ? 'Ближайшая гонка' : 'Последний прошедший этап'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p>
+              {schedule.loading
+                ? 'Загружаем календарь и расписание сессий.'
+                : 'Состояние календаря и данные источников показаны ниже.'}
+            </p>
+          )}
+        </EventCover>
+      )}
+      <div className="f1-grid" style={{ gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          {schedule.loading && !schedule.data ? (
+            <State kind="loading" title="Загрузка календаря сезона…" />
           ) : null}
-          {dStand.error && !dStand.data ? (
-            <State kind="error" title="Таблица пилотов недоступна">
-              {dStand.error}
+          {schedule.error && !schedule.data ? (
+            <State kind="error" title="Календарь недоступен">
+              {schedule.error}
             </State>
           ) : null}
-          {leadDriver ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div>
-                <div className="f1-muted" style={{ fontSize: 11 }}>
-                  Лидер пилотов
-                </div>
-                <div style={{ fontSize: 16, marginTop: 2 }}>
-                  <DriverName
-                    givenName={leadDriver.Driver.givenName}
-                    familyName={leadDriver.Driver.familyName}
-                  />
-                </div>
-                <div className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {leadDriver.Constructors?.[0] ? (
-                    <TeamDot color={teamColor(leadDriver.Constructors[0].constructorId)} />
-                  ) : null}
-                  {leadDriver.Constructors?.[0]?.name ?? '—'}
-                </div>
-              </div>
-              <div className="f1-kv">
-                <span>
-                  Очки: <b>{leadDriver.points ?? '—'}</b>
-                </span>
-                <span>
-                  Победы: <b>{leadDriver.wins ?? '—'}</b>
-                </span>
-              </div>
-            </div>
+          {schedule.data && races.length === 0 ? (
+            <State kind="empty" title={`Календарь сезона ${year} пуст`}>
+              Провайдер не вернул этапы для этого сезона.
+            </State>
           ) : null}
-          {leadCons ? (
-            <div style={{ borderTop: '1px solid var(--line,#26282e)', paddingTop: 10 }}>
-              <div className="f1-muted" style={{ fontSize: 11 }}>
-                Лидер Кубка конструкторов
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                <TeamDot color={teamColor(leadCons.Constructor.constructorId)} />
-                <b style={{ color: 'var(--text,#fff)' }}>{leadCons.Constructor.name}</b>
-              </div>
-              <div className="f1-kv" style={{ marginTop: 4 }}>
-                <span>
-                  Очки: <b>{leadCons.points ?? '—'}</b>
-                </span>
-                <span>
-                  Победы: <b>{leadCons.wins ?? '—'}</b>
-                </span>
-              </div>
-            </div>
+          {schedule.data && races.length > 0 && !next ? (
+            <State kind="empty" title={`Сезон ${year} завершён`}>
+              Все гонки в календаре по данным провайдера уже прошли.
+            </State>
           ) : null}
-          <div className="f1-muted" style={{ fontSize: 11.5 }}>
-            Пилотов в чемпионате: {rule}
-          </div>
-          <SourceBar
-            source={`${dStand.source} / ${cStand.source}`}
-            fetchedAt={dStand.fetchedAt ?? cStand.fetchedAt}
-            stale={dStand.stale || cStand.stale}
-            onRefresh={() => {
-              dStand.reload();
-              cStand.reload();
-            }}
-            refreshing={dStand.loading || cStand.loading}
-          />
-        </div>
+          {next ? <WeekendCard race={next} broadcast={broadcast} /> : null}
 
-        <div className="f1-card">
-          <div className="f1-card-head">
-            <div className="f1-eyebrow">Пилоты избранных команд и избранные пилоты</div>
-            <CalendarClock size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
-          </div>
-          <div className="f1-muted" style={{ fontSize: 11.5 }}>
-            {latestHasResults && latestLabel ? (
-              <span>
-                Текущий состав по последней проверенной гонке:{' '}
-                <b style={{ color: 'var(--text,#fff)' }}>{latestLabel}</b>. Избранные команды:{' '}
-                {favTeams.length > 0
-                  ? favTeams
-                      .map(
-                        (id) =>
-                          constructorStandings.find((c) => c.Constructor.constructorId === id)
-                            ?.Constructor.name ?? id,
-                      )
-                      .join(', ')
-                  : 'не выбраны'}
-                .
-              </span>
-            ) : (
-              <span>
-                Результаты последней гонки недоступны — состав избранных команд не может быть
-                подтверждён. Показаны только избранные пилоты из таблицы чемпионата.
-              </span>
-            )}
-          </div>
-          {latestHasResults && roster.rows.length === 0 ? (
-            <State kind="empty" title="В последней гонке нет пилотов избранных команд">
-              Ни один пилот с избранными командами не найден в результатах. Проверьте избранные
-              команды и обновите данные.
+          {latest.loading && !latestData ? (
+            <State kind="loading" title="Загрузка результатов последней гонки…" />
+          ) : null}
+          {latest.error && !latestData ? (
+            <State kind="error" title="Результаты последней гонки недоступны">
+              {latest.error}
             </State>
           ) : null}
-          {!latestHasResults && roster.rows.length === 0 ? (
-            <State kind="empty" title="Нет данных для избранных пилотов">
-              Отметьте пилотов и команды ★ во вкладке «Зачёты».
-            </State>
+          {!latest.loading && !latest.error ? (
+            <LatestRaceCard
+              last={latestData ?? EMPTY_LATEST}
+              fallbackRound={lastFinishedRace ? Number(lastFinishedRace.round) : null}
+            />
           ) : null}
-          {showLineupWarning ? (
-            <div className="f1-pill warn">
-              Состав избранных команд не подтверждён последней гонкой
-            </div>
-          ) : null}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {roster.rows.map(({ standing, currentTeam }) => {
-              const entry = latestByDriver.get(standing.Driver.driverId) ?? null;
-              return (
-                <FavoriteDriverCard
-                  key={standing.Driver.driverId}
-                  standing={standing}
-                  currentTeam={currentTeam}
-                  lineupSourceLabel={latestHasResults && currentTeam ? latestLabel : null}
-                  latestRound={latestData?.round ?? null}
-                  latestRaceName={latestData?.race?.raceName ?? null}
-                  latestEntry={entry}
-                />
-              );
-            })}
-          </div>
           {latestData ? (
             <SourceBar
               source={latest.source}
@@ -742,40 +623,192 @@ export function Overview() {
           ) : null}
         </div>
 
-        <div className="f1-card">
-          <div className="f1-eyebrow">Избранные команды</div>
-          {favTeams.length === 0 ? (
-            <State kind="empty" title="Нет избранных команд">
-              Отметьте команды в таблице конструкторов.
-            </State>
-          ) : favConstructorRows.length === 0 && cStand.data ? (
-            <div className="f1-muted" style={{ fontSize: 12 }}>
-              Избранные команды отсутствуют в таблице сезона {year}.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          <div className="f1-card">
+            <div className="f1-card-head">
+              <div className="f1-eyebrow">Чемпионат · Сезон {year}</div>
+              <Users size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
             </div>
-          ) : (
-            <div className="f1-list">
-              {favConstructorRows.map((c) => (
-                <div key={c.Constructor.constructorId} className="f1-row">
-                  <span className="f1-pos">{c.position ?? '—'}</span>
-                  <TeamDot color={teamColor(c.Constructor.constructorId)} />
-                  <span
-                    style={{
-                      minWidth: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+            {dStand.loading && !dStand.data ? (
+              <State kind="loading" title="Загрузка лидеров…" />
+            ) : null}
+            {dStand.error && !dStand.data ? (
+              <State kind="error" title="Таблица пилотов недоступна">
+                {dStand.error}
+              </State>
+            ) : null}
+            {leadDriver ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <div className="f1-muted" style={{ fontSize: 11 }}>
+                    Лидер пилотов
+                  </div>
+                  <div style={{ fontSize: 16, marginTop: 2 }}>
+                    <DriverName
+                      givenName={leadDriver.Driver.givenName}
+                      familyName={leadDriver.Driver.familyName}
+                    />
+                  </div>
+                  <div
+                    className="f1-muted"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
-                    {c.Constructor.name}
-                  </span>
-                  <span className="f1-points">{c.points ?? '—'}</span>
+                    {leadDriver.Constructors?.[0] ? (
+                      <TeamDot color={teamColor(leadDriver.Constructors[0].constructorId)} />
+                    ) : null}
+                    {leadDriver.Constructors?.[0]?.name ?? '—'}
+                  </div>
                 </div>
-              ))}
+                <div className="f1-kv">
+                  <span>
+                    Очки: <b>{leadDriver.points ?? '—'}</b>
+                  </span>
+                  <span>
+                    Победы: <b>{leadDriver.wins ?? '—'}</b>
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            {leadCons ? (
+              <div style={{ borderTop: '1px solid var(--line,#26282e)', paddingTop: 10 }}>
+                <div className="f1-muted" style={{ fontSize: 11 }}>
+                  Лидер Кубка конструкторов
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                  <TeamDot color={teamColor(leadCons.Constructor.constructorId)} />
+                  <b style={{ color: 'var(--text,#fff)' }}>{leadCons.Constructor.name}</b>
+                </div>
+                <div className="f1-kv" style={{ marginTop: 4 }}>
+                  <span>
+                    Очки: <b>{leadCons.points ?? '—'}</b>
+                  </span>
+                  <span>
+                    Победы: <b>{leadCons.wins ?? '—'}</b>
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            <div className="f1-muted" style={{ fontSize: 11.5 }}>
+              Пилотов в чемпионате: {rule}
             </div>
-          )}
+            <SourceBar
+              source={`${dStand.source} / ${cStand.source}`}
+              fetchedAt={dStand.fetchedAt ?? cStand.fetchedAt}
+              stale={dStand.stale || cStand.stale}
+              onRefresh={() => {
+                dStand.reload();
+                cStand.reload();
+              }}
+              refreshing={dStand.loading || cStand.loading}
+            />
+          </div>
+
+          <div className="f1-card">
+            <div className="f1-card-head">
+              <div className="f1-eyebrow">Пилоты избранных команд и избранные пилоты</div>
+              <CalendarClock size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
+            </div>
+            <div className="f1-muted" style={{ fontSize: 11.5 }}>
+              {latestHasResults && latestLabel ? (
+                <span>
+                  Текущий состав по последней проверенной гонке:{' '}
+                  <b style={{ color: 'var(--text,#fff)' }}>{latestLabel}</b>. Избранные команды:{' '}
+                  {favTeams.length > 0
+                    ? favTeams
+                        .map(
+                          (id) =>
+                            constructorStandings.find((c) => c.Constructor.constructorId === id)
+                              ?.Constructor.name ?? id,
+                        )
+                        .join(', ')
+                    : 'не выбраны'}
+                  .
+                </span>
+              ) : (
+                <span>
+                  Результаты последней гонки недоступны — состав избранных команд не может быть
+                  подтверждён. Показаны только избранные пилоты из таблицы чемпионата.
+                </span>
+              )}
+            </div>
+            {latestHasResults && roster.rows.length === 0 ? (
+              <State kind="empty" title="В последней гонке нет пилотов избранных команд">
+                Ни один пилот с избранными командами не найден в результатах. Проверьте избранные
+                команды и обновите данные.
+              </State>
+            ) : null}
+            {!latestHasResults && roster.rows.length === 0 ? (
+              <State kind="empty" title="Нет данных для избранных пилотов">
+                Отметьте пилотов и команды ★ во вкладке «Зачёты».
+              </State>
+            ) : null}
+            {showLineupWarning ? (
+              <div className="f1-pill warn">
+                Состав избранных команд не подтверждён последней гонкой
+              </div>
+            ) : null}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {roster.rows.map(({ standing, currentTeam }) => {
+                const entry = latestByDriver.get(standing.Driver.driverId) ?? null;
+                return (
+                  <FavoriteDriverCard
+                    key={standing.Driver.driverId}
+                    standing={standing}
+                    currentTeam={currentTeam}
+                    lineupSourceLabel={latestHasResults && currentTeam ? latestLabel : null}
+                    latestRound={latestData?.round ?? null}
+                    latestRaceName={latestData?.race?.raceName ?? null}
+                    latestEntry={entry}
+                  />
+                );
+              })}
+            </div>
+            {latestData ? (
+              <SourceBar
+                source={latest.source}
+                fetchedAt={latest.fetchedAt}
+                stale={latest.stale}
+                onRefresh={latest.reload}
+                refreshing={latest.loading}
+              />
+            ) : null}
+          </div>
+
+          <div className="f1-card">
+            <div className="f1-eyebrow">Избранные команды</div>
+            {favTeams.length === 0 ? (
+              <State kind="empty" title="Нет избранных команд">
+                Отметьте команды в таблице конструкторов.
+              </State>
+            ) : favConstructorRows.length === 0 && cStand.data ? (
+              <div className="f1-muted" style={{ fontSize: 12 }}>
+                Избранные команды отсутствуют в таблице сезона {year}.
+              </div>
+            ) : (
+              <div className="f1-list">
+                {favConstructorRows.map((c) => (
+                  <div key={c.Constructor.constructorId} className="f1-row">
+                    <span className="f1-pos">{c.position ?? '—'}</span>
+                    <TeamDot color={teamColor(c.Constructor.constructorId)} />
+                    <span
+                      style={{
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.Constructor.name}
+                    </span>
+                    <span className="f1-points">{c.points ?? '—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

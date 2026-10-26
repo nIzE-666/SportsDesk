@@ -2,6 +2,8 @@ import { CalendarDays } from 'lucide-react';
 import { f1Nav as TABS } from '../../lib/navigationMetadata';
 import { useState } from 'react';
 import { ModeHero } from '../../components/ModeHero';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { viewState } from '../../lib/viewState';
 import { PageFrame } from '../../components/PageFrame';
 import { Calendar } from './Calendar';
 import { Compare } from './Compare';
@@ -28,11 +30,12 @@ function F1Shell({
     onTabChange?.(next);
   };
   const { year, setYear, years } = useSeason();
+  const broadcast = useInterfaceDesign() === 'broadcast';
 
   return (
     <PageFrame page={`f1.${year}.${tab}`}>
       <div className="f1-root">
-        {tab === 'overview' && (
+        {tab === 'overview' && !broadcast && (
           <ModeHero
             mode="f1"
             eyebrow={`FORMULA 1 / СЕЗОН ${year}`}
@@ -54,31 +57,40 @@ function F1Shell({
           </ModeHero>
         )}
         <div className="f1-toolbar">
-          <div
-            className="f1-tabs"
-            style={{ flex: '1 1 auto', borderBottom: 'none', paddingBottom: 0 }}
-            role="tablist"
-            aria-label="Разделы Формулы-1"
-          >
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className="f1-tab"
-                  onClick={() => setTab(t.id)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Icon size={14} aria-hidden="true" />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
+          {broadcast && (
+            <div className="broadcast-f1-heading">
+              <h1>
+                {tab === 'overview' ? 'Ваш гоночный уикенд' : TABS.find((t) => t.id === tab)?.label}
+              </h1>
+            </div>
+          )}
+          {(!broadcast || !onTabChange) && (
+            <div
+              className="f1-tabs"
+              style={{ flex: '1 1 auto', borderBottom: 'none', paddingBottom: 0 }}
+              role="tablist"
+              aria-label="Разделы Формулы-1"
+            >
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                const active = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className="f1-tab"
+                    onClick={() => setTab(t.id)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Icon size={14} aria-hidden="true" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Сезон
             <select
@@ -96,7 +108,15 @@ function F1Shell({
           </label>
         </div>
 
-        {tab === 'overview' ? <Overview /> : null}
+        {tab === 'overview' ? (
+          <Overview
+            onOpenCalendar={(round) => {
+              viewState.write(`f1.${year}.calendar.round`, Number(round));
+              viewState.write(`f1.${year}.calendar.filter`, 'all');
+              setTab('calendar');
+            }}
+          />
+        ) : null}
         {tab === 'calendar' ? <Calendar /> : null}
         {tab === 'standings' ? <Standings /> : null}
         {tab === 'compare' ? <Compare /> : null}

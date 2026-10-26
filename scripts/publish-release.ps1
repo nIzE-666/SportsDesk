@@ -38,12 +38,18 @@ Push-Location $root
 try {
   npx prettier --write package.json
   if ($LASTEXITCODE -ne 0) { throw 'Package formatting failed' }
+  npm run format:check
+  if ($LASTEXITCODE -ne 0) { throw 'Source formatting failed' }
+  cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+  if ($LASTEXITCODE -ne 0) { throw 'Rust formatting failed' }
   npm run lint
   if ($LASTEXITCODE -ne 0) { throw 'Lint failed' }
   npm test
   if ($LASTEXITCODE -ne 0) { throw 'Frontend tests failed' }
   cargo test --manifest-path src-tauri/Cargo.toml --lib
   if ($LASTEXITCODE -ne 0) { throw 'Rust tests failed' }
+  cargo clippy --manifest-path src-tauri/Cargo.toml --lib --no-deps -- -D warnings
+  if ($LASTEXITCODE -ne 0) { throw 'Rust lint failed' }
 } finally { Pop-Location }
 
 $oldKey = $env:TAURI_SIGNING_PRIVATE_KEY

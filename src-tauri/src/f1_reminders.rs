@@ -25,7 +25,9 @@ use tauri_plugin_notification::NotificationExt;
 use tokio::time::sleep;
 
 use crate::bridge::{fetch_with_cache, AppStateInner};
-use crate::cache::{iso_utc_ms, now_ms};
+#[cfg(test)]
+use crate::cache::iso_utc_ms;
+use crate::cache::now_ms;
 use crate::poller::Poller;
 
 const STARTUP_DELAY: Duration = Duration::from_secs(5);
@@ -98,7 +100,7 @@ fn parse_utc_ms(date: &str, time: &str) -> Option<i64> {
     let doy = (153 * mp + 2) / 5 + day - 1;
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     let days = era * 146_097 + doe - 719_468;
-    Some(((days * 86_400 + hour * 3600 + minute * 60 + second) * 1000) as i64)
+    Some((days * 86_400 + hour * 3600 + minute * 60 + second) * 1000)
 }
 
 fn is_leap(year: i64) -> bool {

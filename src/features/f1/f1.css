@@ -1,4 +1,12 @@
 /* F1 scoped styles. Uses shared tokens from app with graphite/red overrides. */
+.f1-session-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(38, 40, 46, 0.5);
+}
 
 .f1-root {
   --bg: #0a0b0d;

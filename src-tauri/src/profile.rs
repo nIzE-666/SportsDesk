@@ -20,14 +20,7 @@ pub struct Profile {
 
 /// Only these key prefixes/values are exported; anything else (tokens,
 /// session ids) is rejected so a future key cannot leak by accident.
-
-/// Explicitly never exported even under the allowed prefix.
-const FORBIDDEN_KEYS: &[&str] = &[];
-
 pub fn is_allowed_key(key: &str) -> bool {
-    if FORBIDDEN_KEYS.contains(&key) {
-        return false;
-    }
     let Some(name) = key.strip_prefix("sportsdesk.") else {
         return false;
     };
@@ -47,6 +40,7 @@ pub fn is_allowed_key(key: &str) -> bool {
     }
     [
         "scheme",
+        "design",
         "sport",
         "league",
         "density",
@@ -202,5 +196,6 @@ mod tests {
         assert!(build_profile(&vec![("evil.token".into(), "x".into())]).is_err());
         assert!(!is_allowed_key("evil"));
         assert!(is_allowed_key("sportsdesk.scheme"));
+        assert!(is_allowed_key("sportsdesk.design"));
     }
 }

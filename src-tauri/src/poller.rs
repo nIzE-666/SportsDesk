@@ -208,12 +208,12 @@ fn favorite_ids(m: &FlatMatch, cfg: &PollConfig) -> Vec<String> {
         if cfg
             .favorite_teams
             .iter()
-            .any(|t| crate::sports::favorite_name(&t.name, &[name.clone()]))
+            .any(|t| crate::sports::favorite_name(&t.name, std::slice::from_ref(name)))
         {
             continue;
         }
-        if is_favourite(m.home.as_deref().unwrap_or(""), &[name.clone()])
-            || is_favourite(m.away.as_deref().unwrap_or(""), &[name.clone()])
+        if is_favourite(m.home.as_deref().unwrap_or(""), std::slice::from_ref(name))
+            || is_favourite(m.away.as_deref().unwrap_or(""), std::slice::from_ref(name))
         {
             out.push(name.clone());
         }

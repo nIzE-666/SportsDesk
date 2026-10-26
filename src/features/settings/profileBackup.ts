@@ -7,6 +7,7 @@ export function allowedProfileKey(key: string) {
   return (
     [
       'scheme',
+      'design',
       'sport',
       'league',
       'density',

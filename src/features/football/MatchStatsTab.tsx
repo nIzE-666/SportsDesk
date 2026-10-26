@@ -1,6 +1,7 @@
 import { EmptyBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { useViewState } from '../../lib/useViewState';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { formatTeamStat, statGroupLabel, statLabel, statsPeriodLabel } from './statLabels';
 import type { MatchDetail, StatGroup, StatsPayload } from './types';
 
@@ -14,6 +15,7 @@ export function MatchStatsTab({
   detail: MatchDetail;
 }) {
   const [selectedPeriod, setSelectedPeriod] = useViewState(`match.${detail.id}.period`, 'All');
+  const broadcast = useInterfaceDesign() === 'broadcast';
   if (error) return <EmptyBlock title="Статистика недоступна" message={error} />;
   if (!payload || !Array.isArray(payload.periods) || payload.periods.length === 0) {
     const upcoming = ['not_started', 'scheduled', 'upcoming'].includes(detail.status.toLowerCase());
@@ -45,6 +47,26 @@ export function MatchStatsTab({
     .sort((a, b) => periodOrder.indexOf(a.period) - periodOrder.indexOf(b.period));
   const home = detail.home_team,
     away = detail.away_team;
+  const groups = broadcast
+    ? [...(period?.groups ?? [])].sort((a, b) => {
+        const priority = (g: StatGroup) => {
+          const label = statGroupLabel(g.group_name);
+          return [
+            'Основные показатели',
+            'Ожидаемые голы (xG)',
+            'Удары',
+            'Передачи',
+            'Атака',
+            'Оборона',
+            'Единоборства',
+            'Дисциплина',
+          ].indexOf(label);
+        };
+        const x = priority(a),
+          y = priority(b);
+        return (x < 0 ? 99 : x) - (y < 0 ? 99 : y);
+      })
+    : (period?.groups ?? []);
   return (
     <section
       className="match-statistics panel"
@@ -85,7 +107,7 @@ export function MatchStatsTab({
         </div>
       </div>
       <div className="stats-groups">
-        {period?.groups.map((g) => (
+        {groups.map((g) => (
           <StatGroupBlock key={g.group_name} group={g} homeName={home.name} awayName={away.name} />
         ))}
       </div>

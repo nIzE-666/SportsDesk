@@ -32,6 +32,7 @@ import { homeRoute } from './lib/navigation';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { LEAGUES, footballNav, f1Nav, uclNav, cupNav } from './lib/navigationMetadata';
 import { viewState } from './lib/viewState';
+import { useInterfaceDesign } from './lib/interfaceDesign';
 export type { FootballSection, ShellRoute, Sport } from './lib/navigation';
 /** Отслеживаемые команды для сайдбара: ids из localStorage + каталог имён. */
 function resolveSidebarFavorites(): Array<{ id: string; name: string }> {
@@ -62,6 +63,7 @@ export default function App() {
 }
 
 function MainApp() {
+  const design = useInterfaceDesign();
   const navigation = useShellNavigation();
   const { sport, cupId, route, leagueId, navigate: setRoute, back, canBack } = navigation;
   const f1Tab = route.kind === 'f1' ? (route.tab ?? 'overview') : 'overview';
@@ -86,15 +88,17 @@ function MainApp() {
   useEffect(() => setString('sportsdesk.sidebar.collapsed', collapsed ? '1' : '0'), [collapsed]);
   useEffect(() => setString('sportsdesk.scheme', scheme), [scheme]);
   useEffect(() => {
+    document.documentElement.dataset.design = design;
     document.documentElement.dataset.scheme = scheme;
     document.documentElement.style.colorScheme = scheme;
-    document.documentElement.style.backgroundColor = scheme === 'light' ? '#f3f6fb' : '#0b101c';
+    document.documentElement.style.backgroundColor =
+      scheme === 'light' ? '#f3f6fb' : design === 'broadcast' ? '#181818' : '#0b101c';
     void import('./lib/bridge')
       .then(({ isTauriRuntime, rpc }) => {
         if (isTauriRuntime()) return rpc('apply_window_appearance', { scheme });
       })
       .catch(() => {});
-  }, [scheme]);
+  }, [scheme, design]);
   useEffect(() => setString('sportsdesk.density', density), [density]);
   // Сайдбар показывает актуальный список отслеживаемых команд.
   useEffect(() => {
@@ -174,6 +178,7 @@ function MainApp() {
       data-theme={theme}
       data-scheme={scheme}
       data-density={density}
+      data-design={design}
     >
       <AppTopbar
         sport={sport}
@@ -193,11 +198,19 @@ function MainApp() {
         <aside className="sidebar" aria-label="Навигация">
           <div className="sidebar-heading">
             <span>
-              {sport === 'f1'
-                ? 'RACE CONTROL'
-                : sport === 'ucl'
-                  ? 'ЕВРОПЕЙСКИЙ ФУТБОЛ'
-                  : 'ВАШЕ ПРОСТРАНСТВО'}
+              {design === 'broadcast'
+                ? sport === 'f1'
+                  ? 'Формула 1'
+                  : sport === 'ucl'
+                    ? 'Европейский футбол'
+                    : sport === 'cup'
+                      ? 'Кубковые турниры'
+                      : 'Разделы'
+                : sport === 'f1'
+                  ? 'RACE CONTROL'
+                  : sport === 'ucl'
+                    ? 'ЕВРОПЕЙСКИЙ ФУТБОЛ'
+                    : 'ВАШЕ ПРОСТРАНСТВО'}
             </span>
             <button
               className="collapse-btn"

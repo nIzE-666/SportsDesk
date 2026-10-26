@@ -11,6 +11,8 @@ import {
   X,
 } from 'lucide-react';
 import { ModeHero } from '../../components/ModeHero';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
@@ -61,6 +63,7 @@ function normalizeTeam(s: string) {
 }
 
 function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) => void }) {
+  const broadcast = useInterfaceDesign() === 'broadcast';
   const current = currentUclSeason();
   const [season, setSeason] = useState(() => getString('sportsdesk.ucl.season') || current);
   const [data, setData] = useState<UclSeasonData | null>(null);
@@ -285,31 +288,43 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       </div>
       {tab === 'overview' && (
         <>
-          <ModeHero
-            mode="ucl"
-            eyebrow="THE NIGHTS WE LIVE FOR"
-            title={
-              <>
-                Здесь рождаются
-                <br />
-                <em>легенды.</em>
-              </>
-            }
-            description="Лучшие клубы Европы. Один трофей. Весь турнир — от первого свистка до главного финала."
-          >
-            <button className="primary-btn" onClick={() => chooseTab('bracket')}>
-              Турнирная сетка <GitBranch size={15} />
-            </button>
-            <button
-              className="hero-secondary"
-              onClick={() => {
-                setStatus('upcoming');
-                chooseTab('matches');
-              }}
+          {broadcast ? (
+            <FeaturedMatchCover
+              sport="ucl"
+              match={selectFeaturedMatch(matches)}
+              league="Лига чемпионов"
+              season={season}
+              loading={loading}
+              onOpenMatch={openMatch}
+              onSeeAllMatches={() => chooseTab('matches')}
+            />
+          ) : (
+            <ModeHero
+              mode="ucl"
+              eyebrow="THE NIGHTS WE LIVE FOR"
+              title={
+                <>
+                  Здесь рождаются
+                  <br />
+                  <em>легенды.</em>
+                </>
+              }
+              description="Лучшие клубы Европы. Один трофей. Весь турнир — от первого свистка до главного финала."
             >
-              Ближайшие матчи <ChevronRight size={12} />
-            </button>
-          </ModeHero>
+              <button className="primary-btn" onClick={() => chooseTab('bracket')}>
+                Турнирная сетка <GitBranch size={15} />
+              </button>
+              <button
+                className="hero-secondary"
+                onClick={() => {
+                  setStatus('upcoming');
+                  chooseTab('matches');
+                }}
+              >
+                Ближайшие матчи <ChevronRight size={12} />
+              </button>
+            </ModeHero>
+          )}
           <div className="insights-row ucl-insights">
             <div>
               <Trophy size={18} />

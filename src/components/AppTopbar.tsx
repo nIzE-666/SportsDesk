@@ -1,5 +1,6 @@
 import { ChevronLeft, Flag, Goal, Pin, Settings, Trophy, Tv, Zap } from 'lucide-react';
 import type { ShellRoute, Sport } from '../lib/navigation';
+import { DesignToggle } from './DesignChooser';
 interface Props {
   sport: Sport;
   route: ShellRoute;
@@ -87,6 +88,7 @@ export function AppTopbar({
           <Tv size={16} />
           <span>Смотреть</span>
         </button>
+        <DesignToggle />
         <button className="icon-button" aria-label="Настройки" onClick={onSettings}>
           <Settings size={18} />
         </button>

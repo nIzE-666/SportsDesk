@@ -1701,7 +1701,7 @@ img {
   padding: 0;
   gap: 20px;
 }
-.f1-card {
+.app-root:not([data-design='broadcast']) .f1-card {
   border-radius: 14px !important;
   background: linear-gradient(120deg, #ffffff04, transparent 60%), #1b191e !important;
   border-color: #363038 !important;
@@ -2407,7 +2407,7 @@ img {
   --accent: inherit;
   --accent-soft: rgba(var(--accent-rgb), 0.1);
 }
-.app-root .f1-card {
+.app-root:not([data-design='broadcast']) .f1-card {
   background:
     linear-gradient(120deg, rgba(var(--accent-rgb), 0.025), transparent 65%), var(--panel) !important;
   border-color: var(--line) !important;

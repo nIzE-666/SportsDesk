@@ -7,6 +7,7 @@ import TeamBadge from '../../components/TeamBadge';
 import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
+import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
 import { MatchStatsTab } from './MatchStatsTab';
@@ -71,6 +72,7 @@ export function MatchDetailView({
   seasonMatches?: MatchSummary[];
   onOpenMatch?: (id: string) => void;
 }) {
+  const broadcast = useInterfaceDesign() === 'broadcast';
   const timezone = getUserTimezone();
   const [tab, setTab] = useViewState<TabKey>(`match.${matchId}.tab`, 'overview', (v) =>
     ['overview', 'events', 'lineups', 'stats', 'players'].includes(String(v)),
@@ -279,21 +281,7 @@ export function MatchDetailView({
             </span>
           )}
           <span className="muted small">{formatDateTime(detail.time_utc, timezone)}</span>
-          <span className="muted small">
-            {detail.round_name
-              ? ((
-                  {
-                    final: 'Финал',
-                    '1/2': 'Полуфинал',
-                    '1/4': 'Четвертьфинал',
-                    '1/8': '1/8 финала',
-                    '1/16': 'Стыковые матчи',
-                  } as Record<string, string>
-                )[detail.round_name.toLowerCase()] ?? `Тур ${detail.round_name}`)
-              : formatDate(detail.date, timezone)}
-          </span>
-          {detail.stadium && <span className="muted small">{detail.stadium}</span>}
-          {detail.referee && <span className="muted small">Арбитр: {detail.referee}</span>}
+          {!broadcast && <MatchMetadata detail={detail} timezone={timezone} />}
         </div>
         <div className="md-team right">
           <span>{detail.away_team.name}</span>
@@ -301,6 +289,11 @@ export function MatchDetailView({
         </div>
       </div>
 
+      {broadcast && (
+        <div className="md-meta-strip">
+          <MatchMetadata detail={detail} timezone={timezone} />
+        </div>
+      )}
       <div className="md-tabs" role="tablist" aria-label="Разделы матча">
         {(['overview', 'events', 'lineups', 'stats', 'players'] as const).map((k) => (
           <button
@@ -385,6 +378,27 @@ export function MatchDetailView({
         <MatchPlayersComparison detail={detail} entries={loaded.players} />
       </SectionBoundary>
     </div>
+  );
+}
+
+function MatchMetadata({ detail, timezone }: { detail: MatchDetail; timezone: string }) {
+  const round = detail.round_name
+    ? ((
+        {
+          final: 'Финал',
+          '1/2': 'Полуфинал',
+          '1/4': 'Четвертьфинал',
+          '1/8': '1/8 финала',
+          '1/16': 'Стыковые матчи',
+        } as Record<string, string>
+      )[detail.round_name.toLowerCase()] ?? `Тур ${detail.round_name}`)
+    : formatDate(detail.date, timezone);
+  return (
+    <>
+      <span className="muted small">{round}</span>
+      {detail.stadium && <span className="muted small">{detail.stadium}</span>}
+      {detail.referee && <span className="muted small">Арбитр: {detail.referee}</span>}
+    </>
   );
 }
 

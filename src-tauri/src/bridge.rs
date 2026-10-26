@@ -86,8 +86,6 @@ pub enum BridgeError {
     BadPayload,
     #[error("Данные провайдера временно недоступны.")]
     Upstream,
-    #[error("Внутренняя ошибка кеша.")]
-    Cache,
     #[error("Некорректная конфигурация.")]
     Config,
 }
@@ -118,7 +116,6 @@ impl BridgeError {
             Self::TooLarge => "TooLarge",
             Self::BadPayload => "BadPayload",
             Self::Upstream => "Upstream",
-            Self::Cache => "Cache",
             Self::Config => "Config",
         };
         ApiFailure {

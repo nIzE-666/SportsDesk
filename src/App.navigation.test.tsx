@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
+import { readInterfaceDesign } from './lib/interfaceDesign';
 
 vi.mock('./lib/bridge', () => ({
   api: vi.fn(),
@@ -124,6 +125,106 @@ afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
   vi.unstubAllGlobals();
+});
+
+it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {
+  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+  await act(async () => root.render(<App />));
+  await click(button('Статистика'));
+  const requests = vi.mocked(api).mock.calls.length;
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
+  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
+  expect(readInterfaceDesign()).toBe('broadcast');
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBeTruthy();
+  expect(
+    [...host.querySelectorAll('[role="tab"][aria-selected="true"]')].some(
+      (t) => t.textContent === 'Статистика',
+    ),
+  ).toBe(true);
+  expect(vi.mocked(api).mock.calls).toHaveLength(requests);
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Вернуть классический дизайн"]')!);
+  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+});
+
+it('applies the design from Settings, restores it on launch, and uses a real fixture on the cover', async () => {
+  localStorage.setItem('sportsdesk.design', 'broadcast');
+  viewState.write('navigation.football', { kind: 'football', section: 'dashboard' });
+  await act(async () => root.render(<App />));
+  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
+  expect(host.querySelector('.event-cover')?.textContent).toContain('Arsenal');
+  expect(host.querySelector('.event-cover-score')?.textContent).toBe('2 : 1');
+  const dashboard = host.querySelector('.football-dashboard')!;
+  const focusOrder = [...dashboard.querySelectorAll('button')];
+  expect(
+    focusOrder.indexOf(dashboard.querySelector<HTMLButtonElement>('.recent-game')!),
+  ).toBeLessThan(
+    focusOrder.indexOf(dashboard.querySelector<HTMLButtonElement>('.calendar-export-bar button')!),
+  );
+  await click(button('Разбор матча'));
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+  await click(button('Назад'));
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
+  await click(
+    host.querySelector<HTMLInputElement>('input[name="interface-design"][value="classic"]')!,
+  );
+  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
+  expect(localStorage.getItem('sportsdesk.design')).toBe('classic');
+});
+
+it('opens the F1 cover weekend in its actual season and round', async () => {
+  localStorage.setItem('sportsdesk.design', 'broadcast');
+  localStorage.setItem('sportsdesk.sport', 'f1');
+  viewState.write('f1.year', 2025);
+  viewState.write('navigation.f1', { kind: 'f1', tab: 'overview' });
+  await act(async () => root.render(<App />));
+  expect(host.querySelector('.event-cover')?.textContent).toContain('Test Grand Prix');
+  await click(button('Открыть уикенд'));
+  expect(viewState.read('f1.year', 2026)).toBe(2025);
+  expect(viewState.read('f1.2025.calendar.round', 0)).toBe(1);
+  expect(host.querySelector('.calendar-board')).not.toBeNull();
+});
+
+it('puts key match statistics first only in the new design without changing provider order', async () => {
+  const original = vi.mocked(api).getMockImplementation()!;
+  const stats = {
+    periods: [
+      {
+        period: 'All',
+        groups: [
+          {
+            group_name: 'Defence',
+            items: [
+              { key: 'tackles', title: 'Tackles', home: '2', away: '3', format_type: 'integer' },
+            ],
+          },
+          {
+            group_name: 'Top stats',
+            items: [
+              {
+                key: 'ballpossesion',
+                title: 'Ball possession',
+                home: '62',
+                away: '38',
+                format_type: 'integer',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  vi.mocked(api).mockImplementation(async (...args) =>
+    args[0] === 'pitch' && args[1].endsWith('/stats') ? reply({ data: stats }) : original(...args),
+  );
+  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+  viewState.write(`match.${fixture.id}.tab`, 'stats');
+  await act(async () => root.render(<App />));
+  expect(host.querySelector('.stat-group h3')?.textContent).toBe('Оборона');
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
+  expect(host.querySelector('.stat-group h3')?.textContent).toBe('Основные показатели');
+  expect(stats.periods[0]!.groups[0]!.group_name).toBe('Defence');
 });
 
 it('opens the exact older fixture statistics from its team name, date, score and analysis link', async () => {

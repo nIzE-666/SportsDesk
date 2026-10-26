@@ -220,7 +220,7 @@ async fn export_profile(
 
 #[tauri::command]
 async fn import_profile(path: String) -> Result<profile::Profile, String> {
-    Ok(profile::read_profile(&path)?)
+    profile::read_profile(&path)
 }
 
 /// The UI opened a match: the Rust side starts following it live (60s tick,
@@ -294,7 +294,7 @@ async fn history_upsert(
 async fn history_seasons(
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<Vec<history::HistorySeasonInfo>, String> {
-    Ok(state.0.list_seasons()?)
+    state.0.list_seasons()
 }
 
 #[tauri::command]
@@ -306,7 +306,7 @@ async fn history_season_matches(
     if league_id.trim().is_empty() || season.trim().is_empty() {
         return Err("Не указана лига или сезон.".into());
     }
-    Ok(state.0.season_matches(league_id.trim(), season.trim())?)
+    state.0.season_matches(league_id.trim(), season.trim())
 }
 
 #[tauri::command]
@@ -318,7 +318,7 @@ async fn history_head_to_head(
     if team_a.trim().is_empty() || team_b.trim().is_empty() {
         return Err("Не указаны команды.".into());
     }
-    Ok(state.0.head_to_head(team_a.trim(), team_b.trim())?)
+    state.0.head_to_head(team_a.trim(), team_b.trim())
 }
 
 #[tauri::command]
@@ -330,7 +330,7 @@ async fn history_team_matches(
     if team_id.trim().is_empty() {
         return Err("Не указана команда.".into());
     }
-    Ok(state.0.team_matches(team_id.trim(), finished_only)?)
+    state.0.team_matches(team_id.trim(), finished_only)
 }
 
 pub fn run() {

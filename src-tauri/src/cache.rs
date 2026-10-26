@@ -44,6 +44,7 @@ impl Cache {
     }
 
     /// In-memory cache for tests and tooling (no file, no WAL).
+    #[cfg(test)]
     pub fn open_in_memory() -> Self {
         let conn = Connection::open_in_memory().expect("in-memory sqlite");
         conn.execute_batch(
