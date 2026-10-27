@@ -411,6 +411,8 @@ export function PlayersCenter({
     (v) => v === null || typeof v === 'string',
   );
   const selected = favoritePlayers.find((p) => p.id === selectedId);
+  const [requestedPlayer] = useViewState<FavoritePlayer | null>('players.requested', null);
+  const profilePlayer = selected ?? (requestedPlayer?.id === selectedId ? requestedPlayer : null);
   const club = data.teams.find((t) => t.id === clubId);
 
   const shown = favoritePlayers;
@@ -435,11 +437,11 @@ export function PlayersCenter({
     setSlotBId(null);
   };
 
-  if (selected)
+  if (profilePlayer)
     return (
       <SavedPlayerProfile
-        key={selected.id}
-        player={selected}
+        key={profilePlayer.id}
+        player={profilePlayer}
         matches={data.allMatches}
         onOpenMatch={onOpenMatch}
         onBack={() => setSelectedId(null)}

@@ -10,3 +10,5 @@ src-tauri/keys/
 *.log
 .DS_Store
 releases/
+test-results/
+playwright-report/

@@ -4,6 +4,7 @@ mod bridge;
 mod cache;
 mod calendar;
 mod diagnostics;
+mod event_center;
 mod f1_reminders;
 mod history;
 mod kino;
@@ -387,6 +388,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             api_request,
+            event_center::event_center_list,
+            event_center::event_center_mark_read,
             appearance::apply_window_appearance,
             secret_status,
             set_pitch_key,

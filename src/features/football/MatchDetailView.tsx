@@ -8,6 +8,7 @@ import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { WatchEventButton } from '../../lib/watchIntent';
 import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
 import { MatchStatsTab } from './MatchStatsTab';
@@ -256,6 +257,13 @@ export function MatchDetailView({
   return (
     <div className="match-detail">
       <div className="md-topbar">
+        <WatchEventButton
+          intent={{
+            sport: 'football',
+            key: `match:${detail.id}`,
+            title: `${detail.home_team.name} — ${detail.away_team.name}`,
+          }}
+        />
         <button className="ghost-btn" onClick={onBack}>
           <ArrowLeft size={14} /> Назад
         </button>

@@ -10,6 +10,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useNow } from '../../lib/useNow';
+import { WatchEventButton } from '../../lib/watchIntent';
 import { useViewState } from '../../lib/useViewState';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
@@ -352,6 +353,9 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
                     <Star size={15} fill={watching ? 'currentColor' : 'none'} />
                     {watching ? 'В плане' : 'Буду смотреть'}
                   </button>
+                  <WatchEventButton
+                    intent={{ sport: event.kind, key: event.id, title: title(event) }}
+                  />
                 </article>
               );
             })}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
+const modalStack: HTMLElement[] = [];
 export function useModalFocus(
   ref: RefObject<HTMLElement | null>,
   open: boolean,
@@ -10,6 +11,8 @@ export function useModalFocus(
     const panel = ref.current;
     if (!open || !panel) return;
     const previous = document.activeElement as HTMLElement | null;
+    modalStack.push(panel);
+    const ownsFocus = () => modalStack.at(-1) === panel;
     const focusable = () =>
       [
         ...panel.querySelectorAll<HTMLElement>(
@@ -21,6 +24,7 @@ export function useModalFocus(
     };
     initial();
     const key = (e: KeyboardEvent) => {
+      if (!ownsFocus()) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -50,6 +54,7 @@ export function useModalFocus(
       }
     };
     const focus = (e: FocusEvent) => {
+      if (!ownsFocus()) return;
       if (!panel.contains(e.target as Node)) initial();
     };
     document.addEventListener('keydown', key, true);
@@ -57,7 +62,11 @@ export function useModalFocus(
     return () => {
       document.removeEventListener('keydown', key, true);
       document.removeEventListener('focusin', focus);
-      if (previous?.isConnected) previous.focus();
+      const top = ownsFocus();
+      const index = modalStack.indexOf(panel);
+      if (index >= 0) modalStack.splice(index, 1);
+      const next = modalStack.at(-1);
+      if (top && previous?.isConnected && (!next || next.contains(previous))) previous.focus();
     };
   }, [ref, open]);
 }

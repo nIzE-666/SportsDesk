@@ -41,3 +41,40 @@ it('traps keyboard focus, closes on Escape and restores the previous focus', asy
   host.remove();
   trigger.remove();
 });
+it('gives focus and Escape only to the top modal when another dialog opens later', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host),
+    closeFirst = vi.fn(),
+    closeSecond = vi.fn();
+  function Modal({ name, close }: { name: string; close: () => void }) {
+    const ref = useRef<HTMLDivElement>(null);
+    useModalFocus(ref, true, close);
+    return (
+      <div ref={ref}>
+        <button>{name}</button>
+      </div>
+    );
+  }
+  try {
+    await act(async () => root.render(<Modal name="Первый" close={closeFirst} />));
+    await act(async () =>
+      root.render(
+        <>
+          <Modal name="Первый" close={closeFirst} />
+          <Modal name="Второй" close={closeSecond} />
+        </>,
+      ),
+    );
+    expect(document.activeElement?.textContent).toBe('Второй');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(closeFirst).not.toHaveBeenCalled();
+    expect(closeSecond).toHaveBeenCalledOnce();
+    await act(async () => root.render(<Modal name="Первый" close={closeFirst} />));
+    expect(document.activeElement?.textContent).toBe('Первый');
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});

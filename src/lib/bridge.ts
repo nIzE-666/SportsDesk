@@ -1,6 +1,7 @@
 import type { Source } from './types';
 import { ApiError, asApiError, type ApiFailure } from './apiError';
 import { registerRetry, requestResource, beginAutomaticRequest } from './resourceHealth';
+import { indexSportsPayload } from './searchIndex';
 
 export type { Source };
 
@@ -38,7 +39,13 @@ function browserFetch(input: string, init?: RequestInit): Promise<Response> {
 async function rawApi(source: Source, path: string): Promise<ApiReply> {
   if (isTauri()) {
     try {
-      return await invokeTauri<ApiReply>('api_request', { source, path });
+      const reply = await invokeTauri<ApiReply>('api_request', { source, path });
+      try {
+        indexSportsPayload(source, path, reply.payload);
+      } catch {
+        /* Search cannot block sports data. */
+      }
+      return reply;
     } catch (err) {
       throw asApiError(err);
     }
@@ -70,6 +77,11 @@ async function rawApi(source: Source, path: string): Promise<ApiReply> {
     typeof body.fetchedAt !== 'string'
   )
     throw new ApiError('BadPayload');
+  try {
+    indexSportsPayload(source, path, body.payload);
+  } catch {
+    /* Search cannot block sports data. */
+  }
   return body as ApiReply;
 }
 

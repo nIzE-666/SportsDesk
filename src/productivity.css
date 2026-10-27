@@ -1,0 +1,180 @@
+.command-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgb(0 0 0 / 65%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px 24px;
+  font-family: var(--font);
+}
+.command-panel {
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100dvh - 160px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  overflow: hidden;
+}
+.command-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.command-input input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  font: 500 16px/24px var(--font);
+}
+.command-hint {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.command-results {
+  overflow: auto;
+  padding: 8px;
+}
+.command-results > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  background: none;
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.command-results > button[aria-selected='true'] {
+  background: var(--panel2);
+  border-color: var(--accent);
+}
+.command-results strong,
+.command-results small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.command-results strong {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.command-results small {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.command-empty {
+  padding: 16px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.event-center {
+  display: grid;
+  gap: 24px;
+}
+.event-center > .muted {
+  margin: 0;
+  max-width: 65ch;
+}
+.event-center h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.event-toolbar,
+.event-toolbar > div,
+.event-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.event-toolbar {
+  justify-content: space-between;
+}
+.event-list {
+  display: grid;
+  gap: 12px;
+}
+.event-entry {
+  padding: 24px;
+}
+.event-entry.unread {
+  border-color: var(--accent);
+}
+.event-entry > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.event-entry time {
+  font-size: 12px;
+  color: var(--muted);
+}
+.event-entry h2 {
+  font-size: 18px;
+  line-height: 28px;
+  margin: 12px 0 4px;
+}
+.event-entry p {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.watch-event-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.watch-event-context h2 {
+  font-size: 18px;
+  line-height: 28px;
+  margin: 0;
+}
+.watch-event-context p {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 20px;
+}
+.channel-preference {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.event-entry button:focus-visible,
+.command-panel button:focus-visible,
+.command-input input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 1100px) {
+  .topbar .header-date {
+    display: none;
+  }
+}

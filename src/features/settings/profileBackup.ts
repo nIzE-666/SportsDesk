@@ -29,6 +29,7 @@ export function allowedProfileKey(key: string) {
       'watch.favorites',
       'watch.recent',
       'watch.view',
+      'watch.preferred',
     ].some((p) => name.startsWith(p))
   );
 }

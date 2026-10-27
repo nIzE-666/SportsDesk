@@ -36,7 +36,9 @@ impl Cache {
                  payload TEXT NOT NULL,
                  fetched_at INTEGER NOT NULL,
                  PRIMARY KEY (source, path)
-             );\n             CREATE INDEX IF NOT EXISTS idx_cache_fetched ON api_cache (fetched_at);",
+             );\n             CREATE INDEX IF NOT EXISTS idx_cache_fetched ON api_cache (fetched_at);
+             CREATE TABLE IF NOT EXISTS event_center (id TEXT PRIMARY KEY, payload TEXT NOT NULL, occurred_at INTEGER NOT NULL, read INTEGER NOT NULL DEFAULT 0);
+             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);",
         )?;
         Ok(Self {
             conn: Mutex::new(conn),
@@ -54,12 +56,85 @@ impl Cache {
                  payload TEXT NOT NULL,
                  fetched_at INTEGER NOT NULL,
                  PRIMARY KEY (source, path)
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS event_center (id TEXT PRIMARY KEY, payload TEXT NOT NULL, occurred_at INTEGER NOT NULL, read INTEGER NOT NULL DEFAULT 0);
+             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);",
         )
         .expect("create in-memory table");
         Self {
             conn: Mutex::new(conn),
         }
+    }
+
+    pub fn insert_event(
+        &self,
+        event: &crate::event_center::Event,
+        now: i64,
+    ) -> Result<bool, String> {
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        tx.execute(
+            "DELETE FROM event_center WHERE occurred_at < ?1",
+            [now - crate::event_center::RETENTION_MS],
+        )
+        .map_err(|e| e.to_string())?;
+        let payload = serde_json::to_string(event).map_err(|e| e.to_string())?;
+        let inserted = tx
+            .execute(
+                "INSERT OR IGNORE INTO event_center (id, payload, occurred_at) VALUES (?1, ?2, ?3)",
+                params![event.id, payload, event.occurred_at],
+            )
+            .map_err(|e| e.to_string())?
+            > 0;
+        tx.execute("DELETE FROM event_center WHERE id IN (SELECT id FROM event_center ORDER BY occurred_at DESC, id DESC LIMIT -1 OFFSET 500)", []).map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(inserted)
+    }
+
+    pub fn list_events(&self, now: i64) -> Result<Vec<crate::event_center::Event>, String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        conn.execute(
+            "DELETE FROM event_center WHERE occurred_at < ?1",
+            [now - crate::event_center::RETENTION_MS],
+        )
+        .map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare("SELECT payload, read FROM event_center ORDER BY occurred_at DESC, id DESC LIMIT 500").map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, bool>(1)?))
+            })
+            .map_err(|e| e.to_string())?;
+        let mut events = Vec::new();
+        for row in rows {
+            let (payload, read) = row.map_err(|e| e.to_string())?;
+            let mut event: crate::event_center::Event =
+                serde_json::from_str(&payload).map_err(|e| e.to_string())?;
+            event.read = read;
+            events.push(event);
+        }
+        Ok(events)
+    }
+
+    pub fn mark_events_read(&self, ids: &[String]) -> Result<(), String> {
+        if ids.len() > 500 || ids.iter().any(|id| id.is_empty() || id.len() > 1024) {
+            return Err("Некорректный список событий.".into());
+        }
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        for id in ids {
+            tx.execute("UPDATE event_center SET read = 1 WHERE id = ?1", [id])
+                .map_err(|e| e.to_string())?;
+        }
+        tx.commit().map_err(|e| e.to_string())
     }
 
     pub fn get(&self, source: &str, path: &str) -> Option<CacheRow> {

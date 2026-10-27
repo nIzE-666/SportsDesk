@@ -43,6 +43,23 @@ const button = (text: string) => {
 };
 async function click(element: HTMLElement) {
   await act(async () => element.click());
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
+}
+async function renderApp() {
+  await Promise.all([
+    import('./features/football/FootballView'),
+    import('./features/f1/F1View'),
+    import('./features/settings/SettingsView'),
+    import('./features/planner/ViewingPlanner'),
+    import('./features/ucl/ChampionsView'),
+    import('./features/ucl/CupsView'),
+  ]);
+  await act(async () => root.render(<App />));
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
 }
 async function change(element: HTMLInputElement | HTMLSelectElement, value: string) {
   await act(async () => {
@@ -129,7 +146,7 @@ afterEach(async () => {
 
 it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {
   viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Статистика'));
   const requests = vi.mocked(api).mock.calls.length;
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
@@ -151,7 +168,7 @@ it('switches designs in place, keeps the selected fixture/tab and does not refet
 it('applies the design from Settings, restores it on launch, and uses a real fixture on the cover', async () => {
   localStorage.setItem('sportsdesk.design', 'broadcast');
   viewState.write('navigation.football', { kind: 'football', section: 'dashboard' });
-  await act(async () => root.render(<App />));
+  await renderApp();
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
   expect(host.querySelector('.event-cover')?.textContent).toContain('Arsenal');
   expect(host.querySelector('.event-cover-score')?.textContent).toBe('2 : 1');
@@ -178,7 +195,7 @@ it('opens the F1 cover weekend in its actual season and round', async () => {
   localStorage.setItem('sportsdesk.sport', 'f1');
   viewState.write('f1.year', 2025);
   viewState.write('navigation.f1', { kind: 'f1', tab: 'overview' });
-  await act(async () => root.render(<App />));
+  await renderApp();
   expect(host.querySelector('.event-cover')?.textContent).toContain('Test Grand Prix');
   await click(button('Открыть уикенд'));
   expect(viewState.read('f1.year', 2026)).toBe(2025);
@@ -220,7 +237,7 @@ it('puts key match statistics first only in the new design without changing prov
   );
   viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
   viewState.write(`match.${fixture.id}.tab`, 'stats');
-  await act(async () => root.render(<App />));
+  await renderApp();
   expect(host.querySelector('.stat-group h3')?.textContent).toBe('Оборона');
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
   expect(host.querySelector('.stat-group h3')?.textContent).toBe('Основные показатели');
@@ -235,7 +252,7 @@ it('opens the exact older fixture statistics from its team name, date, score and
       ? reply({ data: { matches: [fixture, latest] } })
       : original(...args),
   );
-  await act(async () => root.render(<App />));
+  await renderApp();
   for (const selector of ['.fixture-club', '.mt-date', '.fixture-score', '.link-btn']) {
     const row = host.querySelector<HTMLElement>('[data-match-id="test-match"]')!;
     await click(row.querySelector<HTMLElement>(selector)!);
@@ -250,7 +267,7 @@ it('opens the exact older fixture statistics from its team name, date, score and
 });
 
 it('toggles a team star without opening a match or a club', async () => {
-  await act(async () => root.render(<App />));
+  await renderApp();
   const star = host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .row-star')!;
   const before = star.getAttribute('aria-pressed');
   await click(star);
@@ -260,7 +277,7 @@ it('toggles a team star without opening a match or a club', async () => {
 });
 
 it('navigates real cup routes, profile settings and keyboard/mouse history once per action', async () => {
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Кубки'));
   expect(host.querySelector('.sport-toggle [aria-selected="true"]')?.textContent).toBe('Кубки');
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Профиль и настройки"]')!);
@@ -292,7 +309,7 @@ it('explains that upcoming match statistics are not available yet and points to 
       ? reply({ data: { ...fixture, status: 'not_started', score_home: null, score_away: null } })
       : original(...args),
   );
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(host.querySelector<HTMLButtonElement>('.fixture-club')!);
   expect(host.textContent).toContain('Матч ещё не начался');
   expect(host.textContent).toContain('Опубликованные составы можно посмотреть');
@@ -308,7 +325,7 @@ it('shows loading instead of a false missing-statistics message while match stat
   vi.mocked(api).mockImplementation(async (...args) =>
     args[0] === 'pitch' && args[1] === `matches/${fixture.id}/stats` ? pending : original(...args),
   );
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(host.querySelector<HTMLButtonElement>('.fixture-club')!);
   expect(host.textContent).toContain('Загружаем статистику матча');
   expect(host.textContent).not.toContain('Статистика не загружена');
@@ -317,7 +334,7 @@ it('shows loading instead of a false missing-statistics message while match stat
 });
 
 it('retains football season, filters, detail tab and list scroll through settings and back', async () => {
-  await act(async () => root.render(<App />));
+  await renderApp();
   await change(host.querySelector<HTMLSelectElement>('#football-season')!, '2025/2026');
   await change(host.querySelector<HTMLInputElement>('#match-search')!, 'Arsenal');
   await click(button('Завершённые'));
@@ -345,7 +362,7 @@ it('retains football season, filters, detail tab and list scroll through setting
 
 it('retains the F1 year, calendar round and result tab through settings and sport switches', async () => {
   viewState.write('navigation.f1.tab', 'calendar');
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Формула 1'));
   await change(host.querySelector<HTMLSelectElement>('[aria-label="Сезон Формулы-1"]')!, '2025');
   const race = [...host.querySelectorAll<HTMLButtonElement>('.calendar-stage')].find((button) =>
@@ -386,7 +403,7 @@ it('returns from settings and football details to the planner, then back to its 
       : original(...args),
   );
   localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Формула 1'));
   await click(button('Мой спортивный вечер'));
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
@@ -438,7 +455,7 @@ it('restores the original football league after opening a planner match in anoth
     return original(...args);
   });
   localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Мой спортивный вечер'));
   await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
   expect(localStorage.getItem('sportsdesk.league')).toBe('l_0ErfuF');
@@ -466,7 +483,7 @@ it('preserves the original match back target when another match is opened from i
   viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
   viewState.write('navigation.football.return', { kind: 'football', section: 'matches' });
   localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
-  await act(async () => root.render(<App />));
+  await renderApp();
   await click(button('Мой спортивный вечер'));
   await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
   await click(button('Мой спортивный вечер'));

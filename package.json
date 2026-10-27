@@ -1,7 +1,7 @@
 {
   "name": "sportsdesk",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "description": "SportsDesk - personal desktop sports, F1 and live TV hub",
   "scripts": {
@@ -14,8 +14,12 @@
     "tauri:build": "tauri build",
     "test": "vitest run",
     "lint": "eslint src dev --max-warnings 0",
-    "format": "prettier --write src dev index.html vite.config.ts eslint.config.js package.json tsconfig*.json",
-    "format:check": "prettier --check src dev index.html vite.config.ts eslint.config.js package.json tsconfig*.json"
+    "format": "prettier --write src dev e2e playwright.config.ts index.html vite.config.ts eslint.config.js package.json tsconfig*.json",
+    "format:check": "prettier --check src dev e2e playwright.config.ts index.html vite.config.ts eslint.config.js package.json tsconfig*.json",
+    "typecheck:e2e": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --strict --lib ES2022,DOM --skipLibCheck playwright.config.ts e2e/visual.pw.ts",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test e2e/visual.pw.ts",
+    "test:visual:update": "playwright test e2e/visual.pw.ts --update-snapshots"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
@@ -32,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.1",
     "@tauri-apps/cli": "^2.1.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",

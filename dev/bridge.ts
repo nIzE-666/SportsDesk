@@ -13,6 +13,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readSecret, readSecretResult, writeSecret, SECRET_FILES } from './secrets';
 import { pitchDateCacheTtl } from '../src/lib/pitchDateCache';
 import * as kino from './kinopub';
+import { HistoryStore, InvalidArgs } from './history';
+import { EventStore } from './events';
+
+const historyStore = new HistoryStore();
+const eventStore = new EventStore();
 
 const BASES: Record<string, string> = {
   pitch: 'https://api.pitchapi.dev/v1/',
@@ -407,7 +412,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 }
 
-async function handleCommand(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleCommand(
+  req: IncomingMessage,
+  res: ServerResponse,
+  stores = { history: historyStore, events: eventStore },
+): Promise<void> {
   try {
     const body = await readJsonBody(req);
     const command = typeof body.command === 'string' ? body.command : '';
@@ -416,6 +425,15 @@ async function handleCommand(req: IncomingMessage, res: ServerResponse): Promise
       unknown
     >;
     switch (command) {
+      case 'history_upsert':
+      case 'history_seasons':
+      case 'history_season_matches':
+      case 'history_head_to_head':
+      case 'history_team_matches':
+        return json(res, 200, stores.history.dispatch(command, rawArgs));
+      case 'event_center_list':
+      case 'event_center_mark_read':
+        return json(res, 200, stores.events.dispatch(command, rawArgs));
       case 'secret_status': {
         const pitch = readSecret(SECRET_FILES.pitch) !== null;
         const kinoTokens = kino.hasTokens();
@@ -478,7 +496,11 @@ async function handleCommand(req: IncomingMessage, res: ServerResponse): Promise
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Команда не выполнена.';
-    return json(res, err instanceof RequestBodyError ? err.status : 500, { error: msg });
+    return json(
+      res,
+      err instanceof RequestBodyError ? err.status : err instanceof InvalidArgs ? 400 : 500,
+      { error: msg },
+    );
   }
 }
 

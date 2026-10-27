@@ -1,4 +1,6 @@
-import { ChevronLeft, Flag, Goal, Pin, Settings, Trophy, Tv, Zap } from 'lucide-react';
+import { Bell, ChevronLeft, Flag, Goal, Pin, Settings, Trophy, Tv, Zap } from 'lucide-react';
+import { GlobalSearch } from './GlobalSearch';
+import type { SearchTarget } from '../lib/searchIndex';
 import type { ShellRoute, Sport } from '../lib/navigation';
 import { DesignToggle } from './DesignChooser';
 interface Props {
@@ -12,6 +14,8 @@ interface Props {
   onSettings: () => void;
   onBack: () => void;
   canBack: boolean;
+  onSearchTarget: (target: SearchTarget) => void;
+  onEvents: () => void;
 }
 export function AppTopbar({
   sport,
@@ -24,6 +28,8 @@ export function AppTopbar({
   onSettings,
   onBack,
   canBack,
+  onSearchTarget,
+  onEvents,
 }: Props) {
   return (
     <header className="topbar">
@@ -70,6 +76,15 @@ export function AppTopbar({
         ))}
       </div>
       <div className="topbar-actions">
+        <GlobalSearch onNavigate={onSearchTarget} />
+        <button
+          className="icon-button"
+          aria-label="Центр событий"
+          title="Центр событий"
+          onClick={onEvents}
+        >
+          <Bell size={18} />
+        </button>
         <span className="header-date">{date}</span>
         <button
           className="watch-shortcut"

@@ -1,3 +1,4 @@
+import type { WatchIntent } from './watchIntent';
 export type Sport = 'football' | 'f1' | 'ucl' | 'cup';
 export type FootballSection = 'dashboard' | 'matches' | 'standings' | 'live' | 'team' | 'players';
 export type ContentRoute =
@@ -7,7 +8,11 @@ export type ContentRoute =
   | { kind: 'ucl'; tab?: 'overview' | 'table' | 'bracket' | 'matches' | 'stats' }
   | { kind: 'cup'; cupId: string; tab?: 'overview' | 'table' | 'bracket' | 'matches' };
 export type ShellRoute =
-  ContentRoute | { kind: 'watch' } | { kind: 'settings' } | { kind: 'planner' };
+  | ContentRoute
+  | { kind: 'watch'; channelId?: number; intent?: WatchIntent }
+  | { kind: 'settings' }
+  | { kind: 'planner' }
+  | { kind: 'events' };
 
 export function homeRoute(sport: Sport, cupId: string): ContentRoute {
   return sport === 'cup'
@@ -19,7 +24,12 @@ export function homeRoute(sport: Sport, cupId: string): ContentRoute {
         : { kind: 'football', section: 'dashboard' };
 }
 export function isContentRoute(route: ShellRoute): route is ContentRoute {
-  return route.kind !== 'watch' && route.kind !== 'settings' && route.kind !== 'planner';
+  return (
+    route.kind !== 'watch' &&
+    route.kind !== 'settings' &&
+    route.kind !== 'planner' &&
+    route.kind !== 'events'
+  );
 }
 export function isValidContentRoute(value: unknown): value is ContentRoute {
   if (!value || typeof value !== 'object') return false;

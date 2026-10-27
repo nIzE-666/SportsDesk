@@ -539,13 +539,7 @@ impl Poller {
                     .or_else(|| events.payload.get("events"))
                     .and_then(Value::as_array)
                 {
-                    goals = advance_event_baseline(
-                        &mut next,
-                        list,
-                        !events.stale,
-                        live,
-                        self.config().enabled,
-                    );
+                    goals = advance_event_baseline(&mut next, list, !events.stale, live, true);
                 }
             }
         }
@@ -591,7 +585,6 @@ impl Poller {
                 || pitch_match(&Value::Object(detail.clone()))
                     .map(|m| !favorite_ids(&m, &config).is_empty())
                     .unwrap_or(false)
-                || !self.delivery_allowed("goal", &[home_id, away_id])
             {
                 break;
             }
@@ -611,9 +604,6 @@ impl Poller {
                 continue;
             };
             let key = format!("goal|{}|{}", watch.match_id, identity);
-            if store.seen(&key) {
-                continue;
-            }
             let player = ev
                 .get("player")
                 .and_then(|p| p.get("name"))
@@ -637,6 +627,26 @@ impl Poller {
                 .and_then(Value::as_str)
                 .unwrap_or("");
             let body = format!("{clock}′ {player} · {home} — {away}");
+            crate::event_center::record(
+                app,
+                &self.state.cache,
+                &crate::event_center::Event {
+                    id: format!("football|{key}"),
+                    sport: "football".into(),
+                    kind: "goal".into(),
+                    title: "Гол!".into(),
+                    body: body.clone(),
+                    occurred_at: now_ms(),
+                    read: false,
+                    match_id: Some(watch.match_id.clone()),
+                    league_id: None,
+                    season: None,
+                    round: None,
+                },
+            );
+            if !self.delivery_allowed("goal", &[home_id, away_id]) || store.seen(&key) {
+                continue;
+            }
             if app
                 .notification()
                 .builder()
@@ -697,6 +707,7 @@ impl Poller {
         cfg.enabled && cfg.policy.allows(kind, ids, &cfg.timezone, now_ms())
     }
     async fn tick(&self, app: &AppHandle) -> Result<(), crate::bridge::ApiFailure> {
+        let revision = self.revision();
         let cfg = self.config();
         let mut matches = HashMap::new();
         // A full league schedule supplies the next event even when no club
@@ -757,6 +768,9 @@ impl Poller {
             .filter(|m| !favorite_ids(m, &cfg).is_empty())
             .collect();
         matches.sort_by_key(|m| m.time.clone().unwrap_or_default());
+        if self.revision() != revision {
+            return Ok(());
+        }
         self.ingest(app, &matches);
         for m in &matches {
             future.insert(m.id.clone(), m.clone());
@@ -802,6 +816,8 @@ impl Poller {
                         && !prev.finished
                         && !home.is_empty()
                         && !away.is_empty()
+                        && !prev.home_score.is_empty()
+                        && !prev.away_score.is_empty()
                         && (home != prev.home_score || away != prev.away_score)
                     {
                         events.push((
@@ -870,8 +886,33 @@ impl Poller {
                 })
                 .map(String::as_str)
                 .collect();
-            if fresh_ids.is_empty() || !self.delivery_allowed(&kind, &fresh_ids) || store.seen(&key)
-            {
+            if fresh_ids.is_empty() {
+                continue;
+            }
+            let match_id = key.split('|').nth(1).unwrap_or_default().to_string();
+            let league_id = current
+                .favorite_teams
+                .iter()
+                .find(|team| fresh_ids.contains(&team.id.as_str()))
+                .and_then(|team| team.league_id.clone());
+            crate::event_center::record(
+                app,
+                &self.state.cache,
+                &crate::event_center::Event {
+                    id: format!("football|{key}"),
+                    sport: "football".into(),
+                    kind: kind.clone(),
+                    title: title.clone(),
+                    body: body.clone(),
+                    occurred_at: now,
+                    read: false,
+                    match_id: Some(match_id),
+                    league_id,
+                    season: None,
+                    round: None,
+                },
+            );
+            if !self.delivery_allowed(&kind, &fresh_ids) || store.seen(&key) {
                 continue;
             }
             if app

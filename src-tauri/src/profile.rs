@@ -63,6 +63,7 @@ pub fn is_allowed_key(key: &str) -> bool {
             "watch.favorites",
             "watch.recent",
             "watch.view",
+            "watch.preferred",
         ]
         .iter()
         .any(|p| name.starts_with(p))

@@ -335,9 +335,32 @@ async fn tick(
     }
     state.cache.prune_source(DEDUP_SOURCE, now - DEDUP_TTL_MS);
     for reminder in due {
-        // Re-check the opt-in flags immediately before delivery.
-        if !reminders_enabled(poller) {
+        // The session preference controls the feed independently of OS delivery.
+        if !poller.config().f1_reminders {
             break;
+        }
+        let mut target = reminder.key.split('|');
+        let season = target.next().map(str::to_owned);
+        let round = target.next().map(str::to_owned);
+        crate::event_center::record(
+            app,
+            &state.cache,
+            &crate::event_center::Event {
+                id: format!("f1|{}", reminder.key),
+                sport: "f1".into(),
+                kind: "reminder".into(),
+                title: reminder.title.clone(),
+                body: reminder.body.clone(),
+                occurred_at: now,
+                read: false,
+                match_id: None,
+                league_id: None,
+                season,
+                round,
+            },
+        );
+        if !reminders_enabled(poller) {
+            continue;
         }
         let delivered = gate.deliver(&state.cache, &reminder.key, now, || {
             reminders_enabled(poller)

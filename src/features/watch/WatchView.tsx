@@ -16,6 +16,9 @@ import {
   History as HistoryIcon,
 } from 'lucide-react';
 import { openExternal, rpc } from '../../lib/bridge';
+import type { WatchIntent } from '../../lib/watchIntent';
+import { getJson, setJson } from '../football/storage';
+import { rememberSearchItems } from '../../lib/searchIndex';
 
 import type {
   KinoChannel,
@@ -42,7 +45,10 @@ type AccountState =
   | { kind: 'signed-out' }
   | { kind: 'signed-in' }
   | { kind: 'error'; message: string };
-export function WatchView() {
+export function WatchView({
+  intent,
+  requestedChannelId,
+}: { intent?: WatchIntent; requestedChannelId?: number } = {}) {
   const [account, setAccount] = useState<AccountState>({ kind: 'loading' });
   const [authPhase, setAuthPhase] = useState<AuthPhase>({ kind: 'idle' });
   const pollAbort = useRef(false);
@@ -65,6 +71,51 @@ export function WatchView() {
     localStorage.getItem('sportsdesk.watch.view') === 'list' ? 'list' : 'grid',
   );
   const [recentIds, setRecentIds] = useState<number[]>(() => readRecent());
+  const [preferred, setPreferred] = useState<Record<string, number>>(() => {
+    const data = getJson<unknown>('sportsdesk.watch.preferred', {});
+    return data && typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, number>)
+      : {};
+  });
+  useEffect(() => {
+    setQuery('');
+    setFilter(intent ? 'sport' : 'all');
+    setSelectedId(requestedChannelId ?? null);
+  }, [intent?.key, requestedChannelId]);
+  useEffect(() => {
+    rememberSearchItems(
+      channels.map((c) => ({
+        key: `channel:${c.id}`,
+        title: c.title,
+        subtitle: 'ТВ-канал',
+        target: { kind: 'channel', id: c.id },
+      })),
+    );
+  }, [channels]);
+  const savePreferred = (checked: boolean) => {
+    if (!intent || !selectedId) return;
+    const next = { ...preferred };
+    if (checked) next[intent.sport] = selectedId;
+    else delete next[intent.sport];
+    setPreferred(next);
+    setJson('sportsdesk.watch.preferred', next);
+  };
+  const contextPanel = intent ? (
+    <section className="panel watch-event-context" aria-label="Просмотр события">
+      <div>
+        <h2>{intent.title}</h2>
+        <p>
+          Выберите канал для этого события. Программа передач не подключена — наличие трансляции
+          нужно проверить на канале.
+        </p>
+      </div>
+      {preferred[intent.sport] && channels.some((c) => c.id === preferred[intent.sport]) && (
+        <button className="ghost-btn" onClick={() => setSelectedId(preferred[intent.sport]!)}>
+          Открыть мой канал
+        </button>
+      )}
+    </section>
+  ) : null;
 
   useEffect(() => {
     localStorage.setItem('sportsdesk.watch.view', viewMode);
@@ -131,7 +182,6 @@ export function WatchView() {
     } else {
       setChannels([]);
       setChannelsState('idle');
-      setSelectedId(null);
     }
   }, [account.kind, loadChannels]);
 
@@ -298,6 +348,7 @@ export function WatchView() {
   if (account.kind === 'signed-out') {
     return (
       <div className="watch-root watch-root-signed-out">
+        {contextPanel}
         <div className="watch-signedout-stage">
           <div className="watch-signedout-hero">
             <span className="watch-hero-icon">
@@ -545,6 +596,24 @@ export function WatchView() {
         </aside>
 
         <main className="watch-stage">
+          {contextPanel}
+          {requestedChannelId &&
+            channelsState === 'ready' &&
+            !channels.some((c) => c.id === requestedChannelId) && (
+              <p role="status" className="watch-muted">
+                Этот канал больше недоступен в каталоге. Выберите другой.
+              </p>
+            )}
+          {intent && selected && (
+            <label className="channel-preference">
+              <input
+                type="checkbox"
+                checked={preferred[intent.sport] === selected.id}
+                onChange={(e) => savePreferred(e.target.checked)}
+              />
+              Предпочитаемый канал для {intent.sport === 'f1' ? 'Формулы 1' : 'футбола'}
+            </label>
+          )}
           {selected ? (
             <PlayerPane
               key={selected.id}

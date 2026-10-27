@@ -46,6 +46,10 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Lint failed' }
   npm test
   if ($LASTEXITCODE -ne 0) { throw 'Frontend tests failed' }
+  npm run typecheck:e2e
+  if ($LASTEXITCODE -ne 0) { throw 'Browser test types failed' }
+  npm run test:visual
+  if ($LASTEXITCODE -ne 0) { throw 'Visual regression tests failed' }
   cargo test --manifest-path src-tauri/Cargo.toml --lib
   if ($LASTEXITCODE -ne 0) { throw 'Rust tests failed' }
   cargo clippy --manifest-path src-tauri/Cargo.toml --lib --no-deps -- -D warnings
