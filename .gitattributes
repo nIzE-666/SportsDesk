@@ -1,0 +1,26 @@
+# Store text with LF in Git and check it out with LF on every machine (incl. CI),
+# so Prettier/rustfmt see the same bytes locally and on GitHub runners.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.glb binary
+*.exe binary
+*.msi binary
+*.zip binary
+*.dpapi binary
