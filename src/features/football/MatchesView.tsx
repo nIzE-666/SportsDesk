@@ -8,6 +8,7 @@ import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
 import { formatDateTime, getUserTimezone, normalizeName } from './storage';
 import type { MatchSummary } from './types';
+import { SPOILER_MASK, isResultHidden } from '../spoilers/spoilerStore';
 import type { UseFootballResult } from './useFootballData';
 
 type StatusFilter = 'all' | 'upcoming' | 'finished';
@@ -271,9 +272,12 @@ function MatchRow({
         onClick={onOpen}
         aria-label={`Разбор матча: ${match.home_team.name} — ${match.away_team.name}`}
       >
-        {match.score_home != null || match.score_away != null
-          ? `${match.score_home ?? '—'} : ${match.score_away ?? '—'}`
-          : '— : —'}
+        {(match.score_home != null || match.score_away != null) &&
+        isResultHidden('football', match.id)
+          ? SPOILER_MASK
+          : match.score_home != null || match.score_away != null
+            ? `${match.score_home ?? '—'} : ${match.score_away ?? '—'}`
+            : '— : —'}
       </button>
       <span className="ta-right">
         <span className={classifyMatchStatus(match.status) === 'live' ? 'chip live-chip' : 'chip'}>

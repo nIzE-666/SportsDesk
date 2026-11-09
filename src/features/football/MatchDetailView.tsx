@@ -13,6 +13,9 @@ import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
 import { MatchStatsTab } from './MatchStatsTab';
 import { MatchLineups } from './MatchLineups';
+import { HiddenScore, SpoilerGate } from '../spoilers/SpoilerGate';
+import { SpoilerToggle } from '../spoilers/SpoilerToggle';
+import '../spoilers/spoilers.css';
 import { formatDate, formatDateTime, getUserTimezone } from './storage';
 import type {
   EventsPayload,
@@ -284,9 +287,18 @@ export function MatchDetailView({
         </div>
         <div className="md-center">
           <strong className="md-score">
-            {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
+            <HiddenScore kind="football" id={detail.id}>
+              {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
+            </HiddenScore>
           </strong>
           <span className="chip">{matchStatusLabel(detail.status)}</span>
+          <SpoilerToggle
+            kind="football"
+            id={detail.id}
+            label={`${detail.home_team.name} — ${detail.away_team.name}`}
+            eventTime={detail.time_utc ?? detail.date}
+            compact
+          />
           {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
             <span className="chip live-watch-chip">
               <Radio size={10} className="watch-spin-slow" /> следим{' '}
@@ -329,67 +341,77 @@ export function MatchDetailView({
         ))}
       </div>
 
-      <SectionBoundary resetKey={`${matchId}.${tab}`} name="Вкладка матча">
-        {tab !== 'overview' &&
-        optionalLoading[tab] &&
-        ((tab === 'stats' && !loaded.stats) ||
-          (tab === 'lineups' && !loaded.lineups) ||
-          (tab === 'players' && !loaded.players.length) ||
-          (tab === 'events' && !loaded.events)) ? (
-          <LoadingBlock
-            label={
-              tab === 'lineups'
-                ? 'Загружаем составы и расстановку…'
-                : tab === 'stats'
-                  ? 'Загружаем статистику матча…'
-                  : tab === 'players'
-                    ? 'Загружаем показатели игроков…'
-                    : 'Загружаем события матча…'
-            }
-            rows={3}
-          />
-        ) : (
-          <>
-            {tab === 'overview' && (
-              <Overview
-                detail={detail}
-                events={loaded.events}
-                stats={loaded.stats}
-                timezone={timezone}
-              />
-            )}
-            {tab === 'events' && (
-              <EventsTab payload={loaded.events} error={optionalErrors.events} detail={detail} />
-            )}
-            {tab === 'lineups' && (
-              <MatchLineups
-                detail={detail}
-                payload={loaded.lineups}
-                entries={loaded.players}
-                error={optionalErrors.lineups}
-                playersError={optionalErrors.players}
-                playersLoading={optionalLoading.players}
-              />
-            )}
-            {tab === 'stats' && (
-              <MatchStatsTab payload={loaded.stats} error={optionalErrors.stats} detail={detail} />
-            )}
-            {tab === 'players' && (
-              <PlayersTab
-                key={matchId}
-                entries={loaded.players}
-                error={optionalErrors.players}
-                detail={detail}
-                seasonMatches={seasonMatches}
-                onOpenMatch={onOpenMatch}
-              />
-            )}
-          </>
-        )}
-      </SectionBoundary>
-      <SectionBoundary resetKey={`${matchId}.comparison`} name="Сравнение игроков">
-        <MatchPlayersComparison detail={detail} entries={loaded.players} />
-      </SectionBoundary>
+      <SpoilerGate
+        kind="football"
+        id={detail.id}
+        bypass={classifyMatchStatus(detail.status) === 'scheduled'}
+      >
+        <SectionBoundary resetKey={`${matchId}.${tab}`} name="Вкладка матча">
+          {tab !== 'overview' &&
+          optionalLoading[tab] &&
+          ((tab === 'stats' && !loaded.stats) ||
+            (tab === 'lineups' && !loaded.lineups) ||
+            (tab === 'players' && !loaded.players.length) ||
+            (tab === 'events' && !loaded.events)) ? (
+            <LoadingBlock
+              label={
+                tab === 'lineups'
+                  ? 'Загружаем составы и расстановку…'
+                  : tab === 'stats'
+                    ? 'Загружаем статистику матча…'
+                    : tab === 'players'
+                      ? 'Загружаем показатели игроков…'
+                      : 'Загружаем события матча…'
+              }
+              rows={3}
+            />
+          ) : (
+            <>
+              {tab === 'overview' && (
+                <Overview
+                  detail={detail}
+                  events={loaded.events}
+                  stats={loaded.stats}
+                  timezone={timezone}
+                />
+              )}
+              {tab === 'events' && (
+                <EventsTab payload={loaded.events} error={optionalErrors.events} detail={detail} />
+              )}
+              {tab === 'lineups' && (
+                <MatchLineups
+                  detail={detail}
+                  payload={loaded.lineups}
+                  entries={loaded.players}
+                  error={optionalErrors.lineups}
+                  playersError={optionalErrors.players}
+                  playersLoading={optionalLoading.players}
+                />
+              )}
+              {tab === 'stats' && (
+                <MatchStatsTab
+                  payload={loaded.stats}
+                  error={optionalErrors.stats}
+                  detail={detail}
+                />
+              )}
+              {tab === 'players' && (
+                <PlayersTab
+                  key={matchId}
+                  entries={loaded.players}
+                  error={optionalErrors.players}
+                  detail={detail}
+                  seasonMatches={seasonMatches}
+                  onOpenMatch={onOpenMatch}
+                />
+              )}
+            </>
+          )}
+        </SectionBoundary>
+        <SectionBoundary resetKey={`${matchId}.comparison`} name="Сравнение игроков">
+          <MatchPlayersComparison detail={detail} entries={loaded.players} />
+        </SectionBoundary>
+      </SpoilerGate>
     </div>
   );
 }

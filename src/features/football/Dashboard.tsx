@@ -25,6 +25,7 @@ import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
 import { useHomeLayout, type HomeWidgetId } from './homeLayout';
 import { HomeLayoutEditor } from './HomeLayoutEditor';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
+import { useResultHidden } from '../spoilers/spoilerStore';
 import {
   buildCalendar,
   compareUpcoming,
@@ -43,6 +44,7 @@ export interface DashboardProps {
 /** Compact vertical feed row: fits the narrow right column at any width. */
 function FeedRow({ m, onOpenMatch }: { m: MatchSummary; onOpenMatch: (id: string) => void }) {
   const timezone = getUserTimezone();
+  const spoilerHidden = useResultHidden('football', m.id);
   return (
     <button
       className="recent-game"
@@ -54,12 +56,12 @@ function FeedRow({ m, onOpenMatch }: { m: MatchSummary; onOpenMatch: (id: string
       <span>
         <TeamBadge name={m.home_team.name} imageUrl={m.home_team.image_url} size={24} />
         <strong>{m.home_team.name}</strong>
-        <b>{m.score_home ?? '—'}</b>
+        <b>{spoilerHidden ? '?' : (m.score_home ?? '—')}</b>
       </span>
       <span>
         <TeamBadge name={m.away_team.name} imageUrl={m.away_team.image_url} size={24} />
         <strong>{m.away_team.name}</strong>
-        <b>{m.score_away ?? '—'}</b>
+        <b>{spoilerHidden ? '?' : (m.score_away ?? '—')}</b>
       </span>
     </button>
   );

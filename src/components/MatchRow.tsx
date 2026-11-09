@@ -3,6 +3,8 @@ import TeamBadge from './TeamBadge';
 import type { MatchSummary } from '../features/football/types';
 import { formatDateTime, getUserTimezone } from '../features/football/storage';
 import { classifyMatchStatus } from '../lib/sportsIdentity';
+import { scoreText, useResultHidden } from '../features/spoilers/spoilerStore';
+import '../features/spoilers/spoilers.css';
 
 export function MatchRow({
   match: m,
@@ -16,6 +18,7 @@ export function MatchRow({
   const state = classifyMatchStatus(m.status, m.status_text),
     finished = state === 'finished',
     live = state === 'live';
+  const spoilerHidden = useResultHidden('football', m.id);
   return (
     <button
       className={`game-row ${compact ? 'compact' : ''}`}
@@ -44,8 +47,11 @@ export function MatchRow({
         />
         <span>{m.home_team.name}</span>
       </span>
-      <span className={`game-score ${finished ? 'finished' : ''}`}>
-        {m.score_home != null && m.score_away != null ? `${m.score_home} : ${m.score_away}` : 'VS'}
+      <span
+        className={`game-score ${finished ? 'finished' : ''} ${spoilerHidden ? 'is-spoiler-hidden' : ''}`}
+        title={spoilerHidden ? 'Результат скрыт' : undefined}
+      >
+        {scoreText(m.score_home, m.score_away, spoilerHidden)}
       </span>
       <span className="game-team away">
         <span>{m.away_team.name}</span>

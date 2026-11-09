@@ -4,6 +4,7 @@ import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { formatDateTime, getUserTimezone } from '../football/storage';
 import { CatchUpPanel } from './CatchUpPanel';
+import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
 export interface SportsEvent {
   id: string;
   sport: 'football' | 'f1';
@@ -91,6 +92,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
       setSaving(false);
     }
   };
+  const spoilers = useSpoilerSet();
   const shown = events.filter(
       (e) => filter === 'all' || (filter === 'unread' && !e.read) || e.sport === filter,
     ),
@@ -179,7 +181,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
               </time>
             </div>
             <h2>{e.title}</h2>
-            <p>{e.body}</p>
+            <p>{spoilerSafeBody(spoilers, e)}</p>
             <div className="event-actions">
               {(e.matchId || (e.season && e.round)) && (
                 <button

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { isValidTimezone, STORAGE_KEYS } from '../football/storage';
 import { HOME_LAYOUT_KEY, isValidHomeLayoutValue } from '../football/homeLayout';
+import { SPOILERS_KEY, isValidSpoilersValue } from '../spoilers/spoilerStore';
 export function allowedProfileKey(key: string) {
   if (!key.startsWith('sportsdesk.')) return false;
   const name = key.slice('sportsdesk.'.length);
@@ -62,6 +63,8 @@ function validateProfile(settings: Record<string, string>) {
       throw new Error('В профиле указан неверный часовой пояс.');
     if (k === HOME_LAYOUT_KEY && !isValidHomeLayoutValue(v))
       throw new Error('В профиле повреждено расположение блоков главной.');
+    if (k === SPOILERS_KEY && !isValidSpoilersValue(v))
+      throw new Error('В профиле повреждён список скрытых результатов.');
     total += bytes(k) + bytes(v);
   }
   if (total > 1_500_000) throw new Error('Профиль превышает допустимый размер.');

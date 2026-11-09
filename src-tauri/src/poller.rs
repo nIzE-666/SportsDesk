@@ -68,6 +68,16 @@ pub struct PollConfig {
     pub favorites: Vec<String>,
     #[serde(default = "default_f1_reminders", rename = "f1Reminders")]
     pub f1_reminders: bool,
+    /// Match ids marked "no spoilers" in the UI: no score-revealing alerts or
+    /// Event Center entries are produced for them until the user reveals them.
+    #[serde(default, rename = "hiddenResults")]
+    pub hidden_results: Vec<String>,
+}
+
+impl PollConfig {
+    pub fn result_hidden(&self, match_id: &str) -> bool {
+        !match_id.is_empty() && self.hidden_results.iter().any(|id| id == match_id)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize, PartialEq)]
@@ -93,6 +103,7 @@ impl Default for PollConfig {
             favorite_teams: Vec::new(),
             policy: Default::default(),
             timezone: default_timezone(),
+            hidden_results: Vec::new(),
         }
     }
 }
@@ -503,6 +514,19 @@ struct PendingNotification {
     /// None denotes a legacy entry persisted before enqueue sequencing.
     #[serde(default)]
     sequence: Option<u64>,
+}
+
+/// Match id a queued notification belongs to (favourite keys are `kind|match|...`).
+fn notification_match_id(item: &PendingNotification) -> &str {
+    match &item.target {
+        NotificationTarget::Watch { match_id, .. } => match_id.as_str(),
+        NotificationTarget::Favorite => item.key.split('|').nth(1).unwrap_or_default(),
+    }
+}
+
+/// Reminders carry no result; everything else is held back for hidden matches.
+fn hidden_by_spoiler(item: &PendingNotification, cfg: &PollConfig) -> bool {
+    item.kind != "reminder" && cfg.result_hidden(notification_match_id(item))
 }
 
 #[derive(serde::Serialize, Deserialize)]
@@ -1289,6 +1313,9 @@ impl Poller {
                 )),
                 _ => None,
             };
+            if self.config().result_hidden(&watch.match_id) {
+                continue;
+            }
             crate::event_center::record(
                 app,
                 &self.state.cache,
@@ -1504,6 +1531,9 @@ impl Poller {
 
     fn notification_allowed_now(&self, item: &PendingNotification) -> bool {
         let cfg = self.config();
+        if hidden_by_spoiler(item, &cfg) {
+            return false;
+        }
         let watch = self.watch.lock().ok().and_then(|w| w.clone());
         pending_allowed(item, &cfg, watch.as_ref(), now_ms())
     }
@@ -1768,6 +1798,9 @@ impl Poller {
                 continue;
             }
             let match_id = key.split('|').nth(1).unwrap_or_default().to_string();
+            if kind != "reminder" && current.result_hidden(&match_id) {
+                continue;
+            }
             let league_id = current
                 .favorite_teams
                 .iter()
@@ -1865,6 +1898,37 @@ pub fn start(app: AppHandle, poller: Arc<Poller>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spoiler_hidden_matches_hold_back_result_alerts() {
+        let cfg: PollConfig =
+            serde_json::from_str(r#"{"enabled":true,"favorites":[],"hiddenResults":["m1"]}"#)
+                .unwrap();
+        assert!(cfg.result_hidden("m1"));
+        assert!(!cfg.result_hidden("m2"));
+        assert!(!cfg.result_hidden(""));
+        let legacy: PollConfig =
+            serde_json::from_str(r#"{"enabled":true,"favorites":[]}"#).unwrap();
+        assert!(legacy.hidden_results.is_empty());
+
+        let mut goal = pending("goal|m1|event");
+        goal.kind = "goal".into();
+        goal.target = NotificationTarget::Favorite;
+        assert!(hidden_by_spoiler(&goal, &cfg));
+        let mut reminder = goal.clone();
+        reminder.kind = "reminder".into();
+        assert!(!hidden_by_spoiler(&reminder, &cfg));
+        let mut watched = goal.clone();
+        watched.key = "watch-goal|x".into();
+        watched.target = NotificationTarget::Watch {
+            match_id: "m1".into(),
+            generation: 1,
+        };
+        assert!(hidden_by_spoiler(&watched, &cfg));
+        let mut other = goal.clone();
+        other.key = "goal|m2|event".into();
+        assert!(!hidden_by_spoiler(&other, &cfg));
+    }
 
     #[test]
     fn pitch_ids_override_name_aliases_and_fixture_151_is_not_truncated() {

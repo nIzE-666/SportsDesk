@@ -4,6 +4,7 @@ import { getString, getJson, setString, normalizeName, STORAGE_KEYS } from '../f
 import { DEFAULT_FAVORITE_TEAM_NAMES, teamMatchesFavorite } from '../football/FavoritesProvider';
 import { readPolicy, getUserTimezone } from '../settings/notificationPolicy';
 import { VERIFIED_LEAGUES } from './useFootballData';
+import { SPOILERS_CHANGED_EVENT, SPOILERS_KEY, hiddenFootballIds } from '../spoilers/spoilerStore';
 
 /**
  * Bridge to the Rust background poller. The UI owns localStorage settings;
@@ -119,6 +120,8 @@ export function usePollerSync(): void {
           const favoriteTeams = resolveFavoriteTeams(),
             policy = readPolicy(),
             timezone = getUserTimezone();
+          // Rust не должен присылать счёт матчей из режима «без спойлеров».
+          const hiddenResults = hiddenFootballIds();
           let trayValue = getString(STORAGE_KEYS.trayMode);
           if (trayValue === null) {
             try {
@@ -137,11 +140,20 @@ export function usePollerSync(): void {
             favoriteTeams,
             policy,
             timezone,
+            hiddenResults,
           });
           if (signature === lastPush.current) continue;
           try {
             await rpc('set_poller_config', {
-              config: { enabled, favorites, f1Reminders, favoriteTeams, policy, timezone },
+              config: {
+                enabled,
+                favorites,
+                f1Reminders,
+                favoriteTeams,
+                policy,
+                timezone,
+                hiddenResults,
+              },
             });
             await rpc('set_tray_mode', { enabled: tray });
             lastPush.current = signature;
@@ -168,6 +180,7 @@ export function usePollerSync(): void {
         key === STORAGE_KEYS.catalogue ||
         key === STORAGE_KEYS.notifications ||
         key === STORAGE_KEYS.trayMode ||
+        key === SPOILERS_KEY ||
         key.startsWith('sportsdesk.notifications') ||
         key.toLowerCase().includes('timezone')
       )
@@ -176,11 +189,13 @@ export function usePollerSync(): void {
     window.addEventListener('storage', onStorage);
     window.addEventListener('sportsdesk-storage-changed', onStorage);
     window.addEventListener('sportsdesk-favorites-changed', onStorage);
+    window.addEventListener(SPOILERS_CHANGED_EVENT, onStorage);
     return () => {
       active = false;
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('sportsdesk-storage-changed', onStorage);
       window.removeEventListener('sportsdesk-favorites-changed', onStorage);
+      window.removeEventListener(SPOILERS_CHANGED_EVENT, onStorage);
     };
   }, [favoritesKey]);
 }

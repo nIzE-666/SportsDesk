@@ -4,6 +4,7 @@ import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { getUserTimezone, formatDateTime } from './storage';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { loadLiveFeed, type LiveMatch } from './liveFeed';
+import { SPOILER_MASK, spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import './mini.css';
 
 /**
@@ -31,6 +32,8 @@ export function MiniWindow() {
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const mounted = useRef(true);
+  // Список «без спойлеров» общий с главным окном через localStorage.
+  const spoilers = useSpoilerSet();
 
   const load = useCallback(async (automatic = false) => {
     try {
@@ -123,7 +126,9 @@ export function MiniWindow() {
             <div className="mini-teams">
               <span className="mini-team">{m.home ?? '—'}</span>
               <b className="mini-score">
-                {score(m.home_score)} : {score(m.away_score)}
+                {spoilers.has(spoilerKey('football', m.id))
+                  ? SPOILER_MASK
+                  : `${score(m.home_score)} : ${score(m.away_score)}`}
               </b>
               <span className="mini-team">{m.away ?? '—'}</span>
             </div>

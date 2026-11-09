@@ -3,6 +3,7 @@ import { History } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { formatDateTime, getUserTimezone } from '../football/storage';
 import type { SportsEvent } from './EventCenter';
+import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
 
 export interface CatchUpSummary {
   from: number;
@@ -92,6 +93,7 @@ export function CatchUpPanel({
       stop?.();
     };
   }, []);
+  const spoilers = useSpoilerSet();
   if (!summary || (!summary.items.length && !summary.footballIncomplete && !summary.f1Incomplete))
     return null;
   const dismiss = async () => {
@@ -140,7 +142,7 @@ export function CatchUpPanel({
               <span className="chip">{e.sport === 'f1' ? 'Формула 1' : 'Футбол'}</span>{' '}
               <time dateTime={new Date(e.occurredAt).toISOString()}>{when(e.occurredAt)}</time>
               <div>
-                <b>{e.title}</b> · {e.body}
+                <b>{e.title}</b> · {spoilerSafeBody(spoilers, e)}
               </div>
               {onOpen && (e.matchId || (e.season && e.round)) && (
                 <button className="text-link" onClick={() => onOpen(e)}>

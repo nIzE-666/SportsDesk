@@ -4,6 +4,7 @@ import TeamBadge from '../../components/TeamBadge';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
 import { formatDateTime, getUserTimezone } from './storage';
 import type { MatchSummary } from './types';
+import { SPOILER_MASK, useResultHidden } from '../spoilers/spoilerStore';
 
 export function selectFeaturedMatch(
   matches: MatchSummary[],
@@ -49,15 +50,18 @@ export function FeaturedMatchCover({
 }) {
   const state = match ? classifyMatchStatus(match.status, match.status_text) : 'unknown';
   const scored = state === 'live' || state === 'finished';
+  const spoilerHidden = useResultHidden('football', match?.id);
   const score =
-    match && scored
-      ? typeof match.score_home === 'number' &&
-        Number.isFinite(match.score_home) &&
-        typeof match.score_away === 'number' &&
-        Number.isFinite(match.score_away)
-        ? `${match.score_home} : ${match.score_away}`
-        : '— : —'
-      : 'VS';
+    match && scored && spoilerHidden
+      ? SPOILER_MASK
+      : match && scored
+        ? typeof match.score_home === 'number' &&
+          Number.isFinite(match.score_home) &&
+          typeof match.score_away === 'number' &&
+          Number.isFinite(match.score_away)
+          ? `${match.score_home} : ${match.score_away}`
+          : '— : —'
+        : 'VS';
   return (
     <EventCover sport={sport} eyebrow={`${league}${season ? ` · ${season}` : ''}`}>
       {match ? (
