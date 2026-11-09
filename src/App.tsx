@@ -574,7 +574,7 @@ function MainApp() {
                     {route.kind === 'watch' ? (
                       <WatchView intent={route.intent} requestedChannelId={route.channelId} />
                     ) : route.kind === 'games' ? (
-                      <GamesView />
+                      <GamesView onOpenMatch={openFootballMatch} />
                     ) : route.kind === 'events' ? (
                       <EventCenter
                         onOpen={(event) => {

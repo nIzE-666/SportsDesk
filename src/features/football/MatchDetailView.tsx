@@ -15,6 +15,7 @@ import { MatchStatsTab } from './MatchStatsTab';
 import { MatchLineups } from './MatchLineups';
 import { HiddenScore, SpoilerGate } from '../spoilers/SpoilerGate';
 import { SpoilerToggle } from '../spoilers/SpoilerToggle';
+import { PredictionPanel } from '../games/PredictionPanel';
 import '../spoilers/spoilers.css';
 import { formatDate, formatDateTime, getUserTimezone } from './storage';
 import type {
@@ -319,6 +320,7 @@ export function MatchDetailView({
           <MatchMetadata detail={detail} timezone={timezone} />
         </div>
       )}
+      <PredictionPanel detail={detail} />
       <div className="md-tabs" role="tablist" aria-label="Разделы матча">
         {(['overview', 'events', 'lineups', 'stats', 'players'] as const).map((k) => (
           <button

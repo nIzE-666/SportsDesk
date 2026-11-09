@@ -5,6 +5,7 @@ import { HOME_LAYOUT_KEY, isValidHomeLayoutValue } from '../football/homeLayout'
 import { SPOILERS_KEY, isValidSpoilersValue } from '../spoilers/spoilerStore';
 import { ATMOSPHERE_KEY, isValidAtmosphereValue } from '../atmosphere/atmosphereStore';
 import { START_LIGHTS_KEY, isValidStartLightsValue } from '../games/startLights';
+import { PREDICTIONS_KEY, isValidPredictionsValue } from '../games/predictions';
 export function allowedProfileKey(key: string) {
   if (!key.startsWith('sportsdesk.')) return false;
   const name = key.slice('sportsdesk.'.length);
@@ -71,6 +72,8 @@ function validateProfile(settings: Record<string, string>) {
       throw new Error('В профиле повреждены настройки атмосферы.');
     if (k === START_LIGHTS_KEY && !isValidStartLightsValue(v))
       throw new Error('В профиле повреждена статистика игры «Стартовые огни».');
+    if (k === PREDICTIONS_KEY && !isValidPredictionsValue(v))
+      throw new Error('В профиле повреждены прогнозы игры «Угадай счёт».');
     total += bytes(k) + bytes(v);
   }
   if (total > 1_500_000) throw new Error('Профиль превышает допустимый размер.');
