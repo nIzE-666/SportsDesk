@@ -1,0 +1,49 @@
+.fav-editor {
+  display: grid;
+  gap: 8px;
+}
+.fav-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.fav-editor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.fav-editor-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+.fav-editor-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fav-editor-list .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+}
+.fav-editor-search {
+  display: grid;
+  gap: 4px;
+}
+.fav-editor-search input {
+  width: 100%;
+  max-width: 420px;
+}
+.fav-editor-group {
+  display: grid;
+  gap: 4px;
+}

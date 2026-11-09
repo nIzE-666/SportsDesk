@@ -9,6 +9,7 @@ import {
   Moon,
   Rows3,
   ShieldCheck,
+  Star,
   Sun,
   Tv,
   Upload,
@@ -20,6 +21,7 @@ import { readNotificationsEnabled, writeNotificationsEnabled } from '../football
 import './settings.css';
 import { UpdatePanel } from './Updates';
 import { NotificationPreferences } from './NotificationPreferences';
+import { FavoriteClubsEditor } from './FavoriteClubsEditor';
 import { BackupPanel } from './BackupPanel';
 import { ShortcutControl } from './ShortcutControl';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
@@ -675,6 +677,15 @@ export function SettingsView() {
             UTC-время матчей переводится в выбранный пояс при отображении.
           </span>
         </div>
+      </section>
+
+      <section className="panel settings-section" aria-label="Избранное">
+        <div className="section-title">
+          <h2>
+            <Star size={15} /> Избранное
+          </h2>
+        </div>
+        <FavoriteClubsEditor />
       </section>
 
       <section className="panel settings-section">

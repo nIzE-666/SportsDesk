@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { resolveFavoriteTeams } from '../football/usePoller';
+import { useFavorites } from '../football/FavoritesProvider';
 import {
   EVENTS,
   getUserTimezone,
@@ -16,6 +17,8 @@ const labels: Record<keyof EventTypes, string> = {
 };
 export function NotificationPreferences() {
   const [policy, setPolicy] = useState(readPolicy);
+  // Подписка на общее избранное: список команд обновляется сразу после правки.
+  useFavorites();
   const teams = resolveFavoriteTeams();
   const update = (p: NotificationPolicy) => {
     setPolicy(p);

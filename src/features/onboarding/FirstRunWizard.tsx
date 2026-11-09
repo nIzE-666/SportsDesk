@@ -6,11 +6,7 @@ import { useModalFocus } from '../../lib/useModalFocus';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import { useFavoriteDrivers, useFavoriteTeams } from '../f1/useFavorites';
 import { getString, isValidTimezone, setString, STORAGE_KEYS } from '../football/storage';
-import {
-  readNotificationsEnabled,
-  resolveFavoriteTeamNames,
-  writeNotificationsEnabled,
-} from '../football/usePoller';
+import { readNotificationsEnabled, writeNotificationsEnabled } from '../football/usePoller';
 import {
   makeOnboardingState,
   ONBOARDING_STEPS,
@@ -21,6 +17,7 @@ import {
   type OnboardingOrigin,
   type OnboardingStep,
 } from './onboarding';
+import { FavoriteClubsEditor } from '../settings/FavoriteClubsEditor';
 import './onboarding.css';
 
 const STEP_TITLES: Record<OnboardingStep, string> = {
@@ -248,7 +245,6 @@ function WelcomeStep() {
 
 function FootballStep({ onLeagueChange }: { onLeagueChange?: (id: string) => void }) {
   const [league, setLeague] = useState(() => getString('sportsdesk.league') ?? LEAGUES[0].id);
-  const clubs = resolveFavoriteTeamNames();
   const choose = (id: string) => {
     setLeague(id);
     setString('sportsdesk.league', id);
@@ -275,9 +271,10 @@ function FootballStep({ onLeagueChange }: { onLeagueChange?: (id: string) => voi
       </fieldset>
       <div>
         <strong className="small">Отслеживаемые клубы</strong>
+        <FavoriteClubsEditor compact />
         <p className="muted small">
-          {clubs.length ? clubs.join(', ') : 'Пока не выбраны.'} Добавить или убрать клуб можно
-          звёздочкой в «Матчах» и «Клубах» — изменения сразу попадут в уведомления.
+          Позже клубы можно менять в «Настройки → Избранное» или звёздочкой в «Матчах» — изменения
+          сразу попадут в планировщик и уведомления.
         </p>
       </div>
     </>
