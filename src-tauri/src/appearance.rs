@@ -35,6 +35,7 @@ pub fn setup(app: &AppHandle) {
         {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.show();
+                crate::tray::report_window_visibility(&app, true);
             }
         }
     });
@@ -58,6 +59,7 @@ pub fn apply_window_appearance(app: AppHandle, scheme: String) -> Result<(), Str
     std::fs::write(dir.join("appearance.txt"), scheme).map_err(|_| "Не удалось сохранить тему.")?;
     if let Some(window) = app.get_webview_window("main") {
         window.show().map_err(|_| "Не удалось открыть окно.")?;
+        crate::tray::report_window_visibility(&app, true);
     }
     Ok(())
 }

@@ -109,6 +109,12 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
 
     // Close hides to tray instead of exiting; notifications keep working.
     if let Some(window) = app.get_webview_window("main") {
+        // Окно может быть создано скрытым и показано позже: берём настоящее
+        // состояние, а не предполагаемое, иначе первое скрытие не будет замечено.
+        MAIN_VISIBLE.store(
+            window.is_visible().unwrap_or(true),
+            std::sync::atomic::Ordering::Relaxed,
+        );
         let app_handle = app.clone();
         window.on_window_event(move |event| match event {
             // Only intercept when tray mode is active (default on).
