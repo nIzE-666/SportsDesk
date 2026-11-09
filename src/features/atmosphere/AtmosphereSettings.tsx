@@ -12,6 +12,7 @@ import {
   type MotionMode,
 } from './atmosphereStore';
 import { CELEBRATE_PREVIEW_EVENT } from './celebrationRules';
+import { FINISH_PREVIEW_EVENT } from './finishRules';
 import { playGoalHorn } from './soundEngine';
 import './atmosphere.css';
 
@@ -180,6 +181,13 @@ export function AtmosphereSettings() {
           onClick={() => window.dispatchEvent(new Event(CELEBRATE_PREVIEW_EVENT))}
         >
           Показать праздник гола
+        </button>
+        <button
+          className="ghost-btn"
+          disabled={!s.enabled || !s.celebrations}
+          onClick={() => window.dispatchEvent(new Event(FINISH_PREVIEW_EVENT))}
+        >
+          Показать клетчатый флаг
         </button>
         <button
           className="ghost-btn"

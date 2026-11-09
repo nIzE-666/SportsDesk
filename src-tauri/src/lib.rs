@@ -6,6 +6,7 @@ mod calendar;
 mod catchup;
 mod diagnostics;
 mod event_center;
+mod f1_finish;
 mod f1_reminders;
 mod history;
 mod kino;
@@ -446,6 +447,7 @@ pub fn run() {
             }
 
             f1_reminders::start(app.handle().clone(), poller.clone(), state.clone());
+            f1_finish::start(app.handle().clone(), poller.clone(), state.clone());
             catchup::start(app.handle().clone(), poller.clone(), state);
             poller::start(app.handle().clone(), poller);
             Ok(())

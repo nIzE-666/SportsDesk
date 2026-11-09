@@ -27,9 +27,17 @@ pub struct Event {
 }
 
 pub fn record(app: &AppHandle, cache: &Cache, event: &Event) {
-    if matches!(cache.insert_event(event, now_ms()), Ok(true)) {
+    record_checked(app, cache, event);
+}
+
+/// Записывает событие и сообщает, оно ли было новым. Повторная запись того же
+/// id ничего не меняет, поэтому по ответу можно решить, нужен ли праздник.
+pub fn record_checked(app: &AppHandle, cache: &Cache, event: &Event) -> bool {
+    let inserted = matches!(cache.insert_event(event, now_ms()), Ok(true));
+    if inserted {
         let _ = app.emit("sportsdesk://events-changed", ());
     }
+    inserted
 }
 
 #[tauri::command]

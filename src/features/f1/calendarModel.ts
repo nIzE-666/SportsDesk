@@ -31,12 +31,16 @@ const TITLES: Record<string, [string, string]> = {
   'Abu Dhabi Grand Prix': ['Гран-при Абу-Даби', 'AE'],
   'Emilia Romagna Grand Prix': ['Гран-при Эмилии-Романьи', 'IT'],
 };
-export function racePresentation(race: JolpicaRace) {
-  const [title, country] = TITLES[race.raceName] ?? [race.raceName, ''];
+/** Русское название Гран-при и флаг страны по английскому названию из Jolpica. */
+export function grandPrixTitle(raceName: string) {
+  const [title, country] = TITLES[raceName] ?? [raceName, ''];
   const flag = country
     ? [...country].map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join('')
     : '🏁';
   return { title, country, flag };
+}
+export function racePresentation(race: JolpicaRace) {
+  return grandPrixTitle(race.raceName);
 }
 export function raceStart(race: JolpicaRace): Date | null {
   return weekendSchedule(race).find((s) => s.id === 'race')?.start ?? null;

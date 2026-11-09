@@ -6,6 +6,7 @@ import {
   SPOILERS_KEY,
   SPOILER_MASK,
   SPOILER_TTL_DAYS,
+  f1SpoilerId,
   hiddenFootballIds,
   hideResult,
   isResultHidden,
@@ -164,4 +165,22 @@ it('event feed and catch-up bodies are masked for hidden matches only', () => {
   expect(spoilerSafeBody(set, { ...goal, kind: 'reminder' })).toBe(goal.body);
   expect(spoilerSafeBody(set, { ...goal, matchId: 'm-2' })).toBe(goal.body);
   expect(spoilerSafeBody(set, { ...goal, matchId: undefined })).toBe(goal.body);
+});
+
+it('a hidden Formula 1 weekend masks its result events but not its reminders', () => {
+  hideResult({ kind: 'f1', id: f1SpoilerId('2026', '21') });
+  const set = getSpoilerSnapshot();
+  const result = {
+    sport: 'f1',
+    kind: 'result',
+    body: 'Abu Dhabi Grand Prix · победитель: Max Verstappen (Red Bull)',
+    season: '2026',
+    round: '21',
+  };
+  expect(spoilerSafeBody(set, result)).toBe(HIDDEN_EVENT_BODY);
+  expect(spoilerSafeBody(set, { ...result, kind: 'reminder' })).toBe(result.body);
+  expect(spoilerSafeBody(set, { ...result, round: '20' })).toBe(result.body);
+  expect(spoilerSafeBody(set, { ...result, season: undefined })).toBe(result.body);
+  expect(isResultHidden('f1', f1SpoilerId('2026', '21'))).toBe(true);
+  expect(isResultHidden('football', f1SpoilerId('2026', '21'))).toBe(false);
 });

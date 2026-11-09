@@ -383,6 +383,16 @@ fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
     if source == "openf1" {
         return 24 * 60 * 60 * 1000;
     }
+    // Jolpica ещё не опубликовала итоги этапа: пустой ответ быстро устаревает,
+    // иначе экраны F1 и наблюдатель финиша ждали бы 15 минут.
+    if source == "jolpica"
+        && payload
+            .pointer("/MRData/RaceTable/Races")
+            .and_then(Value::as_array)
+            .is_some_and(Vec::is_empty)
+    {
+        return 2 * 60 * 1000;
+    }
     if p.contains("standing") {
         return 15 * 60 * 1000;
     }
@@ -1328,6 +1338,20 @@ mod runtime_tests {
             ),
             60_000
         );
+    }
+
+    #[test]
+    fn unpublished_jolpica_results_expire_quickly_and_published_ones_do_not() {
+        let empty = serde_json::json!({"MRData":{"RaceTable":{"Races":[]}}});
+        let published = serde_json::json!({"MRData":{"RaceTable":{"Races":[{"Results":[]}]}}});
+        assert_eq!(ttl_ms("jolpica", "2026/21/results.json", &empty), 120_000);
+        assert_eq!(ttl_ms("jolpica", "2026/21/sprint.json", &empty), 120_000);
+        assert_eq!(
+            ttl_ms("jolpica", "2026/21/results.json", &published),
+            15 * 60_000
+        );
+        // Другие источники и другие формы ответа правило не затрагивает.
+        assert_eq!(ttl_ms("pitch", "matches/x/events", &empty), 60_000);
     }
 }
 

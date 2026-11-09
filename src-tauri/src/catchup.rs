@@ -194,9 +194,10 @@ fn text<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
         .filter(|s| !s.is_empty())
 }
 
-/// Квалификации, спринты и гонки, расчётное окончание которых попало в
-/// `(from, to]`. Практики пропускаются: у них нет итогов в Jolpica.
-pub fn finished_sessions(schedule: &Value, window: &Window) -> Vec<F1Session> {
+/// Квалификации, спринты и гонки расписания вместе с временем старта (мс UTC).
+/// Практики пропускаются: у них нет итогов в Jolpica. Сессии без времени старта
+/// не попадают в список: полночь вместо неизвестного времени не подставляется.
+pub fn scheduled_sessions(schedule: &Value) -> Vec<(F1Session, i64)> {
     let mut out = Vec::new();
     let races = schedule
         .pointer("/MRData/RaceTable/Races")
@@ -226,19 +227,30 @@ pub fn finished_sessions(schedule: &Value, window: &Window) -> Vec<F1Session> {
             let Some(start) = parse_utc_ms(date, time) else {
                 continue;
             };
-            let ends_at = start + duration;
-            if ends_at > window.from && ends_at <= window.to {
-                out.push(F1Session {
+            out.push((
+                F1Session {
                     season: season.into(),
                     round: round.into(),
                     sid,
                     label,
                     race_name: race_name.into(),
-                    ends_at,
-                });
-            }
+                    ends_at: start + duration,
+                },
+                start,
+            ));
         }
     }
+    out
+}
+
+/// Квалификации, спринты и гонки, расчётное окончание которых попало в
+/// `(from, to]`.
+pub fn finished_sessions(schedule: &Value, window: &Window) -> Vec<F1Session> {
+    let mut out: Vec<F1Session> = scheduled_sessions(schedule)
+        .into_iter()
+        .map(|(session, _)| session)
+        .filter(|session| session.ends_at > window.from && session.ends_at <= window.to)
+        .collect();
     out.sort_by_key(|s| s.ends_at);
     out
 }

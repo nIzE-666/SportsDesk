@@ -6,6 +6,7 @@ import { FirstRunWizard } from './features/onboarding/FirstRunWizard';
 import type { TabId as F1Tab } from './features/f1/F1View';
 import { MiniWindow } from './features/football/MiniWindow';
 import { SportsNotifications } from './features/football/SportsNotifications';
+import { FinishCelebration } from './features/atmosphere/FinishCelebration';
 import { GoalCelebration } from './features/atmosphere/GoalCelebration';
 import { TeamRadioSignal } from './features/atmosphere/TeamRadioSignal';
 import {
@@ -250,6 +251,7 @@ function MainApp() {
         />
         <SportsNotifications />
         <GoalCelebration />
+        <FinishCelebration />
         <TeamRadioSignal />
         <WhatsNewDialog />
         <FirstRunWizard

@@ -59,6 +59,11 @@ export function spoilerKey(kind: SpoilerKind, id: string): string {
   return `${kind}:${id}`;
 }
 
+/** Идентификатор скрываемого этапа Формулы-1: сезон и этап («2026|21»), без привязки к сессии. */
+export function f1SpoilerId(season: string, round: string): string {
+  return `${season}|${round}`;
+}
+
 /** Разбирает сохранённое значение. null — значение не похоже на список спойлеров. */
 export function parseSpoilers(value: unknown): StoredSpoilers | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -200,9 +205,23 @@ export const HIDDEN_EVENT_BODY = 'Результат скрыт — открой
 /** Текст события ленты без спойлера: напоминания безопасны, остальное скрывается. */
 export function spoilerSafeBody(
   hidden: ReadonlySet<string>,
-  event: { sport: string; kind: string; body: string; matchId?: string },
+  event: {
+    sport: string;
+    kind: string;
+    body: string;
+    matchId?: string;
+    season?: string;
+    round?: string;
+  },
 ): string {
-  if (event.kind === 'reminder' || !event.matchId) return event.body;
+  if (event.kind === 'reminder') return event.body;
+  // Итоги этапа Формулы-1 привязаны к сезону и этапу, а не к id матча.
+  if (event.sport === 'f1' && event.season && event.round) {
+    return hidden.has(spoilerKey('f1', f1SpoilerId(event.season, event.round)))
+      ? HIDDEN_EVENT_BODY
+      : event.body;
+  }
+  if (!event.matchId) return event.body;
   const kind: SpoilerKind = event.sport === 'f1' ? 'f1' : 'football';
   return hidden.has(spoilerKey(kind, event.matchId)) ? HIDDEN_EVENT_BODY : event.body;
 }
