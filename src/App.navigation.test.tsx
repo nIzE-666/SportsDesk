@@ -6,6 +6,7 @@ import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
 import { readInterfaceDesign } from './lib/interfaceDesign';
+import { writeAtmosphere } from './features/atmosphere/atmosphereStore';
 
 vi.mock('./lib/bridge', () => ({
   api: vi.fn(),
@@ -53,6 +54,8 @@ async function renderApp() {
     import('./features/f1/F1View'),
     import('./features/settings/SettingsView'),
     import('./features/planner/ViewingPlanner'),
+    import('./features/games/GamesView'),
+    import('./features/games/StartLightsGame'),
     import('./features/ucl/ChampionsView'),
     import('./features/ucl/CupsView'),
   ]);
@@ -499,4 +502,24 @@ it('preserves the original match back target when another match is opened from i
     section: 'matches',
   });
   expect(host.querySelector('.match-detail')).toBeNull();
+});
+
+it('opens the games page from the sidebar, returns with the same button and starts nothing by itself', async () => {
+  await renderApp();
+  expect(host.querySelector('.games-view')).toBeNull();
+  await click(button('Игры'));
+  expect(host.querySelector('.games-view')).not.toBeNull();
+  expect(host.querySelector('.page-breadcrumb')?.textContent).toContain('Игры');
+  expect(host.querySelector('.lights-pad')).not.toBeNull();
+  expect(host.querySelectorAll('.lamp.on')).toHaveLength(0);
+  await click(button('Игры'));
+  expect(host.querySelector('.games-view')).toBeNull();
+});
+
+it('hides the games entry while the games block is switched off', async () => {
+  writeAtmosphere({ enabled: false });
+  await renderApp();
+  expect([...host.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Игры')).toBe(
+    false,
+  );
 });

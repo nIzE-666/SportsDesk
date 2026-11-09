@@ -12,7 +12,8 @@ export type ShellRoute =
   | { kind: 'watch'; channelId?: number; intent?: WatchIntent }
   | { kind: 'settings' }
   | { kind: 'planner' }
-  | { kind: 'events' };
+  | { kind: 'events' }
+  | { kind: 'games' };
 
 export function homeRoute(sport: Sport, cupId: string): ContentRoute {
   return sport === 'cup'
@@ -28,7 +29,8 @@ export function isContentRoute(route: ShellRoute): route is ContentRoute {
     route.kind !== 'watch' &&
     route.kind !== 'settings' &&
     route.kind !== 'planner' &&
-    route.kind !== 'events'
+    route.kind !== 'events' &&
+    route.kind !== 'games'
   );
 }
 export function isValidContentRoute(value: unknown): value is ContentRoute {

@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, CalendarClock, Heart, Settings, Tv } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarClock,
+  Gamepad2,
+  Heart,
+  Settings,
+  Tv,
+} from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import ConnectivityBanner from './components/ConnectivityBanner';
 import WhatsNewDialog from './components/WhatsNewDialog';
@@ -6,6 +14,7 @@ import { FirstRunWizard } from './features/onboarding/FirstRunWizard';
 import type { TabId as F1Tab } from './features/f1/F1View';
 import { MiniWindow } from './features/football/MiniWindow';
 import { SportsNotifications } from './features/football/SportsNotifications';
+import { useAtmosphere } from './features/atmosphere/atmosphereStore';
 import { FinishCelebration } from './features/atmosphere/FinishCelebration';
 import { GoalCelebration } from './features/atmosphere/GoalCelebration';
 import { TeamRadioSignal } from './features/atmosphere/TeamRadioSignal';
@@ -56,6 +65,9 @@ const ViewingPlanner = lazy(() =>
 const EventCenter = lazy(() =>
   import('./features/events/EventCenter').then((m) => ({ default: m.EventCenter })),
 );
+const GamesView = lazy(() =>
+  import('./features/games/GamesView').then((m) => ({ default: m.GamesView })),
+);
 export type { FootballSection, ShellRoute, Sport } from './lib/navigation';
 /** Отслеживаемые команды для сайдбара: ids из localStorage + каталог имён. */
 function resolveSidebarFavorites(): Array<{ id: string; name: string }> {
@@ -87,6 +99,7 @@ export default function App() {
 
 function MainApp() {
   const design = useInterfaceDesign();
+  const atmosphere = useAtmosphere();
   const navigation = useShellNavigation();
   const { sport, cupId, route, leagueId, navigate: setRoute, back, canBack } = navigation;
   const f1Tab = route.kind === 'f1' ? (route.tab ?? 'overview') : 'overview';
@@ -144,7 +157,8 @@ function MainApp() {
     route.kind === 'watch' ||
     route.kind === 'settings' ||
     route.kind === 'planner' ||
-    route.kind === 'events';
+    route.kind === 'events' ||
+    route.kind === 'games';
   const reset = () => setRoute(homeRoute(sport, cupId));
   const changeMode = navigation.changeSport;
   const openFootballMatch = (matchId: string, eventLeague?: string) =>
@@ -432,6 +446,16 @@ function MainApp() {
                 <CalendarClock size={18} />
                 <span>Мой спортивный вечер</span>
               </button>
+              {atmosphere.enabled && (
+                <button
+                  className={`nav-item ${route.kind === 'games' ? 'active' : ''}`}
+                  title="Игры"
+                  onClick={() => togglePage('games')}
+                >
+                  <Gamepad2 size={18} />
+                  <span>Игры</span>
+                </button>
+              )}
               <button
                 className={`nav-item ${route.kind === 'watch' ? 'active' : ''}`}
                 onClick={() => togglePage('watch')}
@@ -462,7 +486,10 @@ function MainApp() {
                 sources={
                   route.kind === 'planner'
                     ? ['pitch', 'jolpica']
-                    : route.kind === 'settings' || route.kind === 'watch' || route.kind === 'events'
+                    : route.kind === 'settings' ||
+                        route.kind === 'watch' ||
+                        route.kind === 'events' ||
+                        route.kind === 'games'
                       ? []
                       : sport === 'f1'
                         ? ['jolpica', 'openf1']
@@ -484,21 +511,23 @@ function MainApp() {
                 <span>
                   {route.kind === 'settings'
                     ? 'Настройки'
-                    : route.kind === 'events'
-                      ? 'Центр событий'
-                      : route.kind === 'watch'
-                        ? 'Онлайн-просмотр'
-                        : route.kind === 'planner'
-                          ? 'Мой спортивный вечер'
-                          : route.kind === 'football-match'
-                            ? 'Статистика матча'
-                            : route.kind === 'football'
-                              ? footballNav.find((n) => n.id === route.section)?.label
-                              : route.kind === 'f1'
-                                ? f1Nav.find((n) => n.id === f1Tab)?.label
-                                : route.kind === 'ucl'
-                                  ? uclNav.find((n) => n.id === uclTab)?.label
-                                  : cupNav.find((n) => n.id === cupTab)?.label}
+                    : route.kind === 'games'
+                      ? 'Игры'
+                      : route.kind === 'events'
+                        ? 'Центр событий'
+                        : route.kind === 'watch'
+                          ? 'Онлайн-просмотр'
+                          : route.kind === 'planner'
+                            ? 'Мой спортивный вечер'
+                            : route.kind === 'football-match'
+                              ? 'Статистика матча'
+                              : route.kind === 'football'
+                                ? footballNav.find((n) => n.id === route.section)?.label
+                                : route.kind === 'f1'
+                                  ? f1Nav.find((n) => n.id === f1Tab)?.label
+                                  : route.kind === 'ucl'
+                                    ? uclNav.find((n) => n.id === uclTab)?.label
+                                    : cupNav.find((n) => n.id === cupTab)?.label}
                 </span>
               </div>
               <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
@@ -544,6 +573,8 @@ function MainApp() {
                     </button>
                     {route.kind === 'watch' ? (
                       <WatchView intent={route.intent} requestedChannelId={route.channelId} />
+                    ) : route.kind === 'games' ? (
+                      <GamesView />
                     ) : route.kind === 'events' ? (
                       <EventCenter
                         onOpen={(event) => {
