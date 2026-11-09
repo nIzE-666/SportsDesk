@@ -79,6 +79,11 @@ type SnapshotRow = (
     i64,
 );
 
+/// Schema version stamped into `PRAGMA user_version`. Snapshots from older
+/// apps carry 0 and stay restorable; snapshots from newer apps are refused.
+/// See docs/DATA_FORMATS.md before changing the table layout.
+pub const HISTORY_SCHEMA_VERSION: i64 = 1;
+
 fn read_snapshot(path: &std::path::Path) -> Result<Vec<SnapshotRow>, String> {
     let source =
         rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
@@ -89,6 +94,14 @@ fn read_snapshot(path: &std::path::Path) -> Result<Vec<SnapshotRow>, String> {
     let unsafe_schema:i64=source.query_row("SELECT count(*) FROM sqlite_master WHERE type IN ('trigger','view') OR (type='table' AND name!='history_matches')",[],|r|r.get(0)).map_err(|_|"Некорректная база истории.")?;
     if check != "ok" || unsafe_schema != 0 {
         return Err("Некорректная база истории.".into());
+    }
+    let schema: i64 = source
+        .query_row("PRAGMA user_version", [], |r| r.get(0))
+        .map_err(|_| "Некорректная база истории.")?;
+    if schema > HISTORY_SCHEMA_VERSION {
+        return Err(
+            "Снимок истории создан более новой версией SportsDesk. Обновите приложение.".into(),
+        );
     }
     // Materialise the vetted rows before changing the live database. Its
     // schema and indexes stay owned by the app; imported SQL is never run.
@@ -187,6 +200,11 @@ impl History {
              CREATE INDEX IF NOT EXISTS idx_history_away ON history_matches (away_id);
              CREATE INDEX IF NOT EXISTS idx_history_date ON history_matches (date);",
         )?;
+        // v0 (no stamp) has the same layout as v1; future migrations go here.
+        let schema: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if schema < HISTORY_SCHEMA_VERSION {
+            conn.pragma_update(None, "user_version", HISTORY_SCHEMA_VERSION)?;
+        }
         Ok(Self {
             conn: std::sync::Mutex::new(conn),
             generation: std::sync::atomic::AtomicU64::new(0),
@@ -426,6 +444,18 @@ mod tests {
             date: date.into(),
             round: "1".into(),
         }
+    }
+
+    #[test]
+    fn open_stamps_the_schema_version() {
+        let h = temp_history();
+        let schema: i64 = h
+            .conn
+            .lock()
+            .unwrap()
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(schema, HISTORY_SCHEMA_VERSION);
     }
 
     #[test]

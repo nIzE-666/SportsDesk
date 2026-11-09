@@ -418,7 +418,12 @@ impl BackupState {
         }
         let value: serde_json::Value =
             serde_json::from_slice(&text).map_err(|_| "Некорректный файл копии.")?;
-        if value.get("version").and_then(|v| v.as_u64()) == Some(1) {
+        let format = value.get("version").and_then(|v| v.as_u64());
+        let profile_format = value.pointer("/profile/version").and_then(|v| v.as_u64());
+        if format.is_some_and(|v| v > 2) || profile_format.is_some_and(|v| v > 1) {
+            return Err("Копия создана более новой версией SportsDesk. Обновите приложение и повторите восстановление.".into());
+        }
+        if format == Some(1) {
             if text.len() > 2_000_000 {
                 return Err("Файл профиля слишком большой.".into());
             }
@@ -1155,6 +1160,69 @@ mod tests {
             crate::profile::read_profile(b.dir.join("profile-mirror.json").to_str().unwrap())
                 .unwrap();
         assert_eq!(mirror.settings["sportsdesk.scheme"], "dark");
+    }
+    fn rewrite_bundle(path: &str, out: &Path, edit: impl FnOnce(&mut serde_json::Value)) -> String {
+        let mut v: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        edit(&mut v);
+        std::fs::write(out, serde_json::to_vec(&v).unwrap()).unwrap();
+        out.to_string_lossy().into_owned()
+    }
+    fn with_history_schema(v: &mut serde_json::Value, dir: &Path, schema: i64) {
+        let engine = base64::engine::general_purpose::STANDARD;
+        let bytes = engine.decode(v["historySqlite"].as_str().unwrap()).unwrap();
+        let tmp = dir.join(format!("schema-{schema}.sqlite3"));
+        std::fs::write(&tmp, bytes).unwrap();
+        {
+            let conn = rusqlite::Connection::open(&tmp).unwrap();
+            conn.pragma_update(None, "user_version", schema).unwrap();
+        }
+        let bytes = std::fs::read(&tmp).unwrap();
+        v["historySha256"] = digest(&bytes).into();
+        v["historySqlite"] = engine.encode(&bytes).into();
+    }
+    #[test]
+    fn newer_backup_formats_are_refused_with_an_update_hint() {
+        let (b, h, folder) = fixture("future");
+        let path = b.create(&h).unwrap();
+        for (name, field) in [("bundle", "/version"), ("profile", "/profile/version")] {
+            let out = rewrite_bundle(&path, &folder.join(format!("future-{name}.json")), |v| {
+                *v.pointer_mut(field).unwrap() = 99.into();
+            });
+            let err = b
+                .prepare_restore(&h, &out, vec![("sportsdesk.scheme".into(), "dark".into())])
+                .err()
+                .unwrap();
+            assert!(err.contains("более новой версией"), "{err}");
+        }
+        assert_eq!(mirror_scheme(&b), "light");
+    }
+    #[test]
+    fn history_snapshot_from_an_older_app_restores_and_newer_schema_is_refused() {
+        let (b, h, folder) = fixture("schema");
+        let path = seed_two_scores(&b, &h);
+        let old = rewrite_bundle(&path, &folder.join("old-schema.json"), |v| {
+            with_history_schema(v, &b.dir, 0)
+        });
+        let newer = rewrite_bundle(&path, &folder.join("new-schema.json"), |v| {
+            with_history_schema(v, &b.dir, crate::history::HISTORY_SCHEMA_VERSION + 1)
+        });
+        let err = b
+            .prepare_restore(
+                &h,
+                &newer,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+            )
+            .err()
+            .unwrap();
+        assert!(err.contains("более новой версией"), "{err}");
+        assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 9);
+        let prepared = b
+            .prepare_restore(&h, &old, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .unwrap();
+        b.commit_restore(&h, prepared.id).unwrap();
+        assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 2);
+        b.finish_restore(prepared.id).unwrap();
     }
     fn seed_two_scores(b: &BackupState, h: &History) -> String {
         let mut batch = crate::history::HistoryUpsert {
