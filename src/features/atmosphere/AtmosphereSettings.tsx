@@ -2,12 +2,22 @@ import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { getString, setString } from '../football/storage';
 import { F1_RADIO_KEY, F1_RADIO_NAME_KEY, RADIO_NAME_MAX } from './teamRadio';
-import { useAtmosphere, writeAtmosphere, type MotionMode } from './atmosphereStore';
+import { toggleAmbient, useAmbientState } from './ambientEngine';
+import {
+  useAtmosphere,
+  writeAtmosphere,
+  type AmbientChoice,
+  type AmbientHiddenPolicy,
+  type AmbientVideoPolicy,
+  type MotionMode,
+} from './atmosphereStore';
 import { CELEBRATE_PREVIEW_EVENT } from './celebrationRules';
+import { playGoalHorn } from './soundEngine';
 import './atmosphere.css';
 
 export function AtmosphereSettings() {
   const s = useAtmosphere();
+  const ambient = useAmbientState();
   const [radio, setRadio] = useState(() => getString(F1_RADIO_KEY) === '1');
   const [radioName, setRadioName] = useState(() => getString(F1_RADIO_NAME_KEY) ?? '');
   return (
@@ -45,7 +55,7 @@ export function AtmosphereSettings() {
             checked={s.sounds}
             onChange={(e) => writeAtmosphere({ sounds: e.target.checked })}
           />
-          Короткие звуковые сигналы
+          Короткие звуковые сигналы: рог при голе, радио F1
         </label>
         <label className="atmosphere-row">
           Движение
@@ -59,7 +69,7 @@ export function AtmosphereSettings() {
           </select>
         </label>
         <label className="atmosphere-row">
-          Громкость
+          Громкость сигналов
           <input
             type="range"
             min={0}
@@ -70,6 +80,68 @@ export function AtmosphereSettings() {
           />
           <span className="muted small">{Math.round(s.volume * 100)}%</span>
         </label>
+        <label className="atmosphere-row">
+          <input
+            type="checkbox"
+            checked={s.ambient}
+            onChange={(e) => writeAtmosphere({ ambient: e.target.checked })}
+          />
+          Фоновый звук (стадион, двигатель): в верхней панели появится кнопка с динамиком
+        </label>
+        <fieldset className="atmosphere-subgroup" disabled={!s.ambient}>
+          <label className="atmosphere-row">
+            Звук
+            <select
+              value={s.ambientKind}
+              onChange={(e) => writeAtmosphere({ ambientKind: e.target.value as AmbientChoice })}
+            >
+              <option value="auto">Автоматически: стадион в футболе, двигатель в F1</option>
+              <option value="stadium">Всегда стадион</option>
+              <option value="engine">Всегда двигатель</option>
+            </select>
+          </label>
+          <label className="atmosphere-row">
+            Громкость фона
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(s.ambientVolume * 100)}
+              onChange={(e) => writeAtmosphere({ ambientVolume: Number(e.target.value) / 100 })}
+            />
+            <span className="muted small">{Math.round(s.ambientVolume * 100)}%</span>
+          </label>
+          <label className="atmosphere-row">
+            Пока играет видео со звуком
+            <select
+              value={s.ambientVideo}
+              onChange={(e) =>
+                writeAtmosphere({ ambientVideo: e.target.value as AmbientVideoPolicy })
+              }
+            >
+              <option value="stop">Остановить фон</option>
+              <option value="lower">Приглушить фон</option>
+            </select>
+          </label>
+          <label className="atmosphere-row">
+            Когда окно скрыто в трей или свёрнуто
+            <select
+              value={s.ambientHidden}
+              onChange={(e) =>
+                writeAtmosphere({ ambientHidden: e.target.value as AmbientHiddenPolicy })
+              }
+            >
+              <option value="stop">Остановить фон</option>
+              <option value="keep">Продолжать звучать</option>
+            </select>
+          </label>
+          <p className="muted small">
+            Фон включается только кнопкой с динамиком и никогда сам — ни при запуске, ни после
+            обновления. Звук синтезируется приложением, записей нет; он не связан с ходом матча или
+            гонки и не раскрывает результат. Тихие часы не прерывают фон, который вы включили сами.
+          </p>
+        </fieldset>
         <label className="atmosphere-row">
           <input
             type="checkbox"
@@ -108,6 +180,20 @@ export function AtmosphereSettings() {
           onClick={() => window.dispatchEvent(new Event(CELEBRATE_PREVIEW_EVENT))}
         >
           Показать праздник гола
+        </button>
+        <button
+          className="ghost-btn"
+          disabled={!s.enabled || !s.sounds}
+          onClick={() => playGoalHorn({ preview: true })}
+        >
+          Проверить рог
+        </button>
+        <button
+          className="ghost-btn"
+          disabled={!s.enabled || !s.ambient}
+          onClick={() => toggleAmbient()}
+        >
+          {ambient.kind ? 'Остановить фон' : 'Прослушать фон'}
         </button>
       </div>
     </section>

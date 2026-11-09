@@ -14,6 +14,14 @@ export const ATMOSPHERE_VERSION = 1;
 export const ATMOSPHERE_CHANGED_EVENT = 'sportsdesk-atmosphere-changed';
 
 export type MotionMode = 'system' | 'reduced' | 'full';
+/** Фоновые звуки: стадион и двигатель. */
+export type AmbientKind = 'stadium' | 'engine';
+/** Какой фон запускать: по виду спорта («auto») или всегда один и тот же. */
+export type AmbientChoice = 'auto' | AmbientKind;
+/** Что делать с фоном, пока играет видео со звуком. */
+export type AmbientVideoPolicy = 'lower' | 'stop';
+/** Что делать с фоном, когда окно скрыто в трей или свёрнуто. */
+export type AmbientHiddenPolicy = 'stop' | 'keep';
 
 export interface AtmosphereSettings {
   version: number;
@@ -23,11 +31,17 @@ export interface AtmosphereSettings {
   celebrations: boolean;
   /** Короткие сигналы: рог стадиона, радио. */
   sounds: boolean;
-  /** Фоновый звук стадиона или двигателя. */
+  /** Фоновый звук стадиона или двигателя: разрешает кнопку «Фон» в верхней панели. */
   ambient: boolean;
-  /** Громкость 0…1. */
+  /** Громкость коротких сигналов 0…1. */
   volume: number;
   motion: MotionMode;
+  /** Какой фон запускать. */
+  ambientKind: AmbientChoice;
+  /** Отдельная громкость фона 0…1. */
+  ambientVolume: number;
+  ambientVideo: AmbientVideoPolicy;
+  ambientHidden: AmbientHiddenPolicy;
 }
 
 export const DEFAULT_ATMOSPHERE: AtmosphereSettings = {
@@ -38,10 +52,20 @@ export const DEFAULT_ATMOSPHERE: AtmosphereSettings = {
   ambient: false,
   volume: 0.5,
   motion: 'system',
+  ambientKind: 'auto',
+  ambientVolume: 0.4,
+  ambientVideo: 'stop',
+  ambientHidden: 'stop',
 };
 
 function isMotion(value: unknown): value is MotionMode {
   return value === 'system' || value === 'reduced' || value === 'full';
+}
+
+function clampUnit(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(1, Math.max(0, value))
+    : fallback;
 }
 
 /** Разбирает сохранённое значение. null — значение не похоже на настройки атмосферы. */
@@ -52,18 +76,28 @@ export function parseAtmosphere(value: unknown): AtmosphereSettings | null {
     return null;
   const flag = (key: keyof AtmosphereSettings) =>
     typeof raw[key] === 'boolean' ? (raw[key] as boolean) : (DEFAULT_ATMOSPHERE[key] as boolean);
-  const volume =
-    typeof raw.volume === 'number' && Number.isFinite(raw.volume)
-      ? Math.min(1, Math.max(0, raw.volume))
-      : DEFAULT_ATMOSPHERE.volume;
   return {
     version: raw.version,
     enabled: flag('enabled'),
     celebrations: flag('celebrations'),
     sounds: flag('sounds'),
     ambient: flag('ambient'),
-    volume,
+    volume: clampUnit(raw.volume, DEFAULT_ATMOSPHERE.volume),
     motion: isMotion(raw.motion) ? raw.motion : DEFAULT_ATMOSPHERE.motion,
+    // Поля фона появились позже: в старых профилях их нет, берутся значения по умолчанию.
+    ambientKind:
+      raw.ambientKind === 'auto' || raw.ambientKind === 'stadium' || raw.ambientKind === 'engine'
+        ? raw.ambientKind
+        : DEFAULT_ATMOSPHERE.ambientKind,
+    ambientVolume: clampUnit(raw.ambientVolume, DEFAULT_ATMOSPHERE.ambientVolume),
+    ambientVideo:
+      raw.ambientVideo === 'lower' || raw.ambientVideo === 'stop'
+        ? raw.ambientVideo
+        : DEFAULT_ATMOSPHERE.ambientVideo,
+    ambientHidden:
+      raw.ambientHidden === 'stop' || raw.ambientHidden === 'keep'
+        ? raw.ambientHidden
+        : DEFAULT_ATMOSPHERE.ambientHidden,
   };
 }
 
@@ -138,4 +172,9 @@ export function celebrationsAllowed(settings: AtmosphereSettings = readAtmospher
 
 export function soundsAllowed(settings: AtmosphereSettings = readAtmosphere()): boolean {
   return settings.enabled && settings.sounds && settings.volume > 0;
+}
+
+/** Фон разрешён: кнопка «Фон» доступна, но сам звук включает только пользователь. */
+export function ambientAllowed(settings: AtmosphereSettings = readAtmosphere()): boolean {
+  return settings.enabled && settings.ambient && settings.ambientVolume > 0;
 }

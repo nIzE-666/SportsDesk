@@ -21,11 +21,33 @@ pub struct TraySchedule {
 
 pub const TRAY_ID: &str = "sportsdesk-main";
 
+/// Видимость главного окна для страницы: скрытое в трей или свёрнутое окно
+/// не обязательно считается скрытым самим WebView2, а фоновый звук должен
+/// остановиться. Это событие слушает `playbackContext.ts`.
+pub const WINDOW_VISIBILITY_EVENT: &str = "sportsdesk://window-visibility";
+static MAIN_VISIBLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// Запоминает новое состояние и говорит, изменилось ли оно: одинаковые
+/// состояния (например, поток событий изменения размера) не отправляются.
+fn visibility_changed(last: &std::sync::atomic::AtomicBool, visible: bool) -> bool {
+    last.swap(visible, std::sync::atomic::Ordering::Relaxed) != visible
+}
+
+pub fn report_window_visibility(app: &AppHandle, visible: bool) {
+    if visibility_changed(&MAIN_VISIBLE, visible) {
+        let _ = app.emit(
+            WINDOW_VISIBILITY_EVENT,
+            serde_json::json!({ "visible": visible }),
+        );
+    }
+}
+
 pub fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
+        report_window_visibility(app, true);
     }
 }
 
@@ -88,16 +110,24 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
     // Close hides to tray instead of exiting; notifications keep working.
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.clone();
-        window.on_window_event(move |event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                // Only intercept when tray mode is active (default on).
-                if tray_mode_enabled() {
-                    api.prevent_close();
-                    if let Some(w) = app_handle.get_webview_window("main") {
-                        let _ = w.hide();
-                    }
+        window.on_window_event(move |event| match event {
+            // Only intercept when tray mode is active (default on).
+            WindowEvent::CloseRequested { api, .. } if tray_mode_enabled() => {
+                api.prevent_close();
+                if let Some(w) = app_handle.get_webview_window("main") {
+                    let _ = w.hide();
+                    report_window_visibility(&app_handle, false);
                 }
             }
+            // Сворачивание и восстановление приходят как изменение размера.
+            WindowEvent::Resized(_) => {
+                if let Some(w) = app_handle.get_webview_window("main") {
+                    let hidden =
+                        w.is_minimized().unwrap_or(false) || !w.is_visible().unwrap_or(true);
+                    report_window_visibility(&app_handle, !hidden);
+                }
+            }
+            _ => {}
         });
     }
 
@@ -281,6 +311,14 @@ pub fn save_tray_mode(app: &AppHandle, enabled: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn visibility_is_reported_only_when_it_changes() {
+        let last = std::sync::atomic::AtomicBool::new(true);
+        assert!(!visibility_changed(&last, true));
+        assert!(visibility_changed(&last, false));
+        assert!(!visibility_changed(&last, false));
+        assert!(visibility_changed(&last, true));
+    }
     #[test]
     fn restores_false_and_defaults_safely_for_missing_or_corrupt_settings() {
         let dir = std::env::temp_dir().join(format!("sportsdesk-tray-{}", std::process::id()));

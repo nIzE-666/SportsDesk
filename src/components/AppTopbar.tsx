@@ -3,6 +3,7 @@ import { GlobalSearch } from './GlobalSearch';
 import type { SearchTarget } from '../lib/searchIndex';
 import type { ShellRoute, Sport } from '../lib/navigation';
 import { DesignToggle } from './DesignChooser';
+import { AmbientToggle } from '../features/atmosphere/AmbientToggle';
 interface Props {
   sport: Sport;
   route: ShellRoute;
@@ -85,6 +86,7 @@ export function AppTopbar({
         >
           <Bell size={18} />
         </button>
+        <AmbientToggle sport={sport} />
         <span className="header-date">{date}</span>
         <button
           className="watch-shortcut"

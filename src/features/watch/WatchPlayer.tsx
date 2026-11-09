@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ExternalLink,
@@ -15,6 +15,7 @@ import {
   PictureInPicture2,
 } from 'lucide-react';
 import { openExternal } from '../../lib/bridge';
+import { reportVideoAudible } from '../atmosphere/playbackContext';
 
 import type { KinoChannel } from './watchShared';
 import { siteUrlForChannel } from './watchShared';
@@ -393,6 +394,13 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
     video.muted = muted;
     if (!muted && volume > 0) video.volume = volume;
   }, [muted, volume]);
+
+  // Фон и короткие сигналы атмосферы не накладываются на звук трансляции.
+  const audioReportId = useId();
+  useEffect(() => {
+    reportVideoAudible(audioReportId, playing && !muted && volume > 0);
+    return () => reportVideoAudible(audioReportId, false);
+  }, [audioReportId, playing, muted, volume]);
 
   // Fullscreen state sync
   useEffect(() => {

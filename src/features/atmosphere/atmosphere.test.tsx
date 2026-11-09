@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 import {
   ATMOSPHERE_KEY,
   DEFAULT_ATMOSPHERE,
+  ambientAllowed,
   celebrationsAllowed,
   isValidAtmosphereValue,
   motionReduced,
@@ -56,6 +57,65 @@ it('parse clamps volume and ignores unknown motion', () => {
   expect(parsed?.motion).toBe('system');
   expect(parsed?.sounds).toBe(true);
   expect(parseAtmosphere({ volume: 1 })).toBeNull();
+});
+
+it('ambient sound defaults are off and a profile from before ambient sound still loads', () => {
+  expect(DEFAULT_ATMOSPHERE).toMatchObject({
+    ambient: false,
+    ambientKind: 'auto',
+    ambientVolume: 0.4,
+    ambientVideo: 'stop',
+    ambientHidden: 'stop',
+  });
+  const legacy = { version: 1, enabled: true, celebrations: true, sounds: true, ambient: true };
+  expect(parseAtmosphere(legacy)).toMatchObject({
+    sounds: true,
+    ambient: true,
+    ambientKind: 'auto',
+    ambientVolume: 0.4,
+    ambientVideo: 'stop',
+    ambientHidden: 'stop',
+  });
+  expect(isValidAtmosphereValue(JSON.stringify(legacy))).toBe(true);
+});
+
+it('parse keeps valid ambient choices and drops invalid ones', () => {
+  const parsed = parseAtmosphere({
+    version: 1,
+    ambientKind: 'engine',
+    ambientVolume: 3,
+    ambientVideo: 'lower',
+    ambientHidden: 'keep',
+  });
+  expect(parsed).toMatchObject({
+    ambientKind: 'engine',
+    ambientVolume: 1,
+    ambientVideo: 'lower',
+    ambientHidden: 'keep',
+  });
+  const broken = parseAtmosphere({
+    version: 1,
+    ambientKind: 'crowd',
+    ambientVolume: 'loud',
+    ambientVideo: 'mute',
+    ambientHidden: 'maybe',
+  });
+  expect(broken).toMatchObject({
+    ambientKind: 'auto',
+    ambientVolume: 0.4,
+    ambientVideo: 'stop',
+    ambientHidden: 'stop',
+  });
+});
+
+it('ambient needs the master switch, the ambient flag and a non-zero volume', () => {
+  expect(ambientAllowed()).toBe(false);
+  writeAtmosphere({ ambient: true });
+  expect(ambientAllowed()).toBe(true);
+  writeAtmosphere({ ambientVolume: 0 });
+  expect(ambientAllowed()).toBe(false);
+  writeAtmosphere({ ambientVolume: 0.5, enabled: false });
+  expect(ambientAllowed()).toBe(false);
 });
 
 it('master switch and motion settings control effects', () => {

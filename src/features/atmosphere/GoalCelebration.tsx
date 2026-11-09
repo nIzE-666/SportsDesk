@@ -12,6 +12,7 @@ import {
   rememberCelebrated,
 } from './celebrationRules';
 import { Confetti } from './Confetti';
+import { playGoalHorn } from './soundEngine';
 import './atmosphere.css';
 
 interface Burst {
@@ -36,13 +37,15 @@ export function GoalCelebration() {
     timer.current = window.setTimeout(() => setBurst(null), SHOW_MS);
   };
   useEffect(() => {
-    const onPreview = () =>
+    const onPreview = () => {
       show({
         key: `preview-${Date.now()}`,
         title: 'Гол!',
         detail: 'Так выглядит праздник нового гола.',
         reduced: motionReduced(),
       });
+      playGoalHorn({ preview: true });
+    };
     window.addEventListener(CELEBRATE_PREVIEW_EVENT, onPreview);
     return () => {
       window.removeEventListener(CELEBRATE_PREVIEW_EVENT, onPreview);
@@ -85,6 +88,8 @@ export function GoalCelebration() {
           detail: latest.body,
           reduced: motionReduced(),
         });
+        // Рог — только вместе с праздником: скрытый результат и архивные голы сюда не доходят.
+        playGoalHorn();
       } catch {
         // Праздник — необязательное оформление: ошибка списка событий не мешает работе.
       } finally {
