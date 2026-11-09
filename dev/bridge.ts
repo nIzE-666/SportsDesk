@@ -437,8 +437,17 @@ export async function handleCommand(
       case 'secret_status': {
         const pitch = readSecret(SECRET_FILES.pitch) !== null;
         const kinoTokens = kino.hasTokens();
-        return json(res, 200, { pitch, kino: kinoTokens });
+        return json(res, 200, { pitch, kino: kinoTokens, kinoClient: kino.hasClientConfig() });
       }
+      case 'set_kino_client':
+        try {
+          return json(res, 200, kino.saveClientConfig(rawArgs));
+        } catch (error) {
+          return json(res, 400, {
+            error:
+              error instanceof Error ? error.message : 'Не удалось сохранить настройки KinoPub.',
+          });
+        }
       case 'set_pitch_key': {
         const key = typeof rawArgs.key === 'string' ? rawArgs.key.trim() : '';
         if (!key) return json(res, 400, { error: 'Ключ не может быть пустым.' });

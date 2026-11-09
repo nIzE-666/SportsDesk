@@ -21,8 +21,10 @@ const MAX_DEVICE_TTL_SECS: u64 = 86_400;
 
 #[derive(Debug, thiserror::Error)]
 pub enum KinoError {
-    #[error("Конфигурация клиента KinoPub не найдена.")]
+    #[error("Настройки клиента KinoPub не заданы. Откройте «Настройки → Kino» и заполните их.")]
     MissingConfig,
+    #[error("Проверьте настройки KinoPub: адрес должен начинаться с https://, Client ID и Client secret не могут быть пустыми.")]
+    InvalidConfig,
     #[error("Нет активной сессии KinoPub. Войдите по коду.")]
     NoSession,
     #[error("Не удалось запустить авторизацию KinoPub.")]
@@ -287,6 +289,49 @@ fn load_config() -> Result<ClientConfig, KinoError> {
         client_id: cfg.client_id,
         client_secret: cfg.client_secret,
     })
+}
+
+const MAX_CLIENT_FIELD_LEN: usize = 512;
+
+/// Validates and normalizes client settings entered by the user.
+fn normalize_client_config(
+    base_url: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<ClientConfig, KinoError> {
+    let base = base_url.trim().trim_end_matches('/').to_string();
+    let id = client_id.trim().to_string();
+    let secret = client_secret.trim().to_string();
+    let host_ok = base
+        .strip_prefix("https://")
+        .is_some_and(|rest| !rest.is_empty() && !rest.chars().any(char::is_whitespace));
+    let too_long = [&base, &id, &secret]
+        .iter()
+        .any(|v| v.len() > MAX_CLIENT_FIELD_LEN);
+    if !host_ok || id.is_empty() || secret.is_empty() || too_long {
+        return Err(KinoError::InvalidConfig);
+    }
+    Ok(ClientConfig {
+        base_url: base,
+        client_id: id,
+        client_secret: secret,
+    })
+}
+
+/// True when kinoclient.dpapi exists and decrypts to a valid config.
+pub fn client_configured() -> bool {
+    load_config().is_ok()
+}
+
+/// Encrypts and stores client settings. Values are never returned to the UI.
+pub fn save_client_config(
+    base_url: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<(), KinoError> {
+    let cfg = normalize_client_config(base_url, client_id, client_secret)?;
+    let raw = serde_json::to_string(&cfg).map_err(|_| KinoError::Secret)?;
+    secrets::write_secret(SecretName::KinoClient, &raw).map_err(|_| KinoError::Secret)
 }
 
 fn now_ms() -> i64 {
@@ -719,6 +764,29 @@ pub async fn logout(_state: &Arc<AppStateInner>) -> Result<(), KinoError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn client_config_is_normalized_and_validated() {
+        let cfg = normalize_client_config(" https://api.example.test/ ", " id ", " secret ")
+            .expect("valid config");
+        assert_eq!(cfg.base_url, "https://api.example.test");
+        assert_eq!(cfg.client_id, "id");
+        assert_eq!(cfg.client_secret, "secret");
+        for (base, id, secret) in [
+            ("http://api.example.test", "id", "secret"),
+            ("https://", "id", "secret"),
+            ("https://bad host", "id", "secret"),
+            ("https://api.example.test", " ", "secret"),
+            ("https://api.example.test", "id", ""),
+        ] {
+            assert!(matches!(
+                normalize_client_config(base, id, secret),
+                Err(KinoError::InvalidConfig)
+            ));
+        }
+        let long = "x".repeat(MAX_CLIENT_FIELD_LEN + 1);
+        assert!(normalize_client_config("https://api.example.test", &long, "s").is_err());
+    }
     use serde_json::json;
 
     fn token(value: &str) -> Tokens {

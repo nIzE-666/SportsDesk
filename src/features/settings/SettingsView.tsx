@@ -37,6 +37,7 @@ import {
 interface SecretStatus {
   pitch: boolean;
   kino: boolean;
+  kinoClient: boolean;
 }
 
 const TIMEZONES = [
@@ -203,6 +204,14 @@ export function SettingsView() {
     }
   };
 
+  const [kinoClientForm, setKinoClientForm] = useState({
+    baseUrl: '',
+    clientId: '',
+    clientSecret: '',
+  });
+  const [kinoClientEditing, setKinoClientEditing] = useState(false);
+  const [kinoClientBusy, setKinoClientBusy] = useState(false);
+  const [kinoClientMessage, setKinoClientMessage] = useState<string | null>(null);
   const [kinoBusy, setKinoBusy] = useState(false);
   const [kinoDevice, setKinoDevice] = useState<{
     userCode: string;
@@ -238,6 +247,7 @@ export function SettingsView() {
       setSecretStatus({
         pitch: Boolean(res?.pitch),
         kino: Boolean(res?.kino),
+        kinoClient: Boolean(res?.kinoClient),
       });
       setSecretError(null);
     } catch (e) {
@@ -279,6 +289,45 @@ export function SettingsView() {
       setKeyMessage(e instanceof Error ? e.message : 'Ошибка сохранения ключа');
     } finally {
       if (mounted.current) setKeyBusy(false);
+    }
+  };
+
+  const saveKinoClient = async () => {
+    const baseUrl = kinoClientForm.baseUrl.trim();
+    const clientId = kinoClientForm.clientId.trim();
+    const clientSecret = kinoClientForm.clientSecret.trim();
+    if (!/^https:\/\/\S+$/.test(baseUrl) || !clientId || !clientSecret) {
+      setKinoClientMessage(
+        'Заполните все поля: адрес должен начинаться с https://, Client ID и Client secret не пустые.',
+      );
+      return;
+    }
+    setKinoClientBusy(true);
+    setKinoClientMessage(null);
+    try {
+      const res = await rpc<{ ok: boolean }>('set_kino_client', {
+        baseUrl,
+        clientId,
+        clientSecret,
+      });
+      if (!mounted.current) return;
+      if (res?.ok) {
+        setKinoClientForm({ baseUrl: '', clientId: '', clientSecret: '' });
+        setKinoClientEditing(false);
+        setKinoClientMessage(
+          'Настройки KinoPub сохранены и зашифрованы. Теперь можно войти по коду.',
+        );
+        await refreshSecret();
+      } else {
+        setKinoClientMessage('Не удалось сохранить настройки KinoPub.');
+      }
+    } catch (e) {
+      if (!mounted.current) return;
+      setKinoClientMessage(
+        e instanceof Error ? e.message : 'Не удалось сохранить настройки KinoPub.',
+      );
+    } finally {
+      if (mounted.current) setKinoClientBusy(false);
     }
   };
 
@@ -485,6 +534,8 @@ export function SettingsView() {
   const secretUnknown = secretError !== null;
   const pitchReady = secretStatus?.pitch === true;
   const kinoReady = secretStatus?.kino === true;
+  const kinoClientReady = secretStatus?.kinoClient === true;
+  const showKinoClientForm = secretStatus !== null && (!kinoClientReady || kinoClientEditing);
 
   return (
     <div className="settings-view">
@@ -712,6 +763,66 @@ export function SettingsView() {
           Авторизация через код устройства сервиса Kino, токены хранятся только в защищённом
           хранилище этого приложения. Аккаунт в браузере/TV не читается и не изменяется.
         </p>
+        {showKinoClientForm && (
+          <div className="kino-client panel inner">
+            <p className="muted small">
+              {kinoClientReady
+                ? 'Новые значения заменят сохранённые. Старые не показываются.'
+                : 'Шаг 1. Укажите адрес API и данные клиента KinoPub. Они шифруются через Windows DPAPI и не показываются повторно.'}
+            </p>
+            <label htmlFor="kino-base-url" className="muted small">
+              Адрес API (https://…)
+            </label>
+            <input
+              id="kino-base-url"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
+              value={kinoClientForm.baseUrl}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, baseUrl: e.target.value }))}
+            />
+            <label htmlFor="kino-client-id" className="muted small">
+              Client ID
+            </label>
+            <input
+              id="kino-client-id"
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              value={kinoClientForm.clientId}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, clientId: e.target.value }))}
+            />
+            <label htmlFor="kino-client-secret" className="muted small">
+              Client secret
+            </label>
+            <input
+              id="kino-client-secret"
+              type="password"
+              autoComplete="off"
+              value={kinoClientForm.clientSecret}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, clientSecret: e.target.value }))}
+            />
+            <div className="settings-actions">
+              <button
+                className="ghost-btn"
+                onClick={() => void saveKinoClient()}
+                disabled={kinoClientBusy}
+              >
+                {kinoClientBusy ? 'Сохраняем…' : 'Сохранить настройки KinoPub'}
+              </button>
+              {kinoClientReady && (
+                <button
+                  className="ghost-btn"
+                  onClick={() => setKinoClientEditing(false)}
+                  disabled={kinoClientBusy}
+                >
+                  Отмена
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {kinoClientMessage && <p className="settings-note">{kinoClientMessage}</p>}
         {kinoDevice ? (
           <div className="kino-device panel inner">
             <p>
@@ -738,9 +849,25 @@ export function SettingsView() {
           </div>
         ) : (
           <div className="settings-actions">
-            <button className="ghost-btn" onClick={startKinoAuth} disabled={kinoBusy || kinoReady}>
+            <button
+              className="ghost-btn"
+              onClick={startKinoAuth}
+              disabled={kinoBusy || kinoReady || !kinoClientReady}
+            >
               {kinoBusy ? 'Запуск…' : 'Войти по коду устройства'}
             </button>
+            {kinoClientReady && !kinoClientEditing && (
+              <button
+                className="ghost-btn"
+                onClick={() => {
+                  setKinoClientMessage(null);
+                  setKinoClientEditing(true);
+                }}
+                disabled={kinoBusy}
+              >
+                Изменить настройки клиента
+              </button>
+            )}
             {kinoReady && (
               <button className="ghost-btn" onClick={logoutKino} disabled={kinoBusy}>
                 Выйти из Kino в SportsDesk

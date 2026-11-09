@@ -35,7 +35,7 @@ it('stops the Settings poll and ignores its late authorization response', async 
   vi.mocked(rpc).mockClear();
   const poll = deferred<{ pending: boolean; authenticated: boolean }>();
   vi.mocked(rpc).mockImplementation(async (command) => {
-    if (command === 'secret_status') return { kino: false, pitch: false };
+    if (command === 'secret_status') return { kino: false, pitch: false, kinoClient: true };
     if (command === 'kino_begin_auth') return { sessionId: 'settings' };
     if (command === 'kino_start_auth')
       return {
@@ -79,7 +79,7 @@ it('cancels an attempt even if the Settings screen unmounts before its ID arrive
   vi.mocked(rpc).mockClear();
   const begin = deferred<{ sessionId: string }>();
   vi.mocked(rpc).mockImplementation(async (command) => {
-    if (command === 'secret_status') return { kino: false, pitch: false };
+    if (command === 'secret_status') return { kino: false, pitch: false, kinoClient: true };
     if (command === 'kino_begin_auth') return begin.promise;
     return { ok: true };
   });

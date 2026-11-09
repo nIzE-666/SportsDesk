@@ -53,13 +53,50 @@ function loadConfig(): KinoClientConfig {
   const cfg = readJsonSecret<KinoClientConfig>(SECRET_FILES.kinoClient);
   if (!cfg || !cfg.baseUrl || !cfg.clientId || !cfg.clientSecret) {
     throw new Error(
-      'Конфигурация клиента KinoPub не найдена. Обратитесь к администратору установки.',
+      'Настройки клиента KinoPub не заданы. Откройте «Настройки → Kino» и заполните их.',
     );
   }
   const base = cfg.baseUrl.replace(/\/+$/, '');
   if (!/^https:\/\//.test(base)) throw new Error('Некорректный адрес клиента KinoPub.');
   cachedConfig = { ...cfg, baseUrl: base };
   return cachedConfig;
+}
+
+const MAX_CLIENT_FIELD_LEN = 512;
+const INVALID_CONFIG =
+  'Проверьте настройки KinoPub: адрес должен начинаться с https://, Client ID и Client secret не могут быть пустыми.';
+
+/** Validates user-entered client settings; mirrors kino.rs normalize_client_config. */
+export function normalizeClientConfig(input: {
+  baseUrl?: unknown;
+  clientId?: unknown;
+  clientSecret?: unknown;
+}): KinoClientConfig {
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  const baseUrl = text(input.baseUrl).replace(/\/+$/, '');
+  const clientId = text(input.clientId);
+  const clientSecret = text(input.clientSecret);
+  const hostOk = /^https:\/\/\S+$/.test(baseUrl);
+  const tooLong = [baseUrl, clientId, clientSecret].some((v) => v.length > MAX_CLIENT_FIELD_LEN);
+  if (!hostOk || !clientId || !clientSecret || tooLong) throw new Error(INVALID_CONFIG);
+  return { baseUrl, clientId, clientSecret };
+}
+
+export function hasClientConfig(): boolean {
+  try {
+    loadConfig();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Encrypts the client settings with DPAPI. Values are never echoed back. */
+export function saveClientConfig(input: Record<string, unknown>): { ok: true } {
+  const cfg = normalizeClientConfig(input);
+  writeSecret(SECRET_FILES.kinoClient, JSON.stringify(cfg));
+  cachedConfig = null;
+  return { ok: true };
 }
 
 function loadTokens(): KinoTokens | null {

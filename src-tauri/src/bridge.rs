@@ -21,6 +21,8 @@ pub mod native {
     pub struct SecretStatus {
         pub pitch: bool,
         pub kino: bool,
+        #[serde(rename = "kinoClient")]
+        pub kino_client: bool,
     }
 
     #[derive(Debug, Serialize)]

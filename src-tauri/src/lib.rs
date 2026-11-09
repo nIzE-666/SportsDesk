@@ -40,7 +40,29 @@ async fn secret_status(
 ) -> Result<bridge::native::SecretStatus, String> {
     let pitch = secrets::secret_exists(secrets::SecretName::PitchApi);
     let kino = kino::tokens_exist(&state.inner).await;
-    Ok(bridge::native::SecretStatus { pitch, kino })
+    let kino_client = tauri::async_runtime::spawn_blocking(kino::client_configured)
+        .await
+        .unwrap_or(false);
+    Ok(bridge::native::SecretStatus {
+        pitch,
+        kino,
+        kino_client,
+    })
+}
+
+#[tauri::command]
+async fn set_kino_client(
+    base_url: String,
+    client_id: String,
+    client_secret: String,
+) -> Result<bridge::native::OkReply, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        kino::save_client_config(&base_url, &client_id, &client_secret)
+    })
+    .await
+    .map_err(|_| "Не удалось сохранить настройки KinoPub.".to_string())?
+    .map_err(|e| e.user_message())?;
+    Ok(bridge::native::OkReply { ok: true })
 }
 
 #[tauri::command]
@@ -433,6 +455,7 @@ pub fn run() {
             appearance::apply_window_appearance,
             secret_status,
             set_pitch_key,
+            set_kino_client,
             kino_begin_auth,
             kino_start_auth,
             kino_poll_auth,
