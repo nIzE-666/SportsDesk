@@ -1,0 +1,48 @@
+.home-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-layout-editor {
+  display: grid;
+  gap: 8px;
+}
+.home-layout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.home-layout-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+}
+.home-layout-list li.is-hidden .home-layout-name {
+  opacity: 0.6;
+}
+.home-layout-name {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.home-layout-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-layout-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.home-layout-actions .ghost-btn,
+.home-layout-foot .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+}

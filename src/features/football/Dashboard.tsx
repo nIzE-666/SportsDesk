@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight,
   CalendarDays,
@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock3,
   Heart,
+  LayoutGrid,
   RefreshCw,
   Star,
   Trophy,
@@ -21,6 +22,8 @@ import { formatDateTime, getUserTimezone } from './storage';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { rpc } from '../../lib/bridge';
 import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
+import { useHomeLayout, type HomeWidgetId } from './homeLayout';
+import { HomeLayoutEditor } from './HomeLayoutEditor';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import {
   buildCalendar,
@@ -66,6 +69,9 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
   const broadcast = useInterfaceDesign() === 'broadcast';
   const { teamIds, favoriteTeamNames, seedFromCatalogue, toggleTeam } = useFavorites();
   useEffect(() => seedFromCatalogue(data.teams), [data.teams, seedFromCatalogue]);
+  const homeDesign = broadcast ? 'broadcast' : 'classic';
+  const homeLayout = useHomeLayout(homeDesign);
+  const [editingLayout, setEditingLayout] = useState(false);
   const league = data.leagues.find((l) => l.id === data.selectedLeagueId);
   const favoriteTeams = data.teams.filter((t) => teamIds.includes(t.id));
 
@@ -344,6 +350,14 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     </div>
   );
 
+  const homeBlocks: Record<HomeWidgetId, ReactNode> = {
+    insights: insightsBlock,
+    calendar: calendarExportBlock,
+    clubs: favoriteClubsBlock,
+    editorial: editorialBlock,
+  };
+  const visibleWidgets = homeLayout.order.filter((id) => !homeLayout.hidden.includes(id));
+
   return (
     <div className="football-dashboard">
       <div className="section-heading">
@@ -357,10 +371,22 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
             </h2>
           )}
         </div>
-        <button className="ghost-btn" onClick={data.reload} disabled={data.matchesLoading}>
-          <RefreshCw size={14} /> Обновить
-        </button>
+        <div className="home-heading-actions">
+          <button
+            className="ghost-btn"
+            onClick={() => setEditingLayout((v) => !v)}
+            aria-expanded={editingLayout}
+          >
+            <LayoutGrid size={14} /> Настроить главную
+          </button>
+          <button className="ghost-btn" onClick={data.reload} disabled={data.matchesLoading}>
+            <RefreshCw size={14} /> Обновить
+          </button>
+        </div>
       </div>
+      {editingLayout && (
+        <HomeLayoutEditor design={homeDesign} onClose={() => setEditingLayout(false)} />
+      )}
       {broadcast ? (
         <FeaturedMatchCover
           match={featured}
@@ -391,22 +417,15 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           </span>
         </ModeHero>
       )}
-      {broadcast ? (
-        <>
-          {noticesBlock}
-          {editorialBlock}
-          {favoriteClubsBlock}
-          {insightsBlock}
-          {calendarExportBlock}
-        </>
-      ) : (
-        <>
-          {insightsBlock}
-          {calendarExportBlock}
-          {favoriteClubsBlock}
-          {noticesBlock}
-          {editorialBlock}
-        </>
+      {noticesBlock}
+      {visibleWidgets.map((id) => (
+        <Fragment key={id}>{homeBlocks[id]}</Fragment>
+      ))}
+      {!visibleWidgets.length && (
+        <EmptyBlock
+          title="Все блоки главной скрыты"
+          message="Нажмите «Настроить главную», чтобы вернуть нужные блоки."
+        />
       )}
       <div className="source-foot">
         Матчи и подробная статистика: PitchAPI
