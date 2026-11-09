@@ -25,6 +25,7 @@ import { ShortcutControl } from './ShortcutControl';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { applyProfile, profileEntries } from './profileBackup';
 import { DesignChooser } from '../../components/DesignChooser';
+import { openFirstRunWizard } from '../onboarding/onboarding';
 import {
   beginKinoAttempt,
   cancelKinoAttempt,
@@ -575,6 +576,9 @@ export function SettingsView() {
             aria-pressed={compactTables}
           >
             <Rows3 size={14} /> {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
+          </button>
+          <button className="ghost-btn" onClick={openFirstRunWizard}>
+            Пройти мастер настройки
           </button>
         </div>
         <p className="settings-note">

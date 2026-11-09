@@ -1,0 +1,102 @@
+/* First-run wizard: reuses the "What's new" scrim and card. */
+.onboarding-card {
+  max-width: 640px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.onboarding-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.22);
+  overflow: hidden;
+}
+
+.onboarding-progress > i {
+  display: block;
+  height: 100%;
+  background: var(--accent, currentColor);
+  transition: width 0.2s ease;
+}
+
+.onboarding-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.onboarding-body p {
+  margin: 0;
+}
+
+.onboarding-choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.onboarding-choice legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.onboarding-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.onboarding-option,
+.onboarding-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.onboarding-option.selected {
+  border-color: var(--accent, currentColor);
+}
+
+.onboarding-option:focus-within,
+.onboarding-toggle:focus-within {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+}
+
+.onboarding-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onboarding-toggle small {
+  opacity: 0.75;
+}
+
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-field select {
+  max-width: 320px;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-spacer {
+  flex: 1;
+}

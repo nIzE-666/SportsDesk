@@ -3,6 +3,7 @@ import { useModalFocus } from '../lib/useModalFocus';
 import { Sparkles, X } from 'lucide-react';
 import { getString, setString } from '../features/football/storage';
 import { isTauriRuntime } from '../lib/bridge';
+import { onboardingBootDecision } from '../features/onboarding/onboarding';
 
 /**
  * «Что нового»: после обновления приложения показывает сводку изменений
@@ -134,6 +135,11 @@ export function WhatsNewDialog() {
         const version = await mod.getVersion();
         const seen = getString(SEEN_KEY);
         if (seen === version) return;
+        // Новой установке «Что нового» не нужно — её встречает мастер настройки.
+        if (onboardingBootDecision().show) {
+          setString(SEEN_KEY, version);
+          return;
+        }
         const notes = WHATS_NEW.find((n) => n.version === version) ?? null;
         setCurrent(notes);
         setVisible(true);

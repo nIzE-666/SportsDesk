@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, CalendarClock, Heart, Settings, Tv } from 'l
 import { lazy, Suspense, useEffect, useState } from 'react';
 import ConnectivityBanner from './components/ConnectivityBanner';
 import WhatsNewDialog from './components/WhatsNewDialog';
+import { FirstRunWizard } from './features/onboarding/FirstRunWizard';
 import type { TabId as F1Tab } from './features/f1/F1View';
 import { MiniWindow } from './features/football/MiniWindow';
 import { SportsNotifications } from './features/football/SportsNotifications';
@@ -247,6 +248,11 @@ function MainApp() {
         />
         <SportsNotifications />
         <WhatsNewDialog />
+        <FirstRunWizard
+          onLeagueChange={setLeagueId}
+          onOpenSettings={() => togglePage('settings')}
+          onOpenWatch={() => togglePage('watch')}
+        />
         <div className={`shell ${collapsed ? 'collapsed' : ''}`}>
           <aside className="sidebar" aria-label="Навигация">
             <div className="sidebar-heading">

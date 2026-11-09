@@ -98,3 +98,23 @@
   `{ from, to, truncated, footballIncomplete, f1Incomplete, items: Event[] }` (до 60 событий, новые сверху). Удаляется кнопкой «Скрыть».
 
 Правила: окно не длиннее 72 часов (`truncated = true`, если отсутствие было дольше), первый запуск и разрывы короче 20 минут ничего не восстанавливают, идентификаторы совпадают с событиями живого поллера (`football|end|<id>`, `f1|result|<season>|<round>|<session>`), поэтому дубли не создаются. Восстановленные события не вызывают уведомлений, звуков и конфетти. Авторы голов не восстанавливаются.
+
+## Мастер первого запуска
+
+Ключ `sportsdesk.onboarding` (входит в профиль и резервные копии):
+
+```json
+{
+  "version": 1,
+  "status": "in_progress",
+  "step": "timezone",
+  "origin": "new",
+  "updatedAt": "2026-11-09T07:00:00.000Z"
+}
+```
+
+- `status`: `in_progress` — мастер продолжится с `step` при следующем запуске; `completed` и `skipped` — больше не показывается сам.
+- `step`: `welcome`, `football`, `f1`, `timezone`, `notifications`, `appearance`, `sources`.
+- `origin`: `new` — новая установка, `existing` — обновление, `manual` — открыт из «Настроек».
+
+Решение принимается один раз при загрузке модуля, до того как экраны запишут свои значения по умолчанию. Если ключа нет, но есть любой другой ключ `sportsdesk.*`, это обновление: записывается `completed`/`existing`, мастер не показывается и ничего не меняет. Мастер пишет только существующие ключи (`sportsdesk.league`, `sportsdesk.f1.favTeams`, `sportsdesk.f1.favDrivers`, `sportsdesk.timezone`, `sportsdesk.notifications.enabled`, `sportsdesk.notifications.f1`, `sportsdesk.scheme`, `sportsdesk.design`) и только при явном выборе. Разрешение на уведомления запрашивается лишь при включении. Новой установке окно «Что нового» не показывается.

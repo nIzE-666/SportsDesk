@@ -16,6 +16,7 @@ export function allowedProfileKey(key: string) {
       'sidebar.collapsed',
       'tray.mode',
       'whatsnew.seen',
+      'onboarding',
       'planner.priorities',
       'hero.compact',
       'notifications',
