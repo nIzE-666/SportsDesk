@@ -3,6 +3,7 @@ import { Bell, CheckCheck, RefreshCw } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { formatDateTime, getUserTimezone } from '../football/storage';
+import { CatchUpPanel } from './CatchUpPanel';
 export interface SportsEvent {
   id: string;
   sport: 'football' | 'f1';
@@ -109,6 +110,13 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
         Голы, изменения счёта, результаты и напоминания, замеченные при работающем SportsDesk.
         Храним до 500 событий за 30 дней.
       </p>
+      <CatchUpPanel
+        refreshKey={tick}
+        onOpen={(e) => {
+          void acknowledge([e.id]);
+          onOpen(e);
+        }}
+      />
       <div className="event-toolbar">
         <div role="group" aria-label="Фильтр событий">
           {(
@@ -155,7 +163,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
       {!loading && !shown.length && !error && (
         <EmptyBlock
           title={filter === 'unread' ? 'Всё прочитано' : 'Пока нет событий'}
-          message="Новые события появятся, когда приложение заметит изменения в матчах отслеживаемых команд или напоминания F1. Старые голы при запуске не добавляются."
+          message="Новые события появятся, когда приложение заметит изменения в матчах отслеживаемых команд или напоминания F1. Итоги избранных матчей и сессий F1, пропущенные пока приложение было закрыто, появятся в блоке «Пока вас не было»."
         />
       )}
       <div className="event-list">

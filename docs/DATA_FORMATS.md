@@ -88,3 +88,13 @@
 - `backup::tests::newer_backup_formats_are_refused_with_an_update_hint`;
 - `backup::tests::crash_*` — восстановление после аварийного завершения;
 - `history::tests::open_stamps_the_schema_version`.
+
+## Восстановление «Пока вас не было» (кеш, не входит в резервную копию)
+
+Таблицы в `cache.sqlite`, которые не очищаются вместе с кешем API:
+
+- `sync_cursor(source TEXT PRIMARY KEY, covered_until INTEGER, updated_at INTEGER)` — до какого момента (мс UTC) источник `football` или `f1` гарантированно проверен. Курсор продвигается только после того, как все ответы окна получены свежими и все записи в центр событий прошли успешно.
+- `catchup_summary(id = 1, payload TEXT, updated_at INTEGER)` — одна сводка в JSON:
+  `{ from, to, truncated, footballIncomplete, f1Incomplete, items: Event[] }` (до 60 событий, новые сверху). Удаляется кнопкой «Скрыть».
+
+Правила: окно не длиннее 72 часов (`truncated = true`, если отсутствие было дольше), первый запуск и разрывы короче 20 минут ничего не восстанавливают, идентификаторы совпадают с событиями живого поллера (`football|end|<id>`, `f1|result|<season>|<round>|<session>`), поэтому дубли не создаются. Восстановленные события не вызывают уведомлений, звуков и конфетти. Авторы голов не восстанавливаются.
