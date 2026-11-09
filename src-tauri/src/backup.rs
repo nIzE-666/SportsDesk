@@ -54,6 +54,8 @@ struct PendingRestore {
     previous_profile: Profile,
     history: Option<Vec<u8>>,
     history_generation: u64,
+    source: String,
+    safety_file: String,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +64,53 @@ pub struct PreparedRestore {
     profile: Profile,
     safety_file: String,
     safety_warning: Option<String>,
+}
+const JOURNAL_FILE: &str = "restore-journal.json";
+const JOURNAL_VERSION: u32 = 1;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum JournalStage {
+    /// The mirror and history may be half-way between the old and the new state.
+    Committing,
+    /// Native data is restored; the webview still has to apply `profile`.
+    Committed,
+    /// The commit failed cleanly; the webview has to return to `previous_profile`.
+    RolledBack,
+}
+/// On-disk record of a restore in progress. It survives crashes so the next
+/// start can either finish the restore or undo it from the safety copy.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreJournal {
+    version: u32,
+    id: u64,
+    stage: JournalStage,
+    created_at: i64,
+    source: String,
+    safety_file: String,
+    profile: Profile,
+    previous_profile: Profile,
+}
+impl RestoreJournal {
+    fn new(plan: &PendingRestore, stage: JournalStage) -> Self {
+        Self {
+            version: JOURNAL_VERSION,
+            id: plan.id,
+            stage,
+            created_at: crate::cache::now_ms(),
+            source: plan.source.clone(),
+            safety_file: plan.safety_file.clone(),
+            profile: plan.profile.clone(),
+            previous_profile: plan.previous_profile.clone(),
+        }
+    }
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveredRestore {
+    id: u64,
+    profile: Profile,
+    completed: bool,
 }
 fn digest(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
@@ -213,6 +262,9 @@ impl BackupState {
         }
         if pending.is_some() {
             return Err("Восстановление уже выполняется.".into());
+        }
+        if self.journal_path().exists() {
+            return Err("Предыдущее восстановление не завершено. Перезапустите приложение.".into());
         }
         Ok(())
     }
@@ -449,6 +501,8 @@ impl BackupState {
             previous_profile,
             history: bytes,
             history_generation,
+            source: path.to_string(),
+            safety_file: safety_file.clone(),
         });
         Ok(PreparedRestore {
             id,
@@ -486,14 +540,24 @@ impl BackupState {
             }
             pending.take().unwrap()
         };
-        self.write_mirror(&plan.profile)?;
-        let result = match &plan.history {
-            Some(bytes) => self.with_snapshot(bytes, |p| {
-                history.restore_snapshot(p, plan.history_generation)
-            }),
-            None => Ok(()),
-        };
+        // Record the intent before touching the mirror or the history so a crash
+        // in the middle of the commit can be finished or undone on the next start.
+        let mut journal = RestoreJournal::new(&plan, JournalStage::Committing);
+        self.write_journal(&journal)?;
+        let result = self
+            .write_mirror(&plan.profile)
+            .and_then(|_| match &plan.history {
+                Some(bytes) => self.with_snapshot(bytes, |p| {
+                    history.restore_snapshot(p, plan.history_generation)
+                }),
+                None => Ok(()),
+            });
         if let Err(error) = result {
+            journal.stage = JournalStage::RolledBack;
+            if self.write_journal(&journal).is_err() {
+                // Nothing was committed, so there is nothing to replay on start.
+                let _ = std::fs::remove_file(self.journal_path());
+            }
             if let Err(rollback) = self.write_mirror(&plan.previous_profile) {
                 // A missing mirror makes later backups fail safely instead of combining
                 // the restored profile with the unchanged history.
@@ -508,7 +572,126 @@ impl BackupState {
             }
             return Err(error);
         }
+        journal.stage = JournalStage::Committed;
+        // If this write fails the journal still says "committing"; replaying the
+        // same copy on the next start produces the state that was just committed.
+        let _ = self.write_journal(&journal);
         Ok(())
+    }
+    fn journal_path(&self) -> PathBuf {
+        self.dir.join(JOURNAL_FILE)
+    }
+    fn read_journal(&self) -> Result<Option<RestoreJournal>, String> {
+        match std::fs::read(self.journal_path()) {
+            Ok(bytes) => serde_json::from_slice::<RestoreJournal>(&bytes)
+                .ok()
+                .filter(|j| j.version == JOURNAL_VERSION)
+                .map(Some)
+                .ok_or_else(|| "Журнал прерванного восстановления повреждён.".to_string()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(_) => Err("Журнал восстановления не читается.".into()),
+        }
+    }
+    fn write_journal(&self, journal: &RestoreJournal) -> Result<(), String> {
+        let bytes = serde_json::to_vec(journal)
+            .map_err(|_| "Не удалось записать журнал восстановления.")?;
+        atomic(&self.journal_path(), &bytes)
+    }
+    fn note(&self, message: String) {
+        if let Ok(mut s) = self.settings.lock() {
+            s.error = Some(message);
+            let _ = self.persist(&s);
+        }
+    }
+    /// Re-apply the history of a copy. Idempotent, so it is safe after a crash.
+    fn replay(&self, history: &History, path: &str, expected: &Profile) -> Result<(), String> {
+        let (profile, bytes) = self.read_restore(path)?;
+        if profile.settings != expected.settings {
+            return Err("Файл копии изменился после начала восстановления.".into());
+        }
+        if let Some(bytes) = bytes {
+            self.with_snapshot(&bytes, |p| {
+                history.restore_snapshot(p, history.generation())
+            })?;
+        }
+        Ok(())
+    }
+    /// Finish or undo a restore interrupted by a crash. Returns the profile the
+    /// webview must apply; the journal stays until `finish_restore` confirms it.
+    fn recover(&self, history: &History) -> Result<Option<RecoveredRestore>, String> {
+        let _guard = self
+            .operation
+            .lock()
+            .map_err(|_| "Восстановление недоступно.")?;
+        let mut journal = match self.read_journal() {
+            Ok(Some(journal)) => journal,
+            Ok(None) => return Ok(None),
+            Err(error) => {
+                let aside = self.dir.join(format!(
+                    "restore-journal.corrupt-{}.json",
+                    crate::cache::now_ms()
+                ));
+                let _ = std::fs::rename(self.journal_path(), aside);
+                self.note(format!(
+                    "{error} Проверьте профиль и историю: защитная копия лежит в папке резервных копий."
+                ));
+                return Ok(None);
+            }
+        };
+        if journal.stage == JournalStage::Committing {
+            journal.stage = match self.replay(history, &journal.source, &journal.profile) {
+                Ok(()) => JournalStage::Committed,
+                Err(forward) => {
+                    match self.replay(history, &journal.safety_file, &journal.previous_profile) {
+                        Ok(()) => JournalStage::RolledBack,
+                        Err(back) => {
+                            let message = format!(
+                                "Не удалось завершить прерванное восстановление ({forward}) и вернуть данные из защитной копии ({back}). Защитная копия: {}",
+                                journal.safety_file
+                            );
+                            self.note(message.clone());
+                            return Err(message);
+                        }
+                    }
+                }
+            };
+            self.write_journal(&journal)?;
+        }
+        let completed = journal.stage == JournalStage::Committed;
+        let profile = if completed {
+            journal.profile.clone()
+        } else {
+            journal.previous_profile.clone()
+        };
+        self.write_mirror(&profile)?;
+        self.note(if completed {
+            "Прерванное восстановление копии завершено после перезапуска.".into()
+        } else {
+            format!(
+                "Прерванное восстановление копии отменено после перезапуска; данные возвращены из защитной копии {}.",
+                journal.safety_file
+            )
+        });
+        Ok(Some(RecoveredRestore {
+            id: journal.id,
+            profile,
+            completed,
+        }))
+    }
+    /// Called by the webview once it has applied the profile of a commit,
+    /// rollback or recovery. Removes the journal and unblocks the mirror.
+    fn finish_restore(&self, id: u64) -> Result<(), String> {
+        let _guard = self
+            .operation
+            .lock()
+            .map_err(|_| "Восстановление недоступно.")?;
+        match self.read_journal()? {
+            Some(journal) if journal.id == id && journal.stage != JournalStage::Committing => {
+                std::fs::remove_file(self.journal_path())
+                    .map_err(|_| "Не удалось завершить восстановление.".into())
+            }
+            _ => Ok(()),
+        }
     }
 }
 #[tauri::command]
@@ -604,6 +787,24 @@ pub async fn cancel_backup_restore(
     tauri::async_runtime::spawn_blocking(move || state.cancel_restore(id))
         .await
         .map_err(|_| "Ошибка отмены восстановления.")?
+}
+#[tauri::command]
+pub async fn backup_recovery(
+    state: tauri::State<'_, Arc<BackupState>>,
+    history: tauri::State<'_, crate::history::HistoryState>,
+) -> Result<Option<RecoveredRestore>, String> {
+    let state = state.inner().clone();
+    let h = history.0.clone();
+    tauri::async_runtime::spawn_blocking(move || state.recover(&h))
+        .await
+        .map_err(|_| "Ошибка восстановления.")?
+}
+#[tauri::command]
+pub fn finish_backup_restore(
+    id: u64,
+    state: tauri::State<'_, Arc<BackupState>>,
+) -> Result<(), String> {
+    state.finish_restore(id)
 }
 pub fn start(app: &AppHandle, dir: PathBuf, history: Arc<History>) {
     let state = Arc::new(BackupState::new(dir));
@@ -714,6 +915,13 @@ mod tests {
         assert_eq!(prepared.profile.settings["sportsdesk.scheme"], "light");
         b.commit_restore(&h, prepared.id).unwrap();
         assert_eq!(h.team_matches("t_a", true).unwrap()[0].home_score, 2);
+        // The journal keeps the mirror closed until the webview applied the profile.
+        assert!(b
+            .mirror(vec![("sportsdesk.scheme".into(), "light".into())])
+            .is_err());
+        b.finish_restore(prepared.id).unwrap();
+        b.mirror(vec![("sportsdesk.scheme".into(), "light".into())])
+            .unwrap();
         let mut bad: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         bad["historySha256"] = "bad".into();
@@ -947,5 +1155,115 @@ mod tests {
             crate::profile::read_profile(b.dir.join("profile-mirror.json").to_str().unwrap())
                 .unwrap();
         assert_eq!(mirror.settings["sportsdesk.scheme"], "dark");
+    }
+    fn seed_two_scores(b: &BackupState, h: &History) -> String {
+        let mut batch = crate::history::HistoryUpsert {
+            league_id: "l".into(),
+            league_name: "League".into(),
+            season: "2030".into(),
+            matches: vec![crate::history::HistoryMatchIn {
+                id: "m".into(),
+                home_id: "a".into(),
+                home_name: "A".into(),
+                away_id: "b".into(),
+                away_name: "B".into(),
+                home_score: Some(2),
+                away_score: Some(0),
+                status: "finished".into(),
+                date: "2030-01-01".into(),
+                round: "1".into(),
+            }],
+        };
+        h.upsert_season(&batch).unwrap();
+        let path = b.create(h).unwrap();
+        batch.matches[0].home_score = Some(9);
+        h.upsert_season(&batch).unwrap();
+        path
+    }
+    fn mirror_scheme(b: &BackupState) -> String {
+        crate::profile::read_profile(b.dir.join("profile-mirror.json").to_str().unwrap())
+            .unwrap()
+            .settings["sportsdesk.scheme"]
+            .clone()
+    }
+    #[test]
+    fn crash_before_history_commit_is_finished_on_next_start() {
+        let (b, h, _) = fixture("crash-forward");
+        let path = seed_two_scores(&b, &h);
+        b.prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .unwrap();
+        // Simulate a crash right after the journal was written.
+        let plan = b.pending.lock().unwrap().take().unwrap();
+        b.write_journal(&RestoreJournal::new(&plan, JournalStage::Committing))
+            .unwrap();
+        let restarted = BackupState::new(b.dir.clone());
+        assert!(restarted
+            .mirror(vec![("sportsdesk.scheme".into(), "dark".into())])
+            .is_err());
+        let recovered = restarted.recover(&h).unwrap().unwrap();
+        assert!(recovered.completed);
+        assert_eq!(recovered.profile.settings["sportsdesk.scheme"], "light");
+        assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 2);
+        assert_eq!(mirror_scheme(&restarted), "light");
+        assert!(restarted.settings().error.unwrap().contains("завершено"));
+        // Recovery is repeatable until the webview confirms it applied the profile.
+        assert!(restarted.recover(&h).unwrap().is_some());
+        restarted.finish_restore(recovered.id).unwrap();
+        assert!(restarted.recover(&h).unwrap().is_none());
+        restarted
+            .mirror(vec![("sportsdesk.scheme".into(), "light".into())])
+            .unwrap();
+    }
+    #[test]
+    fn crash_after_history_commit_with_missing_copy_rolls_back_to_safety_copy() {
+        let (b, h, _) = fixture("crash-back");
+        let path = seed_two_scores(&b, &h);
+        let prepared = b
+            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .unwrap();
+        let journal = RestoreJournal::new(
+            b.pending.lock().unwrap().as_ref().unwrap(),
+            JournalStage::Committing,
+        );
+        b.commit_restore(&h, prepared.id).unwrap();
+        assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 2);
+        // Crash before the "committed" stage was recorded, and the copy was removed.
+        b.write_journal(&journal).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        let restarted = BackupState::new(b.dir.clone());
+        let recovered = restarted.recover(&h).unwrap().unwrap();
+        assert!(!recovered.completed);
+        assert_eq!(recovered.profile.settings["sportsdesk.scheme"], "dark");
+        assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 9);
+        assert_eq!(mirror_scheme(&restarted), "dark");
+        assert!(restarted.settings().error.unwrap().contains("отменено"));
+        restarted.finish_restore(recovered.id).unwrap();
+        assert!(!restarted.dir.join(JOURNAL_FILE).exists());
+    }
+    #[test]
+    fn failed_commit_leaves_rollback_journal_and_unfinished_commit_cannot_be_dismissed() {
+        let (b, h, _) = fixture("journal-stages");
+        let path = seed_two_scores(&b, &h);
+        let prepared = b
+            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .unwrap();
+        b.pending.lock().unwrap().as_mut().unwrap().history = Some(b"broken".to_vec());
+        assert!(b.commit_restore(&h, prepared.id).is_err());
+        let journal = b.read_journal().unwrap().unwrap();
+        assert_eq!(journal.stage, JournalStage::RolledBack);
+        assert!(b.prepare_restore(&h, &path, vec![]).is_err());
+        b.finish_restore(prepared.id).unwrap();
+        // A journal that is still "committing" can only be resolved by recovery.
+        b.write_journal(&RestoreJournal {
+            stage: JournalStage::Committing,
+            ..journal
+        })
+        .unwrap();
+        b.finish_restore(prepared.id).unwrap();
+        assert!(b.dir.join(JOURNAL_FILE).exists());
+        std::fs::write(b.dir.join(JOURNAL_FILE), b"{not json").unwrap();
+        assert!(b.recover(&h).unwrap().is_none());
+        assert!(!b.dir.join(JOURNAL_FILE).exists());
+        assert!(b.settings().error.unwrap().contains("повреждён"));
     }
 }

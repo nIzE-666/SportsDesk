@@ -8,6 +8,7 @@ import { setString } from '../football/storage';
 import { writeFavorites, writeRecent } from '../watch/watchShared';
 import {
   applyProfile,
+  recoverInterruptedRestore,
   replaceProfile,
   restoreFullBackup,
   useProfileMirror,
@@ -300,6 +301,8 @@ it('drains an in-flight mirror write and sends the latest profile after the paus
   let finishFirst!: () => void;
   let host: HTMLDivElement | undefined;
   let root: Root | undefined;
+  // No interrupted restore; the first mirror write then stays in flight.
+  vi.mocked(rpc).mockResolvedValueOnce(null);
   vi.mocked(rpc).mockImplementationOnce(
     () =>
       new Promise<void>((resolve) => {
@@ -331,6 +334,7 @@ it('drains an in-flight mirror write and sends the latest profile after the paus
     });
     expect(actionStarted).toBe(true);
     expect(vi.mocked(rpc).mock.calls).toEqual([
+      ['backup_recovery'],
       ['sync_profile', { settings: [['sportsdesk.scheme', 'dark']] }],
       ['sync_profile', { settings: [['sportsdesk.scheme', 'light']] }],
     ]);
@@ -339,4 +343,44 @@ it('drains an in-flight mirror write and sends the latest profile after the paus
     host?.remove();
     vi.useRealTimers();
   }
+});
+
+it('applies the profile of a crash-interrupted restore before closing the journal', async () => {
+  localStorage.setItem('sportsdesk.scheme', 'dark');
+  const order: string[] = [];
+  vi.mocked(rpc).mockImplementation(async (name) => {
+    order.push(`${String(name)}:${localStorage.getItem('sportsdesk.scheme')}`);
+    if (name === 'backup_recovery')
+      return { id: 7, profile: { settings: { 'sportsdesk.scheme': 'light' } }, completed: true };
+  });
+  await expect(recoverInterruptedRestore()).resolves.toBe(true);
+  expect(localStorage.getItem('sportsdesk.scheme')).toBe('light');
+  expect(rpc).toHaveBeenCalledWith('finish_backup_restore', { id: 7 });
+  expect(order).toEqual(['backup_recovery:dark', 'finish_backup_restore:light']);
+});
+
+it('keeps the journal open when the recovered profile cannot be applied', async () => {
+  localStorage.setItem('sportsdesk.scheme', 'dark');
+  vi.mocked(rpc).mockImplementation(async (name) => {
+    if (name === 'backup_recovery')
+      return { id: 8, profile: { settings: { 'sportsdesk.api_key': 'x' } }, completed: true };
+  });
+  await expect(recoverInterruptedRestore()).rejects.toThrow();
+  expect(localStorage.getItem('sportsdesk.scheme')).toBe('dark');
+  expect(rpc).not.toHaveBeenCalledWith('finish_backup_restore', expect.anything());
+});
+
+it('closes the journal after a successful restore', async () => {
+  localStorage.setItem('sportsdesk.scheme', 'dark');
+  vi.mocked(rpc).mockImplementation(async (name) => {
+    if (name === 'prepare_backup_restore')
+      return { id: 9, profile: { settings: { 'sportsdesk.scheme': 'light' } }, safetyFile: 's' };
+  });
+  await restoreFullBackup('copy.json');
+  const names = vi.mocked(rpc).mock.calls.map(([name]) => name);
+  expect(names).toEqual([
+    'prepare_backup_restore',
+    'commit_backup_restore',
+    'finish_backup_restore',
+  ]);
 });

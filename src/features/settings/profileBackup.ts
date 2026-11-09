@@ -198,6 +198,31 @@ export async function withProfileMirrorPaused<T>(action: () => Promise<T>): Prom
   }
 }
 
+/** Close the native restore journal; if this fails, the next start replays it. */
+async function finishRestoreJournal(id: number) {
+  try {
+    await rpc('finish_backup_restore', { id });
+  } catch {
+    /* recovered on the next start */
+  }
+}
+
+/** Finish a restore interrupted by a crash. Resolves true when the page reloads. */
+export async function recoverInterruptedRestore(): Promise<boolean> {
+  return withProfileMirrorPaused(async () => {
+    const recovered = await rpc<{
+      id: number;
+      profile: { settings: Record<string, string> };
+      completed: boolean;
+    } | null>('backup_recovery');
+    if (!recovered) return false;
+    replaceProfile(recovered.profile.settings);
+    await rpc('finish_backup_restore', { id: recovered.id });
+    window.location.reload();
+    return true;
+  });
+}
+
 export async function restoreFullBackup(path: string): Promise<void> {
   await withProfileMirrorPaused(async () => {
     const original = profileEntries();
@@ -221,6 +246,7 @@ export async function restoreFullBackup(path: string): Promise<void> {
         await rpc('commit_backup_restore', { id: prepared.id });
         committed = true;
         retainProfileWrites(observer.writes);
+        await finishRestoreJournal(prepared.id);
       } catch (error) {
         if (committed)
           throw new Error(
@@ -240,6 +266,7 @@ export async function restoreFullBackup(path: string): Promise<void> {
         } catch (cancel) {
           failures.push(`Не удалось отменить подготовленное восстановление: ${String(cancel)}.`);
         }
+        await finishRestoreJournal(prepared.id);
         throw new Error(
           `${error instanceof Error ? error.message : String(error)} ${failures.join(' ')} Резервная копия текущих данных: ${prepared.safetyFile}. ${prepared.safetyWarning ?? ''}`,
           { cause: error },
@@ -284,7 +311,14 @@ export function useProfileMirror() {
       clearTimeout(timer);
       timer = setTimeout(() => void save(), 1500);
     };
-    void save();
+    // Apply a crash-interrupted restore before the first mirror write.
+    void recoverInterruptedRestore()
+      .then((reloading) => {
+        if (active && !reloading) void save();
+      })
+      .catch(() => {
+        if (active) void save();
+      });
     void import('@tauri-apps/api/event')
       .then(async ({ listen }) => {
         const stop = await listen<number>('sportsdesk://backup-profile-request', (event) => {

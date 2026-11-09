@@ -128,6 +128,9 @@ impl History {
             .map_err(|_| "Не удалось создать снимок истории.")?;
         Ok(self.generation.load(std::sync::atomic::Ordering::Relaxed))
     }
+    pub fn generation(&self) -> u64 {
+        self.generation.load(std::sync::atomic::Ordering::Relaxed)
+    }
     pub fn validate_snapshot(path: &std::path::Path) -> Result<(), String> {
         read_snapshot(path).map(|_| ())
     }

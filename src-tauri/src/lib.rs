@@ -497,6 +497,8 @@ pub fn run() {
             backup::prepare_backup_restore,
             backup::commit_backup_restore,
             backup::cancel_backup_restore,
+            backup::backup_recovery,
+            backup::finish_backup_restore,
             diagnostics::read_diagnostics,
         ])
         .run(tauri::generate_context!())
