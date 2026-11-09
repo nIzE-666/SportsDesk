@@ -1,5 +1,35 @@
-import { describe, expect, it } from 'vitest';
-import { h2hSummary, pointsProgression, teamForm, type HistoryMatch } from './history';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  fetchHeadToHead,
+  fetchHistorySeason,
+  fetchHistorySeasons,
+  fetchTeamHistory,
+  h2hSummary,
+  pointsProgression,
+  teamForm,
+  type HistoryMatch,
+} from './history';
+import { rpc } from '../../lib/bridge';
+
+vi.mock('../../lib/bridge', () => ({ rpc: vi.fn() }));
+beforeEach(() => vi.mocked(rpc).mockReset());
+
+it('distinguishes empty history from read failures and malformed responses', async () => {
+  const reads = [
+    () => fetchHistorySeasons(),
+    () => fetchHistorySeason('league', '2026'),
+    () => fetchHeadToHead('one', 'two'),
+    () => fetchTeamHistory('one'),
+  ];
+  for (const read of reads) {
+    vi.mocked(rpc).mockResolvedValueOnce([]);
+    await expect(read()).resolves.toEqual([]);
+    vi.mocked(rpc).mockRejectedValueOnce(new Error('database unavailable'));
+    await expect(read()).rejects.toThrow('Не удалось прочитать локальную историю');
+    vi.mocked(rpc).mockResolvedValueOnce(null);
+    await expect(read()).rejects.toThrow('Не удалось прочитать локальную историю');
+  }
+});
 
 function hm(
   id: string,
@@ -80,5 +110,14 @@ describe('pointsProgression', () => {
       hm('m1', 'A', 'B', 1, 0, '2026-01-01'),
     ];
     expect(pointsProgression(matches, 'A').map((p) => p.points)).toEqual([3, 6]);
+  });
+
+  it('ignores other clubs when the query returns a whole league season', () => {
+    const matches = [
+      hm('m1', 'A', 'B', 1, 0, '2026-01-01'),
+      hm('m2', 'C', 'D', 3, 0, '2026-01-02'),
+      hm('m3', 'C', 'A', 1, 1, '2026-01-03'),
+    ];
+    expect(pointsProgression(matches, 'A').map((p) => p.points)).toEqual([3, 4]);
   });
 });

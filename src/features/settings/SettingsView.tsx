@@ -23,8 +23,16 @@ import { NotificationPreferences } from './NotificationPreferences';
 import { BackupPanel } from './BackupPanel';
 import { ShortcutControl } from './ShortcutControl';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
-import { profileEntries, allowedProfileKey } from './profileBackup';
+import { applyProfile, profileEntries } from './profileBackup';
 import { DesignChooser } from '../../components/DesignChooser';
+import {
+  beginKinoAttempt,
+  cancelKinoAttempt,
+  finishKinoAttempt,
+  isCurrentKinoAttempt,
+  logoutKinoSession,
+  settleKinoCancellations,
+} from '../watch/kinoAuth';
 
 interface SecretStatus {
   pitch: boolean;
@@ -160,7 +168,8 @@ export function SettingsView() {
     setProfileMessage(null);
     try {
       const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-      let profile: { app?: string; settings: Record<string, string> } | null = null;
+      let profile: { app?: string; version?: number; settings: Record<string, string> } | null =
+        null;
       if (isTauri) {
         const dlg = await import('@tauri-apps/plugin-dialog');
         const path = await dlg.open({
@@ -180,28 +189,13 @@ export function SettingsView() {
         });
         if (!file) return;
         profile = JSON.parse(await file.text());
-        if (profile?.app !== 'SportsDesk') throw new Error('Файл другого приложения.');
+        if (profile?.app !== 'SportsDesk' || profile.version !== 1)
+          throw new Error('Неподдерживаемый профиль SportsDesk.');
       }
       if (!profile?.settings || Object.keys(profile.settings).length === 0) {
         throw new Error('Профиль не содержит настроек.');
       }
-      let applied = 0;
-      for (const [key, value] of Object.entries(profile.settings)) {
-        if (!allowedProfileKey(key) || typeof value !== 'string') continue;
-        try {
-          localStorage.setItem(key, value);
-          applied++;
-        } catch {
-          /* quota */
-        }
-      }
-      // Живое применение внешнего вида.
-      window.dispatchEvent(new Event('sportsdesk-appearance-changed'));
-      window.dispatchEvent(new Event('sportsdesk-favorites-changed'));
-      // Providers cache favourites and selections in React state; reload applies
-      // the complete imported profile without an old effect overwriting it.
-      if (applied > 0) window.location.reload();
-      else setProfileMessage('В файле нет подходящих настроек.');
+      await applyProfile(profile.settings);
     } catch (e) {
       setProfileMessage(e instanceof Error ? e.message : 'Импорт не удался.');
     } finally {
@@ -218,10 +212,27 @@ export function SettingsView() {
   const [kinoPolling, setKinoPolling] = useState(false);
   const [kinoMessage, setKinoMessage] = useState<string | null>(null);
   const pollTimer = useRef<number | null>(null);
+  const kinoExpiryTimer = useRef<number | null>(null);
+  const kinoGeneration = useRef(0);
+  const kinoAttempt = useRef<Promise<string> | null>(null);
   const mounted = useRef(true);
+
+  const abandonKinoAuth = useCallback(() => {
+    kinoGeneration.current += 1;
+    if (pollTimer.current !== null) window.clearTimeout(pollTimer.current);
+    if (kinoExpiryTimer.current !== null) window.clearTimeout(kinoExpiryTimer.current);
+    pollTimer.current = null;
+    kinoExpiryTimer.current = null;
+    const attempt = kinoAttempt.current;
+    kinoAttempt.current = null;
+    const cancellation = attempt ? cancelKinoAttempt(attempt) : Promise.resolve();
+    void cancellation.catch(() => undefined);
+    return cancellation;
+  }, []);
 
   const refreshSecret = useCallback(async () => {
     try {
+      await settleKinoCancellations();
       const res = await rpc<SecretStatus>('secret_status');
       if (!mounted.current) return;
       setSecretStatus({
@@ -241,9 +252,9 @@ export function SettingsView() {
     void refreshSecret();
     return () => {
       mounted.current = false;
-      if (pollTimer.current !== null) window.clearTimeout(pollTimer.current);
+      abandonKinoAuth();
     };
-  }, [refreshSecret]);
+  }, [refreshSecret, abandonKinoAuth]);
 
   const saveKey = async () => {
     const trimmed = keyInput.trim();
@@ -323,84 +334,145 @@ export function SettingsView() {
   };
 
   const stopKinoPolling = () => {
-    if (pollTimer.current !== null) {
-      window.clearTimeout(pollTimer.current);
-      pollTimer.current = null;
-    }
+    const cancellation = abandonKinoAuth();
+    const generation = kinoGeneration.current;
     setKinoPolling(false);
+    setKinoDevice(null);
+    void cancellation.catch((e) => {
+      if (mounted.current && kinoGeneration.current === generation) {
+        setKinoMessage(e instanceof Error ? e.message : 'Не удалось отменить авторизацию Kino');
+      }
+    });
   };
 
   const pollKino = useCallback(
-    async (code: string, intervalSec: number) => {
+    async (sessionId: string, intervalSec: number, deadline: number, generation: number) => {
+      const current = () =>
+        mounted.current &&
+        kinoGeneration.current === generation &&
+        kinoAttempt.current !== null &&
+        isCurrentKinoAttempt(kinoAttempt.current);
+      const valid = () => {
+        if (!current()) return false;
+        if (Date.now() >= deadline) {
+          abandonKinoAuth();
+          setKinoPolling(false);
+          setKinoDevice(null);
+          setKinoMessage('Код авторизации истёк. Запросите новый.');
+          return false;
+        }
+        return true;
+      };
+      if (!valid()) return;
       try {
         const res = await rpc<{ pending: boolean; authenticated: boolean }>('kino_poll_auth', {
-          code,
+          sessionId,
         });
-        if (!mounted.current) return;
+        if (!valid()) return;
         if (res?.authenticated) {
-          stopKinoPolling();
+          await rpc('kino_commit_auth', { sessionId });
+          if (!valid()) return;
+          if (pollTimer.current !== null) window.clearTimeout(pollTimer.current);
+          if (kinoExpiryTimer.current !== null) window.clearTimeout(kinoExpiryTimer.current);
+          pollTimer.current = null;
+          kinoExpiryTimer.current = null;
+          const attempt = kinoAttempt.current!;
+          kinoAttempt.current = null;
+          kinoGeneration.current += 1;
+          finishKinoAttempt(sessionId, attempt);
+          setKinoPolling(false);
           setKinoDevice(null);
           setKinoMessage('Kino авторизация подтверждена.');
           await refreshSecret();
           return;
         }
         if (!res?.pending) {
-          stopKinoPolling();
+          abandonKinoAuth();
+          setKinoPolling(false);
+          setKinoDevice(null);
           setKinoMessage('Авторизация не завершена. Код истёк или отклонён.');
           return;
         }
         pollTimer.current = window.setTimeout(
-          () => void pollKino(code, intervalSec),
+          () => void pollKino(sessionId, intervalSec, deadline, generation),
           Math.max(intervalSec, 4) * 1000,
         );
       } catch (e) {
-        if (!mounted.current) return;
-        stopKinoPolling();
+        if (!valid()) return;
+        abandonKinoAuth();
+        setKinoPolling(false);
+        setKinoDevice(null);
         setKinoMessage(e instanceof Error ? e.message : 'Ошибка опроса авторизации');
       }
     },
-    [refreshSecret],
+    [abandonKinoAuth, refreshSecret],
   );
 
   const startKinoAuth = async () => {
+    abandonKinoAuth();
+    const generation = kinoGeneration.current;
+    const attempt = beginKinoAttempt(() => {
+      abandonKinoAuth();
+      setKinoPolling(false);
+      setKinoDevice(null);
+      setKinoBusy(false);
+    });
+    kinoAttempt.current = attempt;
+    const current = () =>
+      mounted.current && kinoGeneration.current === generation && isCurrentKinoAttempt(attempt);
     setKinoBusy(true);
     setKinoMessage(null);
     try {
+      const sessionId = await attempt;
+      if (!current()) return;
       const res = await rpc<{
         code: string;
         userCode: string;
         verificationUri: string;
         expiresIn: number;
         interval: number;
-      }>('kino_start_auth');
-      if (!mounted.current) return;
+      }>('kino_start_auth', { sessionId });
+      if (!current()) return;
       if (!res?.code) throw new Error('Сервис не вернул код устройства');
+      const expiresIn = Number.isFinite(res.expiresIn) && res.expiresIn > 0 ? res.expiresIn : 600;
+      const deadline = Date.now() + expiresIn * 1000;
       setKinoDevice({
         userCode: res.userCode,
         verificationUri: res.verificationUri,
-        expiresIn: res.expiresIn,
+        expiresIn,
       });
       setKinoPolling(true);
+      kinoExpiryTimer.current = window.setTimeout(() => {
+        if (!current()) return;
+        abandonKinoAuth();
+        setKinoPolling(false);
+        setKinoDevice(null);
+        setKinoMessage('Код авторизации истёк. Запросите новый.');
+      }, expiresIn * 1000);
       pollTimer.current = window.setTimeout(
-        () => void pollKino(res.code, res.interval ?? 5),
+        () => void pollKino(sessionId, res.interval ?? 5, deadline, generation),
         Math.max(res.interval ?? 5, 4) * 1000,
       );
     } catch (e) {
-      if (!mounted.current) return;
+      if (!current()) return;
+      abandonKinoAuth();
+      setKinoBusy(false);
       setKinoMessage(e instanceof Error ? e.message : 'Не удалось начать авторизацию Kino');
     } finally {
-      if (mounted.current) setKinoBusy(false);
+      if (mounted.current && kinoGeneration.current === generation) setKinoBusy(false);
     }
   };
 
   const logoutKino = async () => {
+    abandonKinoAuth();
+    setKinoPolling(false);
+    setKinoDevice(null);
     setKinoBusy(true);
     setKinoMessage(null);
     try {
-      await rpc('kino_logout');
+      await logoutKinoSession();
       if (!mounted.current) return;
       setKinoMessage('Выполнен выход из Kino в SportsDesk. Аккаунт в браузере/TV не затронут.');
-      stopKinoPolling();
       await refreshSecret();
     } catch (e) {
       if (!mounted.current) return;

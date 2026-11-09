@@ -27,6 +27,26 @@ const NETWORK_ERROR = 'Сервис KinoPub недоступен. Проверь
 let cachedTokens: KinoTokens | null = null;
 let cachedConfig: KinoClientConfig | null = null;
 let refreshInFlight: Promise<KinoTokens> | null = null;
+let credentialRevision = 0;
+let nextAttempt = 0;
+let activeAttempt: string | null = null;
+const attempts = new Map<
+  string,
+  {
+    code?: string;
+    expiresAt?: number;
+    candidate?: KinoTokens;
+    committed?: { revision: number; previous: KinoTokens | null };
+  }
+>();
+
+function active(id: string) {
+  const attempt = attempts.get(id);
+  if (!attempt || activeAttempt !== id || (attempt.expiresAt && Date.now() >= attempt.expiresAt)) {
+    throw new Error('Код авторизации истёк. Запросите новый.');
+  }
+  return attempt;
+}
 
 function loadConfig(): KinoClientConfig {
   if (cachedConfig) return cachedConfig;
@@ -60,30 +80,36 @@ function loadTokens(): KinoTokens | null {
   return cachedTokens;
 }
 
-function saveTokens(
+function makeTokens(
   payload: { access_token: string; refresh_token: string; expires_in?: number },
   baseUrl: string,
 ): KinoTokens {
   const expiresAt = Date.now() + Math.max(60, (payload.expires_in || 86400) - 60) * 1000;
-  const out: KinoTokens = {
+  return {
     accessToken: payload.access_token,
     refreshToken: payload.refresh_token,
     expiresAt,
     baseUrl,
   };
+}
+
+function replaceTokens(tokens: KinoTokens | null): void {
+  if (!tokens) {
+    deleteSecret(SECRET_FILES.kinoTokens);
+    cachedTokens = null;
+    return;
+  }
   writeSecret(
     SECRET_FILES.kinoTokens,
     JSON.stringify({
-      access_token: payload.access_token,
-      refresh_token: payload.refresh_token,
-      expires_in: payload.expires_in,
-      expires_at: expiresAt,
-      baseUrl,
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      expires_at: tokens.expiresAt,
+      baseUrl: tokens.baseUrl,
     }),
   );
   // Only cache in memory after DPAPI write succeeded.
-  cachedTokens = out;
-  return out;
+  cachedTokens = tokens;
 }
 
 function isSafeStreamUrl(value: string): boolean {
@@ -134,12 +160,17 @@ async function formPost(
 
 async function refresh(cfg: KinoClientConfig, tokens: KinoTokens): Promise<KinoTokens> {
   if (refreshInFlight) return refreshInFlight;
+  const current = loadTokens();
+  if (!current) throw new Error('Нет активной сессии KinoPub. Войдите по коду.');
+  if (current.refreshToken !== tokens.refreshToken && Date.now() < current.expiresAt)
+    return current;
+  const revision = credentialRevision;
   refreshInFlight = (async () => {
     const res = await formPost(cfg, '/oauth2/token', {
       grant_type: 'refresh_token',
       client_id: cfg.clientId,
       client_secret: cfg.clientSecret,
-      refresh_token: tokens.refreshToken,
+      refresh_token: current.refreshToken,
     });
     const data = await readJson(res);
     if (!res.ok) throw new Error('Не удалось обновить сессию KinoPub. Войдите заново.');
@@ -149,10 +180,21 @@ async function refresh(cfg: KinoClientConfig, tokens: KinoTokens): Promise<KinoT
       throw new Error('Не удалось обновить сессию KinoPub. Войдите заново.');
     }
     const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : undefined;
-    return saveTokens(
+    if (revision !== credentialRevision) {
+      const latest = loadTokens();
+      if (!latest) throw new Error('Нет активной сессии KinoPub. Войдите по коду.');
+      return latest;
+    }
+    const saved = makeTokens(
       { access_token: access, refresh_token: refreshTok, expires_in: expiresIn },
       cfg.baseUrl,
     );
+    replaceTokens(saved);
+    credentialRevision += 1;
+    for (const attempt of attempts.values()) {
+      if (attempt.committed?.revision === revision) attempt.committed.revision = credentialRevision;
+    }
+    return saved;
   })();
   try {
     return await refreshInFlight;
@@ -168,14 +210,57 @@ async function activeTokens(cfg: KinoClientConfig): Promise<KinoTokens> {
   return refresh(cfg, tokens);
 }
 
-export async function startAuth(): Promise<{
+export function beginAuth(): { sessionId: string } {
+  const sessionId = String(++nextAttempt);
+  for (const [id, attempt] of attempts) if (!attempt.committed) attempts.delete(id);
+  attempts.set(sessionId, {});
+  activeAttempt = sessionId;
+  return { sessionId };
+}
+
+export function cancelAuth(id: string): { ok: boolean } {
+  const committed = attempts.get(id)?.committed;
+  if (committed?.revision === credentialRevision) {
+    replaceTokens(committed.previous);
+    credentialRevision += 1;
+  }
+  attempts.delete(id);
+  if (activeAttempt === id) activeAttempt = null;
+  return { ok: true };
+}
+
+export function finishAuth(id: string): { ok: boolean } {
+  attempts.delete(id);
+  if (activeAttempt === id) activeAttempt = null;
+  return { ok: true };
+}
+
+export function commitAuth(id: string): { ok: boolean } {
+  const attempt = active(id);
+  if (!attempt.candidate || attempt.committed)
+    throw new Error('Ошибка опроса авторизации KinoPub.');
+  const previous = loadTokens();
+  replaceTokens(attempt.candidate);
+  // Preserve rollback information even if the first rollback attempt fails.
+  credentialRevision += 1;
+  attempt.committed = { revision: credentialRevision, previous };
+  if (attempt.expiresAt && Date.now() >= attempt.expiresAt) {
+    cancelAuth(id);
+    throw new Error('Код авторизации истёк. Запросите новый.');
+  }
+  return { ok: true };
+}
+
+export async function startAuth(sessionId: string): Promise<{
   code: string;
   userCode: string;
   verificationUri: string;
   expiresIn: number;
   interval: number;
 }> {
+  active(sessionId);
   const cfg = loadConfig();
+  const requestedAt = Date.now();
   const res = await formPost(cfg, '/oauth2/device', {
     grant_type: 'device_code',
     client_id: cfg.clientId,
@@ -194,12 +279,20 @@ export async function startAuth(): Promise<{
       : 'https://kino.pub/device';
   const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 600;
   const interval = typeof data.interval === 'number' ? data.interval : 5;
-  return { code, userCode, verificationUri, expiresIn, interval };
+  const attempt = active(sessionId);
+  attempt.code = code;
+  attempt.expiresAt =
+    requestedAt +
+    Math.min(Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn : 600, 86400) * 1000;
+  if (Date.now() >= attempt.expiresAt) throw new Error('Код авторизации истёк. Запросите новый.');
+  const remaining = Math.ceil((attempt.expiresAt - Date.now()) / 1000);
+  return { code, userCode, verificationUri, expiresIn: remaining, interval };
 }
 
 export async function pollAuth(
-  code: string,
+  sessionId: string,
 ): Promise<{ pending: boolean; authenticated: boolean }> {
+  const code = active(sessionId).code;
   if (!code) throw new Error('Код авторизации не указан. Запросите новый.');
   const cfg = loadConfig();
   const res = await formPost(cfg, '/oauth2/device', {
@@ -209,6 +302,7 @@ export async function pollAuth(
     code,
   });
   const data = await readJson(res);
+  const attempt = active(sessionId);
   if (res.status === 400 || res.status === 401) {
     const err = typeof data.error === 'string' ? data.error : '';
     if (err === 'access_denied') throw new Error('Доступ отклонён пользователем.');
@@ -225,7 +319,7 @@ export async function pollAuth(
     throw new Error('Неожиданный ответ авторизации KinoPub. Запросите новый код.');
   }
   const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : undefined;
-  saveTokens(
+  attempt.candidate = makeTokens(
     { access_token: access, refresh_token: refreshTok, expires_in: expiresIn },
     cfg.baseUrl,
   );
@@ -237,8 +331,11 @@ export function hasTokens(): boolean {
 }
 
 export async function logout(): Promise<{ ok: boolean }> {
-  cachedTokens = null;
+  activeAttempt = null;
+  attempts.clear();
+  credentialRevision += 1;
   deleteSecret(SECRET_FILES.kinoTokens);
+  cachedTokens = null;
   return { ok: true };
 }
 

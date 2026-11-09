@@ -50,8 +50,8 @@ const race: JolpicaRace = {
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
-let openMatch: ReturnType<typeof vi.fn>;
-let openWeekend: ReturnType<typeof vi.fn>;
+let openMatch: ReturnType<typeof vi.fn<(id: string, leagueId?: string) => void>>;
+let openWeekend: ReturnType<typeof vi.fn<(race: JolpicaRace) => void>>;
 
 const buttons = () => [...host.querySelectorAll<HTMLButtonElement>('button')];
 function button(text: string) {

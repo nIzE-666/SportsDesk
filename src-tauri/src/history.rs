@@ -59,54 +59,91 @@ pub struct HistoryMatchIn {
 
 pub struct History {
     conn: std::sync::Mutex<rusqlite::Connection>,
+    generation: std::sync::atomic::AtomicU64,
+}
+
+type SnapshotRow = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    i64,
+    i64,
+    String,
+    String,
+    String,
+    i64,
+);
+
+fn read_snapshot(path: &std::path::Path) -> Result<Vec<SnapshotRow>, String> {
+    let source =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|_| "Повреждён снимок истории.")?;
+    let check: String = source
+        .query_row("PRAGMA quick_check", [], |r| r.get(0))
+        .map_err(|_| "Повреждён снимок истории.")?;
+    let unsafe_schema:i64=source.query_row("SELECT count(*) FROM sqlite_master WHERE type IN ('trigger','view') OR (type='table' AND name!='history_matches')",[],|r|r.get(0)).map_err(|_|"Некорректная база истории.")?;
+    if check != "ok" || unsafe_schema != 0 {
+        return Err("Некорректная база истории.".into());
+    }
+    // Materialise the vetted rows before changing the live database. Its
+    // schema and indexes stay owned by the app; imported SQL is never run.
+    let mut stmt=source.prepare("SELECT id,league_id,league_name,season,home_id,home_name,away_id,away_name,home_score,away_score,status,date,round,stored_at FROM history_matches LIMIT 500001").map_err(|_|"Неподдерживаемая структура истории.")?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, String>(4)?,
+                r.get::<_, String>(5)?,
+                r.get::<_, String>(6)?,
+                r.get::<_, String>(7)?,
+                r.get::<_, i64>(8)?,
+                r.get::<_, i64>(9)?,
+                r.get::<_, String>(10)?,
+                r.get::<_, String>(11)?,
+                r.get::<_, String>(12)?,
+                r.get::<_, i64>(13)?,
+            ))
+        })
+        .map_err(|_| "История не читается.")?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "История не читается.")?;
+    if rows.len() > 500_000 {
+        return Err("Слишком много матчей в истории.".into());
+    }
+    Ok(rows)
 }
 
 impl History {
-    pub fn snapshot(&self, path: &std::path::Path) -> Result<(), String> {
+    pub fn snapshot(&self, path: &std::path::Path) -> Result<u64, String> {
         let conn = self.conn.lock().map_err(|_| "История недоступна.")?;
         conn.backup(rusqlite::DatabaseName::Main, path, None)
-            .map_err(|_| "Не удалось создать снимок истории.".into())
+            .map_err(|_| "Не удалось создать снимок истории.")?;
+        Ok(self.generation.load(std::sync::atomic::Ordering::Relaxed))
     }
-    pub fn restore_snapshot(&self, path: &std::path::Path) -> Result<(), String> {
-        let source =
-            rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
-                .map_err(|_| "Повреждён снимок истории.")?;
-        let check: String = source
-            .query_row("PRAGMA quick_check", [], |r| r.get(0))
-            .map_err(|_| "Повреждён снимок истории.")?;
-        let unsafe_schema:i64=source.query_row("SELECT count(*) FROM sqlite_master WHERE type IN ('trigger','view') OR (type='table' AND name!='history_matches')",[],|r|r.get(0)).map_err(|_|"Некорректная база истории.")?;
-        if check != "ok" || unsafe_schema != 0 {
-            return Err("Некорректная база истории.".into());
-        }
-        // Materialise the vetted rows before changing the live database. Its
-        // schema and indexes stay owned by the app; imported SQL is never run.
-        let mut stmt=source.prepare("SELECT id,league_id,league_name,season,home_id,home_name,away_id,away_name,home_score,away_score,status,date,round,stored_at FROM history_matches LIMIT 500001").map_err(|_|"Неподдерживаемая структура истории.")?;
-        let rows = stmt
-            .query_map([], |r| {
-                Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, String>(1)?,
-                    r.get::<_, String>(2)?,
-                    r.get::<_, String>(3)?,
-                    r.get::<_, String>(4)?,
-                    r.get::<_, String>(5)?,
-                    r.get::<_, String>(6)?,
-                    r.get::<_, String>(7)?,
-                    r.get::<_, i64>(8)?,
-                    r.get::<_, i64>(9)?,
-                    r.get::<_, String>(10)?,
-                    r.get::<_, String>(11)?,
-                    r.get::<_, String>(12)?,
-                    r.get::<_, i64>(13)?,
-                ))
-            })
-            .map_err(|_| "История не читается.")?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| "История не читается.")?;
-        if rows.len() > 500_000 {
-            return Err("Слишком много матчей в истории.".into());
-        }
+    pub fn validate_snapshot(path: &std::path::Path) -> Result<(), String> {
+        read_snapshot(path).map(|_| ())
+    }
+    pub fn restore_snapshot(
+        &self,
+        path: &std::path::Path,
+        expected_generation: u64,
+    ) -> Result<(), String> {
+        let rows = read_snapshot(path)?;
         let mut conn = self.conn.lock().map_err(|_| "История недоступна.")?;
+        if self.generation.load(std::sync::atomic::Ordering::Relaxed) != expected_generation {
+            return Err(
+                "История изменилась после создания защитной копии. Повторите восстановление."
+                    .into(),
+            );
+        }
         let tx = conn
             .transaction()
             .map_err(|_| "Не удалось начать восстановление.")?;
@@ -116,7 +153,10 @@ impl History {
             tx.execute("INSERT INTO history_matches VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",rusqlite::params![r.0,r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8,r.9,r.10,r.11,r.12,r.13]).map_err(|_|"Не удалось восстановить историю.")?;
         }
         tx.commit()
-            .map_err(|_| "Не удалось завершить восстановление.".into())
+            .map_err(|_| "Не удалось завершить восстановление.")?;
+        self.generation
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Ok(())
     }
     pub fn open(dir: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
         let path = dir.join("history.sqlite3");
@@ -146,6 +186,7 @@ impl History {
         )?;
         Ok(Self {
             conn: std::sync::Mutex::new(conn),
+            generation: std::sync::atomic::AtomicU64::new(0),
         })
     }
 
@@ -165,6 +206,11 @@ impl History {
                           home_score, away_score, status, date, round, stored_at)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
                      ON CONFLICT(league_id, season, id) DO UPDATE SET
+                         league_name = excluded.league_name,
+                         home_id = excluded.home_id,
+                         home_name = excluded.home_name,
+                         away_id = excluded.away_id,
+                         away_name = excluded.away_name,
                          home_score = excluded.home_score,
                          away_score = excluded.away_score,
                          status = excluded.status,
@@ -192,6 +238,8 @@ impl History {
             stored += changed;
         }
         tx.commit().map_err(|e| e.to_string())?;
+        self.generation
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Ok(stored)
     }
 
@@ -427,5 +475,28 @@ mod tests {
         let season = h.season_matches("l_y", "2026").unwrap();
         assert_eq!(season.len(), 2);
         assert_eq!(season[0].id, "k1");
+    }
+
+    #[test]
+    fn upsert_refreshes_names_and_team_ids() {
+        let h = temp_history();
+        h.upsert_season(&batch(
+            "league",
+            "2026",
+            vec![m("id", "old", "away", 1, 0, "2026-01-01")],
+        ))
+        .unwrap();
+        let mut corrected = m("id", "new", "away2", 2, 0, "2026-01-01");
+        corrected.home_name = "New name".into();
+        corrected.away_name = "Away name".into();
+        let mut update = batch("league", "2026", vec![corrected]);
+        update.league_name = "Renamed league".into();
+        h.upsert_season(&update).unwrap();
+        assert!(h.team_matches("old", true).unwrap().is_empty());
+        let found = h.head_to_head("new", "away2").unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].home_name, "New name");
+        assert_eq!(found[0].away_name, "Away name");
+        assert_eq!(h.list_seasons().unwrap()[0].league_name, "Renamed league");
     }
 }

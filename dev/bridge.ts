@@ -446,13 +446,19 @@ export async function handleCommand(
         writeSecret(SECRET_FILES.pitch, key);
         return json(res, 200, { ok: true });
       }
+      case 'kino_begin_auth':
+        return json(res, 200, kino.beginAuth());
       case 'kino_start_auth':
-        return json(res, 200, await kino.startAuth());
+        return json(res, 200, await kino.startAuth(String(rawArgs.sessionId || '')));
       case 'kino_poll_auth': {
-        const code = typeof rawArgs.code === 'string' ? rawArgs.code : '';
-        if (!code) return json(res, 400, { error: 'Не указан код.' });
-        return json(res, 200, await kino.pollAuth(code));
+        return json(res, 200, await kino.pollAuth(String(rawArgs.sessionId || '')));
       }
+      case 'kino_commit_auth':
+        return json(res, 200, kino.commitAuth(String(rawArgs.sessionId || '')));
+      case 'kino_cancel_auth':
+        return json(res, 200, kino.cancelAuth(String(rawArgs.sessionId || '')));
+      case 'kino_finish_auth':
+        return json(res, 200, kino.finishAuth(String(rawArgs.sessionId || '')));
       case 'kino_channels':
         return json(res, 200, await kino.getChannels());
       case 'kino_logout':

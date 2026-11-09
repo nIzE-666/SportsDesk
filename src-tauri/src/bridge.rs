@@ -6,7 +6,7 @@
 pub mod native {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct ApiReply {
         pub payload: serde_json::Value,
         pub source: String,
@@ -31,8 +31,11 @@ pub mod native {
     pub use crate::bridge::fetch_with_cache;
 }
 
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
 use serde_json::Value;
@@ -62,7 +65,7 @@ const OPENF1_MIN_INTERVAL: Duration = Duration::from_millis(500);
 const OPENF1_PER_MINUTE: usize = 30;
 const OPENF1_MAX_WAIT: Duration = Duration::from_secs(90);
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum BridgeError {
     #[error("Неизвестный источник данных.")]
     UnknownSource,
@@ -198,6 +201,7 @@ pub struct Concurrency {
     sem: Semaphore,
     inflight: AtomicU32,
     waiting_openf1: AtomicU32,
+    flights: Arc<FlightRegistry>,
 }
 struct OpenF1Budget {
     timestamps: Vec<Instant>,
@@ -253,6 +257,7 @@ impl Concurrency {
             sem: Semaphore::new(4),
             inflight: AtomicU32::new(0),
             waiting_openf1: AtomicU32::new(0),
+            flights: Arc::new(FlightRegistry::default()),
         }
     }
     async fn wait_openf1(&self, deadline: Instant) -> Result<(), BridgeError> {
@@ -524,11 +529,103 @@ async fn fetch_upstream(
     serde_json::from_slice(&bytes).map_err(|_| BridgeError::BadPayload)
 }
 
+type FetchResult = Result<native::ApiReply, BridgeError>;
+type FetchFuture = Pin<Box<dyn Future<Output = FetchResult> + Send>>;
+type RequestKey = (String, String);
+
+#[derive(Default)]
+struct FlightRegistry {
+    // Weak entries are removed as soon as the last caller drops its flight.
+    flights: Mutex<HashMap<RequestKey, Weak<Flight>>>,
+}
+
+impl FlightRegistry {
+    fn join_or_create(
+        self: &Arc<Self>,
+        key: RequestKey,
+        create: impl FnOnce() -> FetchFuture,
+    ) -> Arc<Flight> {
+        let mut flights = self.flights.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(flight) = flights.get(&key).and_then(Weak::upgrade) {
+            return flight;
+        }
+        let flight = Arc::new(Flight {
+            key: key.clone(),
+            registry: Arc::downgrade(self),
+            state: AsyncMutex::new(FlightState {
+                future: Some(create()),
+                result: None,
+            }),
+        });
+        flights.insert(key, Arc::downgrade(&flight));
+        flight
+    }
+}
+
+struct FlightState {
+    future: Option<FetchFuture>,
+    result: Option<FetchResult>,
+}
+
+struct Flight {
+    key: RequestKey,
+    registry: Weak<FlightRegistry>,
+    state: AsyncMutex<FlightState>,
+}
+
+impl Flight {
+    async fn result(&self) -> FetchResult {
+        let mut state = self.state.lock().await;
+        if let Some(result) = &state.result {
+            return result.clone();
+        }
+        // The future lives in the flight, not the caller driving it. If that
+        // caller is cancelled, another waiter can continue polling it.
+        let result = state.future.as_mut().expect("unfinished flight").await;
+        state.future = None;
+        state.result = Some(result.clone());
+        result
+    }
+}
+
+impl Drop for Flight {
+    fn drop(&mut self) {
+        if let Some(registry) = self.registry.upgrade() {
+            let mut flights = registry.flights.lock().unwrap_or_else(|e| e.into_inner());
+            // A new flight may already have replaced this dying weak entry.
+            if flights
+                .get(&self.key)
+                .is_some_and(|entry| entry.strong_count() == 0)
+            {
+                flights.remove(&self.key);
+            }
+        }
+    }
+}
+
 pub async fn fetch_with_cache(
     state: Arc<AppStateInner>,
     source: String,
     path: String,
 ) -> Result<native::ApiReply, BridgeError> {
+    fetch_with_cache_using(state, source, path, |state, source, path| async move {
+        fetch_upstream(&state, &source, &path).await
+    })
+    .await
+}
+
+// The injected fetch also lets tests exercise the actual cache/flight path
+// without depending on providers, credentials, or network timing.
+async fn fetch_with_cache_using<F, Fut>(
+    state: Arc<AppStateInner>,
+    source: String,
+    path: String,
+    fetch: F,
+) -> FetchResult
+where
+    F: FnOnce(Arc<AppStateInner>, String, String) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<Value, BridgeError>> + Send + 'static,
+{
     if base_for(&source).is_none() {
         return Err(BridgeError::UnknownSource);
     }
@@ -536,56 +633,63 @@ pub async fn fetch_with_cache(
         return Err(BridgeError::InvalidPath);
     }
 
-    if let Some(row) = state.cache.get(&source, &path) {
-        let ttl = ttl_ms(&source, &path, &row.payload);
-        if now_ms() - row.fetched_at_ms < ttl {
-            return Ok(native::ApiReply {
-                payload: row.payload,
-                source,
-                fetched_at: iso_utc_from_ms(row.fetched_at_ms),
-                stale: false,
-                failure: None,
-            });
-        }
-    }
-
-    match fetch_upstream(&state, &source, &path).await {
-        Ok(payload) => {
-            let fetched = now_ms();
-            let _ = state.cache.put(&source, &path, &payload, fetched);
-            if let Ok(mut stamp) = LAST_PRUNE.lock() {
-                let due = stamp
-                    .map(|t: i64| now_ms() - t > 6 * 60 * 60 * 1000)
-                    .unwrap_or(true);
-                if due {
-                    state.cache.prune(now_ms() - 30 * 24 * 60 * 60 * 1000);
-                    *stamp = Some(now_ms());
-                }
-            }
-            Ok(native::ApiReply {
-                payload,
-                source,
-                fetched_at: iso_utc_from_ms(fetched),
-                stale: false,
-                failure: None,
-            })
-        }
-        Err(err) => {
-            crate::diagnostics::record(&source, &path, &err);
+    let registry = Arc::clone(&state.concurrency.flights);
+    let key = (source.clone(), path.clone());
+    let flight = registry.join_or_create(key, || {
+        Box::pin(async move {
             if let Some(row) = state.cache.get(&source, &path) {
-                if now_ms() - row.fetched_at_ms < 24 * 60 * 60 * 1000 {
+                let ttl = ttl_ms(&source, &path, &row.payload);
+                if now_ms() - row.fetched_at_ms < ttl {
                     return Ok(native::ApiReply {
                         payload: row.payload,
                         source,
                         fetched_at: iso_utc_from_ms(row.fetched_at_ms),
-                        stale: true,
-                        failure: Some(err.failure()),
+                        stale: false,
+                        failure: None,
                     });
                 }
             }
-            Err(err)
-        }
-    }
+
+            match fetch(Arc::clone(&state), source.clone(), path.clone()).await {
+                Ok(payload) => {
+                    let fetched = now_ms();
+                    let _ = state.cache.put(&source, &path, &payload, fetched);
+                    if let Ok(mut stamp) = LAST_PRUNE.lock() {
+                        let due = stamp
+                            .map(|t: i64| now_ms() - t > 6 * 60 * 60 * 1000)
+                            .unwrap_or(true);
+                        if due {
+                            state.cache.prune(now_ms() - 30 * 24 * 60 * 60 * 1000);
+                            *stamp = Some(now_ms());
+                        }
+                    }
+                    Ok(native::ApiReply {
+                        payload,
+                        source,
+                        fetched_at: iso_utc_from_ms(fetched),
+                        stale: false,
+                        failure: None,
+                    })
+                }
+                Err(err) => {
+                    crate::diagnostics::record(&source, &path, &err);
+                    if let Some(row) = state.cache.get(&source, &path) {
+                        if now_ms() - row.fetched_at_ms < 24 * 60 * 60 * 1000 {
+                            return Ok(native::ApiReply {
+                                payload: row.payload,
+                                source,
+                                fetched_at: iso_utc_from_ms(row.fetched_at_ms),
+                                stale: true,
+                                failure: Some(err.failure()),
+                            });
+                        }
+                    }
+                    Err(err)
+                }
+            }
+        })
+    });
+    flight.result().await
 }
 
 static LAST_PRUNE: Mutex<Option<i64>> = Mutex::new(None);
@@ -633,6 +737,434 @@ mod runtime_tests {
             .build()
             .unwrap()
             .block_on(future);
+    }
+
+    fn test_state() -> Arc<AppStateInner> {
+        Arc::new(AppStateInner {
+            client: http_client(),
+            cache: Cache::open_in_memory(),
+            concurrency: Concurrency::new(),
+        })
+    }
+
+    fn registry_len(state: &AppStateInner) -> usize {
+        state.concurrency.flights.flights.lock().unwrap().len()
+    }
+
+    async fn wait_for_callers(state: &AppStateInner, source: &str, path: &str, count: usize) {
+        let key = (source.to_string(), path.to_string());
+        tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                let callers = state
+                    .concurrency
+                    .flights
+                    .flights
+                    .lock()
+                    .unwrap()
+                    .get(&key)
+                    .map_or(0, Weak::strong_count);
+                if callers >= count {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("callers joined flight");
+    }
+
+    #[test]
+    fn identical_cache_misses_share_a_reply_and_other_keys_progress() {
+        run(async {
+            let state = test_state();
+            let calls = Arc::new(AtomicU32::new(0));
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first_calls = calls.clone();
+            let first = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |_, _, _| async move {
+                    first_calls.fetch_add(1, Ordering::Relaxed);
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Ok(serde_json::json!({"version": 1}))
+                },
+            ));
+            started_rx.await.unwrap();
+
+            let second_calls = calls.clone();
+            let second = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |_, _, _| async move {
+                    second_calls.fetch_add(1, Ordering::Relaxed);
+                    Ok(serde_json::json!({"version": 2}))
+                },
+            ));
+            wait_for_callers(&state, "pitch", "leagues", 2).await;
+
+            // Both parts of the key matter, and neither request waits for the
+            // blocked flight above.
+            for (source, path) in [("pitch", "teams"), ("espn", "leagues")] {
+                let reply = tokio::time::timeout(
+                    Duration::from_secs(2),
+                    fetch_with_cache_using(
+                        state.clone(),
+                        source.into(),
+                        path.into(),
+                        |_, _, _| async { Ok(serde_json::json!({"independent": true})) },
+                    ),
+                )
+                .await
+                .unwrap()
+                .unwrap();
+                assert_eq!(reply.payload["independent"], true);
+            }
+            assert!(!first.is_finished());
+            assert!(!second.is_finished());
+            release_tx.send(()).unwrap();
+            let first = first.await.unwrap().unwrap();
+            let second = second.await.unwrap().unwrap();
+            assert_eq!(
+                serde_json::to_value(&first).unwrap(),
+                serde_json::to_value(&second).unwrap()
+            );
+            assert_eq!(first.payload["version"], 1);
+            assert!(!first.stale);
+            assert!(first.failure.is_none());
+            assert_eq!(calls.load(Ordering::Relaxed), 1);
+            assert_eq!(
+                state.cache.get("pitch", "leagues").unwrap().payload,
+                first.payload
+            );
+            assert_eq!(registry_len(&state), 0);
+
+            let cached = fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                |_, _, _| async { panic!("fresh cache must be checked before fetch") },
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                serde_json::to_value(&cached).unwrap(),
+                serde_json::to_value(first).unwrap()
+            );
+            assert_eq!(registry_len(&state), 0);
+        });
+    }
+
+    #[test]
+    fn coalescing_spends_one_openf1_grant() {
+        run(async {
+            tokio::time::pause();
+            let state = test_state();
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "openf1".into(),
+                "sessions".into(),
+                move |state, source, _| async move {
+                    let _permit = state.concurrency.acquire_request(&source).await?;
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Ok(serde_json::json!({"session": 1}))
+                },
+            ));
+            started_rx.await.unwrap();
+            let second = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "openf1".into(),
+                "sessions".into(),
+                move |state, source, _| async move {
+                    let _permit = state.concurrency.acquire_request(&source).await?;
+                    Ok(serde_json::json!({"session": 2}))
+                },
+            ));
+            wait_for_callers(&state, "openf1", "sessions", 2).await;
+            assert_eq!(state.concurrency.snapshot().await.openf1_recent, 1);
+            assert_eq!(state.concurrency.inflight(), 1);
+            release_tx.send(()).unwrap();
+            assert_eq!(first.await.unwrap().unwrap().payload["session"], 1);
+            assert_eq!(second.await.unwrap().unwrap().payload["session"], 1);
+            assert_eq!(state.concurrency.snapshot().await.openf1_recent, 1);
+            assert_eq!(state.concurrency.inflight(), 0);
+            assert_eq!(registry_len(&state), 0);
+        });
+    }
+
+    #[test]
+    fn callers_on_multiple_threads_share_one_flight() {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(4)
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let state = test_state();
+                let calls = Arc::new(AtomicU32::new(0));
+                let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+                let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+                let first_calls = calls.clone();
+                let first = tokio::spawn(fetch_with_cache_using(
+                    state.clone(),
+                    "pitch".into(),
+                    "leagues".into(),
+                    move |_, _, _| async move {
+                        first_calls.fetch_add(1, Ordering::Relaxed);
+                        started_tx.send(()).unwrap();
+                        release_rx.await.unwrap();
+                        Ok(serde_json::json!({"shared": true}))
+                    },
+                ));
+                started_rx.await.unwrap();
+                let mut waiters = Vec::new();
+                for _ in 0..31 {
+                    let calls = calls.clone();
+                    waiters.push(tokio::spawn(fetch_with_cache_using(
+                        state.clone(),
+                        "pitch".into(),
+                        "leagues".into(),
+                        move |_, _, _| async move {
+                            calls.fetch_add(1, Ordering::Relaxed);
+                            Ok(serde_json::json!({"shared": false}))
+                        },
+                    )));
+                }
+                wait_for_callers(&state, "pitch", "leagues", 32).await;
+                release_tx.send(()).unwrap();
+                assert_eq!(first.await.unwrap().unwrap().payload["shared"], true);
+                for waiter in waiters {
+                    assert_eq!(waiter.await.unwrap().unwrap().payload["shared"], true);
+                }
+                assert_eq!(calls.load(Ordering::Relaxed), 1);
+                assert_eq!(registry_len(&state), 0);
+            });
+    }
+
+    #[test]
+    fn failures_and_stale_fallback_are_shared_then_can_retry() {
+        run(async {
+            let state = test_state();
+            let stale_at = now_ms() - 10 * 60_000;
+            let stale_payload = serde_json::json!({"cached": true});
+            state
+                .cache
+                .put("pitch", "leagues", &stale_payload, stale_at)
+                .unwrap();
+            let calls = Arc::new(AtomicU32::new(0));
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first_calls = calls.clone();
+            let first = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |state, source, _| async move {
+                    let _permit = state.concurrency.acquire_request(&source).await?;
+                    first_calls.fetch_add(1, Ordering::Relaxed);
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Err(BridgeError::Timeout)
+                },
+            ));
+            started_rx.await.unwrap();
+            let second_calls = calls.clone();
+            let second = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |_, _, _| async move {
+                    second_calls.fetch_add(1, Ordering::Relaxed);
+                    Err(BridgeError::Unauthorized)
+                },
+            ));
+            wait_for_callers(&state, "pitch", "leagues", 2).await;
+            release_tx.send(()).unwrap();
+            let first = first.await.unwrap().unwrap();
+            let second = second.await.unwrap().unwrap();
+            assert_eq!(
+                serde_json::to_value(&first).unwrap(),
+                serde_json::to_value(second).unwrap()
+            );
+            assert_eq!(first.payload, stale_payload);
+            assert_eq!(first.fetched_at, iso_utc_from_ms(stale_at));
+            assert!(first.stale);
+            assert_eq!(first.failure.unwrap().code, "Timeout");
+            assert_eq!(calls.load(Ordering::Relaxed), 1);
+            assert_eq!(registry_len(&state), 0);
+
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first_calls = calls.clone();
+            let first = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "missing".into(),
+                move |_, _, _| async move {
+                    first_calls.fetch_add(1, Ordering::Relaxed);
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Err(BridgeError::NotFound)
+                },
+            ));
+            started_rx.await.unwrap();
+            let second_calls = calls.clone();
+            let second = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "missing".into(),
+                move |_, _, _| async move {
+                    second_calls.fetch_add(1, Ordering::Relaxed);
+                    Err(BridgeError::Timeout)
+                },
+            ));
+            wait_for_callers(&state, "pitch", "missing", 2).await;
+            release_tx.send(()).unwrap();
+            assert!(matches!(first.await.unwrap(), Err(BridgeError::NotFound)));
+            assert!(matches!(second.await.unwrap(), Err(BridgeError::NotFound)));
+            assert_eq!(calls.load(Ordering::Relaxed), 2);
+            assert_eq!(registry_len(&state), 0);
+
+            let retry = fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "missing".into(),
+                |_, _, _| async { Ok(serde_json::json!({"retried": true})) },
+            )
+            .await
+            .unwrap();
+            assert_eq!(retry.payload["retried"], true);
+            assert_eq!(registry_len(&state), 0);
+        });
+    }
+
+    #[test]
+    fn cancellation_transfers_a_flight_or_drops_it_when_no_waiters_remain() {
+        run(async {
+            let state = test_state();
+            let calls = Arc::new(AtomicU32::new(0));
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first_calls = calls.clone();
+            let first = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |state, source, _| async move {
+                    let _permit = state.concurrency.acquire_request(&source).await?;
+                    first_calls.fetch_add(1, Ordering::Relaxed);
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Ok(serde_json::json!({"continued": true}))
+                },
+            ));
+            started_rx.await.unwrap();
+            let second_calls = calls.clone();
+            let second = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |_, _, _| async move {
+                    second_calls.fetch_add(1, Ordering::Relaxed);
+                    Ok(serde_json::json!({"unexpected": true}))
+                },
+            ));
+            wait_for_callers(&state, "pitch", "leagues", 2).await;
+            first.abort();
+            assert!(first.await.unwrap_err().is_cancelled());
+            assert_eq!(state.concurrency.inflight(), 1);
+            release_tx.send(()).unwrap();
+            let result = second.await.unwrap().unwrap();
+            assert_eq!(result.payload["continued"], true);
+            assert_eq!(calls.load(Ordering::Relaxed), 1);
+            assert_eq!(state.concurrency.inflight(), 0);
+            assert_eq!(registry_len(&state), 0);
+
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let abandoned = tokio::spawn(fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "teams".into(),
+                move |state, source, _| async move {
+                    let _permit = state.concurrency.acquire_request(&source).await?;
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Ok(serde_json::json!({"unexpected": true}))
+                },
+            ));
+            started_rx.await.unwrap();
+            abandoned.abort();
+            assert!(abandoned.await.unwrap_err().is_cancelled());
+            assert!(release_tx.send(()).is_err());
+            assert_eq!(state.concurrency.inflight(), 0);
+            assert_eq!(registry_len(&state), 0);
+            let retry = fetch_with_cache_using(
+                state.clone(),
+                "pitch".into(),
+                "teams".into(),
+                |_, _, _| async { Ok(serde_json::json!({"retried": true})) },
+            )
+            .await
+            .unwrap();
+            assert_eq!(retry.payload["retried"], true);
+            assert_eq!(registry_len(&state), 0);
+        });
+    }
+
+    #[test]
+    fn flights_are_scoped_to_state_and_registry_does_not_grow() {
+        run(async {
+            let first_state = test_state();
+            let second_state = test_state();
+            let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+            let first = tokio::spawn(fetch_with_cache_using(
+                first_state.clone(),
+                "pitch".into(),
+                "leagues".into(),
+                move |_, _, _| async move {
+                    started_tx.send(()).unwrap();
+                    release_rx.await.unwrap();
+                    Ok(serde_json::json!({"state": 1}))
+                },
+            ));
+            started_rx.await.unwrap();
+            let second = tokio::time::timeout(
+                Duration::from_secs(2),
+                fetch_with_cache_using(
+                    second_state.clone(),
+                    "pitch".into(),
+                    "leagues".into(),
+                    |_, _, _| async { Ok(serde_json::json!({"state": 2})) },
+                ),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+            assert_eq!(second.payload["state"], 2);
+            release_tx.send(()).unwrap();
+            assert_eq!(first.await.unwrap().unwrap().payload["state"], 1);
+
+            for index in 0..100 {
+                fetch_with_cache_using(
+                    first_state.clone(),
+                    "pitch".into(),
+                    format!("key/{index}"),
+                    |_, _, _| async { Ok(serde_json::json!({"ok": true})) },
+                )
+                .await
+                .unwrap();
+                assert_eq!(registry_len(&first_state), 0);
+            }
+            assert_eq!(registry_len(&second_state), 0);
+        });
     }
     #[test]
     fn openf1_waiters_do_not_occupy_football_or_jolpica_slots() {

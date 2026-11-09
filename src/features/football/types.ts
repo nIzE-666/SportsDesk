@@ -16,6 +16,7 @@ export interface MatchSummary {
   date?: string;
   time_utc?: string;
   status: string;
+  status_text?: string;
   home_team: TeamRef;
   away_team: TeamRef;
   score_home: number | null;

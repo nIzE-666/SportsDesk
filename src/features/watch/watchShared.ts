@@ -1,4 +1,5 @@
 import { sanitizeDetails } from '../../lib/diagnostics';
+import { setString } from '../football/storage';
 export interface SecretStatus {
   pitch: boolean;
   kino: boolean;
@@ -97,7 +98,7 @@ export function readRecent(): number[] {
 
 export function writeRecent(ids: number[]): void {
   try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(ids));
+    setString(RECENT_KEY, JSON.stringify(ids));
   } catch {
     // non-critical
   }
@@ -118,7 +119,7 @@ export function readFavorites(): Set<number> {
 
 export function writeFavorites(ids: Set<number>): void {
   try {
-    localStorage.setItem(FAV_KEY, JSON.stringify([...ids]));
+    setString(FAV_KEY, JSON.stringify([...ids]));
   } catch {
     // Storage full or disabled — favourites are non-critical.
   }

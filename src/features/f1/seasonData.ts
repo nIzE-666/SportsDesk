@@ -65,8 +65,16 @@ function toPoints(value: unknown): number | null {
 interface Page {
   rows: JolpicaRaceResultRow[];
   total: number;
+  resultCount: number;
   fetchedAt: string;
   stale: boolean;
+}
+
+function paginationInt(value: unknown): number | null {
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  if (typeof value === 'string' && !/^\d+$/.test(value)) return null;
+  const n = Number(value);
+  return Number.isSafeInteger(n) && n >= 0 ? n : null;
 }
 
 async function fetchPage(year: number, offset: number): Promise<Page> {
@@ -75,12 +83,59 @@ async function fetchPage(year: number, offset: number): Promise<Page> {
   if (!mr || typeof mr !== 'object') {
     throw new Error('В ответе Jolpica отсутствует MRData.');
   }
-  const total = toInt(mr.total);
-  if (total === null || total < 0) {
+  const total = paginationInt(mr.total);
+  if (total === null) {
     throw new Error('В ответе Jolpica отсутствует корректный total.');
   }
+  if (paginationInt(mr.offset) !== offset || paginationInt(mr.limit) !== PAGE_LIMIT) {
+    throw new Error('Jolpica вернул некорректные offset или limit страницы.');
+  }
+
+  const table = mr.RaceTable;
+  const rawRaces =
+    table && typeof table === 'object' && !Array.isArray(table)
+      ? (table as Record<string, unknown>).Races
+      : null;
+  if (!Array.isArray(rawRaces)) {
+    throw new Error('В ответе Jolpica отсутствует список гонок.');
+  }
+  const rawResultCounts = rawRaces.map((race) => {
+    if (!race || typeof race !== 'object' || Array.isArray(race)) {
+      throw new Error('Jolpica вернул некорректную гонку.');
+    }
+    const results = (race as Record<string, unknown>).Results;
+    if (!Array.isArray(results) || results.length === 0) {
+      throw new Error('Jolpica вернул некорректный список результатов гонки.');
+    }
+    return results.length;
+  });
   const rows = parseRaceResults(reply.payload);
-  return { rows, total, fetchedAt: reply.fetchedAt, stale: reply.stale };
+  if (
+    rows.length !== rawRaces.length ||
+    rows.some((row, index) => row.Results.length !== rawResultCounts[index])
+  ) {
+    throw new Error('Не удалось разобрать все результаты страницы Jolpica.');
+  }
+  for (const row of rows) {
+    const round = paginationInt(row.round);
+    if (
+      row.season !== String(year) ||
+      round === null ||
+      round === 0 ||
+      !row.raceName ||
+      !row.date
+    ) {
+      throw new Error('Jolpica вернул некорректные данные гонки.');
+    }
+  }
+  const resultCount = rawResultCounts.reduce((sum, count) => sum + count, 0);
+  const expected = Math.min(PAGE_LIMIT, Math.max(0, total - offset));
+  if (resultCount !== expected) {
+    throw new Error(
+      `Jolpica вернул неполную или избыточную страницу (${resultCount} из ${expected}).`,
+    );
+  }
+  return { rows, total, resultCount, fetchedAt: reply.fetchedAt, stale: reply.stale };
 }
 
 function mergeRaces(
@@ -100,9 +155,24 @@ function mergeRaces(
       byRound.set(round, row);
       continue;
     }
+    if (
+      current.season !== row.season ||
+      current.raceName !== row.raceName ||
+      current.date !== row.date ||
+      current.time !== row.time ||
+      current.Circuit.circuitId !== row.Circuit.circuitId ||
+      current.Circuit.circuitName !== row.Circuit.circuitName
+    ) {
+      throw new Error('Jolpica вернул противоречивые данные одного раунда.');
+    }
     const drivers = new Map<string, (typeof row.Results)[number]>();
     for (const r of current.Results) drivers.set(r.Driver.driverId, r);
-    for (const r of row.Results) drivers.set(r.Driver.driverId, r);
+    for (const r of row.Results) {
+      if (drivers.has(r.Driver.driverId)) {
+        throw new Error('Jolpica вернул повторный результат пилота в одном раунде.');
+      }
+      drivers.set(r.Driver.driverId, r);
+    }
     byRound.set(round, {
       ...current,
       ...row,
@@ -123,6 +193,7 @@ export async function fetchSeasonResults(year: number): Promise<SeasonResults> {
   let total = -1;
   let offset = 0;
   let pages = 0;
+  let resultCount = 0;
 
   try {
     while (offset < total || total < 0) {
@@ -139,22 +210,24 @@ export async function fetchSeasonResults(year: number): Promise<SeasonResults> {
       }
       fetchedAt = page.fetchedAt;
       if (page.stale) stale = true;
+      for (const race of page.rows) {
+        const drivers = new Set(race.Results.map((result) => result.Driver.driverId));
+        if (drivers.size !== race.Results.length) {
+          throw new Error('Jolpica вернул повторный результат пилота в одном раунде.');
+        }
+      }
       races = mergeRaces(races, page.rows);
-      const prevOffset = offset;
+      resultCount += page.resultCount;
       offset += PAGE_LIMIT;
       if (total === 0) break;
-      if (page.rows.length === 0 && prevOffset < total) {
-        throw new Error('Jolpica вернул пустую страницу до завершения загрузки.');
-      }
     }
 
     if (total < 0) {
       throw new Error('Не удалось определить общее число результатов сезона.');
     }
 
-    const expectedRounds = Math.min(total, Number.MAX_SAFE_INTEGER);
-    if (races.length === 0 && expectedRounds > 0) {
-      throw new Error('Не получено ни одного результата сезона.');
+    if (resultCount !== total) {
+      throw new Error('Не получены все результаты сезона.');
     }
 
     return {

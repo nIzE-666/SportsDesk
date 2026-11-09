@@ -127,8 +127,10 @@ mod tests {
     }
     #[test]
     fn midnight_and_dst_use_selected_wall_clock() {
-        let mut p = NotificationPolicy::default();
-        p.quiet_enabled = true;
+        let mut p = NotificationPolicy {
+            quiet_enabled: true,
+            ..Default::default()
+        };
         assert!(p.quiet("Asia/Yakutsk", at("2026-10-25T15:30:00Z")));
         assert!(!p.quiet("Asia/Yakutsk", at("2026-10-25T23:00:00Z")));
         p.quiet_start = "01:00".into();
@@ -140,8 +142,10 @@ mod tests {
     #[test]
     fn team_and_event_controls_and_lead_are_enforced() {
         let mut p = NotificationPolicy::default();
-        let mut off = TeamPolicy::default();
-        off.enabled = false;
+        let off = TeamPolicy {
+            enabled: false,
+            ..Default::default()
+        };
         p.teams.insert("t_a".into(), off);
         assert!(!p.allows("goal", &["t_a"], "UTC", 0));
         assert!(p.allows("goal", &["t_a", "t_b"], "UTC", 0));

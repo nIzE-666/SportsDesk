@@ -13,12 +13,12 @@ export function selectFeaturedMatch(
     const parsed = Date.parse(m.time_utc ?? m.date ?? '');
     return Number.isFinite(parsed) ? parsed : missing;
   };
-  const live = matches.filter((m) => classifyMatchStatus(m.status) === 'live');
+  const live = matches.filter((m) => classifyMatchStatus(m.status, m.status_text) === 'live');
   const results = matches
-    .filter((m) => classifyMatchStatus(m.status) === 'finished')
+    .filter((m) => classifyMatchStatus(m.status, m.status_text) === 'finished')
     .sort((a, b) => time(b, 0) - time(a, 0));
   const upcoming = matches
-    .filter((m) => classifyMatchStatus(m.status) === 'scheduled')
+    .filter((m) => classifyMatchStatus(m.status, m.status_text) === 'scheduled')
     .sort((a, b) => time(a, Number.MAX_SAFE_INTEGER) - time(b, Number.MAX_SAFE_INTEGER));
   return (
     live.find(favorite) ??
@@ -47,7 +47,7 @@ export function FeaturedMatchCover({
   onOpenMatch: (id: string) => void;
   onSeeAllMatches: () => void;
 }) {
-  const state = match ? classifyMatchStatus(match.status) : 'unknown';
+  const state = match ? classifyMatchStatus(match.status, match.status_text) : 'unknown';
   const scored = state === 'live' || state === 'finished';
   const score =
     match && scored
@@ -95,7 +95,7 @@ export function FeaturedMatchCover({
               {state === 'finished' ? 'Разбор матча' : 'Открыть матч'} <ArrowUpRight size={16} />
             </button>
             <span className={`event-cover-status ${state === 'live' ? 'live' : ''}`}>
-              {matchStateLabel(match.status)}
+              {matchStateLabel(match.status, match.status_text)}
             </span>
           </div>
         </>

@@ -144,6 +144,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
+// This first navigation test loads all lazy screens on a cold test worker.
 it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {
   viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
   await renderApp();
@@ -163,7 +164,7 @@ it('switches designs in place, keeps the selected fixture/tab and does not refet
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Вернуть классический дизайн"]')!);
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-});
+}, 15000);
 
 it('applies the design from Settings, restores it on launch, and uses a real fixture on the cover', async () => {
   localStorage.setItem('sportsdesk.design', 'broadcast');

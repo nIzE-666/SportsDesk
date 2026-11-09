@@ -10,6 +10,7 @@ import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
 import { MatchDetailView } from '../football/MatchDetailView';
 import { useDataRecovery } from '../../lib/useDataRecovery';
+import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import {
   formatDateTime,
   getUserTimezone,
@@ -222,7 +223,7 @@ function Inner({
   }, [tab, season]);
 
   const matches = data?.matches ?? [];
-  const played = matches.filter((m) => m.status === 'finished');
+  const played = matches.filter((m) => classifyMatchStatus(m.status, m.status_text) === 'finished');
   const totalGoals = played.reduce((n, m) => n + (m.score_home ?? 0) + (m.score_away ?? 0), 0);
   const teams = useMemo(() => {
     const map = new Map<string, MatchSummary['home_team']>();
@@ -235,14 +236,15 @@ function Inner({
   const upcoming = matches
     .filter(
       (m) =>
-        m.status !== 'finished' &&
+        ['scheduled', 'live'].includes(classifyMatchStatus(m.status, m.status_text)) &&
         new Date(m.time_utc ?? m.date ?? '').getTime() > Date.now() - 7200000,
     )
     .sort((a, b) => (a.time_utc ?? '').localeCompare(b.time_utc ?? ''));
   const filtered = matches
     .filter((m) => {
-      if (status === 'finished' && m.status !== 'finished') return false;
-      if (status === 'upcoming' && m.status === 'finished') return false;
+      const state = classifyMatchStatus(m.status, m.status_text);
+      if (status === 'finished' && state !== 'finished') return false;
+      if (status === 'upcoming' && !['scheduled', 'live'].includes(state)) return false;
       const q = normalizeTeam(query);
       return !q || normalizeTeam(`${m.home_team.name} ${m.away_team.name}`).includes(q);
     })

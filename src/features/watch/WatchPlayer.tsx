@@ -227,6 +227,7 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
 
     setStatus('loading');
     video.muted = true;
+    setMuted(true);
     video.volume = volume;
 
     let disposed = false;

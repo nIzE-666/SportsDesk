@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,13 +12,15 @@ import {
 } from 'lucide-react';
 import { ClubPlayers } from './ClubPlayers';
 import TeamBadge from '../../components/TeamBadge';
-import { LoadingBlock, EmptyBlock } from '../../components/StateViews';
+import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
 import type { MatchSummary } from './types';
-import { formatDate, formatDateTime, getUserTimezone, normalizeName } from './storage';
+import { formatDate, getUserTimezone, normalizeName } from './storage';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 import { useFavorites } from './FavoritesProvider';
+import { compareUpcoming, formatFixtureTime, isUpcomingFixture } from './calendar';
 import {
   fetchHeadToHead,
+  fetchHistorySeason,
   fetchTeamHistory,
   h2hSummary,
   pointsProgression,
@@ -71,25 +74,17 @@ function involvesTeam(match: MatchSummary, teamId: string, teamName: string): bo
 function computeHistory(matches: MatchSummary[], teamId: string, teamName: string): TeamHistory {
   const played: MatchSummary[] = [];
   const upcoming: MatchSummary[] = [];
-  const now = Date.now();
   for (const m of matches) {
     if (!m || !involvesTeam(m, teamId, teamName)) continue;
-    const t = m.time_utc
-      ? new Date(m.time_utc).getTime()
-      : m.date
-        ? new Date(m.date).getTime()
-        : NaN;
-    if (m.status === 'finished') played.push(m);
-    else if (Number.isNaN(t) || t >= now - 1000 * 60 * 180) upcoming.push(m);
+    const state = classifyMatchStatus(m.status);
+    if (state === 'finished') played.push(m);
+    else if (isUpcomingFixture(m)) upcoming.push(m);
   }
   played.sort(
     (a, b) =>
       new Date(b.time_utc ?? b.date ?? 0).getTime() - new Date(a.time_utc ?? a.date ?? 0).getTime(),
   );
-  upcoming.sort(
-    (a, b) =>
-      new Date(a.time_utc ?? a.date ?? 0).getTime() - new Date(b.time_utc ?? b.date ?? 0).getTime(),
-  );
+  upcoming.sort(compareUpcoming);
 
   let wins = 0;
   let draws = 0;
@@ -193,7 +188,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
           <span className="team-match-date muted small">
             {match.status === 'finished'
               ? formatDate(match.time_utc ?? match.date, timezone)
-              : formatDateTime(match.time_utc, timezone)}
+              : formatFixtureTime(match, timezone)}
           </span>
           <span className="team-match-op muted small">{isHome ? 'Д' : 'Г'}</span>
           <span className="team-match-teams">
@@ -222,7 +217,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
             {outcome ? (
               <span className={`wdl wdl-${outcome.toLowerCase()}`}>{outcome}</span>
             ) : (
-              <span className="chip">Запланирован</span>
+              <span className="chip">{matchStateLabel(match.status)}</span>
             )}
           </span>
         </button>
@@ -352,7 +347,18 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
           </section>
 
           {teamId && (
-            <SeasonAnalytics teamId={teamId} teamName={catalogueTeam.name} teams={data.teams} />
+            <SeasonAnalytics
+              teamId={teamId}
+              teamName={catalogueTeam.name}
+              teams={data.teams}
+              leagueId={catalogueTeam.leagueId}
+              leagueName={catalogueTeam.leagueName}
+              season={
+                catalogueTeam.leagueId === data.selectedLeagueId
+                  ? data.season
+                  : data.leagues.find((league) => league.id === catalogueTeam.leagueId)?.season
+              }
+            />
           )}
 
           <div className="team-cols">
@@ -427,46 +433,133 @@ function SeasonAnalytics({
   teamId,
   teamName,
   teams,
+  leagueId,
+  leagueName,
+  season,
 }: {
   teamId: string;
   teamName: string;
   teams: TeamCatalogueEntry[];
+  leagueId: string;
+  leagueName: string;
+  season: string | undefined;
 }) {
-  const [matches, setMatches] = useState<HistoryMatch[] | null>(null);
+  const [teamAttempt, setTeamAttempt] = useState(0);
+  const [teamHistory, setTeamHistory] = useState<{
+    teamId: string;
+    attempt: number;
+    rows: HistoryMatch[] | null;
+    error: string | null;
+  } | null>(null);
+  const [seasonAttempt, setSeasonAttempt] = useState(0);
+  const [seasonHistory, setSeasonHistory] = useState<{
+    leagueId: string;
+    season: string;
+    attempt: number;
+    rows: HistoryMatch[] | null;
+    error: string | null;
+  } | null>(null);
   const [rivalId, setRivalId] = useState<string>('');
-  const [h2h, setH2h] = useState<HistoryMatch[] | null>(null);
+  const [h2hAttempt, setH2hAttempt] = useState(0);
+  const [h2hHistory, setH2hHistory] = useState<{
+    teamId: string;
+    rivalId: string;
+    attempt: number;
+    rows: HistoryMatch[] | null;
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
-    setMatches(null);
-    setH2h(null);
-    fetchTeamHistory(teamId, true).then((m) => {
-      if (active) setMatches(m);
-    });
+    const key = { teamId, attempt: teamAttempt };
+    setTeamHistory({ ...key, rows: null, error: null });
+    void fetchTeamHistory(teamId, true).then(
+      (rows) => {
+        if (active) setTeamHistory({ ...key, rows, error: null });
+      },
+      (error: unknown) => {
+        if (active)
+          setTeamHistory({
+            ...key,
+            rows: null,
+            error: error instanceof Error ? error.message : 'История недоступна.',
+          });
+      },
+    );
     return () => {
       active = false;
     };
-  }, [teamId]);
+  }, [teamId, teamAttempt]);
 
   useEffect(() => {
-    if (!rivalId) {
-      setH2h(null);
-      return;
+    let active = true;
+    if (leagueId && season) {
+      const key = { leagueId, season, attempt: seasonAttempt };
+      setSeasonHistory({ ...key, rows: null, error: null });
+      void fetchHistorySeason(leagueId, season).then(
+        (rows) => {
+          if (active) setSeasonHistory({ ...key, rows, error: null });
+        },
+        (error: unknown) => {
+          if (active)
+            setSeasonHistory({
+              ...key,
+              rows: null,
+              error: error instanceof Error ? error.message : 'История недоступна.',
+            });
+        },
+      );
     }
-    let active = true;
-    setH2h(null);
-    fetchHeadToHead(teamId, rivalId).then((m) => {
-      if (active) setH2h(m);
-    });
     return () => {
       active = false;
     };
-  }, [teamId, rivalId]);
+  }, [leagueId, season, seasonAttempt]);
+
+  useEffect(() => {
+    if (!rivalId) return;
+    let active = true;
+    const key = { teamId, rivalId, attempt: h2hAttempt };
+    setH2hHistory({ ...key, rows: null, error: null });
+    void fetchHeadToHead(teamId, rivalId).then(
+      (rows) => {
+        if (active) setH2hHistory({ ...key, rows, error: null });
+      },
+      (error: unknown) => {
+        if (active)
+          setH2hHistory({
+            ...key,
+            rows: null,
+            error: error instanceof Error ? error.message : 'История недоступна.',
+          });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [teamId, rivalId, h2hAttempt]);
+
+  const teamResult =
+    teamHistory?.teamId === teamId && teamHistory.attempt === teamAttempt ? teamHistory : null;
+  const seasonResult =
+    seasonHistory?.leagueId === leagueId &&
+    seasonHistory.season === season &&
+    seasonHistory.attempt === seasonAttempt
+      ? seasonHistory
+      : null;
+  const h2hResult =
+    rivalId &&
+    h2hHistory?.teamId === teamId &&
+    h2hHistory.rivalId === rivalId &&
+    h2hHistory.attempt === h2hAttempt
+      ? h2hHistory
+      : null;
+  const matches = teamResult?.rows ?? null;
+  const h2h = h2hResult?.rows ?? null;
 
   const form = useMemo(() => (matches ? teamForm(matches, teamId) : []), [matches, teamId]);
   const progression = useMemo(
-    () => (matches ? pointsProgression(matches, teamId) : []),
-    [matches, teamId],
+    () => (seasonResult?.rows ? pointsProgression(seasonResult.rows, teamId) : []),
+    [seasonResult, teamId],
   );
   const summary = useMemo(
     () => (h2h && rivalId ? h2hSummary(h2h, teamId, rivalId) : null),
@@ -474,7 +567,8 @@ function SeasonAnalytics({
   );
   const rivals = teams.filter((t) => t.id !== teamId);
 
-  if (matches !== null && matches.length === 0) return null; // история ещё не накоплена
+  if (matches !== null && matches.length === 0 && !seasonResult?.error && !h2hResult?.error)
+    return null;
 
   return (
     <section className="panel season-analytics">
@@ -483,11 +577,38 @@ function SeasonAnalytics({
           <TrendingUp size={15} /> Сезонная аналитика (из локальной истории)
         </h2>
         <span className="muted small">
-          {matches ? `${matches.length} матчей в базе` : 'загружаем…'}
+          {matches
+            ? `${matches.length} матчей в базе`
+            : teamResult?.error
+              ? 'недоступно'
+              : 'загружаем…'}
         </span>
       </div>
 
-      {matches === null && <LoadingBlock label="Читаем локальную историю сезона…" rows={2} />}
+      {matches === null && !teamResult?.error && (
+        <LoadingBlock label="Читаем локальную историю сезона…" rows={2} />
+      )}
+      {teamResult?.error && (
+        <ErrorBlock
+          title="История команды недоступна"
+          message={teamResult.error}
+          onRetry={() => setTeamAttempt((value) => value + 1)}
+        />
+      )}
+      {seasonResult?.error && (
+        <ErrorBlock
+          title="История сезона недоступна"
+          message={seasonResult.error}
+          onRetry={() => setSeasonAttempt((value) => value + 1)}
+        />
+      )}
+      {matches === null && h2hResult?.error && (
+        <ErrorBlock
+          title="История личных встреч недоступна"
+          message={h2hResult.error}
+          onRetry={() => setH2hAttempt((value) => value + 1)}
+        />
+      )}
 
       {matches !== null && (
         <>
@@ -495,14 +616,11 @@ function SeasonAnalytics({
             <div className="sa-form">
               <span className="muted small">Форма (новые слева)</span>
               <div className="wdl-strip">
-                {form
-                  .slice(0, 10)
-                  .reverse()
-                  .map((r, i) => (
-                    <span key={i} className={`wdl wdl-${r.toLowerCase()}`}>
-                      {r}
-                    </span>
-                  ))}
+                {form.slice(0, 10).map((r, i) => (
+                  <span key={i} className={`wdl wdl-${r.toLowerCase()}`}>
+                    {r}
+                  </span>
+                ))}
                 {form.length === 0 && <span className="muted small">Нет завершённых матчей</span>}
               </div>
             </div>
@@ -521,6 +639,13 @@ function SeasonAnalytics({
                   </option>
                 ))}
               </select>
+              {h2hResult?.error && (
+                <ErrorBlock
+                  title="История личных встреч недоступна"
+                  message={h2hResult.error}
+                  onRetry={() => setH2hAttempt((value) => value + 1)}
+                />
+              )}
               {summary && (
                 <div className="sa-h2h-summary">
                   <span>
@@ -556,7 +681,9 @@ function SeasonAnalytics({
 
           {progression.length > 1 && (
             <div className="sa-chart">
-              <span className="muted small">Ход очков в сезоне</span>
+              <span className="muted small">
+                Ход очков · {leagueName} · {season}
+              </span>
               <div className="sa-sparkline" role="img" aria-label="График накопленных очков">
                 {(() => {
                   const max = progression[progression.length - 1]!.points || 1;

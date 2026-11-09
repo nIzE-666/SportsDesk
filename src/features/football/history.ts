@@ -63,44 +63,36 @@ export async function saveSeasonToHistory(
   }
 }
 
-export async function fetchHistorySeasons(): Promise<HistorySeasonInfo[]> {
+async function readHistory<T>(command: string, args?: Record<string, unknown>): Promise<T[]> {
   try {
-    return (await rpc<HistorySeasonInfo[]>('history_seasons')) ?? [];
-  } catch {
-    return [];
+    const rows = args ? await rpc<T[]>(command, args) : await rpc<T[]>(command);
+    if (!Array.isArray(rows)) throw new Error('Некорректный ответ истории.');
+    return rows;
+  } catch (error) {
+    throw new Error('Не удалось прочитать локальную историю матчей.', { cause: error });
   }
+}
+
+export async function fetchHistorySeasons(): Promise<HistorySeasonInfo[]> {
+  return readHistory('history_seasons');
 }
 
 export async function fetchHistorySeason(
   leagueId: string,
   season: string,
 ): Promise<HistoryMatch[]> {
-  try {
-    return (await rpc<HistoryMatch[]>('history_season_matches', { leagueId, season })) ?? [];
-  } catch {
-    return [];
-  }
+  return readHistory('history_season_matches', { leagueId, season });
 }
 
 export async function fetchHeadToHead(teamAId: string, teamBId: string): Promise<HistoryMatch[]> {
-  try {
-    return (
-      (await rpc<HistoryMatch[]>('history_head_to_head', { teamA: teamAId, teamB: teamBId })) ?? []
-    );
-  } catch {
-    return [];
-  }
+  return readHistory('history_head_to_head', { teamA: teamAId, teamB: teamBId });
 }
 
 export async function fetchTeamHistory(
   teamId: string,
   finishedOnly = true,
 ): Promise<HistoryMatch[]> {
-  try {
-    return (await rpc<HistoryMatch[]>('history_team_matches', { teamId, finishedOnly })) ?? [];
-  } catch {
-    return [];
-  }
+  return readHistory('history_team_matches', { teamId, finishedOnly });
 }
 
 // -----
@@ -163,7 +155,13 @@ export function pointsProgression(
   teamId: string,
 ): PointsProgressionPoint[] {
   const ordered = [...matches]
-    .filter((m) => m.status === 'finished' && m.homeScore >= 0 && m.awayScore >= 0)
+    .filter(
+      (m) =>
+        m.status === 'finished' &&
+        m.homeScore >= 0 &&
+        m.awayScore >= 0 &&
+        (m.homeId === teamId || m.awayId === teamId),
+    )
     .sort((a, b) => a.date.localeCompare(b.date));
   let points = 0;
   const out: PointsProgressionPoint[] = [];

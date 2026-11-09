@@ -33,6 +33,7 @@ use crate::poller::Poller;
 const STARTUP_DELAY: Duration = Duration::from_secs(5);
 const TICK: Duration = Duration::from_secs(60);
 const MAX_BACKOFF: Duration = Duration::from_secs(15 * 60);
+const DELIVERY_RETRY: Duration = Duration::from_secs(5);
 
 /// Reminder window: only sessions starting strictly in (0, 15 minutes].
 #[cfg(test)]
@@ -307,13 +308,14 @@ fn reminders_enabled(poller: &Poller) -> bool {
     cfg.enabled && cfg.f1_reminders && poller.delivery_allowed("reminder", &[])
 }
 
-/// One reminder cycle. Returns Err on upstream failure (drives backoff).
+/// One reminder cycle. On successful fetch, returns the earliest start time
+/// whose OS delivery failed; the loop can retry it before that session starts.
 async fn tick(
     app: &AppHandle,
     poller: &Poller,
     state: &Arc<AppStateInner>,
     gate: &mut DeliveryGate,
-) -> Result<(), crate::bridge::ApiFailure> {
+) -> Result<Option<i64>, crate::bridge::ApiFailure> {
     let reply = fetch_with_cache(
         state.clone(),
         "jolpica".to_string(),
@@ -331,9 +333,10 @@ async fn tick(
     crate::tray::update_f1(app, &reply.payload, &poller.config().timezone);
     let due = due_with_lead(&reply.payload, now, poller.config().policy.lead_ms());
     if due.is_empty() {
-        return Ok(());
+        return Ok(None);
     }
     state.cache.prune_source(DEDUP_SOURCE, now - DEDUP_TTL_MS);
+    let mut failed_start: Option<i64> = None;
     for reminder in due {
         // The session preference controls the feed independently of OS delivery.
         if !poller.config().f1_reminders {
@@ -359,7 +362,7 @@ async fn tick(
                 round,
             },
         );
-        if !reminders_enabled(poller) {
+        if !reminders_enabled(poller) || !gate.can_send(&state.cache, &reminder.key) {
             continue;
         }
         let delivered = gate.deliver(&state.cache, &reminder.key, now, || {
@@ -373,6 +376,11 @@ async fn tick(
                     .is_ok()
         });
         if !delivered {
+            if reminders_enabled(poller) && gate.can_send(&state.cache, &reminder.key) {
+                failed_start = Some(
+                    failed_start.map_or(reminder.start_ms, |start| start.min(reminder.start_ms)),
+                );
+            }
             continue;
         }
         let _ = app.emit(
@@ -380,7 +388,31 @@ async fn tick(
             serde_json::json!({ "title": reminder.title, "body": reminder.body }),
         );
     }
-    Ok(())
+    Ok(failed_start)
+}
+
+/// Retry a failed native delivery at most every five seconds, sooner when a
+/// session is about to start. An upstream failure must not postpone that retry.
+fn reminder_retry_delay(upstream_delay: Duration, failed_start: Option<i64>, now: i64) -> Duration {
+    let Some(remaining) = failed_start
+        .and_then(|start| start.checked_sub(now))
+        .filter(|ms| *ms > 0)
+    else {
+        return upstream_delay;
+    };
+    let until_retry = Duration::from_millis((remaining / 2).max(1) as u64).min(DELIVERY_RETRY);
+    upstream_delay.min(until_retry)
+}
+
+async fn wait_for_tick(pause: Duration, current: impl Fn() -> bool) {
+    let until = tokio::time::Instant::now() + pause;
+    while current() {
+        let remaining = until.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        sleep(remaining.min(Duration::from_secs(2))).await;
+    }
 }
 
 /// Public entry point (called from lib.rs). No OS app/window changes and no
@@ -391,26 +423,24 @@ pub fn start(app: AppHandle, poller: Arc<Poller>, state: Arc<AppStateInner>) {
         sleep(STARTUP_DELAY).await;
         let mut pause = TICK;
         let mut gate = DeliveryGate::new();
-        let mut blocked = None;
+        let mut failed_start = None;
         loop {
             let revision = poller.revision();
-            if blocked == Some(revision) {
-                sleep(Duration::from_secs(2)).await;
-                continue;
-            }
             match tick(&app, &poller, &state, &mut gate).await {
-                Ok(()) => pause = TICK,
+                Ok(failed) => {
+                    failed_start = failed;
+                    pause = crate::poller::retry_delay(pause, TICK, MAX_BACKOFF, None);
+                }
                 Err(error) => {
-                    if !error.retryable {
-                        blocked = Some(revision);
-                    }
-                    pause = (pause * 2).min(MAX_BACKOFF);
+                    pause = crate::poller::retry_delay(pause, TICK, MAX_BACKOFF, Some(&error));
                 }
             }
-            let until = tokio::time::Instant::now() + pause;
-            while tokio::time::Instant::now() < until && poller.revision() == revision {
-                sleep(Duration::from_secs(2)).await;
+            let now = now_ms();
+            if failed_start.is_some_and(|start| start <= now) {
+                failed_start = None;
             }
+            let wait = reminder_retry_delay(pause, failed_start, now);
+            wait_for_tick(wait, || poller.revision() == revision).await;
         }
     });
 }
@@ -429,6 +459,37 @@ mod tests {
         assert!(gate.can_send(&cache, key));
         assert!(gate.deliver(&cache, key, 2, || true));
         assert!(!gate.deliver(&cache, key, 3, || panic!("duplicate delivery")));
+    }
+
+    #[test]
+    fn failed_delivery_waits_the_short_interval_and_retries_before_start() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                tokio::time::pause();
+                let cache = Cache::open_in_memory();
+                let mut gate = DeliveryGate::new();
+                let key = "2026|1|race";
+                let now = base_now();
+                let start = now + 4_000;
+                assert!(!gate.deliver(&cache, key, now, || false));
+                let delay = reminder_retry_delay(MAX_BACKOFF, Some(start), now);
+                assert_eq!(delay, Duration::from_secs(2));
+                let began = tokio::time::Instant::now();
+                let waiting = tokio::spawn(wait_for_tick(delay, || true));
+                tokio::task::yield_now().await;
+                tokio::time::advance(Duration::from_millis(1_999)).await;
+                assert!(!waiting.is_finished());
+                tokio::time::advance(Duration::from_millis(1)).await;
+                waiting.await.unwrap();
+                let elapsed = began.elapsed();
+                assert!(elapsed >= delay && elapsed <= delay + Duration::from_millis(2));
+                assert!(now + (elapsed.as_millis() as i64) < start);
+                assert!(gate.deliver(&cache, key, now + 2_000, || true));
+                assert!(!gate.deliver(&cache, key, now + 3_000, || panic!("duplicate delivery")));
+            });
     }
 
     fn base_now() -> i64 {

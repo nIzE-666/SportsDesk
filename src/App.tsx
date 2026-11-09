@@ -22,6 +22,7 @@ import { TodaySidebar } from './components/TodaySidebar';
 import { PageFrame } from './components/PageFrame';
 import { SectionBoundary } from './components/SectionBoundary';
 import { homeRoute } from './lib/navigation';
+import { isTauriRuntime, rpc } from './lib/bridge';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { LEAGUES, footballNav, f1Nav, uclNav, cupNav } from './lib/navigationMetadata';
 import { viewState } from './lib/viewState';
@@ -111,11 +112,7 @@ function MainApp() {
     document.documentElement.style.colorScheme = scheme;
     document.documentElement.style.backgroundColor =
       scheme === 'light' ? '#f3f6fb' : design === 'broadcast' ? '#181818' : '#0b101c';
-    void import('./lib/bridge')
-      .then(({ isTauriRuntime, rpc }) => {
-        if (isTauriRuntime()) return rpc('apply_window_appearance', { scheme });
-      })
-      .catch(() => {});
+    if (isTauriRuntime()) void rpc('apply_window_appearance', { scheme }).catch(() => {});
   }, [scheme, design]);
   useEffect(() => setString('sportsdesk.density', density), [density]);
   // Сайдбар показывает актуальный список отслеживаемых команд.
@@ -192,7 +189,7 @@ function MainApp() {
   useEffect(() => {
     let active = true,
       stop: (() => void) | undefined;
-    void import('./lib/bridge').then(async ({ isTauriRuntime }) => {
+    void (async () => {
       if (!isTauriRuntime()) return;
       const { listen } = await import('@tauri-apps/api/event');
       const off = await listen<{ kind: string; matchId?: string; season?: string; round?: string }>(
@@ -205,7 +202,7 @@ function MainApp() {
       );
       if (active) stop = off;
       else off();
-    });
+    })().catch(() => {});
     return () => {
       active = false;
       stop?.();
@@ -213,7 +210,7 @@ function MainApp() {
   }, [setRoute]);
   const openMini = async () => {
     try {
-      await import('./lib/bridge').then(({ rpc }) => rpc('open_mini_window'));
+      await rpc('open_mini_window');
     } catch {
       /* не-Tauri: игнорируем */
     }

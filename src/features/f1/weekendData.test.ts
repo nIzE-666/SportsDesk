@@ -63,13 +63,29 @@ function qualyRow(
   };
 }
 
-function reply(races: unknown[], total: number, stale = false, fetchedAt = '2026-10-21T00:00:00Z') {
+function reply(races: unknown[], total: number, stale = false, offset = 0) {
   return {
     source: 'jolpica',
-    payload: { MRData: { total: String(total), RaceTable: { Races: races } } },
-    fetchedAt,
+    payload: {
+      MRData: {
+        total: String(total),
+        limit: '100',
+        offset: String(offset),
+        RaceTable: { Races: races },
+      },
+    },
+    fetchedAt: '2026-10-21T00:00:00Z',
     stale,
   };
+}
+
+function raceReply() {
+  const results = [
+    result('a', 1, '25'),
+    result('b', 2, '18'),
+    ...Array.from({ length: 18 }, (_, index) => result(`other_${index}`, index + 3, '0')),
+  ];
+  return reply([raceRow(1, results)], results.length);
 }
 
 function season(r: {
@@ -92,7 +108,7 @@ it('merges sprint pages split mid-race and preserves fractional points', async (
     result(`driver_${i}`, i + 1, i === 100 ? '3.5' : '0'),
   );
   vi.mocked(api).mockImplementation(async (_, path) => {
-    if (path.includes('/results.json')) return reply([raceRow(1, [result('a', 1, '25')])], 1);
+    if (path.includes('/results.json')) return raceReply();
     if (path.includes('/qualifying.json'))
       return reply(
         [
@@ -104,12 +120,16 @@ it('merges sprint pages split mid-race and preserves fractional points', async (
         2,
       );
     return path.includes('offset=100')
-      ? reply([sprintRow(1, entries.slice(100))], 101, true)
-      : reply([sprintRow(1, entries.slice(0, 100))], 101);
+      ? reply([sprintRow(5, entries.slice(100))], 101, true, 100)
+      : reply(
+          Array.from({ length: 5 }, (_, index) => sprintRow(index + 1, entries.slice(0, 20))),
+          101,
+        );
   });
   const data = await fetchWeekendSeason(2025);
-  expect(data.sprints?.[0]?.Results).toHaveLength(101);
-  expect(data.sprints?.[0]?.Results[100]?.points).toBe('3.5');
+  expect(data.sprints).toHaveLength(5);
+  expect(data.sprints?.[4]?.Results).toHaveLength(21);
+  expect(data.sprints?.[4]?.Results[20]?.points).toBe('3.5');
   expect(data.qualifying?.[0]?.QualifyingResults).toHaveLength(2);
   expect(data.stale).toBe(true);
   expect(data.issues).toHaveLength(0);
@@ -117,7 +137,7 @@ it('merges sprint pages split mid-race and preserves fractional points', async (
 
 it('rejects a sprint page set that does not deliver all documented entries', async () => {
   vi.mocked(api)
-    .mockResolvedValueOnce(reply([raceRow(1, [result('a', 1, '25')])], 1))
+    .mockResolvedValueOnce(raceReply())
     .mockResolvedValueOnce(reply([sprintRow(1, [result('a', 1, '8'), result('b', 2, '7')])], 4)) // total 4 but only 2 delivered
     .mockResolvedValueOnce(reply([], 4));
   const data = await fetchWeekendSeason(2025);
@@ -129,7 +149,7 @@ it('rejects a sprint page set that does not deliver all documented entries', asy
 
 it('keeps optional sprint/qualifying null when their requests fail', async () => {
   vi.mocked(api)
-    .mockResolvedValueOnce(reply([raceRow(1, [result('a', 1, '25')])], 1))
+    .mockResolvedValueOnce(raceReply())
     .mockRejectedValueOnce(new Error('boom'))
     .mockResolvedValueOnce(reply([qualyRow(1, [{ id: 'a', pos: 1 }])], 1));
   const data = await fetchWeekendSeason(2025);
@@ -140,7 +160,7 @@ it('keeps optional sprint/qualifying null when their requests fail', async () =>
 
 it('does not silently convert a failed optional source into an empty array', async () => {
   vi.mocked(api)
-    .mockResolvedValueOnce(reply([raceRow(1, [result('a', 1, '25')])], 1))
+    .mockResolvedValueOnce(raceReply())
     .mockRejectedValueOnce(new Error('nope'))
     .mockRejectedValueOnce(new Error('nope'));
   const data = await fetchWeekendSeason(2025);

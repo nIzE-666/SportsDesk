@@ -17,12 +17,13 @@
 //!   restarting the app cannot replay goals.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri_plugin_notification::NotificationExt;
@@ -35,6 +36,25 @@ const MAX_TICK: Duration = Duration::from_secs(15 * 60);
 const DEDUP_TTL_MS: i64 = 48 * 60 * 60 * 1000;
 /// Live match-detail refresh cadence.
 const WATCH_TICK: Duration = Duration::from_secs(60);
+
+/// Every failure gets another bounded attempt, including errors classified as
+/// non-retryable for interactive requests. Settings changes can wake sooner.
+pub(crate) fn retry_delay(
+    current: Duration,
+    base: Duration,
+    maximum: Duration,
+    failure: Option<&crate::bridge::ApiFailure>,
+) -> Duration {
+    if failure.is_some() {
+        (current * 2).min(maximum)
+    } else {
+        base
+    }
+}
+
+fn path_is_blocked(entry: Option<(u64, Instant)>, revision: u64, now: Instant) -> bool {
+    entry.is_some_and(|(blocked_revision, retry_at)| blocked_revision == revision && now < retry_at)
+}
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct PollConfig {
@@ -89,8 +109,14 @@ struct LiveSnapshot {
 /// minute_added and period so two genuinely different goals in the same
 /// displayed minute (e.g. 45+2 vs 45+5) get distinct keys.
 fn event_key(ev: &Value) -> Option<String> {
-    let kind = ev.get("event_type").and_then(|t| t.as_str()).unwrap_or("");
-    let minute = ev.get("minute").and_then(|m| m.as_i64()).unwrap_or(-1);
+    let kind = ev
+        .get("event_type")
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())?;
+    let minute = ev
+        .get("minute")
+        .and_then(Value::as_i64)
+        .filter(|n| *n >= 0)?;
     let added = ev
         .get("minute_added")
         .and_then(|m| m.as_i64())
@@ -104,8 +130,11 @@ fn event_key(ev: &Value) -> Option<String> {
     let player = ev
         .get("player")
         .and_then(|p| p.get("id"))
-        .and_then(|n| n.as_i64())
-        .map(|n| n.to_string())
+        .and_then(|n| {
+            n.as_str()
+                .map(str::to_owned)
+                .or_else(|| n.as_i64().map(|v| v.to_string()))
+        })
         .or_else(|| {
             ev.get("player")
                 .and_then(|p| p.get("name"))
@@ -115,15 +144,22 @@ fn event_key(ev: &Value) -> Option<String> {
         .unwrap_or_default();
     let team = ev
         .get("team_id")
-        .and_then(|t| t.as_i64())
-        .map(|n| n.to_string())
+        .and_then(|t| {
+            t.as_str()
+                .map(str::to_owned)
+                .or_else(|| t.as_i64().map(|v| v.to_string()))
+        })
         .or_else(|| {
-            ev.get("team")
-                .and_then(|t| t.get("id"))
-                .and_then(|n| n.as_i64())
-                .map(|n| n.to_string())
+            ev.get("team").and_then(|t| t.get("id")).and_then(|n| {
+                n.as_str()
+                    .map(str::to_owned)
+                    .or_else(|| n.as_i64().map(|v| v.to_string()))
+            })
         })
         .unwrap_or_default();
+    if player.is_empty() && team.is_empty() {
+        return None;
+    }
     Some(format!("{kind}|{minute}|{added}|{period}|{player}|{team}"))
 }
 
@@ -223,8 +259,12 @@ fn favorite_ids(m: &FlatMatch, cfg: &PollConfig) -> Vec<String> {
 
 fn score_text(v: &Option<Value>) -> String {
     match v {
-        Some(Value::String(s)) => s.trim().to_string(),
-        Some(Value::Number(n)) => n.to_string(),
+        Some(Value::String(s)) => s
+            .trim()
+            .parse::<u64>()
+            .map(|n| n.to_string())
+            .unwrap_or_default(),
+        Some(Value::Number(n)) => n.as_u64().map(|n| n.to_string()).unwrap_or_default(),
         _ => String::new(),
     }
 }
@@ -313,13 +353,345 @@ impl DedupStore<'_> {
         self.cache.get("dedup", key).is_some()
     }
 
-    fn mark(&self, key: &str) {
+    fn mark(&self, key: &str) -> Result<(), String> {
         let payload = serde_json::json!({ "seenAt": now_ms() });
-        let _ = self.cache.put("dedup", key, &payload, now_ms());
+        self.cache.put("dedup", key, &payload, now_ms())
+    }
+
+    fn score_receipt(&self, key: &str) -> Option<ScoreReceipt> {
+        let row = self.cache.get("dedup", key)?;
+        Some(
+            row.payload
+                .get("scoreReceipt")
+                .and_then(|value| serde_json::from_value(value.clone()).ok())
+                .unwrap_or(ScoreReceipt::Score),
+        )
+    }
+
+    fn mark_score(&self, key: &str, receipt: &ScoreReceipt) -> Result<(), String> {
+        let payload = serde_json::json!({ "seenAt": now_ms(), "scoreReceipt": receipt });
+        self.cache.put("dedup", key, &payload, now_ms())
     }
 
     fn prune(&self) {
         self.cache.prune_source("dedup", now_ms() - DEDUP_TTL_MS);
+    }
+}
+
+const PENDING_SOURCE: &str = "football-pending";
+const PENDING_PATH: &str = "notifications";
+
+#[derive(Debug, Clone, serde::Serialize, Deserialize, PartialEq, Eq)]
+enum ScoreReceipt {
+    Score,
+    Named { batch: Option<String> },
+}
+
+#[derive(Debug, Clone, serde::Serialize, Deserialize)]
+struct ScoreState {
+    home: i64,
+    away: i64,
+    epoch: u64,
+    fetched_at: i64,
+}
+
+#[derive(Default)]
+struct ScoreTracker {
+    matches: HashMap<String, ScoreState>,
+}
+
+impl ScoreTracker {
+    /// Ignore older endpoint snapshots. A confirmed decrease starts a new
+    /// attainment epoch, shared by detail and global polling across restarts.
+    fn observe(
+        &mut self,
+        cache: &crate::cache::Cache,
+        id: &str,
+        home: i64,
+        away: i64,
+        fetched_at: i64,
+    ) -> Option<(u64, bool)> {
+        if home < 0 || away < 0 {
+            return None;
+        }
+        if !self.matches.contains_key(id) {
+            if let Some(state) = cache
+                .get("football-score-state", id)
+                .and_then(|row| serde_json::from_value::<ScoreState>(row.payload).ok())
+            {
+                self.matches.insert(id.to_string(), state);
+            }
+        }
+        let previous = self.matches.get(id);
+        if previous.is_some_and(|v| {
+            fetched_at < v.fetched_at
+                || (fetched_at == v.fetched_at && (home != v.home || away != v.away))
+        }) {
+            return None;
+        }
+        let corrected = previous.is_some_and(|v| home < v.home || away < v.away);
+        let epoch = previous
+            .map(|v| v.epoch)
+            .unwrap_or(0)
+            .saturating_add(u64::from(corrected));
+        let state = ScoreState {
+            home,
+            away,
+            epoch,
+            fetched_at,
+        };
+        if let Ok(payload) = serde_json::to_value(&state) {
+            let _ = cache.put("football-score-state", id, &payload, now_ms());
+        }
+        self.matches.insert(id.to_string(), state);
+        Some((epoch, corrected))
+    }
+}
+
+fn score_key(match_id: &str, home: i64, away: i64, epoch: u64) -> String {
+    if epoch == 0 {
+        format!("score|{match_id}|{home}|{away}")
+    } else {
+        format!("score|{match_id}|{home}|{away}|e{epoch}")
+    }
+}
+
+fn parse_score_key(key: &str, match_id: &str) -> Option<(i64, i64, u64)> {
+    let prefix = format!("score|{match_id}|");
+    let mut parts = key.strip_prefix(&prefix)?.split('|');
+    let home = parts.next()?.parse().ok()?;
+    let away = parts.next()?.parse().ok()?;
+    let epoch = match parts.next() {
+        None => 0,
+        Some(value) => value.strip_prefix('e')?.parse().ok()?,
+    };
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((home, away, epoch))
+}
+
+fn goal_batch(keys: &HashSet<String>) -> String {
+    let mut keys: Vec<_> = keys.iter().filter(|key| key.starts_with("goal|")).collect();
+    keys.sort();
+    let bytes = serde_json::to_vec(&keys).unwrap_or_default();
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+#[derive(Debug, Clone, serde::Serialize, Deserialize)]
+enum NotificationTarget {
+    Favorite,
+    Watch { match_id: String, generation: u64 },
+}
+
+#[derive(Debug, Clone, serde::Serialize, Deserialize)]
+struct PendingNotification {
+    kind: String,
+    key: String,
+    title: String,
+    body: String,
+    ids: Vec<String>,
+    #[serde(default)]
+    team_names: Vec<String>,
+    /// Score reached by a named watch goal, shared with global score alerts.
+    #[serde(default)]
+    score_dedup: Option<String>,
+    #[serde(default)]
+    score_batch: Option<String>,
+    target: NotificationTarget,
+    created_at: i64,
+    /// None denotes a legacy entry persisted before enqueue sequencing.
+    #[serde(default)]
+    sequence: Option<u64>,
+}
+
+#[derive(serde::Serialize, Deserialize)]
+struct StoredNotifications {
+    #[serde(default)]
+    last_sequence: u64,
+    #[serde(default)]
+    items: Vec<PendingNotification>,
+}
+
+/// Failed native deliveries survive the next observation and application
+/// restart. Successful deliveries are marked separately for de-duplication.
+#[derive(Default)]
+struct NotificationQueue {
+    pending: HashMap<String, PendingNotification>,
+    // A successful OS delivery must not be repeated in-process if SQLite fails.
+    sent: HashSet<String>,
+    score_sent: HashMap<String, ScoreReceipt>,
+    last_sequence: u64,
+}
+
+impl NotificationQueue {
+    fn load(cache: &crate::cache::Cache) -> Self {
+        let stored = cache
+            .get(PENDING_SOURCE, PENDING_PATH)
+            .and_then(|row| {
+                serde_json::from_value::<StoredNotifications>(row.payload.clone())
+                    .ok()
+                    .or_else(|| {
+                        serde_json::from_value::<Vec<PendingNotification>>(row.payload)
+                            .ok()
+                            .map(|items| StoredNotifications {
+                                last_sequence: 0,
+                                items,
+                            })
+                    })
+            })
+            .unwrap_or(StoredNotifications {
+                last_sequence: 0,
+                items: Vec::new(),
+            });
+        let last_sequence = stored
+            .items
+            .iter()
+            .filter_map(|item| item.sequence)
+            .max()
+            .unwrap_or(0)
+            .max(stored.last_sequence);
+        let pending = stored
+            .items
+            .into_iter()
+            .filter(|item| item.created_at >= now_ms() - DEDUP_TTL_MS)
+            .map(|item| (item.key.clone(), item))
+            .collect();
+        Self {
+            pending,
+            sent: HashSet::new(),
+            score_sent: HashMap::new(),
+            last_sequence,
+        }
+    }
+
+    fn persist(&self, cache: &crate::cache::Cache) {
+        let stored = StoredNotifications {
+            last_sequence: self.last_sequence,
+            items: self.pending.values().cloned().collect(),
+        };
+        if let Ok(payload) = serde_json::to_value(stored) {
+            let _ = cache.put(PENDING_SOURCE, PENDING_PATH, &payload, now_ms());
+        }
+    }
+
+    fn score_allows(&self, cache: &crate::cache::Cache, key: &str, batch: Option<&str>) -> bool {
+        let receipt = self
+            .score_sent
+            .get(key)
+            .cloned()
+            .or_else(|| DedupStore { cache }.score_receipt(key));
+        match receipt {
+            None => true,
+            Some(ScoreReceipt::Named {
+                batch: Some(previous),
+            }) => batch == Some(previous.as_str()),
+            _ => false,
+        }
+    }
+
+    fn enqueue(&mut self, cache: &crate::cache::Cache, mut item: PendingNotification) {
+        let store = DedupStore { cache };
+        if self.pending.contains_key(&item.key)
+            || self.sent.contains(&item.key)
+            || self.score_sent.contains_key(&item.key)
+            || store.seen(&item.key)
+            || item
+                .score_dedup
+                .as_ref()
+                .is_some_and(|score| !self.score_allows(cache, score, item.score_batch.as_deref()))
+        {
+            return;
+        }
+        self.last_sequence = self.last_sequence.saturating_add(1);
+        item.sequence = Some(self.last_sequence);
+        self.pending.insert(item.key.clone(), item);
+        self.persist(cache);
+    }
+
+    /// Process the actual queue in enqueue order. Legacy entries predate
+    /// sequenced ones and use a deterministic timestamp/key fallback.
+    fn process(
+        &mut self,
+        cache: &crate::cache::Cache,
+        mut allowed: impl FnMut(&PendingNotification) -> bool,
+        mut send: impl FnMut(&PendingNotification) -> bool,
+    ) -> Vec<PendingNotification> {
+        let mut items: Vec<_> = self.pending.values().cloned().collect();
+        items.sort_by(|a, b| match (a.sequence, b.sequence) {
+            (Some(a_seq), Some(b_seq)) => a_seq
+                .cmp(&b_seq)
+                .then_with(|| a.created_at.cmp(&b.created_at))
+                .then_with(|| a.key.cmp(&b.key)),
+            (None, None) => a
+                .created_at
+                .cmp(&b.created_at)
+                .then_with(|| a.key.cmp(&b.key)),
+            (None, Some(_)) => std::cmp::Ordering::Less,
+            (Some(_), None) => std::cmp::Ordering::Greater,
+        });
+        let mut delivered = Vec::new();
+        for item in items {
+            let permit = allowed(&item);
+            if self.attempt(cache, &item.key, permit, || allowed(&item) && send(&item)) {
+                delivered.push(item);
+            } else if self.pending.contains_key(&item.key) {
+                // A failed delivery stays at the head so a later score or
+                // goal cannot be delivered before it on a subsequent retry.
+                break;
+            }
+        }
+        delivered
+    }
+
+    /// A denied, expired, or already delivered item is discarded. An OS
+    /// failure keeps it queued, and only a successful send writes the dedup key.
+    fn attempt(
+        &mut self,
+        cache: &crate::cache::Cache,
+        key: &str,
+        allowed: bool,
+        send: impl FnOnce() -> bool,
+    ) -> bool {
+        let Some(item) = self.pending.get(key) else {
+            return false;
+        };
+        let score_dedup = item.score_dedup.clone();
+        let score_batch = item.score_batch.clone();
+        let store = DedupStore { cache };
+        if !allowed
+            || item.created_at < now_ms() - DEDUP_TTL_MS
+            || self.sent.contains(key)
+            || self.score_sent.contains_key(key)
+            || store.seen(key)
+            || score_dedup
+                .as_ref()
+                .is_some_and(|score| !self.score_allows(cache, score, score_batch.as_deref()))
+        {
+            self.pending.remove(key);
+            self.persist(cache);
+            return false;
+        }
+        if !send() {
+            return false;
+        }
+        if key.starts_with("score|") {
+            if store.mark_score(key, &ScoreReceipt::Score).is_err() {
+                self.score_sent.insert(key.to_string(), ScoreReceipt::Score);
+                self.sent.insert(key.to_string());
+            }
+        } else if store.mark(key).is_err() {
+            self.sent.insert(key.to_string());
+        }
+        if let Some(score_key) = score_dedup {
+            let receipt = ScoreReceipt::Named { batch: score_batch };
+            if store.mark_score(&score_key, &receipt).is_err() {
+                self.score_sent.insert(score_key, receipt);
+            }
+        }
+        self.pending.remove(key);
+        self.persist(cache);
+        true
     }
 }
 
@@ -329,7 +701,10 @@ pub struct Poller {
     snapshots: std::sync::Mutex<HashMap<String, LiveSnapshot>>,
     feed: std::sync::Mutex<LiveFeed>,
     revision: AtomicU64,
-    blocked: std::sync::Mutex<HashMap<String, u64>>,
+    config_initialized: AtomicBool,
+    blocked: std::sync::Mutex<HashMap<String, (u64, Instant)>>,
+    notifications: std::sync::Mutex<NotificationQueue>,
+    score_tracker: std::sync::Mutex<ScoreTracker>,
     /// Detail-watch subscription: the match currently open in the UI.
     watch: std::sync::Mutex<Option<Watch>>,
     /// Monotonic watch generation counter: never resets across unwatch/re-watch.
@@ -349,6 +724,12 @@ pub struct Watch {
     pub generation: u64,
     /// True once a first (silent) baseline has been recorded for this watch.
     pub baseline_ready: bool,
+    /// Score associated with the last complete event list.
+    event_home_score: Option<i64>,
+    event_away_score: Option<i64>,
+    /// Goal identities observed in complete snapshots, including corrections.
+    seen_goal_keys: HashSet<String>,
+    event_snapshot_revision: u64,
 }
 
 impl Watch {
@@ -361,6 +742,10 @@ impl Watch {
             event_keys: Default::default(),
             generation,
             baseline_ready: false,
+            event_home_score: None,
+            event_away_score: None,
+            seen_goal_keys: HashSet::new(),
+            event_snapshot_revision: 0,
         }
     }
 }
@@ -385,28 +770,144 @@ fn diff_event_keys(events: &[Value], baseline: &HashSet<String>) -> Vec<(String,
     out
 }
 
-/// Commits only fresh event snapshots. Initial and disabled observations are
-/// silent but still become the baseline; a failed snapshot is never consumed.
+#[derive(Debug, Clone, PartialEq)]
+enum WatchedGoal {
+    Event(Value),
+    /// The score rose, but event corrections make the new goal ambiguous.
+    Score {
+        home: i64,
+        away: i64,
+    },
+}
+
+fn watched_goal_notification(
+    goal: &WatchedGoal,
+    match_id: &str,
+    home: &str,
+    away: &str,
+    epoch: u64,
+) -> Option<(String, String, String)> {
+    match goal {
+        WatchedGoal::Event(event) => {
+            let identity = event_key(event)?;
+            let player = event
+                .get("player")
+                .and_then(|p| p.get("name"))
+                .and_then(Value::as_str)
+                .unwrap_or("Игрок");
+            let minute = event.get("minute").and_then(Value::as_i64).unwrap_or(0);
+            let added = event
+                .get("minute_added")
+                .and_then(Value::as_i64)
+                .unwrap_or(0);
+            let clock = if added > 0 {
+                format!("{minute}+{added}")
+            } else {
+                minute.to_string()
+            };
+            Some((
+                format!("goal|{match_id}|{identity}"),
+                "Гол!".into(),
+                format!("{clock}′ {player} · {home} — {away}"),
+            ))
+        }
+        WatchedGoal::Score {
+            home: home_score,
+            away: away_score,
+        } => Some((
+            score_key(match_id, *home_score, *away_score, epoch),
+            "Изменение счёта".into(),
+            format!("{home} {home_score} : {away_score} {away}"),
+        )),
+    }
+}
+
+fn watched_event(
+    key: &str,
+    title: &str,
+    body: &str,
+    match_id: &str,
+    at: i64,
+) -> crate::event_center::Event {
+    crate::event_center::Event {
+        id: format!("football|{key}"),
+        sport: "football".into(),
+        kind: "goal".into(),
+        title: title.into(),
+        body: body.into(),
+        occurred_at: at,
+        read: false,
+        match_id: Some(match_id.into()),
+        league_id: None,
+        season: None,
+        round: None,
+    }
+}
+
+/// An event list is usable only when its distinct goals account for the
+/// complete score. This avoids announcing old goals when an initially empty or
+/// partial event list catches up with an already-scored match.
 fn advance_event_baseline(
     watch: &mut Watch,
     events: &[Value],
     fresh: bool,
     live: bool,
     enabled: bool,
-) -> Vec<Value> {
+    home_score: Option<i64>,
+    away_score: Option<i64>,
+) -> Vec<WatchedGoal> {
     if !fresh {
+        return Vec::new();
+    }
+    let (Some(home), Some(away)) = (home_score, away_score) else {
+        return Vec::new();
+    };
+    if home < 0 || away < 0 {
+        return Vec::new();
+    }
+    let goal_keys: HashSet<_> = events
+        .iter()
+        .filter(|event| event.get("event_type").and_then(Value::as_str) == Some("goal"))
+        .filter_map(event_key)
+        .collect();
+    if i64::try_from(goal_keys.len()).ok() != home.checked_add(away) {
         return Vec::new();
     }
     let eligible = notifications_eligible(watch.baseline_ready, live, enabled, fresh);
     let changes = diff_event_keys(events, &watch.event_keys);
-    let mut goals = Vec::new();
-    for (key, event) in changes {
-        watch.event_keys.insert(key);
-        if eligible && event.get("event_type").and_then(Value::as_str) == Some("goal") {
-            goals.push(event)
+    let goal_changes: Vec<_> = changes
+        .iter()
+        .filter(|(_, event)| event.get("event_type").and_then(Value::as_str) == Some("goal"))
+        .collect();
+    // Corrections and changed event identities can add historical keys. If
+    // individual identities cannot be reconciled with the score increase,
+    // report the confirmed score change without guessing a player.
+    let added = match (watch.event_home_score, watch.event_away_score) {
+        (Some(old_home), Some(old_away)) if home >= old_home && away >= old_away => {
+            (home - old_home).checked_add(away - old_away)
         }
-    }
+        _ => None,
+    };
+    let goals = match added {
+        Some(n) if eligible && n > 0 && usize::try_from(n).ok() == Some(goal_changes.len()) => {
+            goal_changes
+                .into_iter()
+                .filter(|(key, _)| !watch.seen_goal_keys.contains(key))
+                .map(|(_, event)| WatchedGoal::Event(event.clone()))
+                .collect()
+        }
+        Some(n) if eligible && n > 0 => vec![WatchedGoal::Score { home, away }],
+        _ => Vec::new(),
+    };
+    // Keep the latest complete snapshot, rather than accumulating removed or
+    // corrected events forever. Persistent delivery dedup still prevents a
+    // previously notified identity from being sent again if it reappears.
+    watch.event_keys = events.iter().filter_map(event_key).collect();
+    watch.seen_goal_keys.extend(goal_keys);
+    watch.event_snapshot_revision = watch.event_snapshot_revision.saturating_add(1);
     watch.baseline_ready = true;
+    watch.event_home_score = Some(home);
+    watch.event_away_score = Some(away);
     goals
 }
 
@@ -417,15 +918,128 @@ fn should_fetch_events(live: bool, score_changed: bool) -> bool {
     live || score_changed
 }
 
+/// Each day is independent. Stale, malformed or failed replies never enter
+/// the alert baseline, while other fresh days remain usable.
+#[derive(Default)]
+struct DailyBatch {
+    matches: HashMap<String, FlatMatch>,
+    fetched_at: HashMap<String, i64>,
+    ambiguous: HashSet<String>,
+    failure: Option<crate::bridge::ApiFailure>,
+    fresh_days: usize,
+}
+
+impl DailyBatch {
+    fn add(&mut self, result: Result<crate::bridge::native::ApiReply, crate::bridge::ApiFailure>) {
+        let reply = match result {
+            Ok(reply) if !reply.stale => reply,
+            Ok(reply) => {
+                self.failure.get_or_insert_with(|| {
+                    reply
+                        .failure
+                        .unwrap_or_else(|| crate::bridge::BridgeError::Upstream.failure())
+                });
+                return;
+            }
+            Err(error) => {
+                self.failure.get_or_insert(error);
+                return;
+            }
+        };
+        let fetched_at = parse_time_ms(&reply.fetched_at);
+        let data = reply.payload.get("data").unwrap_or(&reply.payload);
+        let Some(list) = data.get("matches").and_then(Value::as_array) else {
+            self.failure
+                .get_or_insert_with(|| crate::bridge::BridgeError::BadPayload.failure());
+            return;
+        };
+        self.fresh_days += 1;
+        for value in list {
+            if let Some(m) = pitch_match(value) {
+                if let Some(existing) = self.matches.get(&m.id) {
+                    if canonical_status(existing) != canonical_status(&m)
+                        || score_text(&existing.home_score) != score_text(&m.home_score)
+                        || score_text(&existing.away_score) != score_text(&m.away_score)
+                    {
+                        self.ambiguous.insert(m.id.clone());
+                        self.failure.get_or_insert_with(|| {
+                            crate::bridge::BridgeError::BadPayload.failure()
+                        });
+                    }
+                }
+                if let Some(timestamp) = fetched_at {
+                    self.fetched_at.insert(m.id.clone(), timestamp);
+                } else {
+                    self.fetched_at.remove(&m.id);
+                }
+                self.matches.insert(m.id.clone(), m);
+            }
+        }
+    }
+}
+
+fn pending_allowed(
+    item: &PendingNotification,
+    cfg: &PollConfig,
+    watch: Option<&Watch>,
+    now: i64,
+) -> bool {
+    if !cfg.enabled {
+        return false;
+    }
+    let ids: Vec<&str> = match &item.target {
+        NotificationTarget::Favorite => item
+            .ids
+            .iter()
+            .filter(|id| {
+                cfg.favorite_teams.iter().any(|team| &team.id == *id)
+                    || cfg.favorites.iter().any(|name| name == *id)
+            })
+            .map(String::as_str)
+            .collect(),
+        NotificationTarget::Watch {
+            match_id,
+            generation,
+        } => {
+            let name_is_favorite = cfg.favorites.iter().any(|name| {
+                !cfg.favorite_teams.iter().any(|team| {
+                    crate::sports::favorite_name(&team.name, std::slice::from_ref(name))
+                }) && item
+                    .team_names
+                    .iter()
+                    .any(|team| crate::sports::favorite_name(team, std::slice::from_ref(name)))
+            });
+            if !watch.is_some_and(|w| w.match_id == *match_id && w.generation == *generation)
+                || cfg
+                    .favorite_teams
+                    .iter()
+                    .any(|team| item.ids.contains(&team.id))
+                || name_is_favorite
+            {
+                return false;
+            }
+            item.ids.iter().map(String::as_str).collect()
+        }
+    };
+    if matches!(item.target, NotificationTarget::Favorite) && ids.is_empty() {
+        return false;
+    }
+    cfg.policy.allows(&item.kind, &ids, &cfg.timezone, now)
+}
+
 impl Poller {
     pub fn new(state: Arc<AppStateInner>) -> Self {
+        let notifications = NotificationQueue::load(&state.cache);
         Self {
             state,
             config: std::sync::Mutex::new(PollConfig::default()),
             snapshots: std::sync::Mutex::new(HashMap::new()),
             feed: Default::default(),
             revision: AtomicU64::new(0),
+            config_initialized: AtomicBool::new(false),
             blocked: Default::default(),
+            notifications: std::sync::Mutex::new(notifications),
+            score_tracker: Default::default(),
             watch: std::sync::Mutex::new(None),
             watch_gen: AtomicU64::new(0),
         }
@@ -446,11 +1060,14 @@ impl Poller {
                 snapshots.clear();
             }
         }
+        let mut rebound = None;
         if changed {
             if let Ok(mut guard) = self.watch.lock() {
                 if let Some(w) = guard.as_mut() {
+                    let previous = w.generation;
                     w.generation = self.watch_gen.fetch_add(1, Ordering::Relaxed) + 1;
                     w.baseline_ready = false;
+                    rebound = Some((w.match_id.clone(), previous, w.generation));
                 }
             }
         }
@@ -461,6 +1078,8 @@ impl Poller {
                 snapshots.clear();
             }
         }
+        self.config_initialized.store(true, Ordering::Relaxed);
+        self.revalidate_notifications(rebound.as_ref());
     }
 
     pub fn config(&self) -> PollConfig {
@@ -502,6 +1121,7 @@ impl Poller {
     /// genuinely new goals observed after the silent baseline, on a
     /// non-finished match, with the enabled flag read at delivery time.
     async fn tick_watch(&self, app: &AppHandle) {
+        self.retry_notifications(app);
         let watch = match self.watch.lock().ok().and_then(|g| g.clone()) {
             Some(w) => w,
             None => return,
@@ -539,7 +1159,15 @@ impl Poller {
                     .or_else(|| events.payload.get("events"))
                     .and_then(Value::as_array)
                 {
-                    goals = advance_event_baseline(&mut next, list, !events.stale, live, true);
+                    goals = advance_event_baseline(
+                        &mut next,
+                        list,
+                        !events.stale,
+                        live,
+                        true,
+                        home_score,
+                        away_score,
+                    );
                 }
             }
         }
@@ -548,6 +1176,11 @@ impl Poller {
             next.away_score = away_score;
             next.status = status.into();
         }
+        let observed_keys = (next.event_snapshot_revision != watch.event_snapshot_revision)
+            .then(|| next.event_keys.clone());
+        let batch = observed_keys.as_ref().map(goal_batch);
+        let mut score_epoch = None;
+        let mut correction = false;
         // A response from an old subscription or settings revision cannot change state.
         {
             let Ok(mut guard) = self.watch.lock() else {
@@ -559,13 +1192,41 @@ impl Poller {
             if current.match_id != watch.match_id || current.generation != watch.generation {
                 return;
             }
+            if observed_keys.is_some() {
+                let (Some(home), Some(away), Some(fetched_at)) =
+                    (home_score, away_score, parse_time_ms(&reply.fetched_at))
+                else {
+                    return;
+                };
+                let Some((epoch, corrected)) =
+                    self.observe_score(&watch.match_id, home, away, fetched_at)
+                else {
+                    return;
+                };
+                score_epoch = Some(epoch);
+                correction = corrected;
+            }
             *current = next;
         }
+        if let Some(keys) = observed_keys {
+            if correction {
+                self.cancel_corrected_score_notifications(
+                    &watch.match_id,
+                    score_epoch.unwrap_or(0),
+                );
+            }
+            self.reconcile_watched_notifications(
+                &watch.match_id,
+                watch.generation,
+                &keys,
+                home_score,
+                away_score,
+                score_epoch.unwrap_or(0),
+            );
+        }
         let _=app.emit("sportsdesk://match-update",serde_json::json!({"matchId":watch.match_id,"fetchedAt":reply.fetched_at,"stale":reply.stale,"generation":watch.generation}));
-        let store = DedupStore {
-            cache: &self.state.cache,
-        };
-        for ev in goals {
+        let mut pending_goals = Vec::new();
+        for goal in goals {
             let config = self.config();
             let home_id = detail
                 .get("home_team")
@@ -600,22 +1261,6 @@ impl Poller {
             if !current {
                 break;
             }
-            let Some(identity) = event_key(&ev) else {
-                continue;
-            };
-            let key = format!("goal|{}|{}", watch.match_id, identity);
-            let player = ev
-                .get("player")
-                .and_then(|p| p.get("name"))
-                .and_then(Value::as_str)
-                .unwrap_or("Игрок");
-            let minute = ev.get("minute").and_then(Value::as_i64).unwrap_or(0);
-            let added = ev.get("minute_added").and_then(Value::as_i64).unwrap_or(0);
-            let clock = if added > 0 {
-                format!("{minute}+{added}")
-            } else {
-                minute.to_string()
-            };
             let home = detail
                 .get("home_team")
                 .and_then(|t| t.get("name"))
@@ -626,38 +1271,56 @@ impl Poller {
                 .and_then(|t| t.get("name"))
                 .and_then(Value::as_str)
                 .unwrap_or("");
-            let body = format!("{clock}′ {player} · {home} — {away}");
+            let Some((key, title, body)) = watched_goal_notification(
+                &goal,
+                &watch.match_id,
+                home,
+                away,
+                score_epoch.unwrap_or(0),
+            ) else {
+                continue;
+            };
+            let score_dedup = match (&goal, home_score, away_score) {
+                (WatchedGoal::Event(_), Some(home), Some(away)) => Some(score_key(
+                    &watch.match_id,
+                    home,
+                    away,
+                    score_epoch.unwrap_or(0),
+                )),
+                _ => None,
+            };
             crate::event_center::record(
                 app,
                 &self.state.cache,
-                &crate::event_center::Event {
-                    id: format!("football|{key}"),
-                    sport: "football".into(),
-                    kind: "goal".into(),
-                    title: "Гол!".into(),
-                    body: body.clone(),
-                    occurred_at: now_ms(),
-                    read: false,
-                    match_id: Some(watch.match_id.clone()),
-                    league_id: None,
-                    season: None,
-                    round: None,
-                },
+                &watched_event(&key, &title, &body, &watch.match_id, now_ms()),
             );
-            if !self.delivery_allowed("goal", &[home_id, away_id]) || store.seen(&key) {
-                continue;
-            }
-            if app
-                .notification()
-                .builder()
-                .title("Гол!")
-                .body(body)
-                .show()
-                .is_ok()
-            {
-                store.mark(&key);
+            if self.delivery_allowed("goal", &[home_id, away_id]) {
+                pending_goals.push(PendingNotification {
+                    kind: "goal".into(),
+                    key,
+                    title,
+                    body,
+                    ids: vec![home_id.into(), away_id.into()],
+                    team_names: vec![home.into(), away.into()],
+                    score_dedup,
+                    score_batch: batch.clone(),
+                    target: NotificationTarget::Watch {
+                        match_id: watch.match_id.clone(),
+                        generation: watch.generation,
+                    },
+                    created_at: now_ms(),
+                    sequence: None,
+                });
             }
         }
+        // Queue all goals from one observation under one lock before a retry
+        // can mark their common score key as delivered.
+        if let Ok(mut queue) = self.notifications.lock() {
+            for item in pending_goals {
+                queue.enqueue(&self.state.cache, item);
+            }
+        }
+        self.retry_notifications(app);
     }
 
     pub fn revision(&self) -> u64 {
@@ -665,22 +1328,25 @@ impl Poller {
     }
     async fn fetch_watched(&self, path: String) -> Option<crate::bridge::native::ApiReply> {
         let revision = self.revision();
-        if self.blocked.lock().ok().and_then(|v| v.get(&path).copied()) == Some(revision) {
+        let blocked = self.blocked.lock().ok().and_then(|v| v.get(&path).copied());
+        if path_is_blocked(blocked, revision, Instant::now()) {
             return None;
         }
         match fetch_with_cache(self.state.clone(), "pitch".into(), path.clone()).await {
             Ok(reply) => {
                 if reply.failure.as_ref().is_some_and(|f| !f.retryable) {
                     if let Ok(mut v) = self.blocked.lock() {
-                        v.insert(path, revision);
+                        v.insert(path, (revision, Instant::now() + MAX_TICK));
                     }
+                } else if let Ok(mut v) = self.blocked.lock() {
+                    v.remove(&path);
                 }
                 Some(reply)
             }
             Err(error) => {
                 if !error.failure().retryable {
                     if let Ok(mut v) = self.blocked.lock() {
-                        v.insert(path, revision);
+                        v.insert(path, (revision, Instant::now() + MAX_TICK));
                     }
                 }
                 None
@@ -695,21 +1361,184 @@ impl Poller {
         if let Ok(mut s) = self.snapshots.lock() {
             s.clear();
         }
+        let mut rebound = None;
         if let Ok(mut w) = self.watch.lock() {
             if let Some(w) = w.as_mut() {
                 w.baseline_ready = false;
+                let previous = w.generation;
                 w.generation = self.watch_gen.fetch_add(1, Ordering::Relaxed) + 1;
+                rebound = Some((w.match_id.clone(), previous, w.generation));
             }
         }
+        self.revalidate_notifications(rebound.as_ref());
     }
     pub fn delivery_allowed(&self, kind: &str, ids: &[&str]) -> bool {
         let cfg = self.config();
         cfg.enabled && cfg.policy.allows(kind, ids, &cfg.timezone, now_ms())
     }
+
+    fn queue_notification(&self, item: PendingNotification) {
+        if let Ok(mut queue) = self.notifications.lock() {
+            queue.enqueue(&self.state.cache, item);
+        }
+    }
+
+    fn observe_score(
+        &self,
+        match_id: &str,
+        home: i64,
+        away: i64,
+        fetched_at: i64,
+    ) -> Option<(u64, bool)> {
+        self.score_tracker
+            .lock()
+            .ok()?
+            .observe(&self.state.cache, match_id, home, away, fetched_at)
+    }
+
+    fn cancel_corrected_score_notifications(&self, match_id: &str, epoch: u64) {
+        let Ok(mut queue) = self.notifications.lock() else {
+            return;
+        };
+        let Ok(tracker) = self.score_tracker.lock() else {
+            return;
+        };
+        let Some(current) = tracker.matches.get(match_id) else {
+            return;
+        };
+        if current.epoch != epoch {
+            return;
+        }
+        let old_len = queue.pending.len();
+        queue.pending.retain(|key, _| {
+            parse_score_key(key, match_id).is_none_or(|(home, away, score_epoch)| {
+                score_epoch == epoch && home <= current.home && away <= current.away
+            })
+        });
+        if old_len != queue.pending.len() {
+            queue.persist(&self.state.cache);
+        }
+    }
+
+    /// A complete corrected event list may remove a goal whose OS delivery
+    /// previously failed. Do not retry that now-invalid notification.
+    fn reconcile_watched_notifications(
+        &self,
+        match_id: &str,
+        generation: u64,
+        keys: &HashSet<String>,
+        home_score: Option<i64>,
+        away_score: Option<i64>,
+        epoch: u64,
+    ) {
+        let Ok(mut queue) = self.notifications.lock() else {
+            return;
+        };
+        let prefix = format!("goal|{match_id}|");
+        let old_len = queue.pending.len();
+        queue.pending.retain(|key, item| match &item.target {
+            NotificationTarget::Watch {
+                match_id: id,
+                generation: gen,
+            } if id == match_id && *gen == generation => {
+                if let Some(identity) = key.strip_prefix(&prefix) {
+                    keys.contains(identity)
+                } else if let (
+                    Some((pending_home, pending_away, pending_epoch)),
+                    Some(home),
+                    Some(away),
+                ) = (parse_score_key(key, match_id), home_score, away_score)
+                {
+                    pending_epoch == epoch && pending_home <= home && pending_away <= away
+                } else {
+                    true
+                }
+            }
+            _ => true,
+        });
+        if queue.pending.len() != old_len {
+            queue.persist(&self.state.cache);
+        }
+    }
+
+    /// Settings and API-key revisions invalidate in-flight watch responses,
+    /// but do not by themselves invalidate a previously detected event.
+    fn revalidate_notifications(&self, rebound: Option<&(String, u64, u64)>) {
+        if !self.config_initialized.load(Ordering::Relaxed) {
+            return;
+        }
+        let Ok(mut queue) = self.notifications.lock() else {
+            return;
+        };
+        let cfg = self.config();
+        let watch = self.watch.lock().ok().and_then(|w| w.clone());
+        let mut changed = false;
+        if let (Some((match_id, previous, next)), Some(w)) = (rebound, watch.as_ref()) {
+            if w.match_id == *match_id && w.generation == *next {
+                for item in queue.pending.values_mut() {
+                    if let NotificationTarget::Watch {
+                        match_id: id,
+                        generation,
+                    } = &mut item.target
+                    {
+                        if id == match_id && *generation == *previous {
+                            *generation = *next;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        let old_len = queue.pending.len();
+        queue
+            .pending
+            .retain(|_, item| pending_allowed(item, &cfg, watch.as_ref(), now_ms()));
+        if changed || old_len != queue.pending.len() {
+            queue.persist(&self.state.cache);
+        }
+    }
+
+    fn notification_allowed_now(&self, item: &PendingNotification) -> bool {
+        let cfg = self.config();
+        let watch = self.watch.lock().ok().and_then(|w| w.clone());
+        pending_allowed(item, &cfg, watch.as_ref(), now_ms())
+    }
+
+    /// Retry independently of source availability. Recheck current settings,
+    /// favourites and watch generation before any delayed native delivery.
+    fn retry_notifications(&self, app: &AppHandle) {
+        if !self.config_initialized.load(Ordering::Relaxed) {
+            return;
+        }
+        let Ok(mut queue) = self.notifications.lock() else {
+            return;
+        };
+        let delivered = queue.process(
+            &self.state.cache,
+            |item| self.notification_allowed_now(item),
+            |item| {
+                app.notification()
+                    .builder()
+                    .title(&item.title)
+                    .body(&item.body)
+                    .show()
+                    .is_ok()
+            },
+        );
+        drop(queue);
+        for item in delivered {
+            if matches!(item.target, NotificationTarget::Favorite) {
+                let _ = app.emit(
+                    "sportsdesk://match-event",
+                    serde_json::json!({"title":item.title,"body":item.body}),
+                );
+            }
+        }
+    }
     async fn tick(&self, app: &AppHandle) -> Result<(), crate::bridge::ApiFailure> {
+        self.retry_notifications(app);
         let revision = self.revision();
         let cfg = self.config();
-        let mut matches = HashMap::new();
         // A full league schedule supplies the next event even when no club
         // plays in the next three days. Only fresh day snapshots drive alerts.
         let mut future = HashMap::new();
@@ -741,56 +1570,68 @@ impl Poller {
             }
         }
         let today = chrono::Utc::now().date_naive();
+        let mut batch = DailyBatch::default();
         for offset in [-1, 0, 1] {
             let date = today + chrono::Duration::days(offset);
             let path = format!("date/{date}?status=all");
-            let reply = fetch_with_cache(self.state.clone(), "pitch".into(), path)
+            let result = fetch_with_cache(self.state.clone(), "pitch".into(), path)
                 .await
-                .map_err(|e| e.failure())?;
-            if reply.stale {
-                return Err(reply
-                    .failure
-                    .unwrap_or_else(|| crate::bridge::BridgeError::Upstream.failure()));
-            }
-            let data = reply.payload.get("data").unwrap_or(&reply.payload);
-            let list = data
-                .get("matches")
-                .and_then(Value::as_array)
-                .ok_or_else(|| crate::bridge::BridgeError::BadPayload.failure())?;
-            for value in list {
-                if let Some(m) = pitch_match(value) {
-                    matches.insert(m.id.clone(), m);
-                }
-            }
+                .map_err(|e| e.failure());
+            batch.add(result);
         }
-        let mut matches: Vec<_> = matches
-            .into_values()
-            .filter(|m| !favorite_ids(m, &cfg).is_empty())
+        let mut matches: Vec<_> = batch
+            .matches
+            .values()
+            .filter(|m| !batch.ambiguous.contains(&m.id) && !favorite_ids(m, &cfg).is_empty())
+            .cloned()
             .collect();
         matches.sort_by_key(|m| m.time.clone().unwrap_or_default());
         if self.revision() != revision {
             return Ok(());
         }
-        self.ingest(app, &matches);
-        for m in &matches {
-            future.insert(m.id.clone(), m.clone());
+        self.ingest(app, &matches, &batch.fetched_at, batch.failure.is_none());
+        // Retain the last displayed rows when any day is unavailable, but
+        // never use those saved rows to detect new match events.
+        if batch.failure.is_some() {
+            for m in self.live_feed().matches {
+                if !favorite_ids(&m, &cfg).is_empty() {
+                    future.entry(m.id.clone()).or_insert(m);
+                }
+            }
+        }
+        for m in batch.matches.into_values() {
+            if !favorite_ids(&m, &cfg).is_empty() {
+                future.insert(m.id.clone(), m);
+            }
         }
         let mut all: Vec<_> = future.into_values().collect();
         all.sort_by_key(|m| m.time.clone().unwrap_or_default());
         let feed = LiveFeed {
             matches: all,
             fetched_at: Some(crate::cache::iso_utc_ms(now_ms())),
-            stale: false,
-            failure: None,
+            stale: batch.failure.is_some(),
+            failure: batch.failure.clone(),
         };
         if let Ok(mut guard) = self.feed.lock() {
             *guard = feed.clone()
         }
         let _ = app.emit("sportsdesk://live-feed", &feed);
         crate::tray::update_football(app, &feed.matches, &cfg.timezone);
-        Ok(())
+        if batch.fresh_days == 0 {
+            Err(batch
+                .failure
+                .unwrap_or_else(|| crate::bridge::BridgeError::Upstream.failure()))
+        } else {
+            Ok(())
+        }
     }
-    fn ingest(&self, app: &AppHandle, matches: &[FlatMatch]) {
+    fn ingest(
+        &self,
+        app: &AppHandle,
+        matches: &[FlatMatch],
+        fetched_at: &HashMap<String, i64>,
+        prune_missing: bool,
+    ) {
         let cfg = self.config();
         let now = now_ms();
         let mut events: Vec<(String, String, String, String, Vec<String>)> = Vec::new();
@@ -802,6 +1643,27 @@ impl Poller {
                 let home = score_text(&m.home_score);
                 let away = score_text(&m.away_score);
                 let ids = favorite_ids(m, &cfg);
+                // Unknown status and partial scores must not replace a valid
+                // baseline and later manufacture start/score transitions.
+                if !live && !finished && !scheduled {
+                    continue;
+                }
+                let score_epoch = match (home.parse::<i64>(), away.parse::<i64>()) {
+                    (Ok(home), Ok(away)) => {
+                        let Some(&at) = fetched_at.get(&key) else {
+                            continue;
+                        };
+                        let Some((epoch, corrected)) = self.observe_score(&key, home, away, at)
+                        else {
+                            continue;
+                        };
+                        if corrected {
+                            self.cancel_corrected_score_notifications(&key, epoch);
+                        }
+                        epoch
+                    }
+                    _ => 0,
+                };
                 if let Some(prev) = snapshots.get(&key) {
                     if live && !prev.live && !prev.finished {
                         events.push((
@@ -822,7 +1684,12 @@ impl Poller {
                     {
                         events.push((
                             "goal".into(),
-                            format!("score|{key}|{home}|{away}"),
+                            score_key(
+                                &key,
+                                home.parse().unwrap_or(0),
+                                away.parse().unwrap_or(0),
+                                score_epoch,
+                            ),
                             "Изменение счёта".into(),
                             score_label(m),
                             ids.clone(),
@@ -838,13 +1705,20 @@ impl Poller {
                         ));
                     }
                 }
+                let (snapshot_home, snapshot_away) = if !home.is_empty() && !away.is_empty() {
+                    (home, away)
+                } else if let Some(prev) = snapshots.get(&key) {
+                    (prev.home_score.clone(), prev.away_score.clone())
+                } else {
+                    (String::new(), String::new())
+                };
                 snapshots.insert(
                     key.clone(),
                     LiveSnapshot {
                         live,
                         finished,
-                        home_score: home,
-                        away_score: away,
+                        home_score: snapshot_home,
+                        away_score: snapshot_away,
                     },
                 );
                 if scheduled {
@@ -867,7 +1741,7 @@ impl Poller {
                 }
             }
             // Three UTC days of fixtures are sufficient for late-night live games.
-            if snapshots.len() > 2000 {
+            if prune_missing && snapshots.len() > 2000 {
                 let keys: HashSet<_> = matches.iter().map(|m| m.id.clone()).collect();
                 snapshots.retain(|k, _| keys.contains(k));
             }
@@ -912,24 +1786,23 @@ impl Poller {
                     round: None,
                 },
             );
-            if !self.delivery_allowed(&kind, &fresh_ids) || store.seen(&key) {
-                continue;
-            }
-            if app
-                .notification()
-                .builder()
-                .title(&title)
-                .body(&body)
-                .show()
-                .is_ok()
-            {
-                store.mark(&key);
-                let _ = app.emit(
-                    "sportsdesk://match-event",
-                    serde_json::json!({"title":title,"body":body}),
-                );
+            if self.delivery_allowed(&kind, &fresh_ids) {
+                self.queue_notification(PendingNotification {
+                    kind,
+                    key,
+                    title,
+                    body,
+                    ids: fresh_ids.into_iter().map(str::to_owned).collect(),
+                    team_names: Vec::new(),
+                    score_dedup: None,
+                    score_batch: None,
+                    target: NotificationTarget::Favorite,
+                    created_at: now,
+                    sequence: None,
+                });
             }
         }
+        self.retry_notifications(app);
     }
 }
 
@@ -956,23 +1829,14 @@ pub fn start(app: AppHandle, poller: Arc<Poller>) {
     tauri::async_runtime::spawn(async move {
         sleep(Duration::from_secs(8)).await;
         let mut pause = BASE_TICK;
-        let mut blocked = None;
         loop {
             let revision = poller.revision.load(Ordering::Relaxed);
-            if blocked == Some(revision) {
-                sleep(Duration::from_secs(2)).await;
-                continue;
-            }
             match poller.tick(&app).await {
                 Ok(()) => {
-                    pause = BASE_TICK;
-                    blocked = None;
+                    pause = retry_delay(pause, BASE_TICK, MAX_TICK, None);
                 }
                 Err(error) => {
-                    if !error.retryable {
-                        blocked = Some(revision);
-                    }
-                    pause = (pause * 2).min(MAX_TICK);
+                    pause = retry_delay(pause, BASE_TICK, MAX_TICK, Some(&error));
                     if let Ok(mut feed) = poller.feed.lock() {
                         feed.stale = true;
                         feed.failure = Some(error.clone());
@@ -1123,9 +1987,27 @@ mod tests {
     fn silent_baseline_disabled_archive_and_stale_transitions() {
         let mut watch = Watch::new("m1".into(), 1);
         let first = goal(10, 0, 10, 1);
-        assert!(advance_event_baseline(&mut watch, &[first.clone()], false, true, true).is_empty());
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&first),
+            false,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
         assert!(!watch.baseline_ready);
-        assert!(advance_event_baseline(&mut watch, &[first.clone()], true, true, true).is_empty());
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&first),
+            true,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
         assert!(watch.baseline_ready);
         let second = goal(20, 0, 7, 2);
         assert!(advance_event_baseline(
@@ -1133,7 +2015,9 @@ mod tests {
             &[first.clone(), second.clone()],
             true,
             true,
-            false
+            false,
+            Some(1),
+            Some(1)
         )
         .is_empty());
         assert!(advance_event_baseline(
@@ -1141,18 +2025,698 @@ mod tests {
             &[first.clone(), second.clone()],
             true,
             true,
-            true
+            true,
+            Some(1),
+            Some(1)
         )
         .is_empty());
         let third = goal(30, 0, 9, 1);
-        assert!(advance_event_baseline(&mut watch, &[third.clone()], false, true, true).is_empty());
+        let all = [first.clone(), second.clone(), third.clone()];
+        assert!(
+            advance_event_baseline(&mut watch, &all, false, true, true, Some(2), Some(1))
+                .is_empty()
+        );
         assert_eq!(
-            advance_event_baseline(&mut watch, &[third.clone()], true, true, true).len(),
+            advance_event_baseline(&mut watch, &all, true, true, true, Some(2), Some(1)).len(),
             1
         );
-        assert!(advance_event_baseline(&mut watch, &[third], true, true, true).is_empty());
         assert!(
-            advance_event_baseline(&mut watch, &[goal(50, 0, 8, 2)], true, false, true).is_empty()
+            advance_event_baseline(&mut watch, &all, true, true, true, Some(2), Some(1)).is_empty()
+        );
+        let archived = [first, second, third, goal(50, 0, 8, 2)];
+        assert!(
+            advance_event_baseline(&mut watch, &archived, true, false, true, Some(2), Some(2))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn incomplete_event_lists_never_turn_old_goals_into_new_alerts() {
+        let mut watch = Watch::new("m1".into(), 1);
+        let old = goal(10, 0, 10, 1);
+        let new = goal(20, 0, 20, 1);
+        assert!(
+            advance_event_baseline(&mut watch, &[], true, true, true, Some(1), Some(0)).is_empty()
+        );
+        assert!(!watch.baseline_ready);
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&old),
+            true,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
+        assert!(watch.baseline_ready);
+        // The score advanced before the event list caught up; keep the old baseline.
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&old),
+            true,
+            true,
+            true,
+            Some(2),
+            Some(0)
+        )
+        .is_empty());
+        assert_eq!(watch.event_home_score, Some(1));
+        assert_eq!(
+            advance_event_baseline(
+                &mut watch,
+                &[old.clone(), new.clone()],
+                true,
+                true,
+                true,
+                Some(2),
+                Some(0)
+            ),
+            vec![WatchedGoal::Event(new.clone())]
+        );
+        // An event identity correction with no score change is not a goal.
+        let corrected = goal(20, 0, 21, 1);
+        assert!(advance_event_baseline(
+            &mut watch,
+            &[old, corrected],
+            true,
+            true,
+            true,
+            Some(2),
+            Some(0)
+        )
+        .is_empty());
+    }
+
+    fn day_reply(stale: bool, matches: Vec<Value>) -> crate::bridge::native::ApiReply {
+        crate::bridge::native::ApiReply {
+            payload: serde_json::json!({"data": {"matches": matches}}),
+            source: "pitch".into(),
+            fetched_at: "2026-10-27T00:00:00Z".into(),
+            stale,
+            failure: stale.then(|| crate::bridge::BridgeError::Unauthorized.failure()),
+        }
+    }
+
+    fn day_match(id: &str, score: i64) -> Value {
+        serde_json::json!({
+            "id": id, "home_team": {"id": "home"}, "away_team": {"id": "away"},
+            "score_home": score, "score_away": 0, "status": "live"
+        })
+    }
+
+    #[test]
+    fn failed_and_stale_days_do_not_block_fresh_days() {
+        let mut batch = DailyBatch::default();
+        batch.add(Err(crate::bridge::BridgeError::NotFound.failure()));
+        batch.add(Ok(day_reply(false, vec![day_match("fresh", 1)])));
+        batch.add(Ok(day_reply(true, vec![day_match("stale", 2)])));
+        assert_eq!(batch.fresh_days, 1);
+        assert!(batch.matches.contains_key("fresh"));
+        assert!(!batch.matches.contains_key("stale"));
+        assert!(batch.failure.is_some());
+    }
+
+    #[test]
+    fn conflicting_fresh_days_do_not_enter_alert_baselines() {
+        let mut batch = DailyBatch::default();
+        batch.add(Ok(day_reply(false, vec![day_match("shared", 1)])));
+        batch.add(Ok(day_reply(
+            false,
+            vec![day_match("shared", 0), day_match("other", 2)],
+        )));
+        assert!(batch.ambiguous.contains("shared"));
+        assert!(!batch.ambiguous.contains("other"));
+        assert!(batch.failure.is_some());
+    }
+
+    fn pending(key: &str) -> PendingNotification {
+        PendingNotification {
+            kind: "goal".into(),
+            key: key.into(),
+            title: "Goal".into(),
+            body: "1:0".into(),
+            ids: vec!["home".into()],
+            team_names: Vec::new(),
+            score_dedup: None,
+            score_batch: None,
+            target: NotificationTarget::Favorite,
+            created_at: now_ms(),
+            sequence: None,
+        }
+    }
+
+    #[test]
+    fn failed_football_delivery_survives_reload_and_success_is_deduplicated() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        queue.enqueue(&cache, pending("score|m|1|0"));
+        assert!(!queue.attempt(&cache, "score|m|1|0", true, || false));
+        assert!(!DedupStore { cache: &cache }.seen("score|m|1|0"));
+        let mut reloaded = NotificationQueue::load(&cache);
+        assert!(reloaded.attempt(&cache, "score|m|1|0", true, || true));
+        assert!(DedupStore { cache: &cache }.seen("score|m|1|0"));
+        let mut after_delivery = NotificationQueue::load(&cache);
+        after_delivery.enqueue(&cache, pending("score|m|1|0"));
+        assert!(after_delivery.pending.is_empty());
+        assert!(
+            !after_delivery.attempt(&cache, "score|m|1|0", true, || panic!("duplicate delivery"))
+        );
+    }
+
+    #[test]
+    fn denied_delivery_discards_pending_item_without_sending() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        queue.enqueue(&cache, pending("start|m"));
+        assert!(!queue.attempt(&cache, "start|m", false, || panic!("delivery was denied")));
+        assert!(NotificationQueue::load(&cache).pending.is_empty());
+    }
+
+    #[test]
+    fn settings_and_key_changes_keep_only_still_eligible_pending_notifications() {
+        let poller = Poller::new(Arc::new(AppStateInner {
+            client: crate::bridge::http_client(),
+            cache: crate::cache::Cache::open_in_memory(),
+            concurrency: crate::bridge::Concurrency::new(),
+        }));
+        let team = |id: &str| FavoriteTeam {
+            id: id.into(),
+            name: id.into(),
+            league_id: None,
+        };
+        let mut cfg = PollConfig {
+            enabled: true,
+            favorite_teams: vec![team("home"), team("removed")],
+            ..Default::default()
+        };
+        poller.set_config(cfg.clone());
+        let generation = poller.watch_match("watched");
+        poller.queue_notification(pending("keep"));
+        let mut removed = pending("removed");
+        removed.ids = vec!["removed".into()];
+        poller.queue_notification(removed);
+        let mut watched = pending("watch");
+        watched.ids = vec!["other".into()];
+        watched.target = NotificationTarget::Watch {
+            match_id: "watched".into(),
+            generation,
+        };
+        poller.queue_notification(watched);
+
+        cfg.f1_reminders = false;
+        poller.set_config(cfg.clone());
+        assert_eq!(poller.notifications.lock().unwrap().pending.len(), 3);
+        let current_generation = poller.watch_match("watched");
+        assert!(current_generation > generation);
+        assert!(matches!(
+            poller.notifications.lock().unwrap().pending["watch"].target,
+            NotificationTarget::Watch { generation, .. } if generation == current_generation
+        ));
+
+        poller.settings_changed(); // Pitch API key change.
+        assert_eq!(poller.notifications.lock().unwrap().pending.len(), 3);
+        assert_eq!(
+            NotificationQueue::load(&poller.state.cache).pending.len(),
+            3
+        );
+        cfg.favorite_teams.retain(|team| team.id != "removed");
+        poller.set_config(cfg.clone());
+        let keys = || {
+            poller
+                .notifications
+                .lock()
+                .unwrap()
+                .pending
+                .keys()
+                .cloned()
+                .collect::<HashSet<_>>()
+        };
+        assert_eq!(
+            keys(),
+            ["keep".into(), "watch".into()].into_iter().collect()
+        );
+
+        let mut name_match = pending("name_match");
+        name_match.ids = vec!["unresolved".into()];
+        name_match.team_names = vec!["Arsenal".into()];
+        name_match.target = NotificationTarget::Watch {
+            match_id: "watched".into(),
+            generation: poller.watch_match("watched"),
+        };
+        poller.queue_notification(name_match);
+        cfg.favorites.push("Arsenal".into());
+        poller.set_config(cfg.clone());
+        assert_eq!(
+            keys(),
+            ["keep".into(), "watch".into()].into_iter().collect()
+        );
+
+        poller.unwatch_match();
+        poller.watch_match("watched");
+        poller.settings_changed();
+        assert_eq!(keys(), ["keep".into()].into_iter().collect());
+        cfg.policy.events.goals = false;
+        poller.set_config(cfg);
+        assert!(keys().is_empty());
+        assert!(NotificationQueue::load(&poller.state.cache)
+            .pending
+            .is_empty());
+    }
+
+    #[test]
+    fn corrected_event_snapshot_replaces_stale_keys_without_duplicate_delivery() {
+        let mut watch = Watch::new("m".into(), 1);
+        let scored = goal(12, 0, 1, 1);
+        assert!(
+            advance_event_baseline(&mut watch, &[], true, true, true, Some(0), Some(0)).is_empty()
+        );
+        assert_eq!(
+            advance_event_baseline(
+                &mut watch,
+                std::slice::from_ref(&scored),
+                true,
+                true,
+                true,
+                Some(1),
+                Some(0)
+            ),
+            vec![WatchedGoal::Event(scored.clone())]
+        );
+        let key = format!("goal|m|{}", event_key(&scored).unwrap());
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        queue.enqueue(&cache, pending(&key));
+        assert!(queue.attempt(&cache, &key, true, || true));
+
+        assert!(
+            advance_event_baseline(&mut watch, &[], true, true, true, Some(0), Some(0)).is_empty()
+        );
+        assert!(!watch.event_keys.contains(&event_key(&scored).unwrap()));
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&scored),
+            true,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
+        queue.enqueue(&cache, pending(&key));
+        assert!(
+            queue.pending.is_empty(),
+            "a restored goal must not be delivered twice"
+        );
+    }
+
+    #[test]
+    fn corrected_old_goal_does_not_hide_an_unseen_goal_or_replay_the_old_one() {
+        let mut watch = Watch::new("m".into(), 1);
+        let old = goal(10, 0, 1, 1);
+        let correction = goal(10, 0, 2, 1);
+        let genuinely_new = goal(20, 0, 3, 1);
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&old),
+            true,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
+        assert!(advance_event_baseline(
+            &mut watch,
+            std::slice::from_ref(&correction),
+            true,
+            true,
+            true,
+            Some(1),
+            Some(0)
+        )
+        .is_empty());
+        assert!(!watch.event_keys.contains(&event_key(&old).unwrap()));
+        assert_eq!(
+            advance_event_baseline(
+                &mut watch,
+                &[old, correction, genuinely_new.clone()],
+                true,
+                true,
+                true,
+                Some(3),
+                Some(0)
+            ),
+            vec![WatchedGoal::Event(genuinely_new)]
+        );
+    }
+
+    #[test]
+    fn simultaneous_goal_correction_and_new_goal_produces_one_score_alert() {
+        let mut watch = Watch::new("m".into(), 1);
+        let old = goal(10, 0, 1, 1);
+        let corrected = goal(10, 0, 2, 1);
+        let new = goal(20, 0, 3, 1);
+        assert!(
+            advance_event_baseline(&mut watch, &[old], true, true, true, Some(1), Some(0))
+                .is_empty()
+        );
+        let changes = [corrected, new];
+        let alerts =
+            advance_event_baseline(&mut watch, &changes, true, true, true, Some(2), Some(0));
+        assert_eq!(alerts, vec![WatchedGoal::Score { home: 2, away: 0 }]);
+        let (key, title, body) =
+            watched_goal_notification(&alerts[0], "m", "Home", "Away", 0).unwrap();
+        assert_eq!(key, "score|m|2|0");
+        assert_eq!(title, "Изменение счёта");
+        assert_eq!(body, "Home 2 : 0 Away");
+        assert!(
+            advance_event_baseline(&mut watch, &changes, true, true, true, Some(2), Some(0))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn named_and_score_alerts_share_dedup_in_both_delivery_orders() {
+        for score_first in [true, false] {
+            let cache = crate::cache::Cache::open_in_memory();
+            let mut queue = NotificationQueue::load(&cache);
+            let score_key = "score|m|2|0";
+            let score = pending(score_key);
+            let mut named = pending("goal|m|event");
+            named.score_dedup = Some(score_key.into());
+            named.score_batch = Some("batch".into());
+            let (first, second) = if score_first {
+                (score, named)
+            } else {
+                (named, score)
+            };
+            let first_key = first.key.clone();
+            queue.enqueue(&cache, first);
+            assert!(queue.attempt(&cache, &first_key, true, || true));
+            queue.enqueue(&cache, second);
+            assert!(queue.pending.is_empty());
+        }
+
+        // Different goals from the same complete observation are queued
+        // together before any can mark their common score as delivered.
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        for key in ["goal|m|first", "goal|m|second"] {
+            let mut item = pending(key);
+            item.score_dedup = Some("score|m|2|0".into());
+            item.score_batch = Some("batch".into());
+            queue.enqueue(&cache, item);
+        }
+        assert!(queue.attempt(&cache, "goal|m|first", true, || true));
+        assert!(queue.attempt(&cache, "goal|m|second", true, || true));
+
+        let cfg = PollConfig {
+            enabled: true,
+            favorite_teams: vec![FavoriteTeam {
+                id: "home".into(),
+                name: "Home".into(),
+                league_id: None,
+            }],
+            ..Default::default()
+        };
+        assert!(cfg.policy.events.goals);
+        let mut watched = pending("goal|m|event");
+        watched.target = NotificationTarget::Watch {
+            match_id: "m".into(),
+            generation: 1,
+        };
+        assert!(!pending_allowed(
+            &watched,
+            &cfg,
+            Some(&Watch::new("m".into(), 1)),
+            now_ms()
+        ));
+        assert!(pending_allowed(
+            &pending("score|m|2|0"),
+            &cfg,
+            None,
+            now_ms()
+        ));
+    }
+
+    #[test]
+    fn prequeued_score_and_named_notifications_coalesce_in_both_orders() {
+        for score_first in [true, false] {
+            let cache = crate::cache::Cache::open_in_memory();
+            let mut queue = NotificationQueue::load(&cache);
+            let score = "score|m|2|0";
+            queue.enqueue(&cache, pending(score));
+            for key in ["goal|m|first", "goal|m|second"] {
+                let mut item = pending(key);
+                item.score_dedup = Some(score.into());
+                item.score_batch = Some("same-complete-snapshot".into());
+                queue.enqueue(&cache, item);
+            }
+            assert_eq!(queue.pending.len(), 3);
+            // Reopen the queue before and after the first send to exercise
+            // persisted pending items and the persisted receipt provenance.
+            let mut queue = NotificationQueue::load(&cache);
+            if score_first {
+                assert!(queue.attempt(&cache, score, true, || true));
+                let mut queue = NotificationQueue::load(&cache);
+                for key in ["goal|m|first", "goal|m|second"] {
+                    assert!(!queue.attempt(&cache, key, true, || panic!("duplicate named alert")));
+                }
+                assert!(queue.pending.is_empty());
+            } else {
+                assert!(queue.attempt(&cache, "goal|m|first", true, || true));
+                let mut queue = NotificationQueue::load(&cache);
+                assert!(!queue.attempt(&cache, score, true, || panic!("duplicate score alert")));
+                assert!(queue.attempt(&cache, "goal|m|second", true, || true));
+                assert!(queue.pending.is_empty());
+                let mut other_batch = pending("goal|m|third");
+                other_batch.score_dedup = Some(score.into());
+                other_batch.score_batch = Some("different-snapshot".into());
+                queue.enqueue(&cache, other_batch);
+                assert!(queue.pending.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn runtime_delivery_uses_enqueue_order_after_failure_and_reload() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        let now = now_ms();
+        let keys = ["score|m|1|0", "score|m|2|0", "goal|m|z", "goal|m|a"];
+        for (index, key) in keys.iter().enumerate() {
+            let mut item = pending(key);
+            // A wall-clock change or same-millisecond events must not reorder
+            // later enqueues or reverse two goals from the same observation.
+            item.created_at = now - index as i64;
+            queue.enqueue(&cache, item);
+        }
+        let mut attempted = Vec::new();
+        let delivered = queue.process(
+            &cache,
+            |_| true,
+            |item| {
+                attempted.push(item.key.clone());
+                false
+            },
+        );
+        assert!(delivered.is_empty());
+        assert_eq!(attempted, vec![keys[0]]);
+        assert_eq!(queue.pending.len(), keys.len());
+
+        let mut restored = NotificationQueue::load(&cache);
+        let mut sent = Vec::new();
+        let delivered = restored.process(
+            &cache,
+            |_| true,
+            |item| {
+                sent.push(item.key.clone());
+                true
+            },
+        );
+        assert_eq!(sent, keys);
+        assert_eq!(
+            delivered
+                .iter()
+                .map(|item| item.key.as_str())
+                .collect::<Vec<_>>(),
+            keys
+        );
+        assert!(restored.pending.is_empty());
+        let mut empty_reloaded = NotificationQueue::load(&cache);
+        assert_eq!(empty_reloaded.last_sequence, 4);
+        empty_reloaded.enqueue(&cache, pending("next"));
+        assert_eq!(empty_reloaded.pending["next"].sequence, Some(5));
+        empty_reloaded.enqueue(&cache, pending("next"));
+        assert_eq!(empty_reloaded.last_sequence, 5);
+        assert_eq!(
+            NotificationQueue::load(&cache).pending["next"].sequence,
+            Some(5)
+        );
+    }
+
+    #[test]
+    fn legacy_pending_entries_have_stable_timestamp_and_key_order() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut later = pending("legacy-z");
+        let mut earlier = pending("legacy-b");
+        let mut tied = pending("legacy-a");
+        let now = now_ms();
+        later.created_at = now;
+        earlier.created_at = now - 1;
+        tied.created_at = now - 1;
+        let mut legacy = serde_json::to_value(vec![later, earlier, tied]).unwrap();
+        for item in legacy.as_array_mut().unwrap() {
+            item.as_object_mut().unwrap().remove("sequence");
+        }
+        cache
+            .put(PENDING_SOURCE, PENDING_PATH, &legacy, now)
+            .unwrap();
+        let mut queue = NotificationQueue::load(&cache);
+        let mut new = pending("new");
+        new.created_at = now - 2;
+        queue.enqueue(&cache, new);
+        let mut restored = NotificationQueue::load(&cache);
+        let mut sent = Vec::new();
+        restored.process(
+            &cache,
+            |_| true,
+            |item| {
+                sent.push(item.key.clone());
+                true
+            },
+        );
+        assert_eq!(sent, ["legacy-a", "legacy-b", "legacy-z", "new"]);
+    }
+
+    #[test]
+    fn in_memory_score_receipt_suppresses_generic_after_failed_cache_write() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut queue = NotificationQueue::load(&cache);
+        let score = "score|m|2|0";
+        queue.score_sent.insert(
+            score.into(),
+            ScoreReceipt::Named {
+                batch: Some("batch".into()),
+            },
+        );
+        queue.enqueue(&cache, pending(score));
+        assert!(queue.pending.is_empty());
+        let mut peer = pending("goal|m|peer");
+        peer.score_dedup = Some(score.into());
+        peer.score_batch = Some("batch".into());
+        queue.enqueue(&cache, peer);
+        assert!(queue.pending.contains_key("goal|m|peer"));
+    }
+
+    #[test]
+    fn score_epoch_survives_restart_and_old_source_cannot_undo_a_correction() {
+        let cache = crate::cache::Cache::open_in_memory();
+        let mut tracker = ScoreTracker::default();
+        let mut watch = Watch::new("m".into(), 1);
+        assert_eq!(tracker.observe(&cache, "m", 0, 0, 10), Some((0, false)));
+        assert!(
+            advance_event_baseline(&mut watch, &[], true, true, true, Some(0), Some(0)).is_empty()
+        );
+        let a = goal(10, 0, 1, 1);
+        assert_eq!(tracker.observe(&cache, "m", 1, 0, 20), Some((0, false)));
+        let first = advance_event_baseline(&mut watch, &[a], true, true, true, Some(1), Some(0));
+        let (key_a, title_a, body_a) =
+            watched_goal_notification(&first[0], "m", "Home", "Away", 0).unwrap();
+        let at = now_ms();
+        assert!(cache
+            .insert_event(&watched_event(&key_a, &title_a, &body_a, "m", at), at)
+            .unwrap());
+        let mut queue = NotificationQueue::load(&cache);
+        let mut item_a = pending(&key_a);
+        item_a.score_dedup = Some(score_key("m", 1, 0, 0));
+        item_a.score_batch = Some(goal_batch(&watch.event_keys));
+        queue.enqueue(&cache, item_a);
+        assert!(queue.attempt(&cache, &key_a, true, || true));
+
+        // The global endpoint sees the rollback first. A delayed detail
+        // endpoint cannot undo it, even after the tracker is recreated.
+        assert_eq!(tracker.observe(&cache, "m", 0, 0, 30), Some((1, true)));
+        assert!(
+            advance_event_baseline(&mut watch, &[], true, true, true, Some(0), Some(0)).is_empty()
+        );
+        let mut restarted = ScoreTracker::default();
+        assert_eq!(restarted.observe(&cache, "m", 1, 0, 20), None);
+        assert_eq!(restarted.observe(&cache, "m", 1, 0, 30), None);
+        assert_eq!(restarted.observe(&cache, "m", 0, 0, 40), Some((1, false)));
+        assert_eq!(restarted.observe(&cache, "m", 1, 0, 50), Some((1, false)));
+        assert_ne!(score_key("m", 1, 0, 0), score_key("m", 1, 0, 1));
+
+        let b = goal(20, 0, 2, 1);
+        let second = advance_event_baseline(&mut watch, &[b], true, true, true, Some(1), Some(0));
+        let (key_b, title_b, body_b) =
+            watched_goal_notification(&second[0], "m", "Home", "Away", 1).unwrap();
+        assert!(cache
+            .insert_event(
+                &watched_event(&key_b, &title_b, &body_b, "m", at + 1),
+                at + 1
+            )
+            .unwrap());
+        let mut item_b = pending(&key_b);
+        item_b.score_dedup = Some(score_key("m", 1, 0, 1));
+        item_b.score_batch = Some(goal_batch(&watch.event_keys));
+        queue.enqueue(&cache, item_b);
+        assert!(queue.attempt(&cache, &key_b, true, || true));
+        assert_eq!(cache.list_events(at + 1).unwrap().len(), 2);
+
+        // Neutral score events likewise have distinct event-center IDs.
+        let first_score = watched_event(&score_key("m", 1, 0, 0), "Score", "1:0", "m", at + 2);
+        let second_score = watched_event(&score_key("m", 1, 0, 1), "Score", "1:0", "m", at + 3);
+        assert!(cache.insert_event(&first_score, at + 2).unwrap());
+        assert!(cache.insert_event(&second_score, at + 3).unwrap());
+        assert_eq!(cache.list_events(at + 3).unwrap().len(), 4);
+    }
+
+    #[test]
+    fn complete_score_correction_cancels_only_removed_watch_goals() {
+        let poller = Poller::new(Arc::new(AppStateInner {
+            client: crate::bridge::http_client(),
+            cache: crate::cache::Cache::open_in_memory(),
+            concurrency: crate::bridge::Concurrency::new(),
+        }));
+        let generation = poller.watch_match("m");
+        let first = event_key(&goal(12, 0, 1, 1)).unwrap();
+        let removed = event_key(&goal(13, 0, 2, 1)).unwrap();
+        for identity in [&first, &removed] {
+            let mut item = pending(&format!("goal|m|{identity}"));
+            item.target = NotificationTarget::Watch {
+                match_id: "m".into(),
+                generation,
+            };
+            poller.queue_notification(item);
+        }
+        for score in [1, 2] {
+            let mut item = pending(&format!("score|m|{score}|0"));
+            item.target = NotificationTarget::Watch {
+                match_id: "m".into(),
+                generation,
+            };
+            poller.queue_notification(item);
+        }
+        poller.queue_notification(pending("favorite"));
+        poller.reconcile_watched_notifications(
+            "m",
+            generation,
+            &[first.clone()].into_iter().collect(),
+            Some(1),
+            Some(0),
+            0,
+        );
+        let queue = poller.notifications.lock().unwrap();
+        assert!(queue.pending.contains_key(&format!("goal|m|{first}")));
+        assert!(!queue.pending.contains_key(&format!("goal|m|{removed}")));
+        assert!(queue.pending.contains_key("score|m|1|0"));
+        assert!(!queue.pending.contains_key("score|m|2|0"));
+        assert!(queue.pending.contains_key("favorite"));
+        assert_eq!(
+            NotificationQueue::load(&poller.state.cache).pending.len(),
+            3
         );
     }
 
@@ -1193,5 +2757,22 @@ mod tests {
         // Non-live: only when the score moved.
         assert!(should_fetch_events(false, true));
         assert!(!should_fetch_events(false, false));
+    }
+
+    #[test]
+    fn nonretryable_background_failures_still_get_bounded_retries() {
+        let failure = crate::bridge::BridgeError::Unauthorized.failure();
+        assert!(!failure.retryable);
+        let mut pause = BASE_TICK;
+        for _ in 0..10 {
+            pause = retry_delay(pause, BASE_TICK, MAX_TICK, Some(&failure));
+        }
+        assert_eq!(pause, MAX_TICK);
+        assert_eq!(retry_delay(pause, BASE_TICK, MAX_TICK, None), BASE_TICK);
+        let now = Instant::now();
+        let blocked = Some((3, now + MAX_TICK));
+        assert!(path_is_blocked(blocked, 3, now));
+        assert!(!path_is_blocked(blocked, 3, now + MAX_TICK));
+        assert!(!path_is_blocked(blocked, 4, now));
     }
 }

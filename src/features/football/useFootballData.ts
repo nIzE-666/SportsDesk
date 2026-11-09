@@ -5,6 +5,7 @@ import { useDataRecovery } from '../../lib/useDataRecovery';
 import { retainResource } from '../../lib/resourceHealth';
 import type { LeagueMatchesPayload, MatchSummary, TeamRef } from './types';
 import { saveSeasonToHistory } from './history';
+import { getJson, setString, STORAGE_KEYS } from './storage';
 
 export const VERIFIED_LEAGUES: Array<{ id: string; name: string }> = [
   { id: 'l_4WFCIZ', name: 'Premier League' },
@@ -141,7 +142,7 @@ function readSeasonSelection(): SeasonSelection {
 
 function writeSeasonSelection(map: SeasonSelection): void {
   try {
-    localStorage.setItem(SEASONS_KEY, JSON.stringify(map));
+    setString(SEASONS_KEY, JSON.stringify(map));
   } catch {
     // Storage may be unavailable; selection then lives only for this session.
   }
@@ -170,7 +171,7 @@ function readCatalogue(): SeasonMap {
 
 function writeCatalogue(map: SeasonMap): void {
   try {
-    localStorage.setItem(CATALOGUE_KEY, JSON.stringify(map));
+    setString(CATALOGUE_KEY, JSON.stringify(map));
   } catch {
     // Non-secret cache; safe to skip.
   }
@@ -205,12 +206,19 @@ export function resolveCurrentSeason(
   return undefined;
 }
 
-export function useFootballData(initialLeagueId?: string): UseFootballResult {
+const NO_FAVORITES: readonly string[] = [];
+
+export function useFootballData(
+  initialLeagueId?: string,
+  favoriteTeamIds: readonly string[] = NO_FAVORITES,
+): UseFootballResult {
   const seasonsRef = useRef<SeasonSelection | null>(null);
   if (!seasonsRef.current) seasonsRef.current = readSeasonSelection();
+  const cachedCatalogueRef = useRef<SeasonMap | null>(null);
+  if (!cachedCatalogueRef.current) cachedCatalogueRef.current = readCatalogue();
 
   const [leagues, setLeagues] = useState<LeagueOption[]>(() => {
-    const cached = new Map<string, string[]>(Object.entries(readCatalogue()));
+    const cached = new Map<string, string[]>(Object.entries(cachedCatalogueRef.current ?? {}));
     return VERIFIED_LEAGUES.map((l) => {
       const known = cached.get(l.id);
       const merged = uniqueSeasons(known ?? []);
@@ -442,15 +450,50 @@ export function useFootballData(initialLeagueId?: string): UseFootballResult {
     },
   );
 
+  // A favourite can belong to a league outside the six preloaded leagues.
+  // The persisted catalogue resolves such favourites again after app restart.
+  const favoriteLeagueIds = useMemo(() => {
+    const favoriteIds = new Set(favoriteTeamIds);
+    const ids = new Set<string>();
+    const catalogue = getJson<Array<{ id?: unknown; leagueId?: unknown }>>(
+      STORAGE_KEYS.catalogue,
+      [],
+    );
+    if (Array.isArray(catalogue)) {
+      for (const team of catalogue) {
+        if (
+          typeof team?.id === 'string' &&
+          favoriteIds.has(team.id) &&
+          typeof team.leagueId === 'string' &&
+          team.leagueId
+        )
+          ids.add(team.leagueId);
+      }
+    }
+    for (const [key, dataset] of Object.entries(datasets)) {
+      if (
+        dataset.matches.some(
+          (m) => favoriteIds.has(m.home_team.id) || favoriteIds.has(m.away_team.id),
+        )
+      ) {
+        const leagueId = key.split(DATASET_PREFIX)[0];
+        if (leagueId) ids.add(leagueId);
+      }
+    }
+    return [...ids];
+  }, [datasets, favoriteTeamIds]);
+
   // Source catalogue defines the current season. With no catalogue, omit
   // season and let the API choose its current one; never invent a year.
   const currentDatasets = useMemo(
     () =>
-      VERIFIED_LEAGUES.map((l) => ({
-        id: l.id,
-        season: resolveCurrentSeason(optionLookup.get(l.id), l.id),
+      [...new Set([...VERIFIED_LEAGUES.map((l) => l.id), ...favoriteLeagueIds])].map((id) => ({
+        id,
+        season:
+          resolveCurrentSeason(optionLookup.get(id), id) ??
+          uniqueSeasons(cachedCatalogueRef.current?.[id])[0],
       })),
-    [optionLookup],
+    [optionLookup, favoriteLeagueIds],
   );
   useEffect(() => {
     for (const l of currentDatasets) {
@@ -527,8 +570,8 @@ export function useFootballData(initialLeagueId?: string): UseFootballResult {
   const allMatches = useMemo(() => {
     const seen = new Set<string>();
     const result: MatchSummary[] = [];
-    for (const l of VERIFIED_LEAGUES) {
-      const ds = datasets[datasetKey(l.id, resolveCurrentSeason(optionLookup.get(l.id), l.id))];
+    for (const l of currentDatasets) {
+      const ds = datasets[datasetKey(l.id, l.season)];
       if (!ds) continue;
       for (const m of ds.matches) {
         if (!m || !m.id || seen.has(m.id)) continue;
@@ -537,14 +580,14 @@ export function useFootballData(initialLeagueId?: string): UseFootballResult {
       }
     }
     return result;
-  }, [datasets, optionLookup]);
+  }, [datasets, currentDatasets]);
 
   const teams = useMemo(() => {
     const map = new Map<string, TeamCatalogueEntry>();
-    for (const l of VERIFIED_LEAGUES) {
-      const ds = datasets[datasetKey(l.id, resolveCurrentSeason(optionLookup.get(l.id), l.id))];
+    for (const l of currentDatasets) {
+      const ds = datasets[datasetKey(l.id, l.season)];
       if (!ds) continue;
-      const name = optionLookup.get(l.id)?.name ?? l.name;
+      const name = optionLookup.get(l.id)?.name ?? l.id;
       for (const t of collectTeams(l.id, name, ds.matches)) {
         if (!map.has(t.id)) map.set(t.id, t);
       }
@@ -556,7 +599,7 @@ export function useFootballData(initialLeagueId?: string): UseFootballResult {
       }
     }
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-  }, [datasets, optionLookup, selectedDs, selectedLeagueId]);
+  }, [datasets, currentDatasets, optionLookup, selectedDs, selectedLeagueId]);
 
   const leagueTeams = useMemo(() => {
     if (!selectedDs || !selectedLeagueId) return [];

@@ -23,6 +23,7 @@ import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
 import { useSeason } from './SeasonContext';
 import { SourceBar, State, TeamDot, DriverName } from './shared';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
 import { racePresentation } from './calendarModel';
 
@@ -443,10 +444,11 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
   );
   const [favDrivers] = useFavoriteDrivers();
   const [favTeams] = useFavoriteTeams();
+  const now = useNow();
 
   const races = useMemo(() => schedule.data?.races ?? [], [schedule.data]);
-  const next = useMemo(() => nextRace(races), [races]);
-  const lastFinishedRace = useMemo(() => latestFinished(races), [races]);
+  const next = useMemo(() => nextRace(races, new Date(now)), [races, now]);
+  const lastFinishedRace = useMemo(() => latestFinished(races, new Date(now)), [races, now]);
   const driverStandings = useMemo(() => dStand.data?.standings ?? [], [dStand.data]);
   const constructorStandings = useMemo(() => cStand.data?.standings ?? [], [cStand.data]);
 

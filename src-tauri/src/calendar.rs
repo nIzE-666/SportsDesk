@@ -8,6 +8,7 @@
 use std::sync::Arc;
 
 use crate::bridge::AppStateInner;
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Utc};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CalendarMatch {
@@ -20,7 +21,9 @@ pub struct CalendarMatch {
 
 /// Windows Calendar accepts CRLF-separated lines; fold long ones at 75 octets.
 fn escape_text(s: &str) -> String {
-    s.replace('\\', "\\\\")
+    s.replace("\r\n", "\n")
+        .replace('\r', "\n")
+        .replace('\\', "\\\\")
         .replace(';', "\\;")
         .replace(',', "\\,")
         .replace('\n', "\\n")
@@ -57,125 +60,32 @@ fn fold_line(line: &str) -> String {
     out
 }
 
-/// Parses "2026-10-21 18:00:00" / ISO 8601 to an iCal UTC timestamp.
-fn ical_utc(time: &str) -> Option<String> {
-    let t = time.trim();
-    let iso = if t.len() == 19 && !t.contains('T') {
-        t.replace(' ', "T")
-    } else {
-        t.to_string()
-    };
-    let y: i64 = iso.get(0..4)?.parse().ok()?;
-    let mo: i64 = iso.get(5..7)?.parse().ok()?;
-    let d: i64 = iso.get(8..10)?.parse().ok()?;
-    let hh: i64 = iso.get(11..13)?.parse().ok()?;
-    let mm: i64 = iso.get(14..16)?.parse().ok()?;
-    let ss: i64 = iso.get(17..19)?.parse().ok()?;
-
-    // Match times from PitchAPI come as UTC; treat the input as UTC (Z) unless
-    // an explicit offset is present.
-    let offset_secs: i64 = if let Some(pos) = iso
-        .rfind('+')
-        .or_else(|| iso.rfind('-').filter(|_| iso.len() > 19))
-    {
-        let sign = if iso.as_bytes()[pos] == b'+' { 1 } else { -1 };
-        let off = iso.get(pos + 1..)?;
-        let (oh, om) = off
-            .split_once(':')
-            .unwrap_or((off.get(0..2).unwrap_or("0"), "0"));
-        sign * (oh
-            .trim_end_matches(|c: char| !c.is_ascii_digit())
-            .parse::<i64>()
-            .unwrap_or(0)
-            * 3600
-            + om.trim_end_matches(|c: char| !c.is_ascii_digit())
-                .parse::<i64>()
-                .unwrap_or(0)
-                * 60)
-    } else {
-        0
-    };
-
-    let y_adj = if mo <= 2 { y - 1 } else { y };
-    let era = if y_adj >= 0 { y_adj } else { y_adj - 399 } / 400;
-    let yoe = y_adj - era * 400;
-    let mp = if mo > 2 { mo - 3 } else { mo + 9 };
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146097 + doe - 719468;
-    let secs = days * 86_400 + hh * 3600 + mm * 60 + ss - offset_secs;
-
-    // Normalize into a UTC calendar date.
-    let days = secs.div_euclid(86_400);
-    let sod = secs.rem_euclid(86_400);
-    let zy_adj_days = days;
-    let era2 = if zy_adj_days >= 0 {
-        zy_adj_days
-    } else {
-        zy_adj_days - 399
-    } / 146097;
-    // days -> civil (Howard Hinnant)
-    let z = days + 719_468;
-    let era_c = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe_c = z - era_c * 146_097;
-    let yoe_c = (doe_c - doe_c / 1460 + doe_c / 36_524 - doe_c / 146_096) / 365;
-    let yy = yoe_c + era_c * 400;
-    let doy_c = doe_c - (365 * yoe_c + yoe_c / 4 - yoe_c / 100);
-    let mp_c = (5 * doy_c + 2) / 153;
-    let dd = doy_c - (153 * mp_c + 2) / 5 + 1;
-    let mm_c = if mp_c < 10 { mp_c + 3 } else { mp_c - 9 };
-    let final_y = if mm_c <= 2 { yy + 1 } else { yy };
-    let _ = (era2,);
-    Some(format!(
-        "{:04}{:02}{:02}T{:02}{:02}{:02}Z",
-        final_y,
-        mm_c,
-        dd,
-        sod / 3600,
-        (sod % 3600) / 60,
-        sod % 60
-    ))
+/// Pitch timestamps without an offset are UTC. Reject invalid dates and offsets.
+fn parse_utc(time: &str) -> Option<DateTime<Utc>> {
+    let text = time.trim();
+    if let Ok(parsed) = DateTime::parse_from_rfc3339(text) {
+        return Some(parsed.with_timezone(&Utc));
+    }
+    for format in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"] {
+        if let Ok(parsed) = NaiveDateTime::parse_from_str(text, format) {
+            return Some(parsed.and_utc());
+        }
+    }
+    None
 }
 
-/// Duration in minutes for a football match (105 = 90 + HT + stoppages).
-fn end_utc(start: &str) -> Option<String> {
-    let stamp = ical_utc(start)?;
-    // Parse back to seconds, add 105 minutes.
-    let y: i64 = stamp.get(0..4)?.parse().ok()?;
-    let mo: i64 = stamp.get(4..6)?.parse().ok()?;
-    let d: i64 = stamp.get(6..8)?.parse().ok()?;
-    let hh: i64 = stamp.get(9..11)?.parse().ok()?;
-    let mm: i64 = stamp.get(11..13)?.parse().ok()?;
-    let ss: i64 = stamp.get(13..15)?.parse().ok()?;
-    let y_adj = if mo <= 2 { y - 1 } else { y };
-    let era = if y_adj >= 0 { y_adj } else { y_adj - 399 } / 400;
-    let yoe = y_adj - era * 400;
-    let mp = if mo > 2 { mo - 3 } else { mo + 9 };
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146097 + doe - 719468;
-    let secs = days * 86_400 + hh * 3600 + mm * 60 + ss + 105 * 60;
-    let nd = secs.div_euclid(86_400);
-    let sod = secs.rem_euclid(86_400);
-    let z = nd + 719_468;
-    let era_c = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe_c = z - era_c * 146_097;
-    let yoe_c = (doe_c - doe_c / 1460 + doe_c / 36_524 - doe_c / 146_096) / 365;
-    let yy = yoe_c + era_c * 400;
-    let doy_c = doe_c - (365 * yoe_c + yoe_c / 4 - yoe_c / 100);
-    let mp_c = (5 * doy_c + 2) / 153;
-    let dd = doy_c - (153 * mp_c + 2) / 5 + 1;
-    let mm_c = if mp_c < 10 { mp_c + 3 } else { mp_c - 9 };
-    let final_y = if mm_c <= 2 { yy + 1 } else { yy };
-    Some(format!(
-        "{:04}{:02}{:02}T{:02}{:02}{:02}Z",
-        final_y,
-        mm_c,
-        dd,
-        sod / 3600,
-        (sod % 3600) / 60,
-        sod % 60
-    ))
+#[cfg(test)]
+fn ical_utc(time: &str) -> Option<String> {
+    Some(parse_utc(time)?.format("%Y%m%dT%H%M%SZ").to_string())
+}
+
+#[cfg(test)]
+fn end_utc(time: &str) -> Option<String> {
+    Some(
+        (parse_utc(time)? + Duration::minutes(105))
+            .format("%Y%m%dT%H%M%SZ")
+            .to_string(),
+    )
 }
 
 pub fn build_ics(
@@ -189,21 +99,43 @@ pub fn build_ics(
     out.push_str("PRODID:-//SportsDesk//Personal Sports Hub//RU\r\n");
     out.push_str("CALSCALE:GREGORIAN\r\n");
     for m in matches {
-        let Some(start) = ical_utc(&m.time) else {
-            continue;
+        let date = NaiveDate::parse_from_str(&m.time, "%Y-%m-%d").ok();
+        let (start, end, all_day) = if let Some(date) = date {
+            let Some(next) = date.succ_opt() else {
+                continue;
+            };
+            (
+                date.format("%Y%m%d").to_string(),
+                next.format("%Y%m%d").to_string(),
+                true,
+            )
+        } else {
+            let Some(time) = parse_utc(&m.time) else {
+                continue;
+            };
+            (
+                time.format("%Y%m%dT%H%M%SZ").to_string(),
+                (time + Duration::minutes(105))
+                    .format("%Y%m%dT%H%M%SZ")
+                    .to_string(),
+                false,
+            )
         };
-        let end = end_utc(&m.time).unwrap_or_else(|| start.clone());
-        let uid = format!("{}@sportsdesk.local", m.id);
+        let uid = format!("{}@sportsdesk.local", m.id.replace(['\r', '\n'], ""));
         let summary = escape_text(&format!("{} — {}", m.home, m.away));
         let mut event = String::new();
         event.push_str("BEGIN:VEVENT\r\n");
         event.push_str(&format!("UID:{uid}\r\n"));
-        event.push_str(&format!("DTSTAMP:{start}\r\n"));
-        event.push_str(&format!("DTSTART:{start}\r\n"));
-        event.push_str(&format!("DTEND:{end}\r\n"));
+        event.push_str(&format!(
+            "DTSTAMP:{}\r\n",
+            Utc::now().format("%Y%m%dT%H%M%SZ")
+        ));
+        let qualifier = if all_day { ";VALUE=DATE" } else { "" };
+        event.push_str(&format!("DTSTART{qualifier}:{start}\r\n"));
+        event.push_str(&format!("DTEND{qualifier}:{end}\r\n"));
         event.push_str(&format!("SUMMARY:{summary}\r\n"));
         event.push_str(&format!("DESCRIPTION:{summary} (SportsDesk)\r\n"));
-        if reminder_minutes > 0 {
+        if reminder_minutes > 0 && !all_day {
             event.push_str(&format!(
                 "BEGIN:VALARM\r\nTRIGGER:-PT{reminder_minutes}M\r\nACTION:DISPLAY\r\nDESCRIPTION:Матч скоро начнётся\r\nEND:VALARM\r\n"
             ));
@@ -282,6 +214,34 @@ mod tests {
         assert!(ics.contains("SUMMARY:Arsenal\\; FC — Chelsea"));
         assert!(ics.contains("TRIGGER:-PT15M"));
         assert!(ics.ends_with("END:VCALENDAR\r\n"));
+    }
+
+    #[test]
+    fn date_only_fixtures_are_all_day_and_invalid_dates_are_skipped() {
+        let state = Arc::new(crate::bridge::AppStateInner {
+            client: crate::bridge::http_client(),
+            cache: crate::cache::Cache::open_in_memory(),
+            concurrency: crate::bridge::Concurrency::new(),
+        });
+        let matches = vec![
+            CalendarMatch {
+                id: "day".into(),
+                home: "A".into(),
+                away: "B".into(),
+                time: "2026-10-21".into(),
+            },
+            CalendarMatch {
+                id: "invalid".into(),
+                home: "C".into(),
+                away: "D".into(),
+                time: "2026-02-30T18:00:00Z".into(),
+            },
+        ];
+        let ics = build_ics(&state, &matches, 15);
+        assert!(ics.contains("DTSTART;VALUE=DATE:20261021\r\n"));
+        assert!(ics.contains("DTEND;VALUE=DATE:20261022\r\n"));
+        assert!(!ics.contains("VALARM"));
+        assert!(!ics.contains("UID:invalid"));
     }
 
     #[test]

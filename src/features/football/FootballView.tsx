@@ -38,7 +38,8 @@ function FootballBody({
   onNavigate,
   onBackFromMatch,
 }: FootballViewProps) {
-  const raw = useFootballData(leagueId);
+  const { seedFromCatalogue, teamIds } = useFavorites();
+  const raw = useFootballData(leagueId, teamIds);
   const data = {
     ...raw,
     setSelectedLeague: (id: string) => {
@@ -54,7 +55,6 @@ function FootballBody({
     null,
     (v) => v === null || typeof v === 'string',
   );
-  const { seedFromCatalogue } = useFavorites();
   useEffect(() => seedFromCatalogue(data.teams), [data.teams, seedFromCatalogue]);
 
   const activeTeamId = selectedTeamId ?? localTeamId ?? null;

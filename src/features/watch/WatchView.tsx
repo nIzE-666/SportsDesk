@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { openExternal, rpc } from '../../lib/bridge';
 import type { WatchIntent } from '../../lib/watchIntent';
-import { getJson, setJson } from '../football/storage';
+import { getJson, setJson, setString } from '../football/storage';
 import { rememberSearchItems } from '../../lib/searchIndex';
 
 import type {
@@ -39,6 +39,14 @@ import {
 import { SplitAuthPanel, LogoutConfirm } from './WatchAuth';
 import { PlayerPane } from './WatchPlayer';
 import { ChannelListItem, ChannelTile, ChannelInfoPanel } from './WatchChannels';
+import {
+  beginKinoAttempt,
+  cancelKinoAttempt,
+  finishKinoAttempt,
+  isCurrentKinoAttempt,
+  logoutKinoSession,
+  settleKinoCancellations,
+} from './kinoAuth';
 import './watch.css';
 type AccountState =
   | { kind: 'loading' }
@@ -51,11 +59,13 @@ export function WatchView({
 }: { intent?: WatchIntent; requestedChannelId?: number } = {}) {
   const [account, setAccount] = useState<AccountState>({ kind: 'loading' });
   const [authPhase, setAuthPhase] = useState<AuthPhase>({ kind: 'idle' });
-  const pollAbort = useRef(false);
+  const authGeneration = useRef(0);
+  const authAttempt = useRef<Promise<string> | null>(null);
   const countdownTimer = useRef<number | null>(null);
   const pollTimer = useRef<number | null>(null);
 
   const [channels, setChannels] = useState<KinoChannel[]>([]);
+  const channelsGeneration = useRef(0);
   const [channelsState, setChannelsState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
     'idle',
   );
@@ -118,7 +128,7 @@ export function WatchView({
   ) : null;
 
   useEffect(() => {
-    localStorage.setItem('sportsdesk.watch.view', viewMode);
+    setString('sportsdesk.watch.view', viewMode);
   }, [viewMode]);
 
   // Выбор канала попадает в «недавние» (уникальные, максимум 6).
@@ -142,9 +152,20 @@ export function WatchView({
     }
   }, []);
 
+  const abandonAuth = useCallback(() => {
+    authGeneration.current += 1;
+    clearAuthTimers();
+    const attempt = authAttempt.current;
+    authAttempt.current = null;
+    const cancellation = attempt ? cancelKinoAttempt(attempt) : Promise.resolve();
+    void cancellation.catch(() => undefined);
+    return cancellation;
+  }, [clearAuthTimers]);
+
   const loadStatus = useCallback(async () => {
     setAccount({ kind: 'loading' });
     try {
+      await settleKinoCancellations();
       const status = await rpc<SecretStatus>('secret_status');
       if (status?.kino) setAccount({ kind: 'signed-in' });
       else setAccount({ kind: 'signed-out' });
@@ -156,21 +177,23 @@ export function WatchView({
   useEffect(() => {
     void loadStatus();
     return () => {
-      clearAuthTimers();
-      pollAbort.current = true;
+      abandonAuth();
     };
-  }, [loadStatus, clearAuthTimers]);
+  }, [loadStatus, abandonAuth]);
 
   // Load channels once signed in.
   const loadChannels = useCallback(async () => {
+    const generation = ++channelsGeneration.current;
     setChannelsState('loading');
     setChannelsError(null);
     try {
       const list = await rpc<KinoChannel[]>('kino_channels');
+      if (channelsGeneration.current !== generation) return;
       if (!Array.isArray(list)) throw new Error('Некорректный ответ сервиса.');
       setChannels(list.filter((c) => c && typeof c.id === 'number' && typeof c.title === 'string'));
       setChannelsState('ready');
     } catch (e) {
+      if (channelsGeneration.current !== generation) return;
       setChannelsError(cleanError(e));
       setChannelsState('error');
     }
@@ -180,9 +203,13 @@ export function WatchView({
     if (account.kind === 'signed-in') {
       void loadChannels();
     } else {
+      channelsGeneration.current += 1;
       setChannels([]);
       setChannelsState('idle');
     }
+    return () => {
+      channelsGeneration.current += 1;
+    };
   }, [account.kind, loadChannels]);
 
   const openSite = (url: string) => {
@@ -190,22 +217,38 @@ export function WatchView({
   };
 
   const cancelAuth = useCallback(() => {
-    pollAbort.current = true;
-    clearAuthTimers();
+    const cancellation = abandonAuth();
+    const generation = authGeneration.current;
     setAuthPhase({ kind: 'idle' });
-  }, [clearAuthTimers]);
+    void cancellation.catch((e) => {
+      if (generation === authGeneration.current)
+        setAuthPhase({ kind: 'error', message: cleanError(e) });
+    });
+  }, [abandonAuth]);
 
   const startAuth = useCallback(async () => {
-    pollAbort.current = false;
-    clearAuthTimers();
+    abandonAuth();
+    const generation = authGeneration.current;
+    const attempt = beginKinoAttempt(() => {
+      abandonAuth();
+      setAuthPhase({ kind: 'idle' });
+    });
+    authAttempt.current = attempt;
     setAuthPhase({ kind: 'starting' });
     let start: DeviceAuthStart;
+    let sessionId: string;
+    const current = () => authGeneration.current === generation && isCurrentKinoAttempt(attempt);
     try {
-      start = await rpc<DeviceAuthStart>('kino_start_auth');
+      sessionId = await attempt;
+      if (!current()) return;
+      start = await rpc<DeviceAuthStart>('kino_start_auth', { sessionId });
+      if (!current()) return;
       if (!start || typeof start.userCode !== 'string' || typeof start.code !== 'string') {
         throw new Error('Сервис вернул некорректные данные входа.');
       }
     } catch (e) {
+      if (!current()) return;
+      abandonAuth();
       setAuthPhase({ kind: 'error', message: cleanError(e) });
       return;
     }
@@ -216,31 +259,43 @@ export function WatchView({
       2,
       Number.isFinite(start.interval) && start.interval > 0 ? start.interval : 5,
     );
-    let remaining = expiresIn;
+    const deadline = Date.now() + expiresIn * 1000;
+    const expire = () => {
+      if (!current()) return;
+      abandonAuth();
+      setAuthPhase({ kind: 'error', message: 'Срок действия кода истёк. Запросите новый.' });
+    };
+    const valid = () => {
+      if (!current()) return false;
+      if (Date.now() >= deadline) {
+        expire();
+        return false;
+      }
+      return true;
+    };
 
-    setAuthPhase({ kind: 'waiting', data: start, remaining });
+    setAuthPhase({ kind: 'waiting', data: start, remaining: expiresIn });
 
     countdownTimer.current = window.setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
-        clearAuthTimers();
-        if (!pollAbort.current) {
-          setAuthPhase({ kind: 'error', message: 'Срок действия кода истёк. Запросите новый.' });
-        }
-        return;
-      }
+      if (!valid()) return;
+      const remaining = Math.ceil((deadline - Date.now()) / 1000);
       setAuthPhase((p) => (p.kind === 'waiting' ? { ...p, remaining } : p));
     }, 1000);
 
     const schedulePoll = (delayMs: number) => {
-      if (pollAbort.current) return;
+      if (!valid()) return;
       pollTimer.current = window.setTimeout(async () => {
-        if (pollAbort.current) return;
+        if (!valid()) return;
         try {
-          const result = await rpc<DeviceAuthPoll>('kino_poll_auth', { code: start.code });
-          if (pollAbort.current) return;
+          const result = await rpc<DeviceAuthPoll>('kino_poll_auth', { sessionId });
+          if (!valid()) return;
           if (result?.authenticated) {
+            await rpc('kino_commit_auth', { sessionId });
+            if (!valid()) return;
             clearAuthTimers();
+            authAttempt.current = null;
+            authGeneration.current += 1;
+            finishKinoAttempt(sessionId, attempt);
             setAuthPhase({ kind: 'idle' });
             setAccount({ kind: 'signed-in' });
             return;
@@ -252,14 +307,21 @@ export function WatchView({
           // Not pending, not authenticated: treat as still waiting briefly.
           schedulePoll(interval * 1000);
         } catch (e) {
-          // Recoverable poll failure — retry a few times then surface error.
+          if (!valid()) return;
+          const message = cleanError(e);
+          if (/ист[ёе]к|отклон/i.test(message)) {
+            abandonAuth();
+            setAuthPhase({ kind: 'error', message });
+            return;
+          }
+          // Network failures can be retried while the code remains valid.
           schedulePoll(Math.min(interval * 2000, 15000));
         }
       }, delayMs);
     };
 
     schedulePoll(interval * 1000);
-  }, [clearAuthTimers]);
+  }, [abandonAuth, clearAuthTimers]);
 
   const toggleFavorite = useCallback((id: number) => {
     setFavorites((prev) => {
@@ -299,9 +361,10 @@ export function WatchView({
   );
 
   const doLogout = useCallback(async () => {
+    abandonAuth();
     setLogoutBusy(true);
     try {
-      await rpc<{ ok: boolean }>('kino_logout');
+      await logoutKinoSession();
       setShowLogout(false);
       setChannels([]);
       setSelectedId(null);
@@ -312,7 +375,7 @@ export function WatchView({
     } finally {
       setLogoutBusy(false);
     }
-  }, []);
+  }, [abandonAuth]);
 
   // ------------------------------------------------------------------ render
 

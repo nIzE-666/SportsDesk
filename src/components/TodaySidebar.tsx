@@ -9,6 +9,7 @@ import { racePresentation } from '../features/f1/calendarModel';
 import { useNow } from '../lib/useNow';
 import { asApiError } from '../lib/apiError';
 import { classifyMatchStatus } from '../lib/sportsIdentity';
+import { isTauriRuntime } from '../lib/bridge';
 interface Props {
   onMatch: (id: string) => void;
   onWeekend: (season: string, round: string) => void;
@@ -45,13 +46,13 @@ export function TodaySidebar({ onMatch, onWeekend }: Props) {
     void load();
     const timer = setInterval(() => void load(), 60_000);
     let stop: (() => void) | undefined;
-    void import('../lib/bridge').then(async ({ isTauriRuntime }) => {
+    void (async () => {
       if (!isTauriRuntime()) return;
       const { listen } = await import('@tauri-apps/api/event');
       const off = await listen('sportsdesk://live-feed', () => void load());
       if (active) stop = off;
       else off();
-    });
+    })().catch(() => {});
     return () => {
       active = false;
       clearInterval(timer);

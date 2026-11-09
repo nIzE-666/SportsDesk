@@ -19,7 +19,16 @@ import type { UseFootballResult } from './useFootballData';
 import type { MatchSummary } from './types';
 import { formatDateTime, getUserTimezone } from './storage';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
+import { rpc } from '../../lib/bridge';
 import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
+import { classifyMatchStatus } from '../../lib/sportsIdentity';
+import {
+  buildCalendar,
+  compareUpcoming,
+  formatFixtureTime,
+  isUpcomingFixture,
+  selectCalendarMatches,
+} from './calendar';
 
 export interface DashboardProps {
   data: UseFootballResult;
@@ -38,7 +47,7 @@ function FeedRow({ m, onOpenMatch }: { m: MatchSummary; onOpenMatch: (id: string
       onClick={() => onOpenMatch(m.id)}
       title="Открыть разбор матча"
     >
-      <small>{formatDateTime(m.time_utc, timezone)}</small>
+      <small>{formatFixtureTime(m, timezone)}</small>
       <span>
         <TeamBadge name={m.home_team.name} imageUrl={m.home_team.image_url} size={24} />
         <strong>{m.home_team.name}</strong>
@@ -62,20 +71,13 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
 
   // Расписание ВЫБРАННОЙ лиги/сезона — главный левый столбец обзора.
   const leagueUpcoming = useMemo(
-    () =>
-      data.matches
-        .filter(
-          (m) =>
-            m.status !== 'finished' &&
-            new Date(m.time_utc ?? m.date ?? '').getTime() > Date.now() - 7200000,
-        )
-        .sort((a, b) => (a.time_utc ?? '').localeCompare(b.time_utc ?? '')),
+    () => data.matches.filter((m) => isUpcomingFixture(m)).sort(compareUpcoming),
     [data.matches],
   );
   const leagueResults = useMemo(
     () =>
       data.matches
-        .filter((m) => m.status === 'finished')
+        .filter((m) => classifyMatchStatus(m.status) === 'finished')
         .sort((a, b) => (b.time_utc ?? '').localeCompare(a.time_utc ?? '')),
     [data.matches],
   );
@@ -89,15 +91,9 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         matchInvolvesFavorite(m.home_team.name, m.away_team.name, favoriteTeamNames),
     );
     return {
-      upcoming: selected
-        .filter(
-          (m) =>
-            m.status !== 'finished' &&
-            new Date(m.time_utc ?? m.date ?? '').getTime() > Date.now() - 7200000,
-        )
-        .sort((a, b) => (a.time_utc ?? '').localeCompare(b.time_utc ?? '')),
+      upcoming: selected.filter((m) => isUpcomingFixture(m)).sort(compareUpcoming),
       results: selected
-        .filter((m) => m.status === 'finished')
+        .filter((m) => classifyMatchStatus(m.status) === 'finished')
         .sort((a, b) => (b.time_utc ?? '').localeCompare(a.time_utc ?? '')),
     } as const;
   }, [data.allMatches, teamIds, favoriteTeamNames]);
@@ -136,9 +132,16 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     setCalBusy(true);
     setCalMessage(null);
     try {
-      const upcomingAll = favUpcoming.length > 0 ? favUpcoming : leagueUpcoming;
-      if (upcomingAll.length === 0) {
-        setCalMessage('Нет будущих матчей для экспорта.');
+      const { events, skipped, fallback, skippedFavorites } = selectCalendarMatches(
+        favUpcoming,
+        leagueUpcoming,
+      );
+      if (!events.length) {
+        setCalMessage(
+          skipped
+            ? `Нет матчей с известной датой для экспорта (пропущено: ${skipped}).`
+            : 'Нет будущих матчей для экспорта.',
+        );
         return;
       }
       const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -154,47 +157,15 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           return;
         }
         path = chosen;
-        const { rpc } = await import('../../lib/bridge');
         await rpc('export_calendar', {
-          matches: upcomingAll.map((m) => ({
-            id: m.id,
-            home: m.home_team.name,
-            away: m.away_team.name,
-            time: m.time_utc ?? m.date ?? '',
-          })),
+          matches: events,
           path,
           reminderMinutes: 15,
         });
       } else {
         // Браузерный dev: скачиваем файл напрямую.
         path = 'sportsdesk-matches.ics';
-        const lines = [
-          'BEGIN:VCALENDAR',
-          'VERSION:2.0',
-          'PRODID:-//SportsDesk//Personal Sports Hub//RU',
-          'CALSCALE:GREGORIAN',
-        ];
-        for (const m of upcomingAll) {
-          const t = (m.time_utc ?? m.date ?? '').replace(' ', 'T');
-          if (!t) {
-            continue;
-          }
-          lines.push(
-            'BEGIN:VEVENT',
-            `UID:${m.id}@sportsdesk.local`,
-            `DTSTAMP:${t}`,
-            `DTSTART:${t}`,
-            `SUMMARY:${m.home_team.name} — ${m.away_team.name}`,
-            `BEGIN:VALARM`,
-            `TRIGGER:-PT15M`,
-            'ACTION:DISPLAY',
-            'DESCRIPTION:Матч скоро начнётся',
-            'END:VALARM',
-            'END:VEVENT',
-          );
-        }
-        lines.push('END:VCALENDAR');
-        const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+        const blob = new Blob([buildCalendar(events)], { type: 'text/calendar' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -202,7 +173,18 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         a.click();
         URL.revokeObjectURL(url);
       }
-      setCalMessage(`Сохранено: ${path} (${upcomingAll.length} матчей, напоминание за 15 мин).`);
+      const allDay = events.filter((event) => event.time.length === 10).length;
+      const notes = [
+        `${events.length} матчей`,
+        ...(fallback ? ['матчи выбранной лиги'] : []),
+        ...(skippedFavorites ? [`избранных без даты: ${skippedFavorites}`] : []),
+        ...(events.length > allDay
+          ? ['напоминание за 15 мин для матчей с известным временем']
+          : []),
+        ...(allDay ? [`без времени: ${allDay}, событие на весь день`] : []),
+        ...(skipped ? [`без даты, пропущено: ${skipped}`] : []),
+      ];
+      setCalMessage(`Сохранено: ${path} (${notes.join('; ')}).`);
     } catch (e) {
       setCalMessage(e instanceof Error ? e.message : 'Экспорт не удался.');
     } finally {
@@ -230,7 +212,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         <Clock3 size={18} />
         <span>
           <strong>
-            {next ? formatDateTime(next.time_utc, getUserTimezone()) : 'Нет ближайшего матча'}
+            {next ? formatFixtureTime(next, getUserTimezone()) : 'Нет ближайшего матча'}
           </strong>
           <small>
             {next ? `${next.home_team.name} — ${next.away_team.name}` : 'Среди ваших клубов'}

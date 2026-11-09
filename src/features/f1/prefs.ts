@@ -2,6 +2,8 @@
  * Favorites persistence (namespaced, defensive). Non-secret UI only.
  */
 
+import { setString } from '../football/storage';
+
 const DRIVER_KEY = 'sportsdesk.f1.favDrivers';
 const TEAM_KEY = 'sportsdesk.f1.favTeams';
 
@@ -24,7 +26,7 @@ function readList(key: string, fallback: string[]): string[] {
 
 function writeList(key: string, list: string[]): void {
   try {
-    localStorage.setItem(key, JSON.stringify(Array.from(new Set(list))));
+    setString(key, JSON.stringify(Array.from(new Set(list))));
   } catch {
     /* storage may be unavailable */
   }

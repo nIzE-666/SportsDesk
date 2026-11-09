@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, Star, Users, X } from 'lucide-react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { fetchTeamHistory, type HistoryMatch } from './history';
@@ -38,33 +38,37 @@ interface PlayerCard {
   stats: PlayerSeasonStats | null;
   busy: boolean;
   error: string | null;
+  retry: () => void;
 }
 
 function usePlayerSeason(
   player: FavoritePlayer | null,
   loadedMatches: MatchSummary[],
-): { stats: PlayerSeasonStats | null; busy: boolean; error: string | null } {
-  const [stats, setStats] = useState<PlayerSeasonStats | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+): Omit<PlayerCard, 'player'> {
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
+  const [state, setState] = useState<{
+    pid: string;
+    tid: string;
+    matches: MatchSummary[];
+    attempt: number;
+    stats: PlayerSeasonStats | null;
+    busy: boolean;
+    error: string | null;
+  } | null>(null);
+  const pid = player?.id;
+  const tid = player?.teamId;
 
   useEffect(() => {
-    const pid = player?.id;
-    const tid = player?.teamId;
-    if (!pid || !tid) {
-      setStats(null);
-      setBusy(false);
-      setError(null);
-      return;
-    }
+    if (!pid || !tid) return;
     let active = true;
-    setBusy(true);
-    setError(null);
-    setStats(null);
+    const key = { pid, tid, matches: loadedMatches, attempt };
+    setState({ ...key, busy: true, error: null, stats: null });
     void (async () => {
       try {
         // Матчи команды во ВСЕХ лигах из локальной истории.
-        const history = await fetchTeamHistory(tid, true).catch(() => []);
+        const history = await fetchTeamHistory(tid, true);
+        if (!active) return;
         const byId = new Map(history.map((m) => [m.id, historyToSummary(m)]));
         for (const m of loadedMatches) byId.set(m.id, m);
         const matches = [...byId.values()];
@@ -74,19 +78,36 @@ function usePlayerSeason(
           );
         }
         const result = await fetchPlayerSeasonStats(pid, tid, matches);
-        if (active) setStats(result);
+        if (active) setState({ ...key, stats: result, busy: false, error: null });
       } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : 'Статистика недоступна.');
-      } finally {
-        if (active) setBusy(false);
+        if (active)
+          setState({
+            ...key,
+            stats: null,
+            busy: false,
+            error: e instanceof Error ? e.message : 'Статистика недоступна.',
+          });
       }
     })();
     return () => {
       active = false;
     };
-  }, [player?.id, player?.teamId, loadedMatches]);
+  }, [pid, tid, loadedMatches, attempt]);
 
-  return { stats, busy, error };
+  const current =
+    state &&
+    state.pid === pid &&
+    state.tid === tid &&
+    state.matches === loadedMatches &&
+    state.attempt === attempt
+      ? state
+      : null;
+  return {
+    stats: current?.stats ?? null,
+    busy: current?.busy ?? Boolean(pid && tid),
+    error: current?.error ?? null,
+    retry,
+  };
 }
 
 function PlayerCardView({
@@ -106,7 +127,7 @@ function PlayerCardView({
   onOpen: () => void;
   onRemove: () => void;
 }) {
-  const { stats, busy, error } = usePlayerSeason(player, matches);
+  const { stats, busy, error, retry } = usePlayerSeason(player, matches);
   return (
     <section className="panel pc-card">
       <div className="pc-head">
@@ -143,7 +164,7 @@ function PlayerCardView({
       </div>
 
       {busy && <LoadingBlock label="Собираем статистику по всем лигам…" rows={2} />}
-      {error && <ErrorBlock title="Статистика недоступна" message={error} />}
+      {error && <ErrorBlock title="Статистика недоступна" message={error} onRetry={retry} />}
       {stats && stats.metrics.length === 0 && !busy && (
         <p className="muted small">Провайдер не вернул показатели игрока в матчах истории.</p>
       )}
@@ -248,8 +269,12 @@ function ComparePanel({ a, b, onClose }: { a: PlayerCard; b: PlayerCard; onClose
         Показатели по загруженным матчам команд. Количество матчей может различаться.
       </p>
       {(a.busy || b.busy) && <LoadingBlock label="Собираем данные для сравнения…" rows={2} />}
-      {a.error && <ErrorBlock title={`Нет данных: ${a.player.name}`} message={a.error} />}
-      {b.error && <ErrorBlock title={`Нет данных: ${b.player.name}`} message={b.error} />}
+      {a.error && (
+        <ErrorBlock title={`Нет данных: ${a.player.name}`} message={a.error} onRetry={a.retry} />
+      )}
+      {b.error && (
+        <ErrorBlock title={`Нет данных: ${b.player.name}`} message={b.error} onRetry={b.retry} />
+      )}
       <div className="pc-compare-head">
         <span>
           {a.player.name}
@@ -285,7 +310,7 @@ function ComparePanel({ a, b, onClose }: { a: PlayerCard; b: PlayerCard; onClose
           b={b.stats?.metrics.find((m) => m.key === key)?.value ?? null}
         />
       ))}
-      {labels.length === 0 && !a.busy && !b.busy && (
+      {labels.length === 0 && !a.busy && !b.busy && !a.error && !b.error && (
         <p className="muted small">Провайдер не вернул показатели для сравнения.</p>
       )}
     </section>
@@ -365,15 +390,16 @@ function ComparisonPicker({
 }
 
 function useCard(player: FavoritePlayer | null, matches: MatchSummary[]): PlayerCard {
-  const { stats, busy, error } = usePlayerSeason(player, matches);
+  const { stats, busy, error, retry } = usePlayerSeason(player, matches);
   return useMemo(
     () => ({
       player: (player ?? { id: '', name: '—', savedAt: '' }) as FavoritePlayer,
       stats,
       busy,
       error,
+      retry,
     }),
-    [player, stats, busy, error],
+    [player, stats, busy, error, retry],
   );
 }
 

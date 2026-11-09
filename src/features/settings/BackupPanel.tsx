@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
-import { applyProfile, profileEntries } from './profileBackup';
+import { profileEntries, restoreFullBackup, withProfileMirrorPaused } from './profileBackup';
 interface Settings {
   enabled: boolean;
   folder: string | null;
@@ -12,7 +12,11 @@ export function BackupPanel() {
   const [settings, setSettings] = useState<Settings | null>(null),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
-  const load = () => rpc<Settings>('backup_settings').then(setSettings);
+  const load = async () => {
+    const latest = await rpc<Settings>('backup_settings');
+    setSettings(latest);
+    return latest;
+  };
   useEffect(() => {
     if (isTauriRuntime()) void load().catch((e) => setMessage(String(e)));
   }, []);
@@ -75,10 +79,12 @@ export function BackupPanel() {
           disabled={busy || !settings?.folder}
           onClick={() =>
             void run(async () => {
-              await rpc('sync_profile', { settings: profileEntries() });
-              const path = await rpc<string>('create_backup');
-              await load();
-              setMessage(`Копия сохранена: ${path}`);
+              const path = await withProfileMirrorPaused(async () => {
+                await rpc('sync_profile', { settings: profileEntries() });
+                return rpc<string>('create_backup');
+              });
+              const latest = await load();
+              setMessage(`Копия сохранена: ${path}${latest.error ? ` ${latest.error}` : ''}`);
             })
           }
         >
@@ -105,10 +111,7 @@ export function BackupPanel() {
                 throw new Error(
                   'Сначала выберите папку, чтобы сохранить текущие данные перед восстановлением.',
                 );
-              await rpc('sync_profile', { settings: profileEntries() });
-              await rpc('create_backup');
-              const p = await rpc<{ settings: Record<string, string> }>('restore_backup', { path });
-              applyProfile(p.settings);
+              await restoreFullBackup(path);
             })
           }
         >

@@ -17,6 +17,15 @@ if ($DownloadUrl) {
   if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https' -or $uri.UserInfo -or $uri.Fragment) { throw 'DownloadUrl must be HTTPS' }
 }
 $utf8 = [System.Text.UTF8Encoding]::new($false)
+. (Join-Path $PSScriptRoot 'release-artifacts.ps1')
+# Keep the caller's exact files if any validation, build or verification fails.
+$versionFiles = @('package.json','package-lock.json','src-tauri/tauri.conf.json','src-tauri/Cargo.toml','src-tauri/Cargo.lock')
+$originalFiles = @{}
+foreach ($name in $versionFiles) {
+  $path = Join-Path $root $name
+  $originalFiles[$path] = [IO.File]::ReadAllBytes($path)
+}
+try {
 foreach ($name in @('package.json','src-tauri/tauri.conf.json')) {
   $path = Join-Path $root $name
   $value = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
@@ -52,7 +61,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Visual regression tests failed' }
   cargo test --manifest-path src-tauri/Cargo.toml --lib
   if ($LASTEXITCODE -ne 0) { throw 'Rust tests failed' }
-  cargo clippy --manifest-path src-tauri/Cargo.toml --lib --no-deps -- -D warnings
+  cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --no-deps -- -D warnings
   if ($LASTEXITCODE -ne 0) { throw 'Rust lint failed' }
 } finally { Pop-Location }
 
@@ -76,27 +85,22 @@ try {
 $setupName = "SportsDesk_${Version}_x64-setup.exe"
 $setup = Join-Path $root "src-tauri/target/release/bundle/nsis/$setupName"
 $portable = Join-Path $root 'src-tauri/target/release/sportsdesk.exe'
-$signaturePath = "$setup.sig"
-foreach ($file in @($setup,$portable,$signaturePath)) { if (-not (Test-Path -LiteralPath $file)) { throw "Artifact missing: $file" } }
-$signature = (Get-Content -LiteralPath $signaturePath -Raw).Trim()
-if (-not $signature) { throw 'Updater signature is empty' }
-$releases = Join-Path $root 'releases'
-New-Item -ItemType Directory -Force -Path $releases | Out-Null
-Copy-Item -LiteralPath $setup -Destination (Join-Path $releases $setupName) -Force
-Copy-Item -LiteralPath $signaturePath -Destination (Join-Path $releases "$setupName.sig") -Force
-Copy-Item -LiteralPath $portable -Destination (Join-Path $releases "SportsDesk_${Version}_portable.exe") -Force
-Get-ChildItem -LiteralPath $releases -Filter '*.exe' | Sort-Object Name | ForEach-Object {
-  "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
-} | Set-Content -LiteralPath (Join-Path $releases 'SHA256SUMS.txt') -Encoding utf8
-
 if ($Repo) { $DownloadUrl = "https://github.com/$Repo/releases/download/v$Version/$setupName" }
-$info = [ordered]@{ version=$Version; notes=$Notes; pub_date=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'); installer=$setupName; signature=$signature; publicationConfigured=[bool]$DownloadUrl }
-[IO.File]::WriteAllText((Join-Path $releases "release-$Version.json"),($info | ConvertTo-Json -Depth 5),$utf8)
+Publish-ReleaseArtifacts -Root $root -Version $Version -Setup $setup -Portable $portable -DownloadUrl $DownloadUrl -Notes $Notes -Verify {
+  param($artifactDirectory)
+  node (Join-Path $root 'scripts/verify-release.mjs') $Version $artifactDirectory
+  if ($LASTEXITCODE -ne 0) { throw 'Release signature or checksum verification failed' }
+}
 if ($DownloadUrl) {
-  $manifest = [ordered]@{ version=$Version; notes=$Notes; pub_date=$info.pub_date; platforms=[ordered]@{ 'windows-x86_64'=[ordered]@{signature=$signature;url=$DownloadUrl} } }
-  [IO.File]::WriteAllText((Join-Path $releases "latest-$Version.json"),($manifest | ConvertTo-Json -Depth 5),$utf8)
   Write-Host "Update manifest ready: releases/latest-$Version.json"
 } else {
   Write-Host 'No publication address configured. Signed local artifacts are ready; no remote manifest generated.'
 }
 Write-Host "Ready: releases/$setupName and SportsDesk_${Version}_portable.exe"
+} catch {
+  foreach ($path in $originalFiles.Keys) {
+    try { [IO.File]::WriteAllBytes($path, $originalFiles[$path]) }
+    catch { Write-Warning "Could not restore original file: $path" }
+  }
+  throw
+}

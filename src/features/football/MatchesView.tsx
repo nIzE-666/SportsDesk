@@ -37,7 +37,7 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
         if (teamFilter && m.home_team.id !== teamFilter && m.away_team.id !== teamFilter)
           return false;
         if (q) {
-          const hay = `${m.home_team.name} ${m.away_team.name}`.toLowerCase();
+          const hay = normalizeName(`${m.home_team.name} ${m.away_team.name}`);
           if (!hay.includes(q)) return false;
         }
         return true;

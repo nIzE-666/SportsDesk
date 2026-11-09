@@ -7,6 +7,7 @@ import {
   selectPlayerFormWindow,
 } from './playerForm';
 import type { MatchSummary, PlayerMatchEntry, PlayerStatEntry } from './types';
+import { formatDate, formatShortDate } from './storage';
 
 vi.mock('../../lib/bridge', () => ({ api: vi.fn() }));
 beforeEach(() => {
@@ -95,7 +96,7 @@ it('orders offsetless provider timestamps as UTC alongside explicit offsets and 
       'utc_date_only',
     ]);
     expect(playerFormRow(fixtures[1]!, [], 'player', 'club').date).toBe('2026-01-02T01:00:00.000Z');
-    expect(playerFormRow(fixtures[0]!, [], 'player', 'club').date).toBe('2026-01-02T00:00:00.000Z');
+    expect(playerFormRow(fixtures[0]!, [], 'player', 'club').date).toBe('2026-01-02');
   } finally {
     vi.unstubAllEnvs();
   }
@@ -111,12 +112,31 @@ it('falls back from malformed times and never normalizes impossible dates or24-h
     date: '2026-02-30',
   });
   const hours = fixture('utc_hours', 2, { time_utc: '2026-01-02T24:00:00Z', date: undefined });
-  expect(playerFormRow(fallback, [], 'player', 'club').date).toBe('2026-01-02T00:00:00.000Z');
+  expect(playerFormRow(fallback, [], 'player', 'club').date).toBe('2026-01-02');
   expect(playerFormRow(impossible, [], 'player', 'club').date).toBeNull();
   expect(playerFormRow(hours, [], 'player', 'club').date).toBeNull();
   expect(selectPlayerFormFixtures('club', [impossible, hours, fallback])[0]?.id).toBe(
     'utc_fallback',
   );
+});
+
+it('preserves a fixture calendar day for labels while converting actual kickoff timestamps', () => {
+  const day = playerFormRow(
+    fixture('label_day', 2, { date: '2026-01-02', time_utc: undefined }),
+    [],
+    'player',
+    'club',
+  );
+  const kickoff = playerFormRow(
+    fixture('label_time', 2, { time_utc: '2026-01-02T23:30:00Z' }),
+    [],
+    'player',
+    'club',
+  );
+  expect(day.date).toBe('2026-01-02');
+  expect(formatDate(day.date, 'Pacific/Kiritimati')).toBe('2 января 2026');
+  expect(formatShortDate(day.date, 'Etc/GMT+12')).toBe('2 янв');
+  expect(formatDate(kickoff.date, 'Pacific/Kiritimati')).toBe('3 января 2026');
 });
 
 it('caps work at latest60, deduplicates, preserves chronology and uses at most3 concurrent requests', async () => {

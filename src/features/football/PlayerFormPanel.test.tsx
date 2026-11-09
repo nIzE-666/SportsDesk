@@ -6,12 +6,14 @@ import { viewState } from '../../lib/viewState';
 import { PlayerFormPanel } from './PlayerFormPanel';
 import {
   fetchPlayerForm,
+  playerFormRow,
   selectPlayerFormWindow,
   summarizePlayerFormRows,
   type PlayerForm,
   type PlayerFormRow,
 } from './playerForm';
 import type { MatchSummary } from './types';
+import { STORAGE_KEYS } from './storage';
 
 vi.mock('./playerForm', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./playerForm')>()),
@@ -199,6 +201,24 @@ it('switches between5/10 fixtures and metrics using the loaded baseline without 
   expect(host.querySelectorAll('.form-match-row')).toHaveLength(5);
   expect(host.querySelector('.form-match-list')?.textContent).not.toContain('Opponent A');
   expect(fetchPlayerForm).toHaveBeenCalledTimes(1);
+});
+
+it('shows a calendar-only match on its original day and converts a timestamp in UTC+14', async () => {
+  localStorage.setItem(STORAGE_KEYS.timezone, 'Pacific/Kiritimati');
+  const day = { ...fixture('calendar', 2), time_utc: undefined };
+  const timed = { ...fixture('timed', 2), time_utc: '2026-10-02T23:30:00Z' };
+  vi.mocked(fetchPlayerForm).mockResolvedValue(
+    form([playerFormRow(day, [], 'player', 'club'), playerFormRow(timed, [], 'player', 'club')]),
+  );
+  await render({ matches: [day, timed] });
+  await click(button('Показать форму игрока'));
+  const rows = [...host.querySelectorAll<HTMLElement>('.form-match-row')];
+  expect(
+    rows.find((item) => item.textContent?.includes('Opponent calendar'))?.textContent,
+  ).toContain('2 октября 2026');
+  expect(rows.find((item) => item.textContent?.includes('Opponent timed'))?.textContent).toContain(
+    '3 октября 2026',
+  );
 });
 
 it('ignores an old player/team response and its completion state while the new selection is loading', async () => {

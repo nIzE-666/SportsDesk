@@ -10,7 +10,12 @@ function safeGet(key: string): string | null {
 
 function safeSet(key: string, value: string): void {
   try {
-    if (window.localStorage.getItem(key) === value) return;
+    if (window.localStorage.getItem(key) === value) {
+      // Restores observe even a no-op write: it can be a user edit made while
+      // the restored value happens to match the value they just selected.
+      window.dispatchEvent(new CustomEvent('sportsdesk-storage-write-intent', { detail: { key } }));
+      return;
+    }
     window.localStorage.setItem(key, value);
     window.dispatchEvent(new CustomEvent('sportsdesk-storage-changed', { detail: { key } }));
   } catch {
@@ -59,9 +64,19 @@ export const STORAGE_KEYS = {
 
 const DEFAULT_TZ = 'Asia/Yakutsk';
 
+export function isValidTimezone(timezone: string): boolean {
+  if (!timezone || timezone !== timezone.trim()) return false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getUserTimezone(): string {
   const tz = getString(STORAGE_KEYS.timezone);
-  return tz && tz.trim() ? tz : DEFAULT_TZ;
+  return tz && isValidTimezone(tz) ? tz : DEFAULT_TZ;
 }
 
 const RU_MONTHS = [
@@ -96,6 +111,7 @@ const RU_MONTHS_SHORT = [
 
 export function formatDateTime(iso: string | null | undefined, timezone: string): string {
   if (!iso) return '—';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return formatShortDate(iso, timezone);
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
   try {
@@ -114,7 +130,10 @@ export function formatDateTime(iso: string | null | undefined, timezone: string)
 
 export function formatDate(iso: string | null | undefined, timezone: string): string {
   if (!iso) return '—';
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + 'T12:00:00Z') : new Date(iso);
+  const calendar = calendarDate(iso);
+  if (calendar) return `${calendar.day} ${RU_MONTHS[calendar.month - 1]} ${calendar.year}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   try {
     const parts = new Intl.DateTimeFormat('ru-RU', {
@@ -135,7 +154,10 @@ export function formatDate(iso: string | null | undefined, timezone: string): st
 
 export function formatShortDate(iso: string | null | undefined, timezone: string): string {
   if (!iso) return '—';
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + 'T12:00:00Z') : new Date(iso);
+  const calendar = calendarDate(iso);
+  if (calendar) return `${calendar.day} ${RU_MONTHS_SHORT[calendar.month - 1]}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   try {
     const day = new Intl.DateTimeFormat('ru-RU', { timeZone: timezone, day: 'numeric' }).format(d);
@@ -146,6 +168,14 @@ export function formatShortDate(iso: string | null | undefined, timezone: string
   } catch {
     return iso;
   }
+}
+
+/** Calendar-only values have no timezone and must never be shifted to another day. */
+function calendarDate(value: string): { year: number; month: number; day: number } | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
 }
 
 export function normalizeName(name: string): string {

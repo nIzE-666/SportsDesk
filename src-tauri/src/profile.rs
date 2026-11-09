@@ -181,7 +181,7 @@ mod tests {
     fn rejects_wrong_extension_and_foreign_files() {
         let dir = std::env::temp_dir().join(format!("sd-profile-bad-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let p = build_profile(&vec![("sportsdesk.scheme".into(), "dark".into())]).unwrap();
+        let p = build_profile(&[("sportsdesk.scheme".into(), "dark".into())]).unwrap();
         assert!(write_profile(dir.join("profile.txt").to_str().unwrap(), &p).is_err());
         std::fs::write(
             dir.join("foreign.json"),
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn forbidden_keys_are_rejected() {
         // Keys outside the allowlist cannot be smuggled in.
-        assert!(build_profile(&vec![("evil.token".into(), "x".into())]).is_err());
+        assert!(build_profile(&[("evil.token".into(), "x".into())]).is_err());
         assert!(!is_allowed_key("evil"));
         assert!(is_allowed_key("sportsdesk.scheme"));
         assert!(is_allowed_key("sportsdesk.design"));

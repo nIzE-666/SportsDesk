@@ -13,7 +13,7 @@ export function MatchRow({
   onClick: () => void;
   compact?: boolean;
 }) {
-  const state = classifyMatchStatus(m.status),
+  const state = classifyMatchStatus(m.status, m.status_text),
     finished = state === 'finished',
     live = state === 'live';
   return (

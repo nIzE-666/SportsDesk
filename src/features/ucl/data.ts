@@ -155,9 +155,11 @@ function parseMatch(raw: unknown): MatchSummary | undefined {
   };
 
   const date = asString(raw.date);
+  const statusText = asString(raw.status_text);
   const timeUtc = asString(raw.time_utc);
   const roundName = asString(raw.round_name);
   if (date) match.date = date;
+  if (statusText) match.status_text = statusText;
   if (timeUtc) match.time_utc = timeUtc;
   if (roundName) match.round_name = roundName;
 

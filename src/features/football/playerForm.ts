@@ -8,7 +8,7 @@ export type PlayerFormStatus = 'available' | 'missing' | 'not-played' | 'failed'
 export interface PlayerFormRow {
   id: string;
   match: MatchSummary;
-  /** Normalized fixture time, or null when neither provider date is usable. */
+  /** A calendar date or normalized fixture time, or null when neither is usable. */
   date: string | null;
   status: PlayerFormStatus;
   playerPresent: boolean;
@@ -91,6 +91,16 @@ function fixtureTime(match: MatchSummary): number | null {
   return sourceTimestamp(match.time_utc) ?? sourceTimestamp(match.date);
 }
 
+function fixtureDate(match: MatchSummary): string | null {
+  for (const value of [match.time_utc, match.date]) {
+    const time = sourceTimestamp(value);
+    if (time === null || !value) continue;
+    const trimmed = value.trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : new Date(time).toISOString();
+  }
+  return null;
+}
+
 function compareFixtures(a: MatchSummary, b: MatchSummary): number {
   const at = fixtureTime(a);
   const bt = fixtureTime(b);
@@ -143,11 +153,10 @@ function numericValue(raw: unknown): number | null {
 }
 
 function emptyRow(match: MatchSummary, status: PlayerFormStatus): PlayerFormRow {
-  const time = fixtureTime(match);
   return {
     id: match.id,
     match,
-    date: time === null ? null : new Date(time).toISOString(),
+    date: fixtureDate(match),
     status,
     playerPresent: false,
     rating: null,

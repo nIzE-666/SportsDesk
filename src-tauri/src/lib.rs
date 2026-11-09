@@ -67,23 +67,63 @@ async fn set_pitch_key(
 }
 
 #[tauri::command]
-async fn kino_start_auth(state: tauri::State<'_, AppState>) -> Result<kino::DeviceCode, String> {
-    kino::start_auth(&state.inner)
+async fn kino_begin_auth(state: tauri::State<'_, AppState>) -> Result<kino::AuthSession, String> {
+    kino::begin_auth(&state.inner)
+        .await
+        .map_err(|e| e.user_message())
+}
+
+#[tauri::command]
+async fn kino_start_auth(
+    session_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<kino::DeviceCode, String> {
+    kino::start_auth(&state.inner, &session_id)
         .await
         .map_err(|e| e.user_message())
 }
 
 #[tauri::command]
 async fn kino_poll_auth(
-    code: String,
+    session_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<kino::PollReply, String> {
-    if code.is_empty() {
-        return Err("Не указан код авторизации.".into());
-    }
-    kino::poll_auth(&state.inner, &code)
+    kino::poll_auth(&state.inner, &session_id)
         .await
         .map_err(|e| e.user_message())
+}
+
+#[tauri::command]
+async fn kino_commit_auth(
+    session_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<bridge::native::OkReply, String> {
+    kino::commit_auth(&state.inner, &session_id)
+        .await
+        .map_err(|e| e.user_message())?;
+    Ok(bridge::native::OkReply { ok: true })
+}
+
+#[tauri::command]
+async fn kino_cancel_auth(
+    session_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<bridge::native::OkReply, String> {
+    kino::cancel_auth(&state.inner, &session_id)
+        .await
+        .map_err(|e| e.user_message())?;
+    Ok(bridge::native::OkReply { ok: true })
+}
+
+#[tauri::command]
+async fn kino_finish_auth(
+    session_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<bridge::native::OkReply, String> {
+    kino::finish_auth(&state.inner, &session_id)
+        .await
+        .map_err(|e| e.user_message())?;
+    Ok(bridge::native::OkReply { ok: true })
 }
 
 #[tauri::command]
@@ -393,8 +433,12 @@ pub fn run() {
             appearance::apply_window_appearance,
             secret_status,
             set_pitch_key,
+            kino_begin_auth,
             kino_start_auth,
             kino_poll_auth,
+            kino_commit_auth,
+            kino_cancel_auth,
+            kino_finish_auth,
             kino_channels,
             kino_logout,
             open_external,
@@ -424,9 +468,12 @@ pub fn run() {
             import_profile,
             backup::backup_settings,
             backup::sync_profile,
+            backup::provide_backup_profile,
             backup::configure_backup,
             backup::create_backup,
-            backup::restore_backup,
+            backup::prepare_backup_restore,
+            backup::commit_backup_restore,
+            backup::cancel_backup_restore,
             diagnostics::read_diagnostics,
         ])
         .run(tauri::generate_context!())

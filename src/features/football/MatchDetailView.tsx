@@ -81,6 +81,7 @@ export function MatchDetailView({
   const [loaded, setLoaded] = useState<Loaded>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const [optionalErrors, setOptionalErrors] = useState<Partial<Record<TabKey, string>>>({});
   const [optionalLoading, setOptionalLoading] = useState<Partial<Record<TabKey, boolean>>>({});
   const reqRef = useRef(0);
@@ -162,7 +163,7 @@ export function MatchDetailView({
     return () => {
       mounted.current = false;
     };
-  }, [matchId, loadOptional]);
+  }, [matchId, loadOptional, retry]);
 
   // Живой центр матча: пока матч открыт, Rust опрашивает его каждые 60 с и
   // присылает sportsdesk://match-update при изменениях — обновляем экран.
@@ -249,7 +250,11 @@ export function MatchDetailView({
         <button className="ghost-btn" onClick={onBack}>
           <ArrowLeft size={14} /> Назад
         </button>
-        <ErrorBlock title="Матч недоступен" message={error ?? 'Пустой ответ'} onRetry={onBack} />
+        <ErrorBlock
+          title="Матч недоступен"
+          message={error ?? 'Пустой ответ'}
+          onRetry={() => setRetry((value) => value + 1)}
+        />
       </div>
     );
   }
