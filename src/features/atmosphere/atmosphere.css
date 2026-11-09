@@ -1,0 +1,75 @@
+.goal-celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 900;
+}
+.confetti-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.goal-celebration-card {
+  pointer-events: auto;
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  max-width: min(520px, calc(100vw - 32px));
+  border-radius: 14px;
+  border: 1px solid var(--accent, #22c55e);
+  background: var(--panel, #111827);
+  color: var(--text, #f8fafc);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  animation: goal-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.goal-celebration-card.static {
+  animation: none;
+}
+.goal-celebration-ball {
+  font-size: 26px;
+}
+.goal-celebration-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.goal-celebration-text span {
+  font-size: 13px;
+  opacity: 0.8;
+}
+@keyframes goal-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .goal-celebration-card {
+    animation: none;
+  }
+}
+.atmosphere-options {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+}
+.atmosphere-options:disabled {
+  opacity: 0.55;
+}
+.atmosphere-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

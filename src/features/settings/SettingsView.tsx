@@ -25,6 +25,7 @@ import { FavoriteClubsEditor } from './FavoriteClubsEditor';
 import { BackupPanel } from './BackupPanel';
 import { ShortcutControl } from './ShortcutControl';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { AtmosphereSettings } from '../atmosphere/AtmosphereSettings';
 import { applyProfile, profileEntries } from './profileBackup';
 import { DesignChooser } from '../../components/DesignChooser';
 import { openFirstRunWizard } from '../onboarding/onboarding';
@@ -740,6 +741,8 @@ export function SettingsView() {
         </div>
         {notificationMessage && <p className="settings-note">{notificationMessage}</p>}
       </section>
+
+      <AtmosphereSettings />
 
       <section className="panel settings-section">
         <div className="section-title">
