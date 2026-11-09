@@ -72,6 +72,11 @@ pub struct PollConfig {
     /// Event Center entries are produced for them until the user reveals them.
     #[serde(default, rename = "hiddenResults")]
     pub hidden_results: Vec<String>,
+    /// F1 session reminders styled as SportsDesk "team radio" (off by default).
+    #[serde(default, rename = "f1Radio")]
+    pub f1_radio: bool,
+    #[serde(default, rename = "f1RadioName")]
+    pub f1_radio_name: String,
 }
 
 impl PollConfig {
@@ -104,6 +109,8 @@ impl Default for PollConfig {
             policy: Default::default(),
             timezone: default_timezone(),
             hidden_results: Vec::new(),
+            f1_radio: false,
+            f1_radio_name: String::new(),
         }
     }
 }

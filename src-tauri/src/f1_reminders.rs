@@ -240,6 +240,64 @@ fn push_due(
     });
 }
 
+const RACE_DAYS: [&str; 7] = [
+    "гоночный понедельник",
+    "гоночный вторник",
+    "гоночная среда",
+    "гоночный четверг",
+    "гоночная пятница",
+    "гоночная суббота",
+    "гоночное воскресенье",
+];
+
+/// Day phrase for the session start in the user's timezone.
+fn race_day(start_ms: i64, timezone: &str) -> Option<&'static str> {
+    use chrono::Datelike;
+    let zone = timezone.parse::<chrono_tz::Tz>().unwrap_or(chrono_tz::UTC);
+    let date = chrono::DateTime::from_timestamp_millis(start_ms)?.with_timezone(&zone);
+    RACE_DAYS
+        .get(date.weekday().num_days_from_monday() as usize)
+        .copied()
+}
+
+/// Short printable address for the radio phrase (no control characters).
+fn radio_address(name: &str) -> Option<String> {
+    let clean: String = name.chars().filter(|c| !c.is_control()).take(24).collect();
+    let clean = clean.trim().to_string();
+    (!clean.is_empty()).then_some(clean)
+}
+
+/// SportsDesk-styled "team radio" text for a real session reminder. The key
+/// is unchanged, so styling never creates extra duplicates. The phrases are
+/// app styling, not real team recordings, and never announce a pit stop.
+pub(crate) fn radio_styled(reminder: Reminder, timezone: &str, name: &str) -> Reminder {
+    let sid = reminder.key.rsplit('|').next().unwrap_or("");
+    let Some(label) = reminder.title.strip_prefix("F1: ") else {
+        return reminder;
+    };
+    let Some((race, when)) = reminder.body.split_once(" · ") else {
+        return reminder;
+    };
+    let tail = match sid {
+        "fp1" | "fp2" | "fp3" => "Проверяем баланс машины.",
+        "qualifying" | "sprint-qualifying" => "Нужен чистый круг.",
+        "sprint" => "Короткая дистанция — без права на ошибку.",
+        "race" => "Скоро погаснут огни.",
+        _ => "Будь у экрана.",
+    };
+    let day = race_day(reminder.start_ms, timezone).unwrap_or("гоночный день");
+    let address = radio_address(name)
+        .map(|n| format!(", {n}"))
+        .unwrap_or_default();
+    let title = format!("📻 Радио SportsDesk · {label}");
+    let body = format!("«Это {day}{address}. {label} {when} {tail}» · {race}");
+    Reminder {
+        title,
+        body,
+        ..reminder
+    }
+}
+
 /// Delivery gate: opt-in flags are re-read immediately before each
 /// notification, after the async fetch completed.
 #[derive(Default)]
@@ -342,6 +400,12 @@ async fn tick(
         if !poller.config().f1_reminders {
             break;
         }
+        let cfg = poller.config();
+        let reminder = if cfg.f1_radio {
+            radio_styled(reminder, &cfg.timezone, &cfg.f1_radio_name)
+        } else {
+            reminder
+        };
         let mut target = reminder.key.split('|');
         let season = target.next().map(str::to_owned);
         let round = target.next().map(str::to_owned);
@@ -385,7 +449,7 @@ async fn tick(
         }
         let _ = app.emit(
             "sportsdesk://f1-reminder",
-            serde_json::json!({ "title": reminder.title, "body": reminder.body }),
+            serde_json::json!({ "title": reminder.title, "body": reminder.body, "radio": cfg.f1_radio }),
         );
     }
     Ok(failed_start)
@@ -660,6 +724,37 @@ mod tests {
         // suppress() directly drives can_send.
         gate3.suppress(bad);
         assert!(!gate3.can_send(&cache, bad));
+    }
+
+    #[test]
+    fn radio_style_keeps_key_and_uses_local_day() {
+        // 2026-11-06 is a Friday; 23:30 UTC is already Saturday in Yakutsk.
+        let base = Reminder {
+            key: "2026|21|fp1".into(),
+            title: "F1: Первая практика".into(),
+            body: "Гран-при Бразилии · начнётся через 10 мин.".into(),
+            start_ms: parse_utc_ms("2026-11-06", "14:30:00Z").unwrap(),
+        };
+        let styled = radio_styled(base.clone(), "UTC", "Макс");
+        assert_eq!(styled.key, base.key);
+        assert_eq!(styled.start_ms, base.start_ms);
+        assert!(styled.title.contains("Радио SportsDesk"));
+        assert!(styled.body.contains("гоночная пятница, Макс."));
+        assert!(styled.body.contains("начнётся через 10 мин."));
+        assert!(styled.body.ends_with("Гран-при Бразилии"));
+        assert!(!styled.body.to_lowercase().contains("box"));
+        let late = Reminder {
+            start_ms: parse_utc_ms("2026-11-06", "23:30:00Z").unwrap(),
+            ..base.clone()
+        };
+        assert!(radio_styled(late, "Asia/Yakutsk", " \u{7} ")
+            .body
+            .contains("гоночная суббота. "));
+        let odd = Reminder {
+            title: "Другое".into(),
+            ..base.clone()
+        };
+        assert_eq!(radio_styled(odd.clone(), "UTC", "Макс"), odd);
     }
 
     #[test]

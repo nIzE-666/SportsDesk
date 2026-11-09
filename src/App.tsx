@@ -7,6 +7,7 @@ import type { TabId as F1Tab } from './features/f1/F1View';
 import { MiniWindow } from './features/football/MiniWindow';
 import { SportsNotifications } from './features/football/SportsNotifications';
 import { GoalCelebration } from './features/atmosphere/GoalCelebration';
+import { TeamRadioSignal } from './features/atmosphere/TeamRadioSignal';
 import {
   getJson,
   getString,
@@ -249,6 +250,7 @@ function MainApp() {
         />
         <SportsNotifications />
         <GoalCelebration />
+        <TeamRadioSignal />
         <WhatsNewDialog />
         <FirstRunWizard
           onLeagueChange={setLeagueId}
