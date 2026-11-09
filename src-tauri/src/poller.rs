@@ -198,7 +198,7 @@ pub struct LiveFeed {
     pub stale: bool,
     pub failure: Option<crate::bridge::ApiFailure>,
 }
-fn pitch_match(value: &Value) -> Option<FlatMatch> {
+pub(crate) fn pitch_match(value: &Value) -> Option<FlatMatch> {
     let team = |side: &str, field: &str| {
         value
             .get(side)
@@ -231,7 +231,7 @@ fn pitch_match(value: &Value) -> Option<FlatMatch> {
             .map(str::to_owned),
     })
 }
-fn favorite_ids(m: &FlatMatch, cfg: &PollConfig) -> Vec<String> {
+pub(crate) fn favorite_ids(m: &FlatMatch, cfg: &PollConfig) -> Vec<String> {
     let mut out: Vec<String> = cfg
         .favorite_teams
         .iter()
@@ -257,7 +257,7 @@ fn favorite_ids(m: &FlatMatch, cfg: &PollConfig) -> Vec<String> {
     out
 }
 
-fn score_text(v: &Option<Value>) -> String {
+pub(crate) fn score_text(v: &Option<Value>) -> String {
     match v {
         Some(Value::String(s)) => s
             .trim()
@@ -269,7 +269,7 @@ fn score_text(v: &Option<Value>) -> String {
     }
 }
 
-fn canonical_status(m: &FlatMatch) -> (bool, bool, bool) {
+pub(crate) fn canonical_status(m: &FlatMatch) -> (bool, bool, bool) {
     let status = crate::sports::status(&[
         m.status.as_deref().unwrap_or(""),
         m.status_text.as_deref().unwrap_or(""),
@@ -284,7 +284,7 @@ fn is_favourite(team: &str, favorites: &[String]) -> bool {
     crate::sports::favorite_name(team, favorites)
 }
 
-fn match_label(m: &FlatMatch) -> String {
+pub(crate) fn match_label(m: &FlatMatch) -> String {
     let base = format!(
         "{} — {}",
         m.home.as_deref().unwrap_or("—"),
@@ -296,7 +296,7 @@ fn match_label(m: &FlatMatch) -> String {
     }
 }
 
-fn score_label(m: &FlatMatch) -> String {
+pub(crate) fn score_label(m: &FlatMatch) -> String {
     let home = {
         let t = score_text(&m.home_score);
         if t.is_empty() {
@@ -330,7 +330,7 @@ fn now_ms() -> i64 {
 }
 
 /// RFC3339-ish UTC parser for the `time` field ("2026-10-21 18:00:00" or ISO).
-fn parse_time_ms(s: &str) -> Option<i64> {
+pub(crate) fn parse_time_ms(s: &str) -> Option<i64> {
     let text = s.trim();
     let iso = if text.len() == 19 {
         format!("{}Z", text.replace(' ', "T"))
@@ -1352,6 +1352,10 @@ impl Poller {
                 None
             }
         }
+    }
+    /// True once the UI has pushed its real configuration (favourites).
+    pub fn config_ready(&self) -> bool {
+        self.config_initialized.load(Ordering::Relaxed)
     }
     pub fn live_feed(&self) -> LiveFeed {
         self.feed.lock().map(|v| v.clone()).unwrap_or_default()

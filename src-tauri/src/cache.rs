@@ -38,7 +38,9 @@ impl Cache {
                  PRIMARY KEY (source, path)
              );\n             CREATE INDEX IF NOT EXISTS idx_cache_fetched ON api_cache (fetched_at);
              CREATE TABLE IF NOT EXISTS event_center (id TEXT PRIMARY KEY, payload TEXT NOT NULL, occurred_at INTEGER NOT NULL, read INTEGER NOT NULL DEFAULT 0);
-             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);",
+             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);
+             CREATE TABLE IF NOT EXISTS sync_cursor (source TEXT PRIMARY KEY, covered_until INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS catchup_summary (id INTEGER PRIMARY KEY CHECK (id = 1), payload TEXT NOT NULL, updated_at INTEGER NOT NULL);",
         )?;
         Ok(Self {
             conn: Mutex::new(conn),
@@ -58,7 +60,9 @@ impl Cache {
                  PRIMARY KEY (source, path)
              );
              CREATE TABLE IF NOT EXISTS event_center (id TEXT PRIMARY KEY, payload TEXT NOT NULL, occurred_at INTEGER NOT NULL, read INTEGER NOT NULL DEFAULT 0);
-             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);",
+             CREATE INDEX IF NOT EXISTS idx_events_occurred ON event_center (occurred_at DESC);
+             CREATE TABLE IF NOT EXISTS sync_cursor (source TEXT PRIMARY KEY, covered_until INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS catchup_summary (id INTEGER PRIMARY KEY CHECK (id = 1), payload TEXT NOT NULL, updated_at INTEGER NOT NULL);",
         )
         .expect("create in-memory table");
         Self {
@@ -135,6 +139,73 @@ impl Cache {
                 .map_err(|e| e.to_string())?;
         }
         tx.commit().map_err(|e| e.to_string())
+    }
+
+    /// Coverage cursor of the missed-events recovery for one source. Lives
+    /// outside `api_cache`, so cache pruning never resets it.
+    pub fn sync_cursor(&self, source: &str) -> Result<Option<i64>, String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        conn.query_row(
+            "SELECT covered_until FROM sync_cursor WHERE source = ?1",
+            [source],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())
+    }
+
+    pub fn set_sync_cursor(
+        &self,
+        source: &str,
+        covered_until: i64,
+        now: i64,
+    ) -> Result<(), String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        conn.execute(
+            "INSERT INTO sync_cursor (source, covered_until, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(source) DO UPDATE SET covered_until = excluded.covered_until, updated_at = excluded.updated_at",
+            params![source, covered_until, now],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn catchup_summary(&self) -> Result<Option<String>, String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        conn.query_row(
+            "SELECT payload FROM catchup_summary WHERE id = 1",
+            [],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())
+    }
+
+    /// Stores (Some) or clears (None) the single missed-events summary.
+    pub fn set_catchup_summary(&self, payload: Option<&str>, now: i64) -> Result<(), String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        match payload {
+            Some(text) => conn.execute(
+                "INSERT INTO catchup_summary (id, payload, updated_at) VALUES (1, ?1, ?2)
+                 ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at",
+                params![text, now],
+            ),
+            None => conn.execute("DELETE FROM catchup_summary", []),
+        }
+        .map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     pub fn get(&self, source: &str, path: &str) -> Option<CacheRow> {

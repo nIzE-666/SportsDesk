@@ -3,6 +3,7 @@ mod backup;
 mod bridge;
 mod cache;
 mod calendar;
+mod catchup;
 mod diagnostics;
 mod event_center;
 mod f1_reminders;
@@ -444,7 +445,8 @@ pub fn run() {
                 }
             }
 
-            f1_reminders::start(app.handle().clone(), poller.clone(), state);
+            f1_reminders::start(app.handle().clone(), poller.clone(), state.clone());
+            catchup::start(app.handle().clone(), poller.clone(), state);
             poller::start(app.handle().clone(), poller);
             Ok(())
         })
@@ -452,6 +454,8 @@ pub fn run() {
             api_request,
             event_center::event_center_list,
             event_center::event_center_mark_read,
+            catchup::catchup_summary,
+            catchup::catchup_dismiss,
             appearance::apply_window_appearance,
             secret_status,
             set_pitch_key,

@@ -62,7 +62,7 @@ fn str_field<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
 /// Strict UTC datetime: `YYYY-MM-DD` + `HH:MM:SSZ`. Rejects impossible
 /// dates (e.g. Feb 30, invalid leap days) and impossible times. Unknown or
 /// malformed time is NEVER treated as midnight.
-fn parse_utc_ms(date: &str, time: &str) -> Option<i64> {
+pub(crate) fn parse_utc_ms(date: &str, time: &str) -> Option<i64> {
     let d = date.trim();
     let t = time.trim();
     if d.len() != 10 || t.len() != 9 {
