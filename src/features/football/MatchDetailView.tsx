@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionBoundary } from '../../components/SectionBoundary';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
+import { SourceLine } from '../../components/SourceLine';
 import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
@@ -513,12 +514,14 @@ export function MatchDetailView({
           <MatchPlayersComparison detail={detail} entries={loaded.players} />
         </SectionBoundary>
       </SpoilerGate>
-      <div className="source-foot muted small" role="status">
-        Данные: PitchAPI
-        {oldestSource ? ` · обновлено не ранее ${formatDateTime(oldestSource, timezone)}` : ''}
-        {sourceEntries.some((source) => source.stale) &&
-          ' · сохранённые данные могут быть устаревшими'}
-      </div>
+      <SourceLine
+        role="status"
+        sources={['pitch']}
+        fetchedAt={oldestSource}
+        oldest
+        stale={sourceEntries.some((source) => source.stale)}
+        timezone={timezone}
+      />
     </div>
   );
 }

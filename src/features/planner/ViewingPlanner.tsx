@@ -14,6 +14,7 @@ import { WatchEventButton } from '../../lib/watchIntent';
 import { useViewState } from '../../lib/useViewState';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
+import { SourceLine } from '../../components/SourceLine';
 import { FavoritesProvider, useFavorites } from '../football/FavoritesProvider';
 import { getJson, getUserTimezone, setJson } from '../football/storage';
 import { useFootballData } from '../football/useFootballData';
@@ -415,17 +416,13 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           </p>
         </details>
       )}
-      <div className="analysis-footer">
-        <span>
-          Источники: PitchAPI и Jolpica
-          {refreshed
-            ? ` · обновлено не ранее ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(refreshed))}`
-            : ''}
-          {football.stale || schedule.stale || (needsNextYear && nextSchedule.stale)
-            ? ' · сохранённые данные могут быть устаревшими'
-            : ''}
-        </span>
-      </div>
+      <SourceLine
+        sources={['pitch', 'jolpica']}
+        fetchedAt={refreshed}
+        oldest
+        stale={football.stale || schedule.stale || (needsNextYear && nextSchedule.stale)}
+        timezone={tz}
+      />
     </div>
   );
 }

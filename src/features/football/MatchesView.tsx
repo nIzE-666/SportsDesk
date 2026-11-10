@@ -1,8 +1,9 @@
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import { Filter, Search, Star } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
 import { useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
+import { SourceLine } from '../../components/SourceLine';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
@@ -193,16 +194,12 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
           ))}
         </div>
       )}
-      <div className="source-foot muted small">
-        <Filter size={12} /> Нажмите на строку, команду или счёт — откроется статистика этого матча.
-        Звёздочка отслеживает команду. Данные расписания: PitchAPI.
-        {data.stale && (
-          <span className="chip stale-chip">
-            Сохранённые данные могут быть устаревшими
-            {data.fetchedAt ? ` · обновлено ${formatDateTime(data.fetchedAt, timezone)}` : ''}
-          </span>
-        )}
-      </div>
+      <SourceLine
+        sources={['pitch']}
+        fetchedAt={data.fetchedAt}
+        stale={data.stale}
+        timezone={timezone}
+      />
     </div>
   );
 }
@@ -261,6 +258,7 @@ function MatchRow({
               className={`row-star ${saved ? 'active' : ''}`}
               onClick={toggle}
               aria-pressed={saved}
+              title={saved ? 'Убрать из отслеживаемых' : 'Отслеживать команду'}
               aria-label={`${saved ? 'Убрать из отслеживаемых' : 'Отслеживать'}: ${team.name}`}
             >
               <Star size={14} fill={saved ? 'currentColor' : 'none'} />

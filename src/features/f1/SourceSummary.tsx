@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { formatDateTime, getUserTimezone } from '../football/storage';
+import { sourceLabels } from '../../lib/sourceLabels';
+import { formatUpdatedAt, getUserTimezone } from '../football/storage';
 
 interface SourceEntry {
   source: string;
@@ -96,16 +97,14 @@ export function SourceRefresh() {
 export function SourceSummary() {
   const entries = Object.values(useContext(Context)?.entries ?? {});
   if (!entries.length) return null;
-  const names = [
-    ...new Set(entries.flatMap((entry) => entry.source.split(/\s*\/\s*/)).filter(Boolean)),
-  ];
+  const names = sourceLabels(entries.map((entry) => entry.source));
   const times = entries
     .map((entry) => entry.fetchedAt)
     .filter((time): time is string => !!time && Number.isFinite(Date.parse(time)))
     .sort((a, b) => Date.parse(a) - Date.parse(b));
   const oldest = times[0];
   const time =
-    oldest && times.length === entries.length ? formatDateTime(oldest, getUserTimezone()) : null;
+    oldest && times.length === entries.length ? formatUpdatedAt(oldest, getUserTimezone()) : null;
   return (
     <div className="f1-sourcebar" role="status" aria-live="polite">
       <span>

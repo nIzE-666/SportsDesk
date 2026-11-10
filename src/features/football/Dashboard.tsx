@@ -13,10 +13,11 @@ import {
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import { useFavorites, matchInvolvesFavorite } from './FavoritesProvider';
 import type { UseFootballResult } from './useFootballData';
 import type { MatchSummary } from './types';
-import { formatDateTime, getUserTimezone } from './storage';
+import { getUserTimezone } from './storage';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { rpc } from '../../lib/bridge';
 import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
@@ -400,11 +401,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           message="Нажмите «Настроить главную», чтобы вернуть нужные блоки."
         />
       )}
-      <div className="source-foot">
-        Матчи и подробная статистика: PitchAPI
-        {data.fetchedAt ? ` · Обновлено ${formatDateTime(data.fetchedAt, getUserTimezone())}` : ''}
-        {data.stale ? ' · Сохранённые данные' : ''}
-      </div>
+      <SourceLine sources={['pitch']} fetchedAt={data.fetchedAt} stale={data.stale} />
     </div>
   );
 }

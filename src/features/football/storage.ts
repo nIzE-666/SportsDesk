@@ -128,6 +128,51 @@ export function formatDateTime(iso: string | null | undefined, timezone: string)
   }
 }
 
+/** День по календарю часового пояса в виде «2026-11-10» — для сравнения «сегодня / вчера». */
+function dayKey(date: Date, timezone: string): string | null {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Время последнего обновления человеческим языком: «18:42» сегодня, «вчера 18:42»,
+ * иначе дата и время. Пустое или неразборчивое значение даёт «—».
+ */
+export function formatUpdatedAt(
+  iso: string | null | undefined,
+  timezone: string,
+  now: number = Date.now(),
+): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime()) || /^\d{4}-\d{2}-\d{2}$/.test(iso))
+    return formatDateTime(iso, timezone);
+  const time = (() => {
+    try {
+      return new Intl.DateTimeFormat('ru-RU', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+    } catch {
+      return null;
+    }
+  })();
+  const day = dayKey(date, timezone);
+  if (!time || !day) return formatDateTime(iso, timezone);
+  if (day === dayKey(new Date(now), timezone)) return time;
+  if (day === dayKey(new Date(now - 24 * 60 * 60 * 1000), timezone)) return `вчера ${time}`;
+  return formatDateTime(iso, timezone);
+}
+
 export function formatDate(iso: string | null | undefined, timezone: string): string {
   if (!iso) return '—';
   const calendar = calendarDate(iso);

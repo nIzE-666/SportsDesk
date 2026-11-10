@@ -7,6 +7,7 @@ import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMat
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import { MatchDetailView } from '../football/MatchDetailView';
 import { useDataRecovery } from '../../lib/useDataRecovery';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
@@ -527,10 +528,10 @@ function Inner({
         </>
       )}
 
-      <div className="source-foot">
-        Матчи: PitchAPI{competition.sportscoreSlug ? ' · Таблицы: Powered by SportScore' : ''}
-        {data?.fetchedAt ? ` · ${formatDateTime(data.fetchedAt, getUserTimezone())}` : ''}
-      </div>
+      <SourceLine
+        sources={competition.sportscoreSlug ? ['pitch', 'sportscore'] : ['pitch']}
+        fetchedAt={data?.fetchedAt}
+      />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, Star, Users, X } from 'lucide-react';
+import { ArrowLeftRight, Star, X } from 'lucide-react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { fetchTeamHistory, type HistoryMatch } from './history';
 import { fetchPlayerSeasonStats, type PlayerSeasonStats } from './playerAnalytics';
 import { statLabel } from './statLabels';
 import { PersonAvatar } from '../../components/PersonAvatar';
+import { SourceLine } from '../../components/SourceLine';
 import { useViewState } from '../../lib/useViewState';
 import { ClubPlayers } from './ClubPlayers';
 import { SavedPlayerProfile } from './SavedPlayerProfile';
@@ -583,11 +584,7 @@ export function PlayersCenter({
           onOpenMatch={onOpenMatch}
         />
       )}
-      <div className="source-foot muted small">
-        <Users size={12} /> Данные игроков: PitchAPI · матчи команд из локальной истории (все
-        загруженные лиги).
-        <Star size={12} /> Звёздочка на карточке убирает игрока из избранного.
-      </div>
+      <SourceLine sources={['pitch']} fetchedAt={data.fetchedAt} stale={data.stale} />
     </div>
   );
 }

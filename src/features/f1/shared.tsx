@@ -1,5 +1,7 @@
 import { DriverPortrait } from './DriverPortraits';
 import type { ReactNode } from 'react';
+import { sourceLabel } from '../../lib/sourceLabels';
+import { formatUpdatedAt, getUserTimezone } from '../football/storage';
 import { useSourceRegistration } from './SourceSummary';
 
 /**
@@ -16,16 +18,14 @@ export function SourceBar(props: {
 }) {
   const aggregated = useSourceRegistration(props);
   if (aggregated) return props.extra ?? null;
-  const fet = props.fetchedAt
-    ? new Date(props.fetchedAt).toLocaleString('ru-RU', { hour12: false })
-    : '—';
+  const updated = props.fetchedAt ? formatUpdatedAt(props.fetchedAt, getUserTimezone()) : null;
   return (
     <div className="f1-sourcebar" role="status" aria-live="polite">
       <span>
-        Источник: <b>{props.source}</b>
+        Данные: {sourceLabel(props.source)}
+        {updated && updated !== '—' ? ` · обновлено ${updated}` : ''}
       </span>
-      <span>Получено: {fet}</span>
-      {props.stale ? <span className="f1-pill warn">Кэш / устарело</span> : null}
+      {props.stale ? <span className="f1-pill warn">Есть устаревшие данные</span> : null}
       {props.extra}
       {props.onRefresh ? (
         <button

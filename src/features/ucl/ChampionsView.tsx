@@ -15,6 +15,7 @@ import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMat
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import { FavoritesProvider } from '../football/FavoritesProvider';
 import { MatchDetailView } from '../football/MatchDetailView';
 import {
@@ -614,13 +615,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
           </section>
         </>
       )}
-      <div className="source-foot">
-        Матчи: PitchAPI · Таблицы и рейтинги:{' '}
-        <a href="https://sportscore.com" target="_blank" rel="noreferrer">
-          Powered by SportScore
-        </a>
-        {data?.fetchedAt ? ` · ${formatDateTime(data.fetchedAt, getUserTimezone())}` : ''}
-      </div>
+      <SourceLine sources={['pitch', 'sportscore']} fetchedAt={data?.fetchedAt} />
       {selectedPlayer && (
         <div className="player-modal-scrim" onClick={() => setSelectedPlayer(null)}>
           <section

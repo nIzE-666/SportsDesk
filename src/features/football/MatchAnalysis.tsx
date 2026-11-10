@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateActio
 import { api } from '../../lib/bridge';
 import { retainResource } from '../../lib/resourceHealth';
 import { LoadingBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import { useViewState } from '../../lib/useViewState';
 import {
   buildXg,
@@ -20,7 +21,6 @@ import {
   type XgSeries,
 } from './matchAnalysisModel';
 import type { MatchDetail } from './types';
-import { formatDateTime, getUserTimezone } from './storage';
 import './matchAnalysis.css';
 
 interface Resource<T> {
@@ -365,11 +365,7 @@ export function MatchAnalysis({
         )}
       </section>
       {!onSourceStatus && (
-        <div className="source-foot muted small">
-          Данные: PitchAPI
-          {oldest ? ` · обновлено не ранее ${formatDateTime(oldest, getUserTimezone())}` : ''}
-          {stale && ' · сохранённые данные могут быть устаревшими'}
-        </div>
+        <SourceLine sources={['pitch']} fetchedAt={oldest} oldest stale={stale} />
       )}
     </div>
   );

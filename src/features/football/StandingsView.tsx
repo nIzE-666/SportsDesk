@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, ListOrdered } from 'lucide-react';
 import TeamBadge from '../../components/TeamBadge';
 import { api } from '../../lib/bridge';
 import { canonicalTeamName } from '../../lib/sportsIdentity';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import type { SportScoreStandings, SportScoreStandingRow } from './types';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
-import { formatDateTime, getUserTimezone } from './storage';
 
 const SLUG_BY_LEAGUE: Record<string, string> = {
   l_4WFCIZ: 'english-premier-league',
@@ -131,14 +130,7 @@ export function StandingsView({
         <EmptyBlock title="Пустая таблица" message="Провайдер вернул таблицу без строк." />
       )}
 
-      <div className="source-foot muted small">
-        <ListOrdered size={12} /> Источник таблицы:{' '}
-        <a href="https://sportscore.com" target="_blank" rel="noreferrer noopener">
-          Powered by SportScore <ArrowUpRight size={12} />
-        </a>
-        {fetchedAt ? ` · обновлено ${formatDateTime(fetchedAt, getUserTimezone())}` : ''}
-        {stale && standings && ' · сохранённые данные могут быть устаревшими'}
-      </div>
+      <SourceLine sources={['sportscore']} fetchedAt={fetchedAt} stale={stale && !!standings} />
     </div>
   );
 }

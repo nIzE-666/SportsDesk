@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import { ArrowRight, CalendarDays, MapPin, Star, Target, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Star, Target, TrendingUp, Users } from 'lucide-react';
 import { ClubPlayers } from './ClubPlayers';
 import TeamBadge from '../../components/TeamBadge';
 import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
+import { SourceLine } from '../../components/SourceLine';
 import type { MatchSummary } from './types';
-import { formatDate, formatDateTime, getUserTimezone, normalizeName } from './storage';
+import { formatDate, getUserTimezone, normalizeName } from './storage';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 import { useFavorites } from './FavoritesProvider';
 import { compareUpcoming, formatFixtureTime, isUpcomingFixture } from './calendar';
@@ -419,11 +420,12 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
             />
           )}
 
-          <div className="source-foot muted small">
-            <MapPin size={12} /> Расписание и составы: PitchAPI
-            {data.fetchedAt ? ` · обновлено ${formatDateTime(data.fetchedAt, timezone)}` : ''}
-            {data.stale && ' · сохранённые данные могут быть устаревшими'}
-          </div>
+          <SourceLine
+            sources={['pitch']}
+            fetchedAt={data.fetchedAt}
+            stale={data.stale}
+            timezone={timezone}
+          />
         </>
       )}
     </div>

@@ -2,6 +2,7 @@ import { ExternalLink, Radio, RefreshCw, Star } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
+import { SourceLine } from '../../components/SourceLine';
 import { api, openExternal } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
@@ -246,16 +247,12 @@ export function LivePanel() {
         </section>
       )}
 
-      <div className="source-foot muted small">
-        <button
-          className="link-btn"
-          onClick={() => void openExternal('https://sportscore.com').catch(() => undefined)}
-        >
-          Powered by SportScore <ExternalLink size={12} />
-        </button>
-        {fetchedAt && <> · обновлено {formatDateTime(fetchedAt, timezone)}</>}
-        {stale && matches.length > 0 && <> · сохранённые данные могут быть устаревшими</>}
-      </div>
+      <SourceLine
+        sources={['sportscore']}
+        fetchedAt={fetchedAt}
+        stale={stale && matches.length > 0}
+        timezone={timezone}
+      />
     </div>
   );
 }

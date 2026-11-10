@@ -154,7 +154,12 @@ export async function setupVisualFixture(
         };
       else payload = [];
       return route.fulfill({
-        json: { payload, source: 'fixture', stale: false, fetchedAt: '2026-10-25T00:00:00Z' },
+        json: {
+          payload,
+          source: source ?? 'fixture',
+          stale: false,
+          fetchedAt: '2026-10-25T00:00:00Z',
+        },
       });
     }
     if (url.pathname === '/bridge/command') {
