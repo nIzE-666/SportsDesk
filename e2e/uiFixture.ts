@@ -65,7 +65,12 @@ const races = ['2026-10-01', '2026-11-01', '2026-11-08'].map((date, i) => ({
   },
 }));
 
-export async function setupVisualFixture(page: Page, design: string, scheme: string) {
+export async function setupVisualFixture(
+  page: Page,
+  design: string,
+  scheme: string,
+  scenarioData = false,
+) {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -84,7 +89,23 @@ export async function setupVisualFixture(page: Page, design: string, scheme: str
           };
         else if (path.startsWith('leagues/'))
           payload = {
-            data: { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: [match] },
+            data: {
+              league: { id: 'l_4WFCIZ', name: 'Premier League' },
+              matches: scenarioData
+                ? [
+                    match,
+                    {
+                      ...match,
+                      id: 'next-match',
+                      status: 'scheduled',
+                      time_utc: '2026-10-23T18:00:00Z',
+                      date: '2026-10-23',
+                      score_home: null,
+                      score_away: null,
+                    },
+                  ]
+                : [match],
+            },
           };
         else if (path === `matches/${match.id}`) payload = { data: match };
         else if (path.endsWith('/stats')) payload = { data: stats };
@@ -93,11 +114,43 @@ export async function setupVisualFixture(page: Page, design: string, scheme: str
         else if (path.endsWith('/events')) payload = { data: { events: [] } };
         else payload = { data: {} };
       } else if (source === 'jolpica')
+        payload =
+          scenarioData && path.includes('driverStandings')
+            ? {
+                MRData: {
+                  StandingsTable: {
+                    StandingsLists: [
+                      {
+                        season: '2026',
+                        round: '1',
+                        DriverStandings: [
+                          {
+                            position: '1',
+                            points: '25',
+                            wins: '1',
+                            Driver: {
+                              driverId: 'norris',
+                              givenName: 'Lando',
+                              familyName: 'Norris',
+                            },
+                            Constructors: [{ constructorId: 'mclaren', name: 'McLaren' }],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              }
+            : {
+                MRData: {
+                  total: '3',
+                  RaceTable: { season: '2026', Races: path.startsWith('2026.json') ? races : [] },
+                },
+              };
+      else if (source === 'sportscore' && scenarioData)
         payload = {
-          MRData: {
-            total: '3',
-            RaceTable: { season: '2026', Races: path.startsWith('2026.json') ? races : [] },
-          },
+          competition: 'Premier League',
+          tables: [{ rows: [{ pos: 1, team: 'Arsenal', p: 1, w: 1, d: 0, l: 0, gd: 1, pts: 3 }] }],
         };
       else payload = [];
       return route.fulfill({
@@ -148,6 +201,8 @@ export async function setupVisualFixture(page: Page, design: string, scheme: str
     },
     { design, scheme },
   );
-  await page.clock.setFixedTime(new Date('2026-10-25T00:00:00Z'));
+  await page.clock.setFixedTime(
+    new Date(scenarioData ? '2026-10-22T00:00:00Z' : '2026-10-25T00:00:00Z'),
+  );
   return errors;
 }
