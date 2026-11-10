@@ -579,8 +579,10 @@ function Overview({
             .join(', ') +
           '.',
       );
+    } else if (events?.events) {
+      summaryLines.push('Голы в ленте событий не указаны.');
     } else {
-      summaryLines.push('Голевых событий в ответе провайдера нет.');
+      summaryLines.push('События матча пока недоступны.');
     }
     if (cards.length > 0) {
       summaryLines.push(
@@ -615,10 +617,6 @@ function Overview({
             {line}
           </p>
         ))}
-        <p className="muted small">
-          Сводка сформирована только по фактическим событиям и статистике провайдера PitchAPI.
-          Отсутствующие значения не подменяются.
-        </p>
       </section>
 
       {goals.length > 0 && (
@@ -658,9 +656,7 @@ function EventsTab({
 }) {
   if (error) return <EmptyBlock title="События недоступны" message={error} />;
   if (!payload?.events || payload.events.length === 0)
-    return (
-      <EmptyBlock title="Событий нет" message="Провайдер не сообщил события для этого матча." />
-    );
+    return <EmptyBlock title="Лента событий пуста" message="Попробуйте обновить данные позже." />;
   return (
     <div className="panel">
       <ul className="event-list">

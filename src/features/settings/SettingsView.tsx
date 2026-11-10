@@ -891,6 +891,9 @@ export function SettingsView() {
         <div className="section-title">
           <h2>Источники и их ограничения</h2>
         </div>
+        <p className="muted small">
+          Данные могут быть неполными. Прочерк означает, что значение не получено.
+        </p>
         <dl className="settings-dl">
           <dt>PitchAPI</dt>
           <dd>

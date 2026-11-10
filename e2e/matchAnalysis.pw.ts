@@ -164,5 +164,5 @@ test('unavailable analytics preserve the score and other match tabs', async ({ p
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал давление');
   await expect(page.locator('.md-score')).toContainText('2 : 1');
   await page.getByRole('tab', { name: 'События', exact: true }).click();
-  await expect(page.getByText('Событий нет', { exact: true })).toBeVisible();
+  await expect(page.getByText('Лента событий пуста', { exact: true })).toBeVisible();
 });

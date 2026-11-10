@@ -5,7 +5,7 @@ import { ClubPlayers } from './ClubPlayers';
 import TeamBadge from '../../components/TeamBadge';
 import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
 import type { MatchSummary } from './types';
-import { formatDate, getUserTimezone, normalizeName } from './storage';
+import { formatDate, formatDateTime, getUserTimezone, normalizeName } from './storage';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 import { useFavorites } from './FavoritesProvider';
 import { compareUpcoming, formatFixtureTime, isUpcomingFixture } from './calendar';
@@ -230,14 +230,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
         {catalogueTeam && <TeamBadge name={teamName} imageUrl={teamImage} size={56} />}
         <div className="team-header-body">
           <h1>{catalogueTeam?.name ?? 'Клубы'}</h1>
-          {catalogueTeam && (
-            <p className="muted small">
-              {catalogueTeam.leagueName}
-              {data.fetchedAt
-                ? ` · обновлено ${new Date(data.fetchedAt).toLocaleString('ru-RU')}`
-                : ''}
-            </p>
-          )}
+          {catalogueTeam && <p className="muted small">{catalogueTeam.leagueName}</p>}
           <div className="team-header-actions">
             {teamId && (
               <button
@@ -427,8 +420,9 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
           )}
 
           <div className="source-foot muted small">
-            <MapPin size={12} /> Расписание и составы: PitchAPI. Форма и счёт основаны только на
-            завершённых матчах из загруженных лиг.
+            <MapPin size={12} /> Расписание и составы: PitchAPI
+            {data.fetchedAt ? ` · обновлено ${formatDateTime(data.fetchedAt, timezone)}` : ''}
+            {data.stale && ' · сохранённые данные могут быть устаревшими'}
           </div>
         </>
       )}

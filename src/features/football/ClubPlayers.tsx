@@ -168,9 +168,6 @@ export function ClubPlayers({
           ? `Заявка последнего завершённого матча: ${match.home_team.name} — ${match.away_team.name} · ${formatDate(match.time_utc ?? match.date, getUserTimezone())}.`
           : 'В загруженном расписании нет завершённого матча этого клуба.'}
       </p>
-      <p className="muted small">
-        Нажмите на игрока, чтобы открыть статистику. Звёздочка сохраняет его в разделе «Игроки».
-      </p>
       {match && !current && <LoadingBlock label="Загружаем игроков и фотографии…" rows={3} />}
       {current?.error && (
         <ErrorBlock

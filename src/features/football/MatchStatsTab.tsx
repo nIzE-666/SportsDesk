@@ -111,10 +111,6 @@ export function MatchStatsTab({
           <StatGroupBlock key={g.group_name} group={g} homeName={home.name} awayName={away.name} />
         ))}
       </div>
-      <p className="stats-explainer">
-        Каждая строка: {home.name} слева, показатель по центру, {away.name} справа. «—» означает,
-        что данных нет.
-      </p>
     </section>
   );
 }

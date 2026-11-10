@@ -237,6 +237,27 @@ it('keeps empty analytics usable and marks stale cache data', async () => {
   expect(host.querySelector('button')?.disabled).toBe(false);
 });
 
+it('distinguishes unavailable match events from an empty event list', async () => {
+  transport.api.mockImplementation(async (_source: string, path: string) => {
+    if (path.endsWith('/events')) throw new Error('События недоступны');
+    return reply(path === 'matches/fixture' ? detail : {});
+  });
+  await act(async () =>
+    root.render(
+      <FavoritesProvider>
+        <MatchDetailView matchId="fixture" onBack={vi.fn()} />
+      </FavoritesProvider>,
+    ),
+  );
+  expect(host.textContent).toContain('События матча пока недоступны');
+  expect(host.textContent).not.toContain('Голы в ленте событий не указаны');
+  transport.api.mockImplementation(async (_source: string, path: string) =>
+    reply(path === 'matches/fixture' ? detail : path.endsWith('/events') ? { events: [] } : {}),
+  );
+  await click('Обновить данные');
+  expect(host.textContent).toContain('Голы в ленте событий не указаны');
+});
+
 it('shows one source summary for a match and refreshes analysis without leaving its tab', async () => {
   transport.api.mockImplementation(async (_source: string, path: string) => ({
     ...reply(

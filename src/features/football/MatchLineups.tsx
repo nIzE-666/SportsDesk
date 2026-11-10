@@ -96,7 +96,7 @@ export function MatchLineups({
               Стартовая расстановка · нажмите на игрока, чтобы открыть показатели этого матча
             </p>
           </div>
-          <span className="chip">PitchAPI · шкала 0–10</span>
+          <span className="chip">Оценки 0–10</span>
           {onOpenTactics && (
             <button className="ghost-btn" onClick={onOpenTactics}>
               Открыть тактическую доску
@@ -105,8 +105,7 @@ export function MatchLineups({
         </div>
         {(error || playersError) && (
           <p className="lineup-notice" role="status">
-            {error ?? playersError} · Показаны доступные данные; отсутствующие оценки обозначены
-            прочерком.
+            {error ?? playersError} · Показаны доступные данные.
           </p>
         )}
         {playersLoading && (
