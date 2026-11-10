@@ -177,7 +177,7 @@ function LatestRaceCard({
 
       {!last.race && fallbackRound === null ? (
         <State kind="empty" title="Нет завершённых гонок в сезоне">
-          Провайдер не вернул результаты ни для одного этапа этого сезона.
+          Результаты этого сезона недоступны.
         </State>
       ) : null}
 
@@ -189,7 +189,7 @@ function LatestRaceCard({
 
       {last.race && last.results.length === 0 ? (
         <State kind="empty" title="Нет данных о результатах">
-          Провайдер не вернул результаты для этого этапа.
+          Результаты этого этапа недоступны.
         </State>
       ) : null}
 
@@ -573,7 +573,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
             <p>
               {schedule.loading
                 ? 'Загружаем календарь и расписание сессий.'
-                : 'Состояние календаря и данные источников показаны ниже.'}
+                : 'Календарь недоступен.'}
             </p>
           )}
         </EventCover>
@@ -604,12 +604,12 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
           ) : null}
           {schedule.data && races.length === 0 ? (
             <State kind="empty" title={`Календарь сезона ${year} пуст`}>
-              Провайдер не вернул этапы для этого сезона.
+              Этапы этого сезона недоступны.
             </State>
           ) : null}
           {schedule.data && races.length > 0 && !next ? (
             <State kind="empty" title={`Сезон ${year} завершён`}>
-              Все гонки в календаре по данным провайдера уже прошли.
+              Все гонки сезона уже прошли.
             </State>
           ) : null}
           {next ? <WeekendCard race={next} broadcast={broadcast} /> : null}

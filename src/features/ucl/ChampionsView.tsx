@@ -481,10 +481,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
         <>
           <div className="bracket-intro">
             <GitBranch size={19} />
-            <p>
-              Каждое противостояние — ещё один шаг к финалу.
-              <small>Откройте пару, чтобы посмотреть матчи и подробную статистику.</small>
-            </p>
+            <p>Откройте пару, чтобы посмотреть матчи и подробную статистику.</p>
             <span className="chip">{season}</span>
           </div>
           {bracketBusy && (

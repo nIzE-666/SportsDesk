@@ -95,7 +95,7 @@ async function loadSeasons(): Promise<string[]> {
     const reply = await api(PITCH, 'leagues');
     const seasons = extractSeasonsFromCatalog(reply.payload);
     if (seasons.length === 0) {
-      throw new Error('Список сезонов Лиги чемпионов недоступен в каталоге PitchAPI.');
+      throw new Error('Сезоны Лиги чемпионов недоступны.');
     }
     catalogCache = { expiresAt: reply.stale ? 0 : Date.now() + CATALOG_TTL_MS, seasons };
     return seasons;

@@ -134,8 +134,7 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             <State kind="empty" title="Очки ещё не опубликованы" />
           )}
           <p className="muted small">
-            Сумма опубликованных результатов гонки и спринта. Квалификация очков не приносит. Если
-            сессия ещё не завершена или её данные недоступны, итог может быть неполным.
+            Сумма очков гонки и спринта; пока сессии не завершены, итог может быть неполным.
           </p>
         </>
       ) : tab === 'sprint' && !hasSprint ? (
@@ -155,7 +154,7 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
           )}
           {active.data && !active.data.length && !active.loading && (
             <State kind="empty" title="Результаты пока не опубликованы">
-              Расписание и публикация итогов обновляются источником отдельно.
+              Итоги появляются после сессии — позже расписания.
             </State>
           )}
           {tab === 'qualifying' && qualifying.data?.length ? (

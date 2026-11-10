@@ -129,7 +129,7 @@ function Inner({
     void (async () => {
       try {
         const current = (await currentSeasonFor(competition.id)) ?? '';
-        if (!current) throw new Error('Источник пока не предоставил сезоны турнира.');
+        if (!current) throw new Error('Сезоны турнира недоступны.');
         if (!active) return;
         setCurrentSeason(current);
         setSeason((previous) => previous || current);
@@ -471,10 +471,7 @@ function Inner({
         <>
           <div className="bracket-intro">
             <GitBranch size={19} />
-            <p>
-              Каждое противостояние — ещё один шаг к финалу.
-              <small>Откройте пару, чтобы посмотреть матчи и подробную статистику.</small>
-            </p>
+            <p>Откройте пару, чтобы посмотреть матчи и подробную статистику.</p>
             <span className="chip">{season}</span>
           </div>
           {bracketBusy && <LoadingBlock label="Собираем подтверждённые пары…" rows={3} />}

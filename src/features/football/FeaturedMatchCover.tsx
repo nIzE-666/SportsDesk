@@ -107,9 +107,7 @@ export function FeaturedMatchCover({
         <>
           <h2>{loading ? 'Собираем ваш спортивный день' : 'Матчи выбранной лиги'}</h2>
           <p>
-            {loading
-              ? 'Загружаем расписание и результаты.'
-              : 'Доступные встречи и состояние источника показаны ниже.'}
+            {loading ? 'Загружаем расписание и результаты.' : 'Доступные встречи показаны ниже.'}
           </p>
           <button className="primary-btn" onClick={onSeeAllMatches}>
             Все матчи <ArrowUpRight size={16} />

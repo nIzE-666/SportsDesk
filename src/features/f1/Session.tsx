@@ -450,8 +450,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           {liveNote}
         </div>
         <div className="f1-muted" style={{ fontSize: 12 }}>
-          Исторические данные OpenF1 с 2023 года: круги, шины и пит-стопы. Выберите завершённый
-          уикенд и сессию. Сравнение темпа доступно не ранее чем через 30 минут после её окончания.
+          Круги, шины и пит-стопы с 2023 года — через 30 минут после окончания сессии.
         </div>
         <div className="f1-toolbar">
           <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -589,7 +588,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
       ) : null}
       {sessionsEmptyForMeeting ? (
         <State kind="empty" title="Для этого Гран-при сессий нет">
-          OpenF1 не вернул сессий для выбранного уик-энда.
+          Для выбранного уик-энда сессий не найдено.
         </State>
       ) : null}
       {noCompletedSession && !selectedSession ? (
@@ -678,8 +677,8 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             ) : null}
             {laps.data && lapRows.length === 0 ? (
               <State kind="empty" title="Круговые данные недоступны">
-                OpenF1 не вернул круги для этой сессии и пилота. Возможно, данные ещё не
-                опубликованы или сессия не проводилась.
+                Для этой сессии и пилота кругов нет. Возможно, данные ещё не опубликованы или сессия
+                не проводилась.
               </State>
             ) : null}
 
@@ -858,8 +857,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
       </div>
       {!selectedSession && !meetings.loading && meetingList.length > 0 && !noCompletedSession ? (
         <State kind="empty" title="Выберите сессию">
-          Укажите пилота и сессию, чтобы увидеть круги, отрезки и пит-стопы. Крупные телеметрические
-          массивы не загружаются автоматически.
+          Укажите пилота и сессию, чтобы увидеть круги, отрезки и пит-стопы.
         </State>
       ) : null}
     </div>
