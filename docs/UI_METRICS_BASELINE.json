@@ -1,0 +1,110 @@
+{
+  "viewport": "1440x900",
+  "design": "classic",
+  "scheme": "dark",
+  "fixture": "e2e/uiFixture.ts",
+  "screens": [
+    {
+      "name": "Футбол: обзор",
+      "height": 1038,
+      "viewport": 822,
+      "buttons": 12,
+      "fields": 0,
+      "words": 127
+    },
+    {
+      "name": "Матч",
+      "height": 661,
+      "viewport": 822,
+      "buttons": 11,
+      "fields": 0,
+      "words": 59
+    },
+    {
+      "name": "Матчи",
+      "height": 399,
+      "viewport": 822,
+      "buttons": 10,
+      "fields": 4,
+      "words": 71
+    },
+    {
+      "name": "Таблица",
+      "height": 362,
+      "viewport": 822,
+      "buttons": 2,
+      "fields": 0,
+      "words": 46
+    },
+    {
+      "name": "Счёт и события",
+      "height": 380,
+      "viewport": 822,
+      "buttons": 6,
+      "fields": 0,
+      "words": 80
+    },
+    {
+      "name": "Игроки",
+      "height": 582,
+      "viewport": 822,
+      "buttons": 0,
+      "fields": 1,
+      "words": 81
+    },
+    {
+      "name": "Клубы",
+      "height": 367,
+      "viewport": 822,
+      "buttons": 0,
+      "fields": 1,
+      "words": 44
+    },
+    {
+      "name": "Формула 1",
+      "height": 928,
+      "viewport": 822,
+      "buttons": 12,
+      "fields": 1,
+      "words": 182
+    },
+    {
+      "name": "Календарь F1",
+      "height": 1136,
+      "viewport": 822,
+      "buttons": 20,
+      "fields": 1,
+      "words": 165
+    },
+    {
+      "name": "Планировщик",
+      "height": 660,
+      "viewport": 822,
+      "buttons": 3,
+      "fields": 2,
+      "words": 102
+    },
+    {
+      "name": "Дневник",
+      "height": 1086,
+      "viewport": 822,
+      "buttons": 4,
+      "fields": 6,
+      "words": 129
+    },
+    {
+      "name": "Настройки",
+      "height": 5152,
+      "viewport": 822,
+      "buttons": 39,
+      "fields": 86,
+      "words": 944
+    }
+  ],
+  "shell": {
+    "topbarButtons": 13,
+    "sidebarButtons": 37,
+    "matchTabs": 7,
+    "matchTabsTop": 538
+  }
+}
