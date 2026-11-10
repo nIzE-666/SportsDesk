@@ -9,6 +9,7 @@ import { weekendSchedule } from './weekendSchedule';
 import { racePresentation } from './calendarModel';
 import { DiaryMarkButton } from '../diary/DiaryMarkButton';
 import { f1DiaryEvent } from '../diary/diaryModel';
+import { useSourceSummaryAvailable } from './SourceSummary';
 
 type Tab = 'qualifying' | 'sprint' | 'race' | 'points';
 function sprintRows(payload: unknown) {
@@ -25,6 +26,7 @@ function sprintRows(payload: unknown) {
   );
 }
 export function RaceWeekend({ race }: { race: JolpicaRace }) {
+  const aggregated = useSourceSummaryAvailable();
   const base = `${race.season}/${race.round}`,
     hasSprint = !!race.Sprint;
   const [tab, setTab] = useViewState<Tab>(`f1.${base}.weekend.tab`, 'race', (v) =>
@@ -63,9 +65,11 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             {race.Circuit.circuitName} · {getTimeZone()}
           </span>
         </div>
-        <button className="ghost-btn" onClick={refresh}>
-          Обновить уикенд
-        </button>
+        {!aggregated && (
+          <button className="ghost-btn" onClick={refresh}>
+            Обновить уикенд
+          </button>
+        )}
       </div>
       <div className="weekend-schedule">
         {sessions.map((session) => (
@@ -162,11 +166,28 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
         </>
       )}
       <SourceBar
-        source="Jolpica"
-        fetchedAt={active.fetchedAt}
-        stale={results.stale || sprint.stale || qualifying.stale}
-        onRefresh={refresh}
+        source={results.source}
+        fetchedAt={results.fetchedAt}
+        stale={results.stale}
+        onRefresh={results.reload}
+        refreshing={results.loading}
       />
+      <SourceBar
+        source={qualifying.source}
+        fetchedAt={qualifying.fetchedAt}
+        stale={qualifying.stale}
+        onRefresh={qualifying.reload}
+        refreshing={qualifying.loading}
+      />
+      {hasSprint && (
+        <SourceBar
+          source={sprint.source}
+          fetchedAt={sprint.fetchedAt}
+          stale={sprint.stale}
+          onRefresh={sprint.reload}
+          refreshing={sprint.loading}
+        />
+      )}
     </section>
   );
 }

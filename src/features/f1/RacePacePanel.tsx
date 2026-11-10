@@ -14,6 +14,8 @@ import {
 import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useNow } from '../../lib/useNow';
+import { SourceBar } from './shared';
+import { useSourceSummaryAvailable } from './SourceSummary';
 import {
   buildRacePaceComparison,
   isRacePaceSessionAvailable,
@@ -72,6 +74,7 @@ export function RacePacePanel({
   drivers: OpenF1Driver[];
   initialDriver?: number | null;
 }) {
+  const aggregated = useSourceSummaryAvailable();
   const now = useNow();
   const [aId, setAId] = useViewState<number | null>(
     `pace.${session.session_key}.a`,
@@ -386,14 +389,20 @@ export function RacePacePanel({
             </div>
           </details>
           <div className="analysis-footer">
-            <span>
-              Темп не скорректирован на трафик, SC/VSC, топливо и возраст шин. Источник OpenF1
-              {raw?.stale ? ' · сохранённые данные' : ''}.
-            </span>
-            <button className="ghost-btn" disabled={busy} onClick={() => void load(true)}>
-              <RefreshCw size={13} /> Перезагрузить данные
-            </button>
+            <span>Темп не скорректирован на трафик, SC/VSC, топливо и возраст шин.</span>
+            {!aggregated && (
+              <button className="ghost-btn" disabled={busy} onClick={() => void load(true)}>
+                <RefreshCw size={13} /> Перезагрузить данные
+              </button>
+            )}
           </div>
+          <SourceBar
+            source="OpenF1"
+            fetchedAt={raw?.fetchedAt ?? null}
+            stale={raw?.stale ?? false}
+            onRefresh={() => void load(true)}
+            refreshing={busy}
+          />
         </>
       )}
     </section>

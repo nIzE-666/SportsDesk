@@ -20,6 +20,20 @@ for (const design of ['classic', 'broadcast']) {
     expect((await favoriteGrid.boundingBox())!.y).toBeGreaterThan(
       (await overview.boundingBox())!.y,
     );
+    await expect(page.locator('.f1-root .f1-sourcebar')).toHaveCount(1);
+    const refresh = page
+      .locator('.f1-root > .f1-toolbar')
+      .getByRole('button', { name: 'Обновить данные' });
+    await expect(refresh).toBeEnabled();
+    const scheduleRequests = requests.filter((path) => path.startsWith('2026.json')).length;
+    const standingsRequests = requests.filter((path) => path.includes('driverStandings')).length;
+    await refresh.click();
+    await expect
+      .poll(() => requests.filter((path) => path.startsWith('2026.json')).length)
+      .toBeGreaterThan(scheduleRequests);
+    await expect
+      .poll(() => requests.filter((path) => path.includes('driverStandings')).length)
+      .toBeGreaterThan(standingsRequests);
     await page.screenshot({ path: testInfo.outputPath('f1-overview.png') });
     for (const title of ['Зачёты', 'Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {
       await page.locator('aside').getByTitle(title, { exact: true }).click();

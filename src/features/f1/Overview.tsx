@@ -580,6 +580,20 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
       )}
       <div className="f1-grid f1-overview-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          <SourceBar
+            source={schedule.source}
+            fetchedAt={schedule.fetchedAt}
+            stale={schedule.stale}
+            onRefresh={schedule.reload}
+            refreshing={schedule.loading}
+          />
+          <SourceBar
+            source={latest.source}
+            fetchedAt={latest.fetchedAt}
+            stale={latest.stale}
+            onRefresh={latest.reload}
+            refreshing={latest.loading}
+          />
           {schedule.loading && !schedule.data ? (
             <State kind="loading" title="Загрузка календаря сезона…" />
           ) : null}
@@ -612,15 +626,6 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
             <LatestRaceCard
               last={latestData ?? EMPTY_LATEST}
               fallbackRound={lastFinishedRace ? Number(lastFinishedRace.round) : null}
-            />
-          ) : null}
-          {latestData ? (
-            <SourceBar
-              source={latest.source}
-              fetchedAt={latest.fetchedAt}
-              stale={latest.stale}
-              onRefresh={latest.reload}
-              refreshing={latest.loading}
             />
           ) : null}
         </div>
@@ -694,14 +699,18 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               Пилотов в чемпионате: {rule}
             </div>
             <SourceBar
-              source={`${dStand.source} / ${cStand.source}`}
-              fetchedAt={dStand.fetchedAt ?? cStand.fetchedAt}
-              stale={dStand.stale || cStand.stale}
-              onRefresh={() => {
-                dStand.reload();
-                cStand.reload();
-              }}
-              refreshing={dStand.loading || cStand.loading}
+              source={dStand.source}
+              fetchedAt={dStand.fetchedAt}
+              stale={dStand.stale}
+              onRefresh={dStand.reload}
+              refreshing={dStand.loading}
+            />
+            <SourceBar
+              source={cStand.source}
+              fetchedAt={cStand.fetchedAt}
+              stale={cStand.stale}
+              onRefresh={cStand.reload}
+              refreshing={cStand.loading}
             />
           </div>
         </div>
@@ -767,15 +776,6 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               );
             })}
           </div>
-          {latestData ? (
-            <SourceBar
-              source={latest.source}
-              fetchedAt={latest.fetchedAt}
-              stale={latest.stale}
-              onRefresh={latest.reload}
-              refreshing={latest.loading}
-            />
-          ) : null}
         </div>
 
         <div className="f1-card">

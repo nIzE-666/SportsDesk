@@ -1,5 +1,6 @@
 import { DriverPortrait } from './DriverPortraits';
 import type { ReactNode } from 'react';
+import { useSourceRegistration } from './SourceSummary';
 
 /**
  * Small shared presentational bits scoped to F1.
@@ -13,6 +14,8 @@ export function SourceBar(props: {
   refreshing?: boolean;
   extra?: ReactNode;
 }) {
+  const aggregated = useSourceRegistration(props);
+  if (aggregated) return props.extra ?? null;
   const fet = props.fetchedAt
     ? new Date(props.fetchedAt).toLocaleString('ru-RU', { hour12: false })
     : '—';

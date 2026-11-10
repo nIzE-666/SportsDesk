@@ -562,6 +562,24 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           onRefresh={meetings.reload}
           refreshing={meetings.loading}
         />
+        {meetingKey !== null && (
+          <SourceBar
+            source={sessions.source}
+            fetchedAt={sessions.fetchedAt}
+            stale={sessions.stale}
+            onRefresh={sessions.reload}
+            refreshing={sessions.loading}
+          />
+        )}
+        {sessionKey !== null && (
+          <SourceBar
+            source={drivers.source}
+            fetchedAt={drivers.fetchedAt}
+            stale={drivers.stale}
+            onRefresh={drivers.reload}
+            refreshing={drivers.loading}
+          />
+        )}
       </div>
 
       {sessions.error && !sessions.data ? (
@@ -822,14 +840,18 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             ) : null}
 
             <SourceBar
-              source={`${stints.source} / ${pits.source}`}
-              fetchedAt={stints.fetchedAt ?? pits.fetchedAt}
-              stale={stints.stale || pits.stale}
-              onRefresh={() => {
-                stints.reload();
-                pits.reload();
-              }}
-              refreshing={stints.loading || pits.loading}
+              source={stints.source}
+              fetchedAt={stints.fetchedAt}
+              stale={stints.stale}
+              onRefresh={stints.reload}
+              refreshing={stints.loading}
+            />
+            <SourceBar
+              source={pits.source}
+              fetchedAt={pits.fetchedAt}
+              stale={pits.stale}
+              onRefresh={pits.reload}
+              refreshing={pits.loading}
             />
           </div>
         ) : null}

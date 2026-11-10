@@ -10,6 +10,7 @@ import { Overview } from './Overview';
 import { SeasonProvider, useSeason } from './SeasonContext';
 import { Session } from './Session';
 import { Standings } from './Standings';
+import { SourceRefresh, SourceSummary, SourceSummaryProvider } from './SourceSummary';
 
 export type TabId = 'overview' | 'calendar' | 'standings' | 'compare' | 'pace' | 'session';
 
@@ -79,6 +80,7 @@ function F1Shell({
               ))}
             </select>
           </label>
+          <SourceRefresh />
         </div>
 
         {tab === 'overview' ? (
@@ -96,10 +98,7 @@ function F1Shell({
         {tab === 'pace' ? <Session mode="pace" /> : null}
         {tab === 'session' ? <Session /> : null}
 
-        <div className="f1-muted" style={{ fontSize: 11, marginTop: 4 }}>
-          Данные Jolpica (Ergast-compatible) и OpenF1. Исторические сессии OpenF1 с 2023 года; живая
-          телеметрия в бесплатном доступе недоступна.
-        </div>
+        <SourceSummary />
       </div>
     </PageFrame>
   );
@@ -109,7 +108,9 @@ export function F1View(props: { tab?: TabId; onTabChange?: (tab: TabId) => void 
   return (
     <SeasonProvider>
       <DriverPortraitsProvider>
-        <F1Shell {...props} />
+        <SourceSummaryProvider>
+          <F1Shell {...props} />
+        </SourceSummaryProvider>
       </DriverPortraitsProvider>
     </SeasonProvider>
   );
