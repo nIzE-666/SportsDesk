@@ -193,11 +193,18 @@
   min-width: 0;
 }
 
-.team-match-teams .right {
+.team-match-away {
   display: inline-flex;
   justify-content: flex-end;
   gap: 4px;
   align-items: center;
+  min-width: 0;
+}
+.team-match-away .truncate {
+  min-width: 0;
+}
+.team-match-away :is(.team-badge, .team-badge-fallback) {
+  flex-shrink: 0;
 }
 
 .team-match-score {

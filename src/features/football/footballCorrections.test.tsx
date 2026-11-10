@@ -7,6 +7,7 @@ import { FavoritesProvider } from './FavoritesProvider';
 import { MatchDetailView } from './MatchDetailView';
 import { MatchesView } from './MatchesView';
 import { TeamView } from './TeamView';
+import { StandingsView } from './StandingsView';
 import type { HistoryMatch } from './history';
 import type { MatchSummary } from './types';
 import type { UseFootballResult } from './useFootballData';
@@ -87,6 +88,61 @@ afterEach(async () => {
 async function render(element: React.ReactNode) {
   await act(async () => root.render(element));
 }
+
+it('uses the selected league catalogue names and badges in standings without guessing ambiguous teams', async () => {
+  const clubs = [
+    {
+      id: 'brighton',
+      name: 'Brighton',
+      image_url: 'https://example.com/brighton.png',
+      leagueId: 'l_4WFCIZ',
+      leagueName: 'Premier League',
+    },
+    {
+      id: 'bournemouth',
+      name: 'Bournemouth',
+      image_url: 'https://example.com/bournemouth.png',
+      leagueId: 'l_4WFCIZ',
+      leagueName: 'Premier League',
+    },
+  ];
+  transport.api.mockResolvedValue({
+    payload: {
+      tables: [
+        {
+          rows: [
+            { pos: 1, team: 'Brighton Hove Albion', pts: 3 },
+            { pos: 2, team: 'Bournemouth AFC', pts: 1 },
+            { pos: 3, team: 'Bournemouth Women', pts: 0 },
+          ],
+        },
+      ],
+    },
+    fetchedAt: '2026-11-10T00:00:00Z',
+  });
+  const open = vi.fn();
+  await render(
+    <StandingsView
+      data={{ ...makeData([]), selectedLeagueId: 'l_4WFCIZ', leagueTeams: clubs, teams: clubs }}
+      onOpenTeam={open}
+    />,
+  );
+  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team')];
+  expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual([
+    'Brighton',
+    'Bournemouth',
+    'Bournemouth Women',
+  ]);
+  expect(rows[0]?.querySelector('img')?.getAttribute('src')).toBe(
+    'https://example.com/brighton.png',
+  );
+  expect(rows[1]?.querySelector('img')?.getAttribute('src')).toBe(
+    'https://example.com/bournemouth.png',
+  );
+  expect(rows[2]?.disabled).toBe(true);
+  await act(async () => rows[1]?.click());
+  expect(open).toHaveBeenCalledWith('bournemouth');
+});
 
 it('normalizes both the search and team names', async () => {
   await render(

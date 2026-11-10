@@ -278,7 +278,7 @@ function pickDefaultMeeting(meetings: OpenF1Meeting[], now: number): OpenF1Meeti
 }
 
 export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
-  const { year: selectedYear, setYear: setSelectedYear } = useSeason();
+  const { year: selectedYear } = useSeason();
   const [meetingKey, setMeetingKey] = useViewState<number | null>(
     `f1.openf1.${selectedYear}.meeting`,
     null,
@@ -294,13 +294,6 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
     null,
     (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0),
   );
-
-  const years = useMemo(() => {
-    const cur = new Date().getFullYear();
-    const out: number[] = [];
-    for (let y = cur; y >= 2023; y--) out.push(y);
-    return out;
-  }, []);
 
   const meetings = useApiResource(
     `openf1-meetings-${selectedYear}`,
@@ -461,23 +454,6 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           уикенд и сессию. Сравнение темпа доступно не ранее чем через 30 минут после её окончания.
         </div>
         <div className="f1-toolbar">
-          <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Сезон
-            <select
-              className="f1-select"
-              value={selectedYear}
-              onChange={(e) => {
-                setSelectedYear(Number(e.target.value));
-              }}
-              aria-label="Сезон OpenF1"
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Гран-при
             <select

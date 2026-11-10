@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, ListOrdered } from 'lucide-react';
 import TeamBadge from '../../components/TeamBadge';
 import { api } from '../../lib/bridge';
+import { canonicalTeamName } from '../../lib/sportsIdentity';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
 import type { SportScoreStandings, SportScoreStandingRow } from './types';
-import type { UseFootballResult } from './useFootballData';
+import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 
 const SLUG_BY_LEAGUE: Record<string, string> = {
   l_4WFCIZ: 'english-premier-league',
@@ -116,7 +117,7 @@ export function StandingsView({
                 key={row.team_slug ?? row.pos}
                 row={row}
                 onOpenTeam={onOpenTeam}
-                matchTeam={(name) => matchTeamToId(name, data)}
+                matchTeam={(name) => matchTeam(name, data)}
               />
             ))}
           </div>
@@ -138,13 +139,16 @@ export function StandingsView({
   );
 }
 
-function matchTeamToId(name: string, data: UseFootballResult): string | undefined {
-  const n = name.toLowerCase();
-  const candidates = data.teams.filter((t) => {
-    const tn = t.name.toLowerCase();
-    return tn.includes(n) || n.includes(tn);
-  });
-  return candidates[0]?.id;
+function matchTeam(name: string, data: UseFootballResult): TeamCatalogueEntry | undefined {
+  const key = (value: string) => {
+    const normalized = canonicalTeamName(value);
+    return normalized === 'bournemouth afc' || normalized === 'afc bournemouth'
+      ? 'bournemouth'
+      : normalized;
+  };
+  const teams = data.leagueTeams.length ? data.leagueTeams : data.teams;
+  const candidates = teams.filter((team) => key(team.name) === key(name));
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
 function StandingsRow({
@@ -153,10 +157,12 @@ function StandingsRow({
   onOpenTeam,
 }: {
   row: SportScoreStandingRow;
-  matchTeam: (name: string) => string | undefined;
+  matchTeam: (name: string) => TeamCatalogueEntry | undefined;
   onOpenTeam: (id: string) => void;
 }) {
-  const teamId = matchTeam(row.team);
+  const team = matchTeam(row.team);
+  const teamId = team?.id;
+  const name = team?.name ?? row.team;
   return (
     <div className="st-row" role="row" title={row.promo_name ?? ''}>
       <span className="st-pos">{row.pos}</span>
@@ -166,8 +172,8 @@ function StandingsRow({
         disabled={!teamId}
         title={teamId ? 'Открыть команду' : 'Клуб не сопоставлен с PitchAPI'}
       >
-        <TeamBadge name={row.team} imageUrl={row.team_logo} size={18} />
-        <span>{row.team}</span>
+        <TeamBadge name={name} imageUrl={team?.image_url ?? row.team_logo} size={18} />
+        <span>{name}</span>
       </button>
       <span>{row.p ?? '—'}</span>
       <span>{row.w ?? '—'}</span>

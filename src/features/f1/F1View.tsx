@@ -57,14 +57,14 @@ function F1Shell({
           </ModeHero>
         )}
         <div className="f1-toolbar">
-          {broadcast && (
+          {(broadcast || tab !== 'overview') && (
             <div className="broadcast-f1-heading">
               <h1>
                 {tab === 'overview' ? 'Ваш гоночный уикенд' : TABS.find((t) => t.id === tab)?.label}
               </h1>
             </div>
           )}
-          {(!broadcast || !onTabChange) && (
+          {!onTabChange && (
             <div
               className="f1-tabs"
               style={{ flex: '1 1 auto', borderBottom: 'none', paddingBottom: 0 }}

@@ -201,8 +201,10 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
               {match.home_team.name}
             </span>
             <span className="muted">—</span>
-            <span className="truncate right">
-              {match.away_team.name}{' '}
+            <span className="team-match-away">
+              <span className="truncate" title={match.away_team.name}>
+                {match.away_team.name}
+              </span>
               <TeamBadge
                 name={match.away_team.name}
                 imageUrl={match.away_team.image_url}

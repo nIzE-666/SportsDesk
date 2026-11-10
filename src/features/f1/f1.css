@@ -127,6 +127,10 @@
 .f1-grid.cols-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.f1-overview-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: start;
+}
 .f1-grid.cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -138,7 +142,8 @@
 }
 @media (max-width: 820px) {
   .f1-grid.cols-2,
-  .f1-grid.cols-3 {
+  .f1-grid.cols-3,
+  .f1-overview-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
