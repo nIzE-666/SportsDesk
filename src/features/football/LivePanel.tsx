@@ -6,6 +6,7 @@ import { api, openExternal } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
 import { matchInvolvesFavorite, useFavorites } from './FavoritesProvider';
+import { isPersonalLiveMatch } from './liveCompetitions';
 import { formatDateTime, getUserTimezone } from './storage';
 
 interface FlatSportScoreMatch {
@@ -121,16 +122,17 @@ export function LivePanel() {
     };
   }, [load]);
 
-  const favoriteList = matches.filter((m) =>
+  const personalMatches = matches.filter((m) => isPersonalLiveMatch(m, favoriteTeamNames));
+  const favoriteList = personalMatches.filter((m) =>
     matchInvolvesFavorite(m.home, m.away, favoriteTeamNames),
   );
-  const liveCount = matches.filter((m) => isLiveMatch(m)).length;
+  const liveCount = personalMatches.filter((m) => isLiveMatch(m)).length;
 
   const visible = (() => {
-    if (filter === 'live') return matches.filter((m) => isLiveMatch(m));
-    if (filter === 'finished') return matches.filter((m) => isFinishedMatch(m));
+    if (filter === 'live') return personalMatches.filter((m) => isLiveMatch(m));
+    if (filter === 'finished') return personalMatches.filter((m) => isFinishedMatch(m));
     if (filter === 'favorites') return favoriteList;
-    return matches;
+    return personalMatches;
   })();
 
   return (
@@ -141,8 +143,7 @@ export function LivePanel() {
             <Radio size={18} /> SportScore — лента матчей
           </h1>
           <p className="muted small">
-            Дневная лента SportScore, обновляется раз в 60 секунд при видимой вкладке. Здесь есть и
-            завершённые, и live матчи.{' '}
+            Матчи ваших клубов и доступных турниров.{' '}
             {fetchedAt ? `Обновлено ${formatDateTime(fetchedAt, timezone)}.` : ''}
           </p>
         </div>
@@ -160,7 +161,7 @@ export function LivePanel() {
             {(['all', 'live', 'finished', 'favorites'] as const).map((f) => (
               <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
                 {f === 'all'
-                  ? `Все (${matches.length})`
+                  ? `Все (${personalMatches.length})`
                   : f === 'live'
                     ? `Live (${liveCount})`
                     : f === 'finished'
@@ -185,7 +186,7 @@ export function LivePanel() {
       {!loading && !error && visible.length === 0 && (
         <EmptyBlock
           title="Нет матчей в выбранном фильтре"
-          message="SportScore вернул пустой список или фильтр ничего не оставил. Источник — дневная лента, без выдуманных счетов."
+          message="Попробуйте другой фильтр или обновите ленту."
         />
       )}
 
