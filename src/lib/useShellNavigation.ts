@@ -104,7 +104,7 @@ export function useShellNavigation() {
     [navigate],
   );
   const auxiliary = useCallback(
-    (kind: 'watch' | 'settings' | 'planner' | 'events' | 'games') => {
+    (kind: 'watch' | 'settings' | 'planner' | 'events' | 'games' | 'diary' | 'offline') => {
       const s = ref.current,
         current = s.entries[s.cursor]!;
       if (current.route.kind === kind) {

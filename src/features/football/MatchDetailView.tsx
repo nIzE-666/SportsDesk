@@ -13,6 +13,10 @@ import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
 import { MatchStatsTab } from './MatchStatsTab';
 import { MatchLineups } from './MatchLineups';
+import { MatchAnalysis } from './MatchAnalysis';
+import { TacticsBoard } from '../tactics/TacticsBoard';
+import { DiaryMarkButton } from '../diary/DiaryMarkButton';
+import { footballDiaryEvent } from '../diary/diaryModel';
 import { HiddenScore, SpoilerGate } from '../spoilers/SpoilerGate';
 import { SpoilerToggle } from '../spoilers/SpoilerToggle';
 import { PredictionPanel } from '../games/PredictionPanel';
@@ -38,7 +42,7 @@ interface Loaded {
   events: EventsPayload | null;
 }
 
-type TabKey = 'overview' | 'events' | 'lineups' | 'stats' | 'players';
+type TabKey = 'overview' | 'events' | 'lineups' | 'stats' | 'players' | 'analysis' | 'tactics';
 
 const EMPTY: Loaded = { detail: null, players: [], lineups: null, stats: null, events: null };
 const matchStatusLabel = matchStateLabel;
@@ -80,7 +84,9 @@ export function MatchDetailView({
   const broadcast = useInterfaceDesign() === 'broadcast';
   const timezone = getUserTimezone();
   const [tab, setTab] = useViewState<TabKey>(`match.${matchId}.tab`, 'overview', (v) =>
-    ['overview', 'events', 'lineups', 'stats', 'players'].includes(String(v)),
+    ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'].includes(
+      String(v),
+    ),
   );
   const [loaded, setLoaded] = useState<Loaded>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -218,9 +224,9 @@ export function MatchDetailView({
     void loadOptional('events', true).catch(() => undefined);
     if (tab === 'stats') void loadOptional('stats', true);
     if (tab === 'players') void loadOptional('players', true);
-    if (tab === 'lineups') {
+    if (tab === 'lineups' || tab === 'tactics') {
       void loadOptional('lineups', true);
-      void loadOptional('players', true);
+      if (tab === 'lineups') void loadOptional('players', true);
     }
     void (async () => {
       try {
@@ -321,8 +327,11 @@ export function MatchDetailView({
         </div>
       )}
       <PredictionPanel detail={detail} />
+      <DiaryMarkButton event={footballDiaryEvent(detail)} />
       <div className="md-tabs" role="tablist" aria-label="Разделы матча">
-        {(['overview', 'events', 'lineups', 'stats', 'players'] as const).map((k) => (
+        {(
+          ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'] as const
+        ).map((k) => (
           <button
             key={k}
             role="tab"
@@ -338,7 +347,11 @@ export function MatchDetailView({
                   ? 'Поле и оценки'
                   : k === 'stats'
                     ? 'Статистика'
-                    : 'Игроки'}
+                    : k === 'players'
+                      ? 'Игроки'
+                      : k === 'analysis'
+                        ? 'Разбор матча'
+                        : 'Мои схемы'}
           </button>
         ))}
       </div>
@@ -369,6 +382,18 @@ export function MatchDetailView({
             />
           ) : (
             <>
+              {tab === 'tactics' && (
+                <TacticsBoard
+                  key={matchId}
+                  detail={detail}
+                  payload={loaded.lineups}
+                  loading={optionalLoading.lineups}
+                  error={optionalErrors.lineups}
+                />
+              )}
+              {tab === 'analysis' && (
+                <MatchAnalysis key={matchId} detail={detail} liveTick={liveTick} />
+              )}
               {tab === 'overview' && (
                 <Overview
                   detail={detail}
@@ -388,6 +413,7 @@ export function MatchDetailView({
                   error={optionalErrors.lineups}
                   playersError={optionalErrors.players}
                   playersLoading={optionalLoading.players}
+                  onOpenTactics={() => setTab('tactics')}
                 />
               )}
               {tab === 'stats' && (

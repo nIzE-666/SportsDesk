@@ -6,6 +6,13 @@ import { SPOILERS_KEY, isValidSpoilersValue } from '../spoilers/spoilerStore';
 import { ATMOSPHERE_KEY, isValidAtmosphereValue } from '../atmosphere/atmosphereStore';
 import { START_LIGHTS_KEY, isValidStartLightsValue } from '../games/startLights';
 import { PREDICTIONS_KEY, isValidPredictionsValue } from '../games/predictions';
+import { TACTICS_KEY, isValidTacticsValue, tacticsReadError } from '../tactics/tacticsModel';
+import { DIARY_KEY, isValidDiaryValue, diaryReadError } from '../diary/diaryModel';
+import {
+  OFFLINE_QUEUE_KEY,
+  validOfflineQueueValue,
+  offlineQueueError,
+} from '../offline/offlineQueue';
 export function allowedProfileKey(key: string) {
   if (!key.startsWith('sportsdesk.')) return false;
   const name = key.slice('sportsdesk.'.length);
@@ -74,6 +81,10 @@ function validateProfile(settings: Record<string, string>) {
       throw new Error('В профиле повреждена статистика игры «Стартовые огни».');
     if (k === PREDICTIONS_KEY && !isValidPredictionsValue(v))
       throw new Error('В профиле повреждены прогнозы игры «Угадай счёт».');
+    if (k === TACTICS_KEY && !isValidTacticsValue(v)) throw new Error(tacticsReadError(v));
+    if (k === DIARY_KEY && !isValidDiaryValue(v)) throw new Error(diaryReadError(v));
+    if (k === OFFLINE_QUEUE_KEY && !validOfflineQueueValue(v))
+      throw new Error(offlineQueueError(v));
     total += bytes(k) + bytes(v);
   }
   if (total > 1_500_000) throw new Error('Профиль превышает допустимый размер.');

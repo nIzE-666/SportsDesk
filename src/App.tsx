@@ -3,6 +3,7 @@ import {
   ChevronRight,
   CalendarClock,
   Gamepad2,
+  HardDriveDownload,
   Heart,
   Settings,
   Tv,
@@ -43,6 +44,10 @@ import { useInterfaceDesign } from './lib/interfaceDesign';
 import type { SearchTarget } from './lib/searchIndex';
 import { WatchActionContext } from './lib/watchIntent';
 import { LoadingBlock } from './components/StateViews';
+import { startOfflineRunner } from './features/offline/offlineQueue';
+const OfflineView = lazy(() =>
+  import('./features/offline/OfflineView').then((m) => ({ default: m.OfflineView })),
+);
 const FootballView = lazy(() =>
   import('./features/football/FootballView').then((m) => ({ default: m.FootballView })),
 );
@@ -67,6 +72,9 @@ const EventCenter = lazy(() =>
 );
 const GamesView = lazy(() =>
   import('./features/games/GamesView').then((m) => ({ default: m.GamesView })),
+);
+const DiaryView = lazy(() =>
+  import('./features/diary/DiaryView').then((m) => ({ default: m.DiaryView })),
 );
 export type { FootballSection, ShellRoute, Sport } from './lib/navigation';
 /** Отслеживаемые команды для сайдбара: ids из localStorage + каталог имён. */
@@ -98,6 +106,7 @@ export default function App() {
 }
 
 function MainApp() {
+  useEffect(startOfflineRunner, []);
   const design = useInterfaceDesign();
   const atmosphere = useAtmosphere();
   const navigation = useShellNavigation();
@@ -158,7 +167,9 @@ function MainApp() {
     route.kind === 'settings' ||
     route.kind === 'planner' ||
     route.kind === 'events' ||
-    route.kind === 'games';
+    route.kind === 'games' ||
+    route.kind === 'diary' ||
+    route.kind === 'offline';
   const reset = () => setRoute(homeRoute(sport, cupId));
   const changeMode = navigation.changeSport;
   const openFootballMatch = (matchId: string, eventLeague?: string) =>
@@ -439,6 +450,33 @@ function MainApp() {
             )}
             <div className="sidebar-bottom">
               <button
+                className={`nav-item ${route.kind === 'offline' ? 'active' : ''}`}
+                title="Офлайн-сезоны"
+                onClick={() => togglePage('offline')}
+              >
+                <HardDriveDownload size={18} />
+                <span>Офлайн-сезоны</span>
+              </button>
+              <button
+                className={`nav-item ${route.kind === 'diary' ? 'active' : ''}`}
+                title="Дневник просмотра"
+                onClick={() => togglePage('diary')}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="3" width="15" height="18" rx="2" />
+                  <path d="M9 3v18M3 7h4M3 12h4M3 17h4M12 8h5M12 12h5" />
+                </svg>
+                <span>Дневник просмотра</span>
+              </button>
+              <button
                 className={`nav-item ${route.kind === 'planner' ? 'active' : ''}`}
                 title="Мой спортивный вечер"
                 onClick={openPlanner}
@@ -489,7 +527,9 @@ function MainApp() {
                     : route.kind === 'settings' ||
                         route.kind === 'watch' ||
                         route.kind === 'events' ||
-                        route.kind === 'games'
+                        route.kind === 'games' ||
+                        route.kind === 'diary' ||
+                        route.kind === 'offline'
                       ? []
                       : sport === 'f1'
                         ? ['jolpica', 'openf1']
@@ -511,23 +551,27 @@ function MainApp() {
                 <span>
                   {route.kind === 'settings'
                     ? 'Настройки'
-                    : route.kind === 'games'
-                      ? 'Игры'
-                      : route.kind === 'events'
-                        ? 'Центр событий'
-                        : route.kind === 'watch'
-                          ? 'Онлайн-просмотр'
-                          : route.kind === 'planner'
-                            ? 'Мой спортивный вечер'
-                            : route.kind === 'football-match'
-                              ? 'Статистика матча'
-                              : route.kind === 'football'
-                                ? footballNav.find((n) => n.id === route.section)?.label
-                                : route.kind === 'f1'
-                                  ? f1Nav.find((n) => n.id === f1Tab)?.label
-                                  : route.kind === 'ucl'
-                                    ? uclNav.find((n) => n.id === uclTab)?.label
-                                    : cupNav.find((n) => n.id === cupTab)?.label}
+                    : route.kind === 'offline'
+                      ? 'Офлайн-сезоны'
+                      : route.kind === 'diary'
+                        ? 'Дневник просмотра'
+                        : route.kind === 'games'
+                          ? 'Игры'
+                          : route.kind === 'events'
+                            ? 'Центр событий'
+                            : route.kind === 'watch'
+                              ? 'Онлайн-просмотр'
+                              : route.kind === 'planner'
+                                ? 'Мой спортивный вечер'
+                                : route.kind === 'football-match'
+                                  ? 'Статистика матча'
+                                  : route.kind === 'football'
+                                    ? footballNav.find((n) => n.id === route.section)?.label
+                                    : route.kind === 'f1'
+                                      ? f1Nav.find((n) => n.id === f1Tab)?.label
+                                      : route.kind === 'ucl'
+                                        ? uclNav.find((n) => n.id === uclTab)?.label
+                                        : cupNav.find((n) => n.id === cupTab)?.label}
                 </span>
               </div>
               <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
@@ -573,6 +617,16 @@ function MainApp() {
                     </button>
                     {route.kind === 'watch' ? (
                       <WatchView intent={route.intent} requestedChannelId={route.channelId} />
+                    ) : route.kind === 'offline' ? (
+                      <OfflineView />
+                    ) : route.kind === 'diary' ? (
+                      <DiaryView
+                        onOpen={(reference) =>
+                          reference.kind === 'football'
+                            ? openFootballMatch(reference.matchId, reference.leagueId ?? undefined)
+                            : openWeekend(reference.season, reference.round)
+                        }
+                      />
                     ) : route.kind === 'games' ? (
                       <GamesView onOpenMatch={openFootballMatch} />
                     ) : route.kind === 'events' ? (

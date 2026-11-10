@@ -13,7 +13,9 @@ export type ShellRoute =
   | { kind: 'settings' }
   | { kind: 'planner' }
   | { kind: 'events' }
-  | { kind: 'games' };
+  | { kind: 'games' }
+  | { kind: 'diary' }
+  | { kind: 'offline' };
 
 export function homeRoute(sport: Sport, cupId: string): ContentRoute {
   return sport === 'cup'
@@ -30,7 +32,9 @@ export function isContentRoute(route: ShellRoute): route is ContentRoute {
     route.kind !== 'settings' &&
     route.kind !== 'planner' &&
     route.kind !== 'events' &&
-    route.kind !== 'games'
+    route.kind !== 'games' &&
+    route.kind !== 'diary' &&
+    route.kind !== 'offline'
   );
 }
 export function isValidContentRoute(value: unknown): value is ContentRoute {

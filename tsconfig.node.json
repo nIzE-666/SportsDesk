@@ -20,6 +20,8 @@
     "dev/**/*.ts",
     "scripts/**/*.ts",
     "src/lib/pitchDateCache.ts",
-    "src/lib/sportsIdentity.ts"
+    "src/lib/sportsIdentity.ts",
+    "src/features/offline/offlineModel.ts",
+    "src/features/football/types.ts"
   ]
 }

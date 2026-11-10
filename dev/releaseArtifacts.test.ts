@@ -13,18 +13,23 @@ it
     'restore-failure',
     'destination-conflict',
     'local-only',
-  ])('keeps release files consistent: %s', (scenario) => {
-  const output = execFileSync(
-    'pwsh',
-    [
-      '-NoLogo',
-      '-NoProfile',
-      '-File',
-      fileURLToPath(new URL('../scripts/release-artifacts.test.ps1', import.meta.url)),
-      '-Scenario',
-      scenario,
-    ],
-    { encoding: 'utf8', timeout: 15_000 },
-  );
-  expect(output).toContain(`PASS ${scenario}`);
-});
+  ])(
+  'keeps release files consistent: %s',
+  (scenario) => {
+    const output = execFileSync(
+      'pwsh',
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-File',
+        fileURLToPath(new URL('../scripts/release-artifacts.test.ps1', import.meta.url)),
+        '-Scenario',
+        scenario,
+      ],
+      { encoding: 'utf8', timeout: 15_000 },
+    );
+    expect(output).toContain(`PASS ${scenario}`);
+    // The child process has a 15 s deadline; leave time for startup and assertions.
+  },
+  20_000,
+);

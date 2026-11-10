@@ -7,6 +7,8 @@ import type { JolpicaRace } from './types';
 import { QualifyingResultsTable, RaceResultsTable, WeekendPointsTable } from './WeekendResults';
 import { weekendSchedule } from './weekendSchedule';
 import { racePresentation } from './calendarModel';
+import { DiaryMarkButton } from '../diary/DiaryMarkButton';
+import { f1DiaryEvent } from '../diary/diaryModel';
 
 type Tab = 'qualifying' | 'sprint' | 'race' | 'points';
 function sprintRows(payload: unknown) {
@@ -81,6 +83,10 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
           </div>
         ))}
       </div>
+      <DiaryMarkButton
+        event={{ ...f1DiaryEvent(race), title: `${racePresentation(race).title} · гонка` }}
+        label="Отметить просмотр гонки"
+      />
       <div className="f1-tabs" role="tablist" aria-label="Результаты уикенда">
         {(
           [

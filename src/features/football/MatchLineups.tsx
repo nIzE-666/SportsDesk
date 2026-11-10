@@ -22,6 +22,7 @@ interface Props {
   error?: string;
   playersError?: string;
   playersLoading?: boolean;
+  onOpenTactics?: () => void;
 }
 function pitchName(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -38,6 +39,7 @@ export function MatchLineups({
   error,
   playersError,
   playersLoading,
+  onOpenTactics,
 }: Props) {
   const [selectedId, setSelectedId] = useViewState<string | null>(
     `match.${detail.id}.lineup.player`,
@@ -95,6 +97,11 @@ export function MatchLineups({
             </p>
           </div>
           <span className="chip">PitchAPI · шкала 0–10</span>
+          {onOpenTactics && (
+            <button className="ghost-btn" onClick={onOpenTactics}>
+              Открыть тактическую доску
+            </button>
+          )}
         </div>
         {(error || playersError) && (
           <p className="lineup-notice" role="status">

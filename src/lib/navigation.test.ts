@@ -12,6 +12,10 @@ it('returns from auxiliary pages to the same cup instead of a football route', (
 it('treats the games page as an auxiliary page, never as sport content', () => {
   expect(isContentRoute({ kind: 'games' })).toBe(false);
   expect(isContentRoute({ kind: 'events' })).toBe(false);
+  expect(isContentRoute({ kind: 'diary' })).toBe(false);
+  expect(isContentRoute({ kind: 'offline' })).toBe(false);
+  expect(isValidContentRoute({ kind: 'offline' })).toBe(false);
+  expect(isValidContentRoute({ kind: 'diary' })).toBe(false);
   expect(isContentRoute(homeRoute('f1', 'europa'))).toBe(true);
   expect(isValidContentRoute({ kind: 'games' })).toBe(false);
 });

@@ -426,6 +426,11 @@ export async function handleCommand(
     >;
     switch (command) {
       case 'history_upsert':
+      case 'offline_list':
+      case 'offline_get':
+      case 'offline_put':
+      case 'offline_pin':
+      case 'offline_remove':
       case 'history_seasons':
       case 'history_season_matches':
       case 'history_head_to_head':

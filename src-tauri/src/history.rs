@@ -58,8 +58,8 @@ pub struct HistoryMatchIn {
 }
 
 pub struct History {
-    conn: std::sync::Mutex<rusqlite::Connection>,
-    generation: std::sync::atomic::AtomicU64,
+    pub(crate) conn: std::sync::Mutex<rusqlite::Connection>,
+    pub(crate) generation: std::sync::atomic::AtomicU64,
 }
 
 type SnapshotRow = (
@@ -82,16 +82,20 @@ type SnapshotRow = (
 /// Schema version stamped into `PRAGMA user_version`. Snapshots from older
 /// apps carry 0 and stay restorable; snapshots from newer apps are refused.
 /// See docs/DATA_FORMATS.md before changing the table layout.
-pub const HISTORY_SCHEMA_VERSION: i64 = 1;
+pub const HISTORY_SCHEMA_VERSION: i64 = 2;
 
-fn read_snapshot(path: &std::path::Path) -> Result<Vec<SnapshotRow>, String> {
+struct Snapshot {
+    rows: Vec<SnapshotRow>,
+    packages: Vec<crate::offline::OfflineSeason>,
+}
+fn read_snapshot(path: &std::path::Path) -> Result<Snapshot, String> {
     let source =
         rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(|_| "Повреждён снимок истории.")?;
     let check: String = source
         .query_row("PRAGMA quick_check", [], |r| r.get(0))
         .map_err(|_| "Повреждён снимок истории.")?;
-    let unsafe_schema:i64=source.query_row("SELECT count(*) FROM sqlite_master WHERE type IN ('trigger','view') OR (type='table' AND name!='history_matches')",[],|r|r.get(0)).map_err(|_|"Некорректная база истории.")?;
+    let unsafe_schema:i64=source.query_row("SELECT count(*) FROM sqlite_master WHERE type IN ('trigger','view') OR (type='table' AND name NOT IN ('history_matches','offline_seasons'))",[],|r|r.get(0)).map_err(|_|"Некорректная база истории.")?;
     if check != "ok" || unsafe_schema != 0 {
         return Err("Некорректная база истории.".into());
     }
@@ -131,7 +135,16 @@ fn read_snapshot(path: &std::path::Path) -> Result<Vec<SnapshotRow>, String> {
     if rows.len() > 500_000 {
         return Err("Слишком много матчей в истории.".into());
     }
-    Ok(rows)
+    let has_packages: bool = source.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='offline_seasons')", [], |r| r.get(0)).map_err(|_| "Некорректная база истории.")?;
+    if schema >= 2 && !has_packages {
+        return Err("В снимке отсутствуют офлайн-пакеты.".into());
+    }
+    let packages = if has_packages {
+        crate::offline::read_packages(&source)?
+    } else {
+        Vec::new()
+    };
+    Ok(Snapshot { rows, packages })
 }
 
 impl History {
@@ -152,7 +165,7 @@ impl History {
         path: &std::path::Path,
         expected_generation: u64,
     ) -> Result<(), String> {
-        let rows = read_snapshot(path)?;
+        let snapshot = read_snapshot(path)?;
         let mut conn = self.conn.lock().map_err(|_| "История недоступна.")?;
         if self.generation.load(std::sync::atomic::Ordering::Relaxed) != expected_generation {
             return Err(
@@ -165,8 +178,21 @@ impl History {
             .map_err(|_| "Не удалось начать восстановление.")?;
         tx.execute("DELETE FROM history_matches", [])
             .map_err(|_| "Не удалось восстановить историю.")?;
-        for r in rows {
+        tx.execute("DELETE FROM offline_seasons", [])
+            .map_err(|_| "Не удалось восстановить офлайн-пакеты.")?;
+        for r in snapshot.rows {
             tx.execute("INSERT INTO history_matches VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",rusqlite::params![r.0,r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8,r.9,r.10,r.11,r.12,r.13]).map_err(|_|"Не удалось восстановить историю.")?;
+        }
+        for p in snapshot.packages {
+            tx.execute(
+                "INSERT INTO offline_seasons VALUES (?1,?2,?3)",
+                rusqlite::params![
+                    p.league_id,
+                    p.season,
+                    serde_json::to_string(&p).map_err(|_| "Повреждён офлайн-пакет.")?
+                ],
+            )
+            .map_err(|_| "Не удалось восстановить офлайн-пакеты.")?;
         }
         tx.commit()
             .map_err(|_| "Не удалось завершить восстановление.")?;
@@ -176,9 +202,14 @@ impl History {
     }
     pub fn open(dir: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
         let path = dir.join("history.sqlite3");
-        let conn = rusqlite::Connection::open(path)?;
+        let mut conn = rusqlite::Connection::open(path)?;
+        let schema: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if schema > HISTORY_SCHEMA_VERSION {
+            return Err("История создана новой версией SportsDesk. Обновите приложение.".into());
+        }
         conn.pragma_update(None, "journal_mode", "WAL")?;
-        conn.execute_batch(
+        let tx = conn.transaction()?;
+        tx.execute_batch(
             "CREATE TABLE IF NOT EXISTS history_matches (
                  id TEXT NOT NULL,
                  league_id TEXT NOT NULL,
@@ -200,11 +231,12 @@ impl History {
              CREATE INDEX IF NOT EXISTS idx_history_away ON history_matches (away_id);
              CREATE INDEX IF NOT EXISTS idx_history_date ON history_matches (date);",
         )?;
-        // v0 (no stamp) has the same layout as v1; future migrations go here.
-        let schema: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        tx.execute_batch("CREATE TABLE IF NOT EXISTS offline_seasons (league_id TEXT NOT NULL, season TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (league_id,season));")?;
+        // v0/v1 history rows remain unchanged. v2 adds durable fixture packages.
         if schema < HISTORY_SCHEMA_VERSION {
-            conn.pragma_update(None, "user_version", HISTORY_SCHEMA_VERSION)?;
+            tx.pragma_update(None, "user_version", HISTORY_SCHEMA_VERSION)?;
         }
+        tx.commit()?;
         Ok(Self {
             conn: std::sync::Mutex::new(conn),
             generation: std::sync::atomic::AtomicU64::new(0),

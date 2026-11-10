@@ -1,5 +1,12 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import {
+  validOfflineSeason,
+  summarizeSeason,
+  MAX_OFFLINE_SEASONS,
+  seasonKey,
+  type OfflineSeason,
+} from '../src/features/offline/offlineModel';
 
 export class InvalidArgs extends Error {}
 const defaultPath = join(process.cwd(), 'node_modules', '.cache', 'sportsdesk-dev', 'history.json');
@@ -26,21 +33,33 @@ const output = ({ leagueName: _leagueName, ...row }: Row) => row;
 
 export class HistoryStore {
   constructor(private readonly path = defaultPath) {}
-  private read(): Row[] {
+  private readDocument(): { rows: Row[]; packages: OfflineSeason[] } {
     try {
       const raw = readFileSync(this.path, 'utf8');
       if (raw.length > 128 * 1024 * 1024) throw new Error('История слишком большая.');
       const data: unknown = JSON.parse(raw);
-      if (!Array.isArray(data)) throw new Error('История не читается.');
-      return data as Row[];
+      if (Array.isArray(data)) return { rows: data as Row[], packages: [] };
+      if (
+        !obj(data) ||
+        data.version !== 2 ||
+        !Array.isArray(data.rows) ||
+        !Array.isArray(data.packages) ||
+        data.packages.length > MAX_OFFLINE_SEASONS ||
+        !data.packages.every(validOfflineSeason)
+      )
+        throw new Error('История не читается или создана новой версией.');
+      return { rows: data.rows as Row[], packages: data.packages };
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { rows: [], packages: [] };
       throw error;
     }
   }
-  private write(rows: Row[]): void {
+  private read(): Row[] {
+    return this.readDocument().rows;
+  }
+  private write(rows: Row[], packages = this.readDocument().packages): void {
     if (rows.length > 500_000) throw new Error('Слишком много матчей в истории.');
-    const data = JSON.stringify(rows);
+    const data = JSON.stringify({ version: 2, rows, packages });
     if (data.length > 128 * 1024 * 1024) throw new Error('История слишком большая.');
     mkdirSync(dirname(this.path), { recursive: true });
     const temp = `${this.path}.${process.pid}.tmp`;
@@ -48,6 +67,57 @@ export class HistoryStore {
     renameSync(temp, this.path);
   }
   dispatch(command: string, args: Record<string, unknown>): unknown {
+    if (command.startsWith('offline_')) {
+      const doc = this.readDocument();
+      if (command === 'offline_list')
+        return doc.packages
+          .map(summarizeSeason)
+          .sort((a, b) => compare(b.season, a.season) || compare(a.leagueName, b.leagueName));
+      if (command === 'offline_put') {
+        const p = args.package;
+        if (!validOfflineSeason(p)) throw new InvalidArgs('Некорректный офлайн-пакет.');
+        const packages = doc.packages.filter(
+          (x) => seasonKey(x.leagueId, x.season) !== seasonKey(p.leagueId, p.season),
+        );
+        if (packages.length >= MAX_OFFLINE_SEASONS)
+          throw new InvalidArgs('Лимит 60 офлайн-сезонов.');
+        const rows = new Map(
+          doc.rows.map((r) => [JSON.stringify([r.leagueId, r.season, r.id]), r]),
+        );
+        for (const m of p.matches)
+          rows.set(JSON.stringify([p.leagueId, p.season, m.id]), {
+            id: m.id,
+            leagueId: p.leagueId,
+            leagueName: p.leagueName,
+            season: p.season,
+            homeId: m.homeId,
+            homeName: m.homeName,
+            awayId: m.awayId,
+            awayName: m.awayName,
+            homeScore: m.homeScore ?? -1,
+            awayScore: m.awayScore ?? -1,
+            status: m.status,
+            date: m.date,
+            round: m.round,
+          });
+        this.write([...rows.values()], [...packages, p]);
+        return summarizeSeason(p);
+      }
+      if (!str(args.leagueId) || !str(args.season))
+        throw new InvalidArgs('Не указаны лига и сезон.');
+      const p = doc.packages.find((x) => x.leagueId === args.leagueId && x.season === args.season);
+      if (command === 'offline_get') return p ?? null;
+      if (command === 'offline_pin') {
+        if (!p || typeof args.pinned !== 'boolean')
+          throw new InvalidArgs('Не указан пакет или закрепление.');
+        p.pinned = args.pinned;
+      } else if (command === 'offline_remove') {
+        if (p?.pinned) throw new InvalidArgs('Сначала открепите сезон.');
+        doc.packages = doc.packages.filter((x) => x !== p);
+      } else throw new InvalidArgs('Неизвестная команда.');
+      this.write(doc.rows, doc.packages);
+      return null;
+    }
     if (command === 'history_upsert') {
       const b = args.batch;
       if (

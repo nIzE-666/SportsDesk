@@ -11,6 +11,7 @@ mod f1_reminders;
 mod history;
 mod kino;
 mod notification_policy;
+mod offline;
 mod poller;
 mod profile;
 mod secrets;
@@ -333,6 +334,45 @@ async fn export_calendar(
 // ----- Local season history (№5) -----
 
 #[tauri::command]
+async fn offline_list(
+    state: tauri::State<'_, history::HistoryState>,
+) -> Result<Vec<offline::Summary>, String> {
+    state.0.offline_list()
+}
+#[tauri::command]
+async fn offline_get(
+    league_id: String,
+    season: String,
+    state: tauri::State<'_, history::HistoryState>,
+) -> Result<Option<offline::OfflineSeason>, String> {
+    state.0.offline_get(&league_id, &season)
+}
+#[tauri::command]
+async fn offline_put(
+    package: offline::OfflineSeason,
+    state: tauri::State<'_, history::HistoryState>,
+) -> Result<offline::Summary, String> {
+    state.0.offline_put(&package)
+}
+#[tauri::command]
+async fn offline_pin(
+    league_id: String,
+    season: String,
+    pinned: bool,
+    state: tauri::State<'_, history::HistoryState>,
+) -> Result<(), String> {
+    state.0.offline_pin(&league_id, &season, pinned)
+}
+#[tauri::command]
+async fn offline_remove(
+    league_id: String,
+    season: String,
+    state: tauri::State<'_, history::HistoryState>,
+) -> Result<(), String> {
+    state.0.offline_remove(&league_id, &season)
+}
+
+#[tauri::command]
 async fn history_upsert(
     batch: history::HistoryUpsert,
     state: tauri::State<'_, history::HistoryState>,
@@ -487,6 +527,11 @@ pub fn run() {
             unwatch_match,
             export_calendar,
             history_upsert,
+            offline_list,
+            offline_get,
+            offline_put,
+            offline_pin,
+            offline_remove,
             history_seasons,
             history_season_matches,
             history_head_to_head,

@@ -417,9 +417,16 @@ fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
     }
     if source == "pitch"
         && p.starts_with("matches/")
-        && ["/players", "/stats", "/lineups", "/events"]
-            .iter()
-            .any(|part| p.contains(part))
+        && [
+            "/players",
+            "/stats",
+            "/lineups",
+            "/events",
+            "/shots",
+            "/momentum",
+        ]
+        .iter()
+        .any(|part| p.contains(part))
     {
         return 60 * 1000;
     }
@@ -1352,6 +1359,8 @@ mod runtime_tests {
         );
         // Другие источники и другие формы ответа правило не затрагивает.
         assert_eq!(ttl_ms("pitch", "matches/x/events", &empty), 60_000);
+        assert_eq!(ttl_ms("pitch", "matches/x/shots", &empty), 60_000);
+        assert_eq!(ttl_ms("pitch", "matches/x/momentum", &empty), 60_000);
     }
 }
 

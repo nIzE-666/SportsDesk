@@ -910,7 +910,13 @@ mod tests {
             }],
         };
         h.upsert_season(&batch).unwrap();
+        let package: crate::offline::OfflineSeason = serde_json::from_value(serde_json::json!({"version":1,"leagueId":"offline-league","leagueName":"Offline","season":"2030","fetchedAt":"2030-01-02T00:00:00Z","pinned":true,"duplicates":0,"matches":[{"id":"future","homeId":"x","homeName":"X","awayId":"y","awayName":"Y","homeScore":null,"awayScore":null,"status":"scheduled","date":"2030-02-01","timeUtc":"2030-02-01T18:00:00Z","round":"2"}]})).unwrap();
+        h.offline_put(&package).unwrap();
         let path = b.create(&h).unwrap();
+        h.offline_pin(&package.league_id, &package.season, false)
+            .unwrap();
+        h.offline_remove(&package.league_id, &package.season)
+            .unwrap();
         let mut newer = batch;
         newer.matches[0].home_score = Some(9);
         h.upsert_season(&newer).unwrap();
@@ -920,6 +926,12 @@ mod tests {
         assert_eq!(prepared.profile.settings["sportsdesk.scheme"], "light");
         b.commit_restore(&h, prepared.id).unwrap();
         assert_eq!(h.team_matches("t_a", true).unwrap()[0].home_score, 2);
+        let restored = h
+            .offline_get(&package.league_id, &package.season)
+            .unwrap()
+            .unwrap();
+        assert!(restored.pinned);
+        assert_eq!(restored.matches[0].time_utc, package.matches[0].time_utc);
         // The journal keeps the mirror closed until the webview applied the profile.
         assert!(b
             .mirror(vec![("sportsdesk.scheme".into(), "light".into())])

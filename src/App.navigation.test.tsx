@@ -55,6 +55,8 @@ async function renderApp() {
     import('./features/settings/SettingsView'),
     import('./features/planner/ViewingPlanner'),
     import('./features/games/GamesView'),
+    import('./features/diary/DiaryView'),
+    import('./features/offline/OfflineView'),
     import('./features/games/StartLightsGame'),
     import('./features/ucl/ChampionsView'),
     import('./features/ucl/CupsView'),
@@ -141,6 +143,7 @@ beforeEach(() => {
     return reply({ MRData: { total: '0', RaceTable: { Races: [] } } });
   });
 });
+
 afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
@@ -522,4 +525,26 @@ it('hides the games entry while the games block is switched off', async () => {
   expect([...host.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Игры')).toBe(
     false,
   );
+});
+
+it('opens the local viewing diary and returns to the same match without creating a viewing record', async () => {
+  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+  await renderApp();
+  await click(button('Дневник просмотра'));
+  expect(host.querySelector('.diary-view')).not.toBeNull();
+  expect(host.querySelector('.md-score')).toBeNull();
+  expect(localStorage.getItem('sportsdesk.view.diary')).toBeNull();
+  await click(button('Вернуться к спорту'));
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+});
+
+it('opens offline seasons without starting a download and returns to the same match', async () => {
+  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+  await renderApp();
+  await click(button('Офлайн-сезоны'));
+  expect(host.querySelector('.offline-view')).not.toBeNull();
+  expect(host.querySelector('.page-breadcrumb')?.textContent).toContain('Офлайн-сезоны');
+  expect(JSON.parse(localStorage.getItem('sportsdesk.view.offline')!).jobs).toEqual([]);
+  await click(button('Вернуться к спорту'));
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
 });

@@ -46,6 +46,58 @@ const match = {
 };
 const batch = { leagueId: 'l', leagueName: 'League', season: '2026', matches: [match] };
 describe('history command bridge', () => {
+  it('stores offline fixtures and pins durably while deletion preserves history', async () => {
+    const p = {
+      version: 1,
+      leagueId: batch.leagueId,
+      leagueName: batch.leagueName,
+      season: batch.season,
+      fetchedAt: '2026-11-09T00:00:00Z',
+      pinned: true,
+      duplicates: 0,
+      matches: [{ ...match, timeUtc: '2026-01-01T20:00:00Z' }],
+    };
+    expect((await rpc('offline_put', { package: p })).status).toBe(200);
+    expect((await rpc('offline_put', { package: p })).status).toBe(200);
+    expect((await rpc('offline_get', { leagueId: p.leagueId, season: p.season })).body).toEqual(p);
+    expect((await rpc('offline_list')).body).toHaveLength(1);
+    expect((await rpc('offline_remove', { leagueId: p.leagueId, season: p.season })).status).toBe(
+      400,
+    );
+    expect(
+      (await rpc('offline_pin', { leagueId: p.leagueId, season: p.season, pinned: false })).status,
+    ).toBe(200);
+    expect((await rpc('offline_remove', { leagueId: p.leagueId, season: p.season })).status).toBe(
+      200,
+    );
+    expect((await rpc('offline_list')).body).toEqual([]);
+    expect(
+      (await rpc('history_season_matches', { leagueId: p.leagueId, season: p.season })).body,
+    ).toHaveLength(1);
+    expect(
+      new HistoryStore(join(dir, 'history.json')).dispatch('history_seasons', {}),
+    ).toHaveLength(1);
+  });
+  it('rejects malformed offline updates without replacing the existing snapshot', async () => {
+    const p = {
+      version: 1,
+      leagueId: batch.leagueId,
+      leagueName: batch.leagueName,
+      season: batch.season,
+      fetchedAt: '2026-11-09T00:00:00Z',
+      pinned: true,
+      duplicates: 0,
+      matches: [{ ...match, timeUtc: null }],
+    };
+    await rpc('offline_put', { package: p });
+    for (const invalid of [
+      { ...p, version: 2 },
+      { ...p, matches: [p.matches[0], p.matches[0]] },
+      { ...p, matches: [] },
+    ])
+      expect((await rpc('offline_put', { package: invalid })).status).toBe(400);
+    expect((await rpc('offline_get', { leagueId: p.leagueId, season: p.season })).body).toEqual(p);
+  });
   it('serves an empty event center and validates mark-read requests', async () => {
     expect(await rpc('event_center_list')).toEqual({ status: 200, body: [] });
     expect(await rpc('event_center_mark_read', { ids: [] })).toEqual({ status: 200, body: null });
