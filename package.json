@@ -16,7 +16,7 @@
     "lint": "eslint src dev --max-warnings 0",
     "format": "prettier --write src dev e2e playwright.config.ts index.html vite.config.ts eslint.config.js package.json tsconfig*.json",
     "format:check": "prettier --check src dev e2e playwright.config.ts index.html vite.config.ts eslint.config.js package.json tsconfig*.json",
-    "typecheck:e2e": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --strict --lib ES2022,DOM --skipLibCheck playwright.config.ts e2e/visual.pw.ts e2e/matchAnalysis.pw.ts e2e/tactics.pw.ts e2e/diary.pw.ts e2e/offline.pw.ts e2e/sidebar.pw.ts e2e/uiMetrics.pw.ts e2e/uiScenarios.pw.ts e2e/emptyStates.pw.ts e2e/f1Layout.pw.ts e2e/teamLayout.pw.ts e2e/overviewBanners.pw.ts e2e/sourceCopy.pw.ts e2e/sourceLines.pw.ts",
+    "typecheck:e2e": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --strict --lib ES2022,DOM --skipLibCheck playwright.config.ts e2e/visual.pw.ts e2e/matchAnalysis.pw.ts e2e/tactics.pw.ts e2e/diary.pw.ts e2e/offline.pw.ts e2e/sidebar.pw.ts e2e/uiMetrics.pw.ts e2e/uiScenarios.pw.ts e2e/emptyStates.pw.ts e2e/f1Layout.pw.ts e2e/teamLayout.pw.ts e2e/overviewBanners.pw.ts e2e/sourceCopy.pw.ts e2e/sourceLines.pw.ts e2e/uiTextAudit.pw.ts",
     "test:e2e": "playwright test",
     "test:visual": "playwright test e2e/visual.pw.ts e2e/matchAnalysis.pw.ts e2e/tactics.pw.ts e2e/diary.pw.ts e2e/offline.pw.ts",
     "test:visual:update": "playwright test e2e/visual.pw.ts e2e/matchAnalysis.pw.ts e2e/tactics.pw.ts e2e/diary.pw.ts e2e/offline.pw.ts --update-snapshots"
