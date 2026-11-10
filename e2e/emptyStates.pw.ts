@@ -23,3 +23,36 @@ test('empty diary and event center keep useful actions without empty filters', a
   await expect(page.locator('.event-toolbar')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Обновить', exact: true }).first()).toBeVisible();
 });
+
+test('empty planner hides filters while retaining a way to refresh', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1100, height: 720 });
+  await setupVisualFixture(page, 'broadcast', 'dark');
+  await page.route('**/bridge/api**', async (route) => {
+    const url = new URL(route.request().url());
+    const source = url.searchParams.get('source');
+    const path = url.searchParams.get('path') ?? '';
+    if (source !== 'pitch' && source !== 'jolpica') return route.fallback();
+    const payload =
+      source === 'jolpica'
+        ? { MRData: { RaceTable: { Races: [] } } }
+        : path === 'leagues'
+          ? {
+              data: {
+                leagues: [{ id: 'l_4WFCIZ', name: 'Premier League', seasons: ['2026/2027'] }],
+              },
+            }
+          : { data: { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: [] } };
+    await route.fulfill({
+      json: { payload, source, stale: false, fetchedAt: '2026-10-25T00:00:00Z' },
+    });
+  });
+  await page.goto('/');
+  await page.locator('aside').getByTitle('Мой спортивный вечер').click();
+  await expect(
+    page.getByText('Когда расписание появится, события будут показаны здесь.'),
+  ).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Период плана' })).toHaveCount(0);
+  await expect(page.locator('.planner-insights')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Обновить расписание' })).toBeEnabled();
+  await page.screenshot({ path: testInfo.outputPath('empty-planner.png') });
+});

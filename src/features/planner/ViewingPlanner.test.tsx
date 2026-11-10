@@ -167,6 +167,27 @@ afterEach(async () => {
 });
 
 describe('personal sports viewing planner', () => {
+  it('hides empty filters and counts while keeping refresh available', async () => {
+    const data = vi.mocked(useFootballData).getMockImplementation()!();
+    vi.mocked(useFootballData).mockReturnValue({ ...data, allMatches: [], matches: [] });
+    vi.mocked(useApiResource).mockImplementation(
+      () =>
+        ({
+          data: { races: [] },
+          loading: false,
+          error: null,
+          stale: false,
+          reload: vi.fn(),
+        }) as unknown as ReturnType<typeof useApiResource>,
+    );
+    await render();
+    expect(articles()).toHaveLength(0);
+    expect(host.querySelector('.planner-insights')).toBeNull();
+    expect(host.querySelector('[aria-label="Период плана"]')).toBeNull();
+    expect(host.querySelector('.planner-filter')).toBeNull();
+    expect(button('Обновить расписание').disabled).toBe(false);
+    expect(host.textContent).toContain('Когда расписание появится');
+  });
   it('shows the next available day when the coming week is empty', async () => {
     const future = { ...firstMatch, date: '2026-11-05', time_utc: '2026-11-05T12:00:00Z' };
     const data = vi.mocked(useFootballData).getMockImplementation()!();

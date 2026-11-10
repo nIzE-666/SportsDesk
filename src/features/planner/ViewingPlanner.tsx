@@ -140,9 +140,25 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       onOpenMatch(event.match.id, league?.id);
     }
   };
-  const refreshed = [football.fetchedAt, schedule.fetchedAt]
-    .filter((v): v is string => !!v)
-    .sort()[0];
+  const fetchedTimes = [
+    football.fetchedAt,
+    schedule.fetchedAt,
+    ...(needsNextYear ? [nextSchedule.fetchedAt] : []),
+  ];
+  const refreshed = fetchedTimes.every((value) => value && Number.isFinite(Date.parse(value)))
+    ? fetchedTimes
+        .filter((value): value is string => !!value)
+        .sort((a, b) => Date.parse(a) - Date.parse(b))[0]
+    : null;
+  const noEvents =
+    !plan.events.length &&
+    !onlyPlan &&
+    !football.matchesLoading &&
+    !schedule.loading &&
+    (!needsNextYear || !nextSchedule.loading) &&
+    !football.matchesError &&
+    !schedule.error &&
+    (!needsNextYear || !nextSchedule.error);
   return (
     <div className="viewing-planner">
       <section className="planner-hero">
@@ -160,7 +176,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         <div className="planner-insights">
           <div>
             <strong>{inRange.length}</strong>
-            <span>событий в периоде</span>
+            <span>{nextDay ? 'ближайших событий' : 'событий в периоде'}</span>
           </div>
           <div>
             <strong>{selected.length}</strong>
@@ -173,47 +189,51 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         </div>
       )}
       <section className="panel planner-toolbar">
-        <div className="analysis-control-group" role="group" aria-label="Период плана">
-          <button
-            className={range === 'week' ? 'ghost-btn active' : 'ghost-btn'}
-            aria-pressed={range === 'week'}
-            onClick={() => setRange('week')}
-          >
-            Ближайшие 7 дней
-          </button>
-          <button
-            className={range === 'day' ? 'ghost-btn active' : 'ghost-btn'}
-            aria-pressed={range === 'day'}
-            onClick={() => {
-              setDay(today);
-              setRange('day');
-            }}
-          >
-            Сегодня
-          </button>
-          <label>
-            <span>Выбрать день</span>
-            <input
-              type="date"
-              aria-label="День спортивного плана"
-              value={day}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setDay(e.target.value);
-                  setRange('day');
-                }
+        {!noEvents && (
+          <div className="analysis-control-group" role="group" aria-label="Период плана">
+            <button
+              className={range === 'week' ? 'ghost-btn active' : 'ghost-btn'}
+              aria-pressed={range === 'week'}
+              onClick={() => setRange('week')}
+            >
+              Ближайшие 7 дней
+            </button>
+            <button
+              className={range === 'day' ? 'ghost-btn active' : 'ghost-btn'}
+              aria-pressed={range === 'day'}
+              onClick={() => {
+                setDay(today);
+                setRange('day');
               }}
-            />
+            >
+              Сегодня
+            </button>
+            <label>
+              <span>Выбрать день</span>
+              <input
+                type="date"
+                aria-label="День спортивного плана"
+                value={day}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setDay(e.target.value);
+                    setRange('day');
+                  }
+                }}
+              />
+            </label>
+          </div>
+        )}
+        {!noEvents && (
+          <label className="planner-filter">
+            <input
+              type="checkbox"
+              checked={onlyPlan}
+              onChange={(e) => setOnlyPlan(e.target.checked)}
+            />{' '}
+            Только мой план
           </label>
-        </div>
-        <label className="planner-filter">
-          <input
-            type="checkbox"
-            checked={onlyPlan}
-            onChange={(e) => setOnlyPlan(e.target.checked)}
-          />{' '}
-          Только мой план
-        </label>
+        )}
         <button
           className="ghost-btn"
           disabled={football.matchesLoading || schedule.loading}
@@ -226,10 +246,12 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           Обновить расписание
         </button>
       </section>
-      <p className="planner-estimate">
-        <Clock3 size={15} /> Начало — по данным источника. Окончание приблизительное: матч около 2
-        часов, гонка около 2 часов; задержки и дополнительное время могут изменить пересечения.
-      </p>
+      {inRange.length > 0 && (
+        <p className="planner-estimate">
+          <Clock3 size={15} /> Окончание приблизительное: матч и гонка — около двух часов. Задержки
+          и дополнительное время могут изменить пересечения.
+        </p>
+      )}
       {!!selectedConflicts.length && (
         <div className="planner-conflict-banner" role="status">
           <TriangleAlert size={19} />
@@ -278,7 +300,9 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           message={
             onlyPlan
               ? 'Отключите «Только мой план» и отметьте нужные события кнопкой «Буду смотреть».'
-              : 'Выберите другой день. Футбол берётся из расписаний отслеживаемых клубов; F1 — из опубликованного календаря.'
+              : noEvents
+                ? 'Когда расписание появится, события будут показаны здесь.'
+                : 'Выберите другой день или период.'
           }
         />
       )}
@@ -395,10 +419,11 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         <span>
           Источники: PitchAPI и Jolpica
           {refreshed
-            ? ` · обновлено ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(refreshed))}`
+            ? ` · обновлено не ранее ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(refreshed))}`
             : ''}
-          {football.stale || schedule.stale ? ' · есть сохранённые данные' : ''}. Выбранные события
-          сохраняются на этом ПК.
+          {football.stale || schedule.stale || (needsNextYear && nextSchedule.stale)
+            ? ' · сохранённые данные могут быть устаревшими'
+            : ''}
         </span>
       </div>
     </div>
