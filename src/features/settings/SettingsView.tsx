@@ -283,7 +283,7 @@ export function SettingsView() {
       if (!mounted.current) return;
       if (res?.ok) {
         setKeyInput('');
-        setKeyMessage('Ключ сохранён (шифруется через DPAPI, в открытом виде не хранится).');
+        setKeyMessage('Ключ сохранён в зашифрованном виде.');
         await refreshSecret();
       } else {
         setKeyMessage('Ключ не принят сервисом.');
@@ -344,7 +344,7 @@ export function SettingsView() {
     if (notificationsEnabled) {
       setNotificationsEnabled(false);
       writeNotificationsEnabled(false);
-      setNotificationMessage('Уведомления выключены. Фоновый опрос остановлен.');
+      setNotificationMessage('Уведомления выключены.');
       return;
     }
     const perm = await requestPermissionSafe();
@@ -352,9 +352,7 @@ export function SettingsView() {
     if (perm === 'granted' || perm === 'native') {
       setNotificationsEnabled(true);
       writeNotificationsEnabled(true);
-      setNotificationMessage(
-        'Уведомления включены: фоновый опрос работает в Rust, даже когда окно скрыто в трее.',
-      );
+      setNotificationMessage('Уведомления включены. Они работают и при свёрнутом окне.');
       try {
         await notify('SportsDesk', 'Уведомления включены.');
       } catch {
@@ -547,16 +545,14 @@ export function SettingsView() {
         <div>
           <h1>Настройки</h1>
           <p className="muted small">
-            Секреты хранятся вне бандла и вне localStorage: ключ PitchAPI — через Windows DPAPI,
-            токены Kino — в защищённом хранилище приложения.
+            Ключи хранятся в зашифрованном виде и не входят в резервные копии.
           </p>
         </div>
       </div>
 
       {secretUnknown && (
         <div className="panel settings-warn">
-          Статус секретов недоступен: {secretError}. Проверьте, что приложение запущено в
-          Tauri-режиме.
+          Не удалось проверить ключи: {secretError}. Проверьте, что приложение Windows запущено.
         </div>
       )}
 
@@ -584,10 +580,7 @@ export function SettingsView() {
             Пройти мастер настройки
           </button>
         </div>
-        <p className="settings-note">
-          Тема и плотность применяются сразу и запоминаются. На Windows 11 окно также использует
-          системный Mica-эффект, если он доступен.
-        </p>
+        <p className="settings-note">Тема и плотность применяются сразу и сохраняются.</p>
       </section>
 
       <BackupPanel />
@@ -606,8 +599,7 @@ export function SettingsView() {
           </span>
         </div>
         <p className="muted small">
-          Ключ используется для расписаний, матчей, составов, событий и статистики PitchAPI. Ключ не
-          выводится в интерфейс и не передаётся в JS-бандл.
+          Ключ нужен для расписания, матчей, составов и статистики PitchAPI.
         </p>
         <div className="settings-row">
           <label htmlFor="pitch-key" className="muted small">
@@ -695,9 +687,7 @@ export function SettingsView() {
           <span className="chip">{notificationsEnabled ? 'Включены' : 'Выключены'}</span>
         </div>
         <p className="muted small">
-          Уведомления о матчах избранных клубов считает фоновый опрос на Rust: единый тик раз в
-          минуту, кеш, защита от повторов и увеличенные паузы при ошибках. Доставка не зависит от
-          того, какой экран открыт; при скрытии окна в трей опрос продолжается.
+          Приложение проверяет матчи раз в минуту, пока запущено, в том числе в трее.
         </p>
         <label className="settings-f1-reminders">
           <input
@@ -753,8 +743,8 @@ export function SettingsView() {
         </div>
         <p className="muted small">
           {trayMode
-            ? 'Закрытие окна скрывает приложение в трей; фоновый опрос и уведомления продолжают работать. Полный выход — через меню иконки в трее.'
-            : 'Закрытие окна завершает приложение вместе с фоновым опросом.'}
+            ? 'При закрытии окна приложение продолжает работать в трее. Для полного выхода используйте меню значка в трее.'
+            : 'Закрытие окна завершает приложение.'}
         </p>
         <div className="settings-actions">
           <button className="ghost-btn" onClick={() => void toggleTrayMode()}>
@@ -786,7 +776,7 @@ export function SettingsView() {
             <p className="muted small">
               {kinoClientReady
                 ? 'Новые значения заменят сохранённые. Старые не показываются.'
-                : 'Шаг 1. Укажите адрес API и данные клиента KinoPub. Они шифруются через Windows DPAPI и не показываются повторно.'}
+                : 'Шаг 1. Укажите адрес и данные клиента KinoPub. Они сохраняются в зашифрованном виде и не показываются повторно.'}
             </p>
             <label htmlFor="kino-base-url" className="muted small">
               Адрес API (https://…)
@@ -909,9 +899,8 @@ export function SettingsView() {
           </dd>
           <dt>SportScore</dt>
           <dd>
-            Лайв-счёт, события, составы и таблицы. Лимит ~10 000 запросов в день на IP. Кэш минимум
-            60 с, обновление только при видимой вкладке. Где данные SportScore используются — указан
-            источник.
+            Счёт, события, составы и таблицы. Лимит — примерно 10 000 запросов в день на IP; лента
+            обновляется не чаще раза в минуту, пока открыта.
           </dd>
           <dt>F1 (Jolpica / OpenF1)</dt>
           <dd>
@@ -920,9 +909,7 @@ export function SettingsView() {
             честно исторический.
           </dd>
           <dt>Kino</dt>
-          <dd>
-            Только потоковое видео по устройству-коду. Список каналов не сохраняется в localStorage.
-          </dd>
+          <dd>Трансляции после входа по коду устройства.</dd>
         </dl>
       </section>
     </div>

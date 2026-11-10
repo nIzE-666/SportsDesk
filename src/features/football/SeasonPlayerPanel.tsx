@@ -98,7 +98,7 @@ export function SeasonPlayerPanel({
             <span>
               Проверено {stats.scanned} из {stats.totalCandidates} · {stats.minutes} известных минут
               {stats.failed ? ` · ${stats.failed} ответов недоступно` : ''}
-              {stats.stale ? ' · Использован кеш' : ''}
+              {stats.stale ? ' · Сохранённые данные могут быть устаревшими' : ''}
             </span>
           </div>
           <div className="season-metrics">

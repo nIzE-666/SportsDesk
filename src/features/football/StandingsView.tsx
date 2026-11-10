@@ -6,6 +6,7 @@ import { canonicalTeamName } from '../../lib/sportsIdentity';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
 import type { SportScoreStandings, SportScoreStandingRow } from './types';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
+import { formatDateTime, getUserTimezone } from './storage';
 
 const SLUG_BY_LEAGUE: Record<string, string> = {
   l_4WFCIZ: 'english-premier-league',
@@ -28,6 +29,7 @@ export function StandingsView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug) {
@@ -48,9 +50,11 @@ export function StandingsView({
       }
       setStandings(payload as SportScoreStandings);
       setFetchedAt(reply.fetchedAt ?? null);
+      setStale(reply.stale);
     } catch (e) {
       setStandings(null);
       setError(e instanceof Error ? e.message : 'Ошибка загрузки таблицы');
+      setStale(true);
     } finally {
       setLoading(false);
     }
@@ -71,7 +75,6 @@ export function StandingsView({
             {standings?.competition ??
               data.leagues.find((l) => l.id === data.selectedLeagueId)?.name ??
               'Лига'}
-            {fetchedAt ? ` · обновлено ${new Date(fetchedAt).toLocaleString('ru-RU')}` : ''}
           </p>
         </div>
         <div className="dashboard-head-actions">
@@ -133,7 +136,8 @@ export function StandingsView({
         <a href="https://sportscore.com" target="_blank" rel="noreferrer noopener">
           Powered by SportScore <ArrowUpRight size={12} />
         </a>
-        . Позиции, очки и разница мячей — как в ответе провайдера.
+        {fetchedAt ? ` · обновлено ${formatDateTime(fetchedAt, getUserTimezone())}` : ''}
+        {stale && standings && ' · сохранённые данные могут быть устаревшими'}
       </div>
     </div>
   );

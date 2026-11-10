@@ -37,7 +37,12 @@ export function DiagnosticsPanel() {
         </button>
       </div>
       <p className="muted small">
-        {backend?.runtime ?? 'Загрузка состояния…'} · Ключи и адреса потоков не включаются в отчёт.
+        {backend?.runtime
+          ? backend.runtime.startsWith('Windows')
+            ? 'Приложение Windows'
+            : 'Браузер'
+          : 'Загрузка состояния…'}{' '}
+        · Ключи и адреса потоков не включаются в отчёт.
       </p>
       <div className="diagnostics-grid">
         {['pitch', 'sportscore', 'espn', 'jolpica', 'openf1'].map((source) => {
@@ -59,11 +64,12 @@ export function DiagnosticsPanel() {
                 {failed.length
                   ? `${failed.length} ошибок`
                   : rows.length || cache
-                    ? 'Доступен кеш / данные'
+                    ? 'Доступны сохранённые данные'
                     : 'Ещё не запрашивался'}
               </span>
               <small>
-                В кеше: {cache?.entries ?? 0} · обновлено {cache ? age(cache.latestAt) : '—'}
+                Сохранено записей: {cache?.entries ?? 0} · обновлено{' '}
+                {cache ? age(cache.latestAt) : '—'}
               </small>
               {failed.map((r) => (
                 <small key={r.key}>

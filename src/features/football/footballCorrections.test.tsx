@@ -137,6 +137,7 @@ it('uses the selected league catalogue names and badges in standings without gue
       ],
     },
     fetchedAt: '2026-11-10T00:00:00Z',
+    stale: true,
   });
   const open = vi.fn();
   await render(
@@ -158,6 +159,7 @@ it('uses the selected league catalogue names and badges in standings without gue
     'https://example.com/bournemouth.png',
   );
   expect(rows[2]?.disabled).toBe(true);
+  expect(host.querySelector('.source-foot')?.textContent).toContain('устаревшими');
   await act(async () => rows[1]?.click());
   expect(open).toHaveBeenCalledWith('bournemouth');
 });

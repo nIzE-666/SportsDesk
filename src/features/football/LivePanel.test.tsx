@@ -15,6 +15,7 @@ vi.mock('../../lib/bridge', () => ({
       ],
     },
     fetchedAt: '2026-11-10T00:00:00Z',
+    stale: true,
   })),
   openExternal: vi.fn(),
 }));
@@ -37,6 +38,9 @@ it('limits every filter to followed competitions or favorite teams', async () =>
     expect(host.textContent).not.toContain('Jamaica Premier League');
     expect(host.textContent).not.toContain('Unknown');
     expect(host.textContent).toContain('Все (2)');
+    expect(host.querySelectorAll('.source-foot')).toHaveLength(1);
+    expect(host.querySelector('.source-foot')?.textContent).toContain('устаревшими');
+    expect(host.querySelector('.dashboard-head')?.textContent).not.toContain('обновлено');
     const live = [...host.querySelectorAll('button')].find((button) =>
       button.textContent?.includes('Live (2)'),
     )!;

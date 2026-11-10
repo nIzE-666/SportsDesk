@@ -27,7 +27,7 @@ export function DesignChooser() {
       <div className="design-options">
         {(
           [
-            ['classic', 'Классический', 'Привычные цветные панели и баннеры.'],
+            ['classic', 'Классический', 'Привычные цветные панели.'],
             [
               'broadcast',
               'Спортивная обложка',

@@ -198,7 +198,8 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
         Звёздочка отслеживает команду. Данные расписания: PitchAPI.
         {data.stale && (
           <span className="chip stale-chip">
-            Кэш: {data.fetchedAt ? new Date(data.fetchedAt).toLocaleString('ru-RU') : 'устаревшие'}
+            Сохранённые данные могут быть устаревшими
+            {data.fetchedAt ? ` · обновлено ${formatDateTime(data.fetchedAt, timezone)}` : ''}
           </span>
         )}
       </div>

@@ -75,6 +75,7 @@ export function LivePanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [filter, setFilter] = useViewState<LiveFilter>('football.live.filter', 'all', (v) =>
     ['all', 'live', 'finished', 'favorites'].includes(String(v)),
   );
@@ -89,10 +90,12 @@ export function LivePanel() {
       const reply = await api('sportscore', 'matches/?sport=football&limit=50', { automatic });
       if (!mountedRef.current) return;
       setMatches(extractMatches(reply.payload));
-      setFetchedAt(reply.fetchedAt ?? new Date().toISOString());
+      setFetchedAt(reply.fetchedAt ?? null);
+      setStale(reply.stale);
     } catch (e) {
       if (!mountedRef.current) return;
       setError(e instanceof Error ? e.message : 'SportScore недоступен');
+      setStale(true);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
@@ -140,12 +143,9 @@ export function LivePanel() {
       <div className="dashboard-head">
         <div>
           <h1>
-            <Radio size={18} /> SportScore — лента матчей
+            <Radio size={18} /> Счёт и события
           </h1>
-          <p className="muted small">
-            Матчи ваших клубов и доступных турниров.{' '}
-            {fetchedAt ? `Обновлено ${formatDateTime(fetchedAt, timezone)}.` : ''}
-          </p>
+          <p className="muted small">Матчи ваших клубов и доступных турниров.</p>
         </div>
         <div className="dashboard-head-actions">
           <button className="ghost-btn" onClick={() => void load()} disabled={loading}>
@@ -253,8 +253,8 @@ export function LivePanel() {
         >
           Powered by SportScore <ExternalLink size={12} />
         </button>
-        · Лимит SportScore ~10 000 запросов в день на IP. Лента не является live-only; статусы и
-        счета берутся из ответа провайдера.
+        {fetchedAt && <> · обновлено {formatDateTime(fetchedAt, timezone)}</>}
+        {stale && matches.length > 0 && <> · сохранённые данные могут быть устаревшими</>}
       </div>
     </div>
   );

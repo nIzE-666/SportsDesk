@@ -96,7 +96,9 @@ function ResourceNotice({ resource }: { resource: Resource<unknown> }) {
           {resource.error}
         </p>
       )}
-      {resource.stale && <p className="analysis-notice">Данные из кеша могут быть устаревшими.</p>}
+      {resource.stale && (
+        <p className="analysis-notice">Сохранённые данные могут быть устаревшими.</p>
+      )}
     </>
   );
 }

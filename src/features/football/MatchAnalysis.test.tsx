@@ -232,7 +232,7 @@ it('keeps empty analytics usable and marks stale cache data', async () => {
   await render();
   expect(host.textContent).toContain('Источник не опубликовал удары');
   expect(host.textContent).toContain('Источник не опубликовал давление');
-  expect(host.textContent).toContain('Данные из кеша могут быть устаревшими');
+  expect(host.textContent).toContain('Сохранённые данные могут быть устаревшими');
   expect(host.querySelector('button')?.disabled).toBe(false);
 });
 
