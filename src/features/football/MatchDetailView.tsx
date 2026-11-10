@@ -92,8 +92,20 @@ export function MatchDetailView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [refreshingDetail, setRefreshingDetail] = useState(false);
   const [optionalErrors, setOptionalErrors] = useState<Partial<Record<TabKey, string>>>({});
   const [optionalLoading, setOptionalLoading] = useState<Partial<Record<TabKey, boolean>>>({});
+  const [sources, setSources] = useState<
+    Record<string, { fetchedAt: string | null; stale: boolean }>
+  >({});
+  const [analysisSource, setAnalysisSource] = useState<{
+    fetchedAt: string | null;
+    stale: boolean;
+  } | null>(null);
+  const updateAnalysisSource = useCallback(
+    (status: { fetchedAt: string | null; stale: boolean }) => setAnalysisSource(status),
+    [],
+  );
   const reqRef = useRef(0);
   const mounted = useRef(true);
   useEffect(() => {
@@ -105,6 +117,7 @@ export function MatchDetailView({
 
   const loadOptional = useCallback(
     async (key: 'players' | 'lineups' | 'stats' | 'events', automatic = false) => {
+      const requestId = reqRef.current;
       const map: Record<'players' | 'lineups' | 'stats' | 'events', string> = {
         players: `matches/${matchId}/players`,
         lineups: `matches/${matchId}/lineups`,
@@ -114,7 +127,11 @@ export function MatchDetailView({
       setOptionalLoading((prev) => ({ ...prev, [key]: true }));
       try {
         const reply = await api('pitch', map[key], { automatic });
-        if (!mounted.current) return;
+        if (!mounted.current || requestId !== reqRef.current) return;
+        setSources((prev) => ({
+          ...prev,
+          [key]: { fetchedAt: reply.fetchedAt ?? null, stale: reply.stale },
+        }));
         const payload = reply.payload?.data ?? reply.payload;
         setLoaded((prev) => {
           if (key === 'players') return { ...prev, players: normalizePlayersPayload(payload) };
@@ -130,13 +147,17 @@ export function MatchDetailView({
           return next;
         });
       } catch (e) {
-        if (!mounted.current) return;
+        if (!mounted.current || requestId !== reqRef.current) return;
+        setSources((prev) =>
+          prev[key] ? { ...prev, [key]: { ...prev[key]!, stale: true } } : prev,
+        );
         setOptionalErrors((prev) => ({
           ...prev,
           [key]: e instanceof Error ? e.message : 'Нет данных',
         }));
       } finally {
-        if (mounted.current) setOptionalLoading((prev) => ({ ...prev, [key]: false }));
+        if (mounted.current && requestId === reqRef.current)
+          setOptionalLoading((prev) => ({ ...prev, [key]: false }));
       }
     },
     [matchId],
@@ -148,7 +169,10 @@ export function MatchDetailView({
     setLoaded(EMPTY);
     setError(null);
     setLoading(true);
+    setRefreshingDetail(false);
     setOptionalErrors({});
+    setSources({});
+    setAnalysisSource(null);
     setOptionalLoading({ events: true, lineups: true, players: true, stats: true });
 
     void (async () => {
@@ -157,6 +181,10 @@ export function MatchDetailView({
         if (reqRef.current !== reqId) return;
         const detail = (detailReply.payload?.data ?? detailReply.payload) as MatchDetail | null;
         if (!detail || !detail.home_team || !detail.away_team) throw new Error('Матч не найден');
+        setSources((prev) => ({
+          ...prev,
+          detail: { fetchedAt: detailReply.fetchedAt ?? null, stale: detailReply.stale },
+        }));
         setLoaded((prev) => ({ ...prev, detail }));
         setLoading(false);
         // Bounded concurrency: events + lineups first, then players + stats.
@@ -178,6 +206,8 @@ export function MatchDetailView({
   // Живой центр матча: пока матч открыт, Rust опрашивает его каждые 60 с и
   // присылает sportsdesk://match-update при изменениях — обновляем экран.
   const [liveTick, setLiveTick] = useState(0);
+  const [manualTick, setManualTick] = useState(0);
+  const lastManualTick = useRef(0);
   const [liveAt, setLiveAt] = useState<string | null>(null);
   useEffect(() => {
     if (!isTauriRuntime()) return; // dev-браузер: обычная загрузка без слежения
@@ -220,28 +250,56 @@ export function MatchDetailView({
 
   // Тихий рефреш: деталь + события, без спиннеров и сброса вкладки.
   useEffect(() => {
-    if (liveTick === 0) return;
-    void loadOptional('events', true).catch(() => undefined);
-    if (tab === 'stats') void loadOptional('stats', true);
-    if (tab === 'players') void loadOptional('players', true);
-    if (tab === 'lineups' || tab === 'tactics') {
-      void loadOptional('lineups', true);
-      if (tab === 'lineups') void loadOptional('players', true);
+    if (liveTick === 0 && manualTick === 0) return;
+    let active = true;
+    const requestId = reqRef.current;
+    const automatic = manualTick === lastManualTick.current;
+    lastManualTick.current = manualTick;
+    void loadOptional('events', automatic).catch(() => undefined);
+    if (!automatic || tab === 'stats') void loadOptional('stats', automatic);
+    if (!automatic || tab === 'players') void loadOptional('players', automatic);
+    if (!automatic || tab === 'lineups' || tab === 'tactics') {
+      void loadOptional('lineups', automatic);
+      if (automatic && tab === 'lineups') void loadOptional('players', automatic);
     }
+    setRefreshingDetail(true);
     void (async () => {
       try {
-        const reply = await api('pitch', `matches/${matchId}`, { automatic: true });
+        const reply = await api('pitch', `matches/${matchId}`, { automatic });
         const detail = (reply.payload?.data ?? reply.payload) as MatchDetail | null;
         if (detail && detail.home_team && detail.away_team) {
+          if (!active || !mounted.current || requestId !== reqRef.current) return;
+          setSources((prev) => ({
+            ...prev,
+            detail: { fetchedAt: reply.fetchedAt ?? null, stale: reply.stale },
+          }));
           setLoaded((prev) => (prev.detail?.id === detail.id ? { ...prev, detail } : prev));
         }
       } catch {
-        /* тихо: остаёмся на текущих данных */
+        if (active && mounted.current && requestId === reqRef.current) {
+          setSources((prev) =>
+            prev.detail ? { ...prev, detail: { ...prev.detail, stale: true } } : prev,
+          );
+        }
+      } finally {
+        if (active && mounted.current && requestId === reqRef.current) setRefreshingDetail(false);
       }
     })();
-  }, [liveTick, matchId, loadOptional, tab]);
+    return () => {
+      active = false;
+    };
+  }, [liveTick, manualTick, matchId, loadOptional, tab]);
 
   const detail = loaded.detail;
+  const sourceEntries = [
+    ...Object.values(sources),
+    ...(tab === 'analysis' && analysisSource ? [analysisSource] : []),
+  ];
+  const datedSources = sourceEntries
+    .map((source) => source.fetchedAt)
+    .filter((date): date is string => !!date && Number.isFinite(Date.parse(date)))
+    .sort((a, b) => Date.parse(a) - Date.parse(b));
+  const oldestSource = datedSources.length === sourceEntries.length ? datedSources[0] : null;
 
   if (loading) {
     return (
@@ -278,6 +336,13 @@ export function MatchDetailView({
         <div className="muted small">
           {detail.league?.name} · {detail.season ?? ''}
         </div>
+        <button
+          className="ghost-btn"
+          disabled={refreshingDetail || Object.values(optionalLoading).some(Boolean)}
+          onClick={() => setManualTick((value) => value + 1)}
+        >
+          Обновить данные
+        </button>
       </div>
 
       <div className="md-header panel">
@@ -394,7 +459,13 @@ export function MatchDetailView({
                 />
               )}
               {tab === 'analysis' && (
-                <MatchAnalysis key={matchId} detail={detail} liveTick={liveTick} />
+                <MatchAnalysis
+                  key={matchId}
+                  detail={detail}
+                  liveTick={liveTick}
+                  refreshToken={manualTick}
+                  onSourceStatus={updateAnalysisSource}
+                />
               )}
               {tab === 'overview' && (
                 <Overview
@@ -442,6 +513,12 @@ export function MatchDetailView({
           <MatchPlayersComparison detail={detail} entries={loaded.players} />
         </SectionBoundary>
       </SpoilerGate>
+      <div className="source-foot muted small" role="status">
+        Данные: PitchAPI
+        {oldestSource ? ` · обновлено не ранее ${formatDateTime(oldestSource, timezone)}` : ''}
+        {sourceEntries.some((source) => source.stale) &&
+          ' · сохранённые данные могут быть устаревшими'}
+      </div>
     </div>
   );
 }

@@ -232,8 +232,43 @@ it('keeps empty analytics usable and marks stale cache data', async () => {
   await render();
   expect(host.textContent).toContain('Источник не опубликовал удары');
   expect(host.textContent).toContain('Источник не опубликовал давление');
-  expect(host.textContent).toContain('Сохранённые данные могут быть устаревшими');
+  expect(host.textContent).toContain('сохранённые данные могут быть устаревшими');
+  expect(host.querySelectorAll('.source-foot')).toHaveLength(1);
   expect(host.querySelector('button')?.disabled).toBe(false);
+});
+
+it('shows one source summary for a match and refreshes analysis without leaving its tab', async () => {
+  transport.api.mockImplementation(async (_source: string, path: string) => ({
+    ...reply(
+      path === 'matches/fixture'
+        ? detail
+        : path.endsWith('/shots')
+          ? shots
+          : path.endsWith('/momentum')
+            ? { points: [] }
+            : {},
+    ),
+    stale: path.endsWith('/shots'),
+  }));
+  await act(async () =>
+    root.render(
+      <FavoritesProvider>
+        <MatchDetailView matchId="fixture" onBack={vi.fn()} />
+      </FavoritesProvider>,
+    ),
+  );
+  await click('Разбор матча');
+  expect(host.querySelectorAll('.source-foot')).toHaveLength(1);
+  expect(host.querySelector('.source-foot')?.textContent).toContain('устаревшими');
+  expect(host.textContent).not.toContain('Обновить разбор');
+  const count = transport.api.mock.calls.filter(([, path]) => path.endsWith('/shots')).length;
+  await click('Обновить данные');
+  expect(
+    transport.api.mock.calls.filter(([, path]) => path.endsWith('/shots')).length,
+  ).toBeGreaterThan(count);
+  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
+    'Разбор матча',
+  );
 });
 
 it('loads analytics only on the selected tab and only after revealing a hidden result', async () => {

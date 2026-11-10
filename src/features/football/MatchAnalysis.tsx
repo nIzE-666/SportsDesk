@@ -20,6 +20,7 @@ import {
   type XgSeries,
 } from './matchAnalysisModel';
 import type { MatchDetail } from './types';
+import { formatDateTime, getUserTimezone } from './storage';
 import './matchAnalysis.css';
 
 interface Resource<T> {
@@ -27,6 +28,7 @@ interface Resource<T> {
   loading: boolean;
   error?: string;
   stale?: boolean;
+  fetchedAt?: string | null;
 }
 const empty = <T,>(): Resource<T> => ({ data: null, loading: true });
 const decimal = (value: number | null) =>
@@ -34,12 +36,13 @@ const decimal = (value: number | null) =>
     ? '—'
     : value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function useAnalysis(matchId: string, liveTick: number) {
+function useAnalysis(matchId: string, liveTick: number, refreshToken: number) {
   const [shots, setShots] = useState<Resource<ShotData>>(empty);
   const [pressure, setPressure] = useState<Resource<PressureData>>(empty);
   const [retry, setRetry] = useState(0);
   const lastRetry = useRef(0);
   const lastTick = useRef(liveTick);
+  const lastRefreshToken = useRef(refreshToken);
   useEffect(() => {
     const release = ['shots', 'momentum'].map((suffix) =>
       retainResource('pitch', `matches/${matchId}/${suffix}`),
@@ -48,9 +51,13 @@ function useAnalysis(matchId: string, liveTick: number) {
   }, [matchId]);
   useEffect(() => {
     let active = true;
-    const automatic = liveTick !== lastTick.current && retry === lastRetry.current;
+    const automatic =
+      liveTick !== lastTick.current &&
+      retry === lastRetry.current &&
+      refreshToken === lastRefreshToken.current;
     lastRetry.current = retry;
     lastTick.current = liveTick;
+    lastRefreshToken.current = refreshToken;
     async function load<T>(
       suffix: string,
       parse: (v: unknown, id: string) => T,
@@ -61,7 +68,13 @@ function useAnalysis(matchId: string, liveTick: number) {
         const reply = await api('pitch', `matches/${matchId}/${suffix}`, { automatic });
         const data = parse(reply.payload, matchId);
         if (active)
-          set({ data, loading: false, stale: reply.stale, error: reply.failure?.message });
+          set({
+            data,
+            loading: false,
+            stale: reply.stale,
+            fetchedAt: reply.fetchedAt ?? null,
+            error: reply.failure?.message,
+          });
       } catch (e) {
         if (active)
           set((prev) => ({
@@ -78,7 +91,7 @@ function useAnalysis(matchId: string, liveTick: number) {
     return () => {
       active = false;
     };
-  }, [matchId, liveTick, retry]);
+  }, [matchId, liveTick, retry, refreshToken]);
   return { shots, pressure, reload: () => setRetry((n) => n + 1) };
 }
 
@@ -96,9 +109,6 @@ function ResourceNotice({ resource }: { resource: Resource<unknown> }) {
           {resource.error}
         </p>
       )}
-      {resource.stale && (
-        <p className="analysis-notice">Сохранённые данные могут быть устаревшими.</p>
-      )}
     </>
   );
 }
@@ -106,11 +116,29 @@ function ResourceNotice({ resource }: { resource: Resource<unknown> }) {
 export function MatchAnalysis({
   detail,
   liveTick = 0,
+  refreshToken = 0,
+  onSourceStatus,
 }: {
   detail: MatchDetail;
   liveTick?: number;
+  refreshToken?: number;
+  onSourceStatus?: (status: { fetchedAt: string | null; stale: boolean }) => void;
 }) {
-  const { shots, pressure, reload } = useAnalysis(detail.id, liveTick);
+  const { shots, pressure, reload } = useAnalysis(detail.id, liveTick, refreshToken);
+  const timestamps = [shots.fetchedAt, pressure.fetchedAt];
+  const oldest = timestamps.every((value) => value && Number.isFinite(Date.parse(value)))
+    ? (timestamps
+        .filter((value): value is string => !!value)
+        .sort((a, b) => Date.parse(a) - Date.parse(b))[0] ?? null)
+    : null;
+  const stale =
+    !!shots.stale ||
+    !!pressure.stale ||
+    (!!shots.error && !!shots.data) ||
+    (!!pressure.error && !!pressure.data);
+  useEffect(() => {
+    onSourceStatus?.({ fetchedAt: oldest, stale });
+  }, [onSourceStatus, oldest, stale]);
   const [team, setTeam] = useViewState(
     `analysis.${detail.id}.team`,
     'All',
@@ -148,11 +176,17 @@ export function MatchAnalysis({
       <header className="analysis-heading">
         <div>
           <h2>Разбор матча</h2>
-          <p className="muted small">Качество моментов и ход игры · PitchAPI</p>
+          <p className="muted small">Качество моментов и ход игры</p>
         </div>
-        <button className="ghost-btn" onClick={reload} disabled={shots.loading || pressure.loading}>
-          Обновить разбор
-        </button>
+        {!onSourceStatus && (
+          <button
+            className="ghost-btn"
+            onClick={reload}
+            disabled={shots.loading || pressure.loading}
+          >
+            Обновить разбор
+          </button>
+        )}
       </header>
       <section className="panel analysis-pressure">
         <h3>Давление по ходу матча</h3>
@@ -330,6 +364,13 @@ export function MatchAnalysis({
           </p>
         )}
       </section>
+      {!onSourceStatus && (
+        <div className="source-foot muted small">
+          Данные: PitchAPI
+          {oldest ? ` · обновлено не ранее ${formatDateTime(oldest, getUserTimezone())}` : ''}
+          {stale && ' · сохранённые данные могут быть устаревшими'}
+        </div>
+      )}
     </div>
   );
 }

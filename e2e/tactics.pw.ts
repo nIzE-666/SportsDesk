@@ -153,3 +153,19 @@ test('saved schemes remain available without the source after a new session', as
   await expect(page.locator('.tactics-player')).toHaveCount(4);
   await expect(page.getByLabel('Название схемы', { exact: true })).toHaveValue('Запасной план');
 });
+
+test('refreshing match data preserves an unsaved tactics draft', async ({ page }) => {
+  await setup(page, 'classic', 'dark');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Создать из состава', exact: true }).click();
+  const title = page.getByLabel('Название схемы', { exact: true });
+  await title.fill('Незавершённая схема');
+  const refresh = page.getByRole('button', { name: 'Обновить данные', exact: true });
+  await expect(refresh).toBeEnabled();
+  await refresh.click();
+  await expect(title).toHaveValue('Незавершённая схема');
+  await expect(page.getByRole('tab', { name: 'Мои схемы', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
