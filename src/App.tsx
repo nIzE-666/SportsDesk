@@ -120,6 +120,12 @@ function MainApp() {
   const [collapsed, setCollapsed] = useState(
     () => getString('sportsdesk.sidebar.collapsed') === '1',
   );
+  const [competitionsOpen, setCompetitionsOpen] = useState(
+    () => getString('sportsdesk.sidebar.competitionsOpen') !== '0',
+  );
+  const [teamsOpen, setTeamsOpen] = useState(
+    () => getString('sportsdesk.sidebar.teamsOpen') !== '0',
+  );
   const [scheme, setScheme] = useState<'dark' | 'light'>(() =>
     getString('sportsdesk.scheme') === 'light' ? 'light' : 'dark',
   );
@@ -130,6 +136,11 @@ function MainApp() {
     resolveSidebarFavorites(),
   );
   useEffect(() => setString('sportsdesk.sidebar.collapsed', collapsed ? '1' : '0'), [collapsed]);
+  useEffect(
+    () => setString('sportsdesk.sidebar.competitionsOpen', competitionsOpen ? '1' : '0'),
+    [competitionsOpen],
+  );
+  useEffect(() => setString('sportsdesk.sidebar.teamsOpen', teamsOpen ? '1' : '0'), [teamsOpen]);
   useEffect(() => setString('sportsdesk.scheme', scheme), [scheme]);
   useEffect(() => {
     document.documentElement.dataset.design = design;
@@ -302,144 +313,148 @@ function MainApp() {
                 {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
               </button>
             </div>
-            <nav className="nav-group">
-              {sport === 'football' &&
-                footballNav.map(({ id, label, icon: Icon }) => (
+            <div className="sidebar-scroll">
+              <nav className="nav-group">
+                {sport === 'football' &&
+                  footballNav.map(({ id, label, icon: Icon }) => (
+                    <button
+                      className={`nav-item ${!auxiliary && route.kind === 'football' && route.section === id ? 'active' : ''}`}
+                      key={id}
+                      title={label}
+                      onClick={() => setRoute({ kind: 'football', section: id })}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                      {id === 'live' && <i className="live-dot" />}
+                    </button>
+                  ))}
+                {sport === 'f1' &&
+                  f1Nav.map(({ id, label, icon: Icon }) => (
+                    <button
+                      className={`nav-item ${!auxiliary && f1Tab === id ? 'active' : ''}`}
+                      key={id}
+                      title={label}
+                      onClick={() => {
+                        setF1Tab(id);
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                {sport === 'ucl' &&
+                  uclNav.map(({ id, label, icon: Icon }) => (
+                    <button
+                      className={`nav-item ${!auxiliary && uclTab === id ? 'active' : ''}`}
+                      key={id}
+                      title={label}
+                      onClick={() => {
+                        setUclTab(id);
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                {sport === 'cup' &&
+                  cupNav.map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      className={`nav-item ${!auxiliary && cupTab === id ? 'active' : ''}`}
+                      title={label}
+                      onClick={() => setCupTab(id)}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+              </nav>
+              <TodaySidebar onMatch={openFootballMatch} onWeekend={openWeekend} />
+              {sport === 'cup' && (
+                <div className="competition-nav" aria-label="Кубковые турниры">
+                  <span className="nav-caption">ТУРНИРЫ</span>
+                  {CUP_COMPETITIONS.filter((c) => c.id !== 'l_0bfbkO').map((c) => (
+                    <button
+                      key={c.id}
+                      className={c.id === cupId ? 'selected' : ''}
+                      onClick={() => setRoute({ kind: 'cup', cupId: c.id, tab: 'overview' })}
+                    >
+                      {c.title}
+                      <ChevronRight size={12} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {sport === 'football' && (
+                <div className="competition-nav">
                   <button
-                    className={`nav-item ${!auxiliary && route.kind === 'football' && route.section === id ? 'active' : ''}`}
-                    key={id}
-                    title={label}
-                    onClick={() => setRoute({ kind: 'football', section: id })}
+                    className="nav-section-toggle"
+                    aria-expanded={competitionsOpen}
+                    title="Соревнования"
+                    onClick={() => setCompetitionsOpen(!competitionsOpen)}
                   >
-                    <Icon size={18} />
-                    <span>{label}</span>
-                    {id === 'live' && <i className="live-dot" />}
+                    <span>Соревнования</span>
+                    <ChevronRight size={14} className={competitionsOpen ? 'expanded' : ''} />
                   </button>
-                ))}
-              {sport === 'f1' &&
-                f1Nav.map(({ id, label, icon: Icon }) => (
+                  {competitionsOpen &&
+                    LEAGUES.map((l) => (
+                      <button
+                        key={l.id}
+                        className={leagueId === l.id ? 'selected' : ''}
+                        onClick={() => {
+                          setRoute(homeRoute('football', cupId), { leagueId: l.id });
+                        }}
+                        title={l.label}
+                      >
+                        <span className={`league-symbol league-${l.theme}`}>{l.short}</span>
+                        <span>{l.label}</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    ))}
+                </div>
+              )}
+              {sport === 'football' && (
+                <div className="competition-nav teams-nav">
                   <button
-                    className={`nav-item ${!auxiliary && f1Tab === id ? 'active' : ''}`}
-                    key={id}
-                    title={label}
-                    onClick={() => {
-                      setF1Tab(id);
-                    }}
+                    className="nav-section-toggle"
+                    aria-expanded={teamsOpen}
+                    title="Мои команды"
+                    onClick={() => setTeamsOpen(!teamsOpen)}
                   >
-                    <Icon size={18} />
-                    <span>{label}</span>
+                    <span>Мои команды</span>
+                    <ChevronRight size={14} className={teamsOpen ? 'expanded' : ''} />
                   </button>
-                ))}
-              {sport === 'ucl' &&
-                uclNav.map(({ id, label, icon: Icon }) => (
-                  <button
-                    className={`nav-item ${!auxiliary && uclTab === id ? 'active' : ''}`}
-                    key={id}
-                    title={label}
-                    onClick={() => {
-                      setUclTab(id);
-                    }}
-                  >
-                    <Icon size={18} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              {sport === 'cup' &&
-                cupNav.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    className={`nav-item ${!auxiliary && cupTab === id ? 'active' : ''}`}
-                    title={label}
-                    onClick={() => setCupTab(id)}
-                  >
-                    <Icon size={18} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-            </nav>
-            <TodaySidebar onMatch={openFootballMatch} onWeekend={openWeekend} />
-            {sport === 'cup' && (
-              <div className="competition-nav" aria-label="Кубковые турниры">
-                <span className="nav-caption">ТУРНИРЫ</span>
-                {CUP_COMPETITIONS.filter((c) => c.id !== 'l_0bfbkO').map((c) => (
-                  <button
-                    key={c.id}
-                    className={c.id === cupId ? 'selected' : ''}
-                    onClick={() => setRoute({ kind: 'cup', cupId: c.id, tab: 'overview' })}
-                  >
-                    {c.title}
-                    <ChevronRight size={12} />
-                  </button>
-                ))}
-              </div>
-            )}
-            {sport === 'football' && (
-              <div className="competition-nav">
-                <span className="nav-caption">СОРЕВНОВАНИЯ</span>
-                {LEAGUES.map((l) => (
-                  <button
-                    key={l.id}
-                    className={leagueId === l.id ? 'selected' : ''}
-                    onClick={() => {
-                      setRoute(homeRoute('football', cupId), { leagueId: l.id });
-                    }}
-                    title={l.label}
-                  >
-                    <span className={`league-symbol league-${l.theme}`}>{l.short}</span>
-                    <span>{l.label}</span>
-                    <ChevronRight size={12} />
-                  </button>
-                ))}
-                <button onClick={() => changeMode('ucl')} title="Лига чемпионов">
-                  <span className="league-symbol league-ucl">✦</span>
-                  <span>Лига чемпионов</span>
-                  <ChevronRight size={12} />
-                </button>
-                {CUP_COMPETITIONS.filter((c) => c.id !== 'l_0bfbkO').map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setRoute({ kind: 'cup', cupId: c.id, tab: 'overview' });
-                    }}
-                    title={c.title}
-                  >
-                    <span className="league-symbol league-ucl">
-                      {c.id === 'l_38d9HA' ? 'EL' : c.id === 'l_2WZ2tt' ? 'CL' : 'WC'}
+                  {teamsOpen &&
+                    favTeams.map((t) => (
+                      <button
+                        key={t.id}
+                        className={
+                          route.kind === 'football' &&
+                          route.section === 'team' &&
+                          route.teamId === t.id
+                            ? 'selected'
+                            : ''
+                        }
+                        onClick={() =>
+                          setRoute({ kind: 'football', section: 'team', teamId: t.id })
+                        }
+                        title={t.name}
+                      >
+                        <span className="nav-team-dot">
+                          <Heart size={10} fill="currentColor" />
+                        </span>
+                        <span>{t.name}</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    ))}
+                  {teamsOpen && !favTeams.length && (
+                    <span className="nav-teams-empty muted small">
+                      Отметьте команды звёздочкой в «Матчах»
                     </span>
-                    <span>{c.title}</span>
-                    <ChevronRight size={12} />
-                  </button>
-                ))}
-              </div>
-            )}
-            {sport === 'football' && (
-              <div className="competition-nav teams-nav">
-                <span className="nav-caption">МОИ КОМАНДЫ</span>
-                {favTeams.map((t) => (
-                  <button
-                    key={t.id}
-                    className={
-                      route.kind === 'football' && route.section === 'team' && route.teamId === t.id
-                        ? 'selected'
-                        : ''
-                    }
-                    onClick={() => setRoute({ kind: 'football', section: 'team', teamId: t.id })}
-                    title={t.name}
-                  >
-                    <span className="nav-team-dot">
-                      <Heart size={10} fill="currentColor" />
-                    </span>
-                    <span>{t.name}</span>
-                    <ChevronRight size={12} />
-                  </button>
-                ))}
-                {!favTeams.length && (
-                  <span className="nav-teams-empty muted small">
-                    Отметьте команды звёздочкой в «Матчах»
-                  </span>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
             <div className="sidebar-bottom">
               <button
                 className={`nav-item ${route.kind === 'offline' ? 'active' : ''}`}

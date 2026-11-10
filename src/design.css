@@ -2668,7 +2668,30 @@ html[data-scheme='light'] body {
   line-height: 1.5;
 }
 .sidebar {
+  overflow: hidden;
+}
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sidebar-bottom {
+  flex: 0 0 auto;
+  padding-top: 8px;
+}
+.competition-nav .nav-section-toggle {
+  width: 100%;
+  font-weight: 650;
+}
+.nav-section-toggle .expanded {
+  transform: rotate(90deg);
+}
+.shell.collapsed .competition-nav .nav-section-toggle > svg {
+  display: block;
+  margin: 0;
 }
 .content-inner {
   animation: content-enter 0.2s ease-out;

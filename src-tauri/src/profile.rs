@@ -46,6 +46,8 @@ pub fn is_allowed_key(key: &str) -> bool {
         "density",
         "timezone",
         "sidebar.collapsed",
+        "sidebar.competitionsOpen",
+        "sidebar.teamsOpen",
         "tray.mode",
         "whatsnew.seen",
         "planner.priorities",

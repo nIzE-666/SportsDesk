@@ -150,6 +150,23 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
+it('persists collapsed competition and favorite team groups', async () => {
+  await renderApp();
+  const competitions = host.querySelector<HTMLButtonElement>('[title="Соревнования"]')!;
+  const teams = host.querySelector<HTMLButtonElement>('[title="Мои команды"]')!;
+  expect(competitions.getAttribute('aria-expanded')).toBe('true');
+  await click(competitions);
+  await click(teams);
+  expect(localStorage.getItem('sportsdesk.sidebar.competitionsOpen')).toBe('0');
+  expect(localStorage.getItem('sportsdesk.sidebar.teamsOpen')).toBe('0');
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await renderApp();
+  expect(host.querySelector('[title="Соревнования"]')?.getAttribute('aria-expanded')).toBe('false');
+  expect(host.querySelector('[title="Мои команды"]')?.getAttribute('aria-expanded')).toBe('false');
+  expect(host.querySelector('aside [title="Настройки"]')).not.toBeNull();
+});
+
 // This first navigation test loads all lazy screens on a cold test worker.
 it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {
   viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });

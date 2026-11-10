@@ -26,6 +26,8 @@ export function allowedProfileKey(key: string) {
       'density',
       'timezone',
       'sidebar.collapsed',
+      'sidebar.competitionsOpen',
+      'sidebar.teamsOpen',
       'tray.mode',
       'whatsnew.seen',
       'onboarding',
