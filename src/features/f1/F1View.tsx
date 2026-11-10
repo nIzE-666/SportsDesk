@@ -1,8 +1,5 @@
-import { CalendarDays } from 'lucide-react';
 import { f1Nav as TABS } from '../../lib/navigationMetadata';
 import { useState } from 'react';
-import { ModeHero } from '../../components/ModeHero';
-import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { viewState } from '../../lib/viewState';
 import { PageFrame } from '../../components/PageFrame';
 import { Calendar } from './Calendar';
@@ -30,40 +27,16 @@ function F1Shell({
     onTabChange?.(next);
   };
   const { year, setYear, years } = useSeason();
-  const broadcast = useInterfaceDesign() === 'broadcast';
 
   return (
     <PageFrame page={`f1.${year}.${tab}`}>
       <div className="f1-root">
-        {tab === 'overview' && !broadcast && (
-          <ModeHero
-            mode="f1"
-            eyebrow={`FORMULA 1 / СЕЗОН ${year}`}
-            title={
-              <>
-                На пределе.
-                <br />
-                <em>В каждом секторе.</em>
-              </>
-            }
-            description="От первого круга до клетчатого флага. Всё, ради чего вы смотрите гонки."
-          >
-            <button className="primary-btn" onClick={() => setTab('calendar')}>
-              Календарь гонок <CalendarDays size={15} />
-            </button>
-            <button className="hero-secondary" onClick={() => setTab('session')}>
-              Открыть центр сессии
-            </button>
-          </ModeHero>
-        )}
         <div className="f1-toolbar">
-          {(broadcast || tab !== 'overview') && (
-            <div className="broadcast-f1-heading">
-              <h1>
-                {tab === 'overview' ? 'Ваш гоночный уикенд' : TABS.find((t) => t.id === tab)?.label}
-              </h1>
-            </div>
-          )}
+          <div className="broadcast-f1-heading">
+            <h1>
+              {tab === 'overview' ? 'Ваш гоночный уикенд' : TABS.find((t) => t.id === tab)?.label}
+            </h1>
+          </div>
           {!onTabChange && (
             <div
               className="f1-tabs"

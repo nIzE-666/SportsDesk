@@ -2,7 +2,6 @@ import { useViewState } from '../../lib/useViewState';
 import { usePageScroll } from '../../lib/usePageScroll';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, GitBranch, Search, Trophy, X } from 'lucide-react';
-import { ModeHero } from '../../components/ModeHero';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
@@ -283,10 +282,10 @@ function Inner({
       <div className="section-heading">
         <div>
           <span className="eyebrow">{competition.eyebrow}</span>
-          <h2>
+          <h1>
             {competition.title}
             <span className="heading-dot">.</span>
-          </h2>
+          </h1>
         </div>
         <div className="ucl-season">
           <label htmlFor={`cup-season-${competition.id}`}>СЕЗОН</label>
@@ -307,7 +306,7 @@ function Inner({
 
       {tab === 'overview' && (
         <>
-          {broadcast ? (
+          {broadcast && (
             <FeaturedMatchCover
               sport="ucl"
               match={selectFeaturedMatch(matches)}
@@ -317,32 +316,6 @@ function Inner({
               onOpenMatch={openMatch}
               onSeeAllMatches={() => chooseTab('matches')}
             />
-          ) : (
-            <ModeHero
-              mode="ucl"
-              eyebrow={competition.eyebrow}
-              title={
-                <>
-                  Европейские
-                  <br />
-                  <em>вечера.</em>
-                </>
-              }
-              description="Матчи турнира, сетка плей-офф и участники — только подтверждённые данные провайдеров."
-            >
-              <button className="primary-btn" onClick={() => chooseTab('bracket')}>
-                Турнирная сетка <GitBranch size={15} />
-              </button>
-              <button
-                className="hero-secondary"
-                onClick={() => {
-                  setStatus('upcoming');
-                  chooseTab('matches');
-                }}
-              >
-                Ближайшие матчи <ChevronRight size={12} />
-              </button>
-            </ModeHero>
           )}
           <div className="insights-row ucl-insights">
             <div>

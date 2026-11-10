@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  ArrowUpRight,
   CalendarDays,
   CalendarPlus,
   ChevronRight,
@@ -12,7 +11,6 @@ import {
   Trophy,
 } from 'lucide-react';
 import TeamBadge from '../../components/TeamBadge';
-import { ModeHero } from '../../components/ModeHero';
 import { MatchRow } from '../../components/MatchRow';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
 import { useFavorites, matchInvolvesFavorite } from './FavoritesProvider';
@@ -364,14 +362,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     <div className="football-dashboard">
       <div className="section-heading">
         <div>
-          {!broadcast && <span className="eyebrow">ВАШ ЛИЧНЫЙ СПОРТИВНЫЙ ЦЕНТР</span>}
-          {broadcast ? (
-            <h1>Ваш спорт сегодня</h1>
-          ) : (
-            <h2>
-              Мой обзор<span className="heading-dot">.</span>
-            </h2>
-          )}
+          <h1>{broadcast ? 'Ваш спорт сегодня' : 'Мой обзор'}</h1>
         </div>
         <div className="home-heading-actions">
           <button
@@ -389,7 +380,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
       {editingLayout && (
         <HomeLayoutEditor design={homeDesign} onClose={() => setEditingLayout(false)} />
       )}
-      {broadcast ? (
+      {broadcast && (
         <FeaturedMatchCover
           match={featured}
           league={league?.name ?? 'Футбол'}
@@ -398,26 +389,6 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           onOpenMatch={onOpenMatch}
           onSeeAllMatches={onSeeAllMatches}
         />
-      ) : (
-        <ModeHero
-          eyebrow={`${league?.name ?? 'ФУТБОЛ'} / ${data.season ?? ''}`}
-          title={
-            <>
-              В центре
-              <br />
-              <em>вашей игры.</em>
-            </>
-          }
-          description="Расписание выбранной лиги — слева. Матчи команд, за которыми вы следите, — в отдельной колонке. Всё в одном месте."
-        >
-          <button className="primary-btn" onClick={onSeeAllMatches}>
-            Перейти к матчам <ArrowUpRight size={16} />
-          </button>
-          <span className="hero-small-label">
-            <i className="status-dot" />
-            Ваш сезон начинается здесь
-          </span>
-        </ModeHero>
       )}
       {noticesBlock}
       {visibleWidgets.map((id) => (

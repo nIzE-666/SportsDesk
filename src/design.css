@@ -705,7 +705,7 @@ img {
   gap: 18px;
   margin-bottom: 21px;
 }
-.section-heading h2 {
+.section-heading :is(h1, h2) {
   font-size: clamp(20px, 1.6vw, 27px);
   margin: 6px 0 0;
   letter-spacing: -1px;

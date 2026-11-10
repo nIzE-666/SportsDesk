@@ -10,7 +10,6 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { ModeHero } from '../../components/ModeHero';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
@@ -264,10 +263,10 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       <div className="section-heading">
         <div>
           <span className="eyebrow">CHAMPIONS LEAGUE / EUROPE</span>
-          <h2>
+          <h1>
             {TITLES[tab]}
             <span className="heading-dot">.</span>
-          </h2>
+          </h1>
         </div>
         <div className="ucl-season">
           <label htmlFor="ucl-season">СЕЗОН</label>
@@ -290,7 +289,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       </div>
       {tab === 'overview' && (
         <>
-          {broadcast ? (
+          {broadcast && (
             <FeaturedMatchCover
               sport="ucl"
               match={selectFeaturedMatch(matches)}
@@ -300,32 +299,6 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               onOpenMatch={openMatch}
               onSeeAllMatches={() => chooseTab('matches')}
             />
-          ) : (
-            <ModeHero
-              mode="ucl"
-              eyebrow="THE NIGHTS WE LIVE FOR"
-              title={
-                <>
-                  Здесь рождаются
-                  <br />
-                  <em>легенды.</em>
-                </>
-              }
-              description="Лучшие клубы Европы. Один трофей. Весь турнир — от первого свистка до главного финала."
-            >
-              <button className="primary-btn" onClick={() => chooseTab('bracket')}>
-                Турнирная сетка <GitBranch size={15} />
-              </button>
-              <button
-                className="hero-secondary"
-                onClick={() => {
-                  setStatus('upcoming');
-                  chooseTab('matches');
-                }}
-              >
-                Ближайшие матчи <ChevronRight size={12} />
-              </button>
-            </ModeHero>
           )}
           <div className="insights-row ucl-insights">
             <div>
