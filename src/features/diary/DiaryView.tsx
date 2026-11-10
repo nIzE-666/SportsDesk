@@ -117,10 +117,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
       <header className="diary-heading">
         <div>
           <h1>Дневник просмотра</h1>
-          <p className="muted">
-            Матчи и гонки, которые вы отметили сами. Заметки остаются на этом компьютере и входят в
-            резервную копию профиля.
-          </p>
+          <p className="muted">Ваши отметки и заметки хранятся на этом компьютере.</p>
         </div>
         <div className="diary-actions">
           <button className="ghost-btn" disabled={!state.writable || !!editing} onClick={newEntry}>
@@ -311,10 +308,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
         {!state.store.entries.length ? (
           <div className="panel">
             <h3>Сохраните первый просмотр</h3>
-            <p>
-              В карточке матча или гонки нажмите «Отметить просмотр». Для события без сети можно
-              добавить запись вручную.
-            </p>
+            <p>В карточке матча или гонки нажмите «Отметить просмотр».</p>
           </div>
         ) : !entries.length ? (
           <p className="panel muted">По выбранным фильтрам записей нет.</p>
@@ -484,8 +478,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
       <section className="panel diary-import" aria-label="Перенос дневника">
         <h2>Перенести дневник</h2>
         <p className="muted">
-          Экспорт JSON переносит только записи дневника. Полная резервная копия профиля также
-          включает дневник.
+          Экспорт — только записи дневника. Полная копия профиля — в настройках.
         </p>
         <div className="diary-actions">
           <button

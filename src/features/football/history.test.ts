@@ -25,9 +25,9 @@ it('distinguishes empty history from read failures and malformed responses', asy
     vi.mocked(rpc).mockResolvedValueOnce([]);
     await expect(read()).resolves.toEqual([]);
     vi.mocked(rpc).mockRejectedValueOnce(new Error('database unavailable'));
-    await expect(read()).rejects.toThrow('Не удалось прочитать локальную историю');
+    await expect(read()).rejects.toThrow('Не удалось прочитать историю');
     vi.mocked(rpc).mockResolvedValueOnce(null);
-    await expect(read()).rejects.toThrow('Не удалось прочитать локальную историю');
+    await expect(read()).rejects.toThrow('Не удалось прочитать историю');
   }
 });
 

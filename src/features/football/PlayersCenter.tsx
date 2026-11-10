@@ -74,9 +74,7 @@ function usePlayerSeason(
         for (const m of loadedMatches) byId.set(m.id, m);
         const matches = [...byId.values()];
         if (matches.length === 0) {
-          throw new Error(
-            'Матчей команды в локальной истории ещё нет — откройте её лигу хотя бы раз.',
-          );
+          throw new Error('Матчей команды в истории ещё нет — откройте её лигу хотя бы раз.');
         }
         const result = await fetchPlayerSeasonStats(pid, tid, matches);
         if (active) setState({ ...key, stats: result, busy: false, error: null });
@@ -480,9 +478,7 @@ export function PlayersCenter({
       <div className="dashboard-head">
         <div>
           <h1>Игроки</h1>
-          <p className="muted small">
-            Избранные футболисты и сравнение. Других игроков можно найти по клубу ниже.
-          </p>
+          <p className="muted small">Избранные футболисты и сравнение.</p>
         </div>
       </div>
 
@@ -509,7 +505,7 @@ export function PlayersCenter({
       {shown.length === 0 && (
         <EmptyBlock
           title="Избранных игроков пока нет"
-          message="Выберите клуб ниже и отметьте нужных футболистов звёздочкой. Можно также сохранить игрока из состава клуба или разбора матча."
+          message="Выберите клуб ниже и отметьте игроков звёздочкой."
         />
       )}
 
@@ -569,12 +565,6 @@ export function PlayersCenter({
             ))}
           </select>
         </label>
-        {!club && (
-          <p className="muted small">
-            Доступны клубы из загруженных лиг. Игроков также можно открывать в разделе «Клуб» →
-            «Состав».
-          </p>
-        )}
       </section>
       {club && (
         <ClubPlayers

@@ -69,7 +69,7 @@ async function readHistory<T>(command: string, args?: Record<string, unknown>): 
     if (!Array.isArray(rows)) throw new Error('Некорректный ответ истории.');
     return rows;
   } catch (error) {
-    throw new Error('Не удалось прочитать локальную историю матчей.', { cause: error });
+    throw new Error('Не удалось прочитать историю матчей.', { cause: error });
   }
 }
 

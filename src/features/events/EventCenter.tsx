@@ -108,10 +108,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
           Обновить
         </button>
       </div>
-      <p className="muted">
-        Голы, изменения счёта, результаты и напоминания, замеченные при работающем SportsDesk.
-        Храним до 500 событий за 30 дней.
-      </p>
+      <p className="muted">События за последние 30 дней, пока приложение запущено.</p>
       <CatchUpPanel
         refreshKey={tick}
         onOpen={(e) => {

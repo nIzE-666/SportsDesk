@@ -73,7 +73,8 @@ export function StandingsView({
           <p className="muted small">
             {standings?.competition ??
               data.leagues.find((l) => l.id === data.selectedLeagueId)?.name ??
-              'Лига'}
+              'Лига'}{' '}
+            · текущий сезон
           </p>
         </div>
         <div className="dashboard-head-actions">
@@ -83,21 +84,14 @@ export function StandingsView({
         </div>
       </div>
 
-      <p className="muted small">
-        Положение команд в текущем сезоне. Выбор архивного сезона в разделе матчей эту таблицу не
-        меняет.
-      </p>
-
       {!slug && (
         <EmptyBlock
           title="Таблица недоступна для этой лиги"
-          message="Поддержаны таблицы Premier League, LaLiga, Serie A, Bundesliga, Ligue 1 и MLS по данным SportScore. Для остальных лиг выберите матчи и составы через PitchAPI."
+          message="Таблицы доступны для Premier League, Ла Лиги, Серии A, Бундеслиги, Лиги 1 и MLS."
         />
       )}
 
-      {slug && loading && !standings && (
-        <LoadingBlock label="Загрузка таблицы SportScore…" rows={6} />
-      )}
+      {slug && loading && !standings && <LoadingBlock label="Загрузка таблицы…" rows={6} />}
       {slug && error && <ErrorBlock title="Таблица недоступна" message={error} onRetry={load} />}
 
       {tables.map((table, i) => (

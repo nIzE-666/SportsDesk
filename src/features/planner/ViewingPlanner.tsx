@@ -166,10 +166,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         <div>
           <span className="eyebrow">ФУТБОЛ + ФОРМУЛА-1 · {tz}</span>
           <h1>Мой спортивный вечер</h1>
-          <p>
-            Любимые клубы и весь гоночный уикенд на одной шкале. Отметьте, что хотите смотреть, и
-            заранее проверьте пересечения.
-          </p>
+          <p>Отметьте, что хотите смотреть, — пересечения подсветятся.</p>
         </div>
         <CalendarClock size={52} />
       </section>
@@ -249,8 +246,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       </section>
       {inRange.length > 0 && (
         <p className="planner-estimate">
-          <Clock3 size={15} /> Окончание приблизительное: матч и гонка — около двух часов. Задержки
-          и дополнительное время могут изменить пересечения.
+          <Clock3 size={15} /> Окончание приблизительное: матч и гонка — около двух часов.
         </p>
       )}
       {!!selectedConflicts.length && (
@@ -259,8 +255,8 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           <div>
             <strong>В вашем плане есть пересечения</strong>
             <p>
-              Выбранные трансляции накладываются по предполагаемому времени. Можно оставить обе или
-              снять отметку у одной.
+              Выбранные события накладываются по времени. Можно оставить оба или снять отметку у
+              одного.
             </p>
           </div>
         </div>

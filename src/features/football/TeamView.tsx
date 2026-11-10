@@ -581,7 +581,7 @@ function SeasonAnalytics({
     <section className="panel season-analytics">
       <div className="section-title">
         <h2>
-          <TrendingUp size={15} /> Сезонная аналитика (из локальной истории)
+          <TrendingUp size={15} /> Сезонная аналитика
         </h2>
         <span className="muted small">
           {matches
@@ -593,7 +593,7 @@ function SeasonAnalytics({
       </div>
 
       {matches === null && !teamResult?.error && (
-        <LoadingBlock label="Читаем локальную историю сезона…" rows={2} />
+        <LoadingBlock label="Читаем историю сезона…" rows={2} />
       )}
       {teamResult?.error && (
         <ErrorBlock

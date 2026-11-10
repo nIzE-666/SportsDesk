@@ -157,10 +157,7 @@ export function OfflineView() {
       <header>
         <p className="eyebrow">ЛОКАЛЬНАЯ БИБЛИОТЕКА</p>
         <h1>Офлайн-сезоны</h1>
-        <p className="muted">
-          Результаты и расписание на этом устройстве. Выберите сезон и закрепите его для просмотра
-          без сети.
-        </p>
+        <p className="muted">Сезоны для просмотра без сети.</p>
       </header>
       {(error || queue.error) && (
         <div className="state-card error" role="alert">
@@ -236,8 +233,7 @@ export function OfflineView() {
           </p>
         )}
         <p className="muted small">
-          В пакет входят доступные матчи сезона. Подробная статистика, изображения и трансляции не
-          сохраняются.
+          Сохраняются матчи сезона без подробной статистики и изображений.
         </p>
       </section>
       <section className="panel" aria-label="Очередь загрузки">
@@ -257,9 +253,11 @@ export function OfflineView() {
             {queue.queue.paused ? 'Продолжить' : 'Пауза'}
           </button>
         </div>
-        <p className="muted small">
-          После перезапуска нажмите «Продолжить». При паузе текущее сохранение завершится.
-        </p>
+        {queue.queue.jobs.length > 0 && (
+          <p className="muted small">
+            После перезапуска нажмите «Продолжить». При паузе текущее сохранение завершится.
+          </p>
+        )}
         {!queue.queue.jobs.length ? (
           <p className="muted offline-empty">Очередь пуста. Добавьте сезон выше.</p>
         ) : (

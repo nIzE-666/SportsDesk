@@ -131,7 +131,7 @@ it('does not calculate partial player totals on a history failure and retries wi
       <PlayersCenter data={data([match])} onOpenMatch={vi.fn()} />
     </FavoritesProvider>,
   );
-  expect(host.textContent).toContain('прочитать локальную историю матчей');
+  expect(host.textContent).toContain('прочитать историю матчей');
   expect(host.querySelector('.pc-metrics')).toBeNull();
   expect(analytics.fetchPlayerSeasonStats).not.toHaveBeenCalled();
   await retry('Статистика недоступна');
