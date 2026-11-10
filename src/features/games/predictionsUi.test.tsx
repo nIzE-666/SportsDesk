@@ -88,6 +88,33 @@ afterEach(() => {
 });
 
 describe('PredictionPanel', () => {
+  it('opens a compact prediction on demand and hides it for finished matches without a guess', () => {
+    const upcoming = detail();
+    render(<PredictionPanel detail={upcoming} compact />);
+    expect(host?.querySelector('form')).toBeNull();
+    expect(buttonByText('Мой прогноз')?.getAttribute('aria-expanded')).toBe('false');
+    act(() => buttonByText('Мой прогноз')?.click());
+    expect(host?.querySelector('form')).not.toBeNull();
+    type(inputs()[0]!, '2');
+    type(inputs()[1]!, '1');
+    submit();
+    act(() =>
+      root?.render(
+        <PredictionPanel
+          detail={detail({ status: 'finished', score_home: 2, score_away: 1 })}
+          compact
+        />,
+      ),
+    );
+    expect(buttonByText('Мой прогноз')).toBeDefined();
+    expect(text()).toContain('3 очка');
+    act(() =>
+      root?.render(
+        <PredictionPanel detail={detail({ id: 'other', status: 'finished' })} compact />,
+      ),
+    );
+    expect(buttonByText('Мой прогноз')).toBeUndefined();
+  });
   it('is not shown for other competitions or when games are switched off', () => {
     render(<PredictionPanel detail={detail({ league: { id: 'l_0eg6C9', name: 'MLS' } })} />);
     expect(host?.querySelector('.prediction-panel')).toBeNull();

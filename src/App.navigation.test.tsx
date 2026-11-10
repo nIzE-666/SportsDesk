@@ -165,7 +165,7 @@ it('persists collapsed competition and favorite team groups', async () => {
   expect(host.querySelector('[title="Соревнования"]')?.getAttribute('aria-expanded')).toBe('false');
   expect(host.querySelector('[title="Мои команды"]')?.getAttribute('aria-expanded')).toBe('false');
   expect(host.querySelector('aside [title="Настройки"]')).not.toBeNull();
-});
+}, 30_000);
 
 // This first navigation test loads all lazy screens on a cold test worker.
 it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {

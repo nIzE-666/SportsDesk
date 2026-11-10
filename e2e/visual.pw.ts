@@ -189,6 +189,28 @@ for (const design of ['classic', 'broadcast'])
     }
 
 for (const design of ['classic', 'broadcast'])
+  test(`${design}: match actions and tabs fit in a 720px window`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1100, height: 720 });
+    await setup(page, design, 'dark');
+    await page.goto('/');
+    await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
+    await page.locator('.recent-game').first().click();
+    await expect(page.locator('.md-score')).toContainText('2 : 1');
+    await expect(
+      page.locator('.md-actions').getByRole('button', { name: 'Смотреть' }),
+    ).toBeVisible();
+    await expect(
+      page.locator('.md-actions').getByRole('button', { name: 'Отметить просмотр' }),
+    ).toBeVisible();
+    await expect(
+      page.locator('.md-actions').getByRole('button', { name: 'Без спойлеров' }),
+    ).toBeVisible();
+    const tabs = page.getByRole('tablist', { name: 'Разделы матча' });
+    await expect(tabs).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath('match.png') });
+  });
+
+for (const design of ['classic', 'broadcast'])
   test(`${design}: keyboard search, events and match viewing`, async ({ page }) => {
     await page.setViewportSize({ width: 1100, height: 900 });
     const errors = await setup(page, design, 'dark');
@@ -204,7 +226,10 @@ for (const design of ['classic', 'broadcast'])
     await expect(page.getByRole('option')).toHaveCount(1);
     await page.getByRole('combobox').press('Enter');
     await expect(page.locator('.md-score')).toContainText('2 : 1');
-    await page.locator('.md-topbar').getByRole('button', { name: 'Смотреть', exact: true }).click();
+    await page
+      .locator('.md-actions')
+      .getByRole('button', { name: 'Смотреть', exact: true })
+      .click();
     await expect(page.getByRole('region', { name: 'Просмотр события' })).toContainText(
       'Arsenal — Chelsea',
     );

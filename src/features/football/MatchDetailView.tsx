@@ -272,13 +272,6 @@ export function MatchDetailView({
   return (
     <div className="match-detail">
       <div className="md-topbar">
-        <WatchEventButton
-          intent={{
-            sport: 'football',
-            key: `match:${detail.id}`,
-            title: `${detail.home_team.name} — ${detail.away_team.name}`,
-          }}
-        />
         <button className="ghost-btn" onClick={onBack}>
           <ArrowLeft size={14} /> Назад
         </button>
@@ -299,13 +292,6 @@ export function MatchDetailView({
             </HiddenScore>
           </strong>
           <span className="chip">{matchStatusLabel(detail.status)}</span>
-          <SpoilerToggle
-            kind="football"
-            id={detail.id}
-            label={`${detail.home_team.name} — ${detail.away_team.name}`}
-            eventTime={detail.time_utc ?? detail.date}
-            compact
-          />
           {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
             <span className="chip live-watch-chip">
               <Radio size={10} className="watch-spin-slow" /> следим{' '}
@@ -326,8 +312,24 @@ export function MatchDetailView({
           <MatchMetadata detail={detail} timezone={timezone} />
         </div>
       )}
-      <PredictionPanel detail={detail} />
-      <DiaryMarkButton event={footballDiaryEvent(detail)} />
+      <div className="md-actions">
+        <WatchEventButton
+          intent={{
+            sport: 'football',
+            key: `match:${detail.id}`,
+            title: `${detail.home_team.name} — ${detail.away_team.name}`,
+          }}
+        />
+        <DiaryMarkButton event={footballDiaryEvent(detail)} />
+        <PredictionPanel key={detail.id} detail={detail} compact />
+        <SpoilerToggle
+          kind="football"
+          id={detail.id}
+          label={`${detail.home_team.name} — ${detail.away_team.name}`}
+          eventTime={detail.time_utc ?? detail.date}
+          compact
+        />
+      </div>
       <div className="md-tabs" role="tablist" aria-label="Разделы матча">
         {(
           ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'] as const

@@ -1432,6 +1432,23 @@ img {
   justify-content: space-between;
   gap: 15px;
 }
+.md-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.md-actions .diary-mark {
+  margin: 0;
+}
+.md-actions .spoiler-toggle {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+.md-actions .prediction-disclosure:has(.prediction-panel),
+.md-actions .diary-mark:has(.diary-editor) {
+  flex-basis: 100%;
+}
 .md-header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
