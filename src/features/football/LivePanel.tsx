@@ -95,7 +95,7 @@ export function LivePanel() {
       setStale(reply.stale);
     } catch (e) {
       if (!mountedRef.current) return;
-      setError(e instanceof Error ? e.message : 'SportScore недоступен');
+      setError(e instanceof Error ? e.message : 'Лента недоступна');
       setStale(true);
     } finally {
       if (mountedRef.current) setLoading(false);
@@ -174,21 +174,16 @@ export function LivePanel() {
         </div>
       </div>
 
-      {loading && matches.length === 0 && (
-        <LoadingBlock label="Загрузка ленты SportScore…" rows={4} />
-      )}
-      {error && (
-        <ErrorBlock
-          title="Лента SportScore недоступна"
-          message={error}
-          onRetry={() => void load()}
-        />
-      )}
-      {!loading && !error && visible.length === 0 && (
+      {loading && matches.length === 0 && <LoadingBlock label="Загрузка ленты…" rows={4} />}
+      {error && <ErrorBlock title="Лента недоступна" message={error} onRetry={() => void load()} />}
+      {!loading && !error && visible.length === 0 && personalMatches.length === 0 && (
         <EmptyBlock
-          title="Нет матчей в выбранном фильтре"
-          message="Попробуйте другой фильтр или обновите ленту."
+          title="В ленте нет матчей ваших клубов и турниров"
+          message="Лента содержит только 50 первых матчей дня по времени начала, поэтому вечерние игры могут в неё не попасть."
         />
+      )}
+      {!loading && !error && visible.length === 0 && personalMatches.length > 0 && (
+        <EmptyBlock title="Нет матчей в выбранном фильтре" message="Попробуйте другой фильтр." />
       )}
 
       {visible.length > 0 && (

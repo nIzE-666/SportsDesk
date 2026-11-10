@@ -57,3 +57,30 @@ it('limits every filter to followed competitions or favorite teams', async () =>
     host.remove();
   }
 });
+
+it('explains an empty feed instead of asking to change the filter', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  sessionStorage.clear();
+  const { api } = await import('../../lib/bridge');
+  vi.mocked(api).mockResolvedValueOnce({
+    payload: {
+      matches: [{ home: 'Other', away: 'Teams', competition: 'Jamaica Premier League' }],
+    },
+    fetchedAt: '2026-11-10T00:00:00Z',
+    stale: false,
+    source: 'sportscore',
+  });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<LivePanel />));
+    expect(host.textContent).toContain('В ленте нет матчей ваших клубов и турниров');
+    expect(host.textContent).toContain('50 первых матчей дня');
+    expect(host.textContent).not.toContain('Попробуйте другой фильтр');
+    expect(host.textContent).not.toContain('Jamaica Premier League');
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});
