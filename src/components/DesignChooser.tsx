@@ -50,10 +50,7 @@ export function DesignChooser() {
           </label>
         ))}
       </div>
-      <p className="settings-note">
-        Выбор применяется сразу и сохраняется. Быстро сравнить варианты можно кнопкой дизайна в
-        шапке.
-      </p>
+      <p className="settings-note">Выбор применяется сразу и сохраняется.</p>
     </fieldset>
   );
 }

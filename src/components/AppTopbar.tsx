@@ -2,12 +2,10 @@ import { Bell, ChevronLeft, Flag, Goal, Pin, Settings, Trophy, Tv, Zap } from 'l
 import { GlobalSearch } from './GlobalSearch';
 import type { SearchTarget } from '../lib/searchIndex';
 import type { ShellRoute, Sport } from '../lib/navigation';
-import { DesignToggle } from './DesignChooser';
 import { AmbientToggle } from '../features/atmosphere/AmbientToggle';
 interface Props {
   sport: Sport;
   route: ShellRoute;
-  date: string;
   reset: () => void;
   changeMode: (mode: Sport) => void;
   openMini: () => Promise<void>;
@@ -21,7 +19,6 @@ interface Props {
 export function AppTopbar({
   sport,
   route,
-  date,
   reset,
   changeMode,
   openMini,
@@ -43,7 +40,6 @@ export function AppTopbar({
             sports<span>desk</span>
             <em>●</em>
           </strong>
-          <small>ВАША ИГРА. КАЖДЫЙ ДЕНЬ.</small>
         </span>
       </button>
       <button
@@ -87,7 +83,6 @@ export function AppTopbar({
           <Bell size={18} />
         </button>
         <AmbientToggle sport={sport} />
-        <span className="header-date">{date}</span>
         <button
           className="watch-shortcut"
           aria-label="Live-мини"
@@ -105,17 +100,8 @@ export function AppTopbar({
           <Tv size={16} />
           <span>Смотреть</span>
         </button>
-        <DesignToggle />
         <button className="icon-button" aria-label="Настройки" onClick={onSettings}>
           <Settings size={18} />
-        </button>
-        <button
-          className="profile-monogram"
-          title="Личное пространство"
-          aria-label="Профиль и настройки"
-          onClick={onSettings}
-        >
-          W
         </button>
       </div>
     </header>

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
-import { readInterfaceDesign } from './lib/interfaceDesign';
+import { readInterfaceDesign, setInterfaceDesign } from './lib/interfaceDesign';
 import { writeAtmosphere } from './features/atmosphere/atmosphereStore';
 
 vi.mock('./lib/bridge', () => ({
@@ -156,7 +156,7 @@ it('switches designs in place, keeps the selected fixture/tab and does not refet
   await renderApp();
   await click(button('Статистика'));
   const requests = vi.mocked(api).mock.calls.length;
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
+  await act(async () => setInterfaceDesign('broadcast'));
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
   expect(readInterfaceDesign()).toBe('broadcast');
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
@@ -167,7 +167,7 @@ it('switches designs in place, keeps the selected fixture/tab and does not refet
     ),
   ).toBe(true);
   expect(vi.mocked(api).mock.calls).toHaveLength(requests);
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Вернуть классический дизайн"]')!);
+  await act(async () => setInterfaceDesign('classic'));
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
 }, 15000);
@@ -246,7 +246,7 @@ it('puts key match statistics first only in the new design without changing prov
   viewState.write(`match.${fixture.id}.tab`, 'stats');
   await renderApp();
   expect(host.querySelector('.stat-group h3')?.textContent).toBe('Оборона');
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Включить спортивную обложку"]')!);
+  await act(async () => setInterfaceDesign('broadcast'));
   expect(host.querySelector('.stat-group h3')?.textContent).toBe('Основные показатели');
   expect(stats.periods[0]!.groups[0]!.group_name).toBe('Defence');
 });
@@ -287,7 +287,7 @@ it('navigates real cup routes, profile settings and keyboard/mouse history once 
   await renderApp();
   await click(button('Кубки'));
   expect(host.querySelector('.sport-toggle [aria-selected="true"]')?.textContent).toBe('Кубки');
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Профиль и настройки"]')!);
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
   await act(async () =>
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -419,7 +419,7 @@ it('returns from settings and football details to the planner, then back to its 
   await click(host.querySelector<HTMLButtonElement>('aside [title="Настройки"]')!);
   await click(button('Вернуться к спорту'));
   expect(host.querySelector('.viewing-planner')).not.toBeNull();
-  await click(button('Онлайн-просмотр'));
+  await click(button('Смотреть'));
   await click(button('Вернуться к спорту'));
   expect(host.querySelector('.viewing-planner')).not.toBeNull();
   await click(host.querySelector<HTMLButtonElement>('.planner-title')!);

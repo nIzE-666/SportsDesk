@@ -6,7 +6,6 @@ import {
   HardDriveDownload,
   Heart,
   Settings,
-  Tv,
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import ConnectivityBanner from './components/ConnectivityBanner';
@@ -244,12 +243,6 @@ function MainApp() {
       /* не-Tauri: игнорируем */
     }
   };
-  const date = new Intl.DateTimeFormat('ru-RU', {
-    timeZone: getUserTimezone(),
-    day: 'numeric',
-    month: 'long',
-    weekday: 'short',
-  }).format(new Date());
   return (
     <WatchActionContext.Provider value={(intent) => setRoute({ kind: 'watch', intent })}>
       <div
@@ -265,7 +258,6 @@ function MainApp() {
           route={route}
           onBack={back}
           canBack={canBack}
-          date={date}
           reset={reset}
           changeMode={changeMode}
           openMini={openMini}
@@ -494,14 +486,6 @@ function MainApp() {
                   <span>Игры</span>
                 </button>
               )}
-              <button
-                className={`nav-item ${route.kind === 'watch' ? 'active' : ''}`}
-                onClick={() => togglePage('watch')}
-                title="Онлайн-просмотр"
-              >
-                <Tv size={18} />
-                <span>Онлайн-просмотр</span>
-              </button>
               <button
                 className={`nav-item ${route.kind === 'settings' ? 'active' : ''}`}
                 onClick={() => togglePage('settings')}
