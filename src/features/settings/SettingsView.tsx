@@ -580,7 +580,6 @@ export function SettingsView() {
             Пройти мастер настройки
           </button>
         </div>
-        <p className="settings-note">Тема и плотность применяются сразу и сохраняются.</p>
       </section>
 
       <BackupPanel />
@@ -630,9 +629,8 @@ export function SettingsView() {
           <span className="chip">json</span>
         </div>
         <p className="muted small">
-          Один файл со всеми настройками: избранные команды и игроки, тема, часовой пояс, выбранные
-          лиги. Секреты (ключ PitchAPI и токены Kino) в копию не входят — на новом компьютере их
-          нужно ввести заново.
+          Один файл с настройками и избранным. Ключи в копию не входят — на новом компьютере введите
+          их заново.
         </p>
         <div className="settings-actions">
           <button className="ghost-btn" onClick={() => void exportProfile()} disabled={profileBusy}>
@@ -666,9 +664,7 @@ export function SettingsView() {
               </option>
             ))}
           </select>
-          <span className="muted small">
-            UTC-время матчей переводится в выбранный пояс при отображении.
-          </span>
+          <span className="muted small">Время матчей показывается в выбранном поясе.</span>
         </div>
       </section>
 
@@ -704,8 +700,8 @@ export function SettingsView() {
           Напоминать о сессиях Формулы-1
         </label>
         <p className="muted small">
-          Практики, квалификация, спринт и гонка по расписанию Jolpica. Напоминания работают при
-          запущенном приложении, включая трей; время без подтверждения источником не подставляется.
+          Практики, квалификация, спринт и гонка. Напоминания приходят, пока приложение запущено, в
+          том числе в трее.
         </p>
         <NotificationPreferences />
         <div className="settings-row settings-actions">
@@ -768,8 +764,7 @@ export function SettingsView() {
           </span>
         </div>
         <p className="muted small">
-          Авторизация через код устройства сервиса Kino, токены хранятся только в защищённом
-          хранилище этого приложения. Аккаунт в браузере/TV не читается и не изменяется.
+          Вход по коду устройства. Аккаунт в браузере и на ТВ не читается и не изменяется.
         </p>
         {showKinoClientForm && (
           <div className="kino-client panel inner">

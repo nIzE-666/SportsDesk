@@ -232,7 +232,7 @@ export function ClubPlayers({
       {current && !current.error && !current.members.length && (
         <EmptyBlock
           title="Состав отсутствует"
-          message="Провайдер не вернул игроков последнего матча."
+          message="Источник не вернул игроков последнего матча."
         />
       )}
     </section>

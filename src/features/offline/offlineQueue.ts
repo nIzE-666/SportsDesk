@@ -186,7 +186,7 @@ async function pump() {
     }
     if (reply.stale)
       throw new Error(
-        'Источник недоступен: получен устаревший кеш. Прежний офлайн-пакет сохранён.',
+        'Источник недоступен: получены устаревшие данные. Прежний офлайн-пакет сохранён.',
       );
     const packageData = buildOfflineSeason(
       reply.payload,

@@ -151,7 +151,7 @@ it('does not overwrite a saved package with stale or malformed source data', asy
   enqueue();
   await flush();
   expect(rpc).not.toHaveBeenCalled();
-  expect(readOfflineQueue().queue.jobs[0]?.error).toContain('устаревший кеш');
+  expect(readOfflineQueue().queue.jobs[0]?.error).toContain('устаревшие данные');
   vi.mocked(api).mockResolvedValueOnce({ ...reply(), payload: { data: { matches: [] } } });
   enqueue();
   await flush();

@@ -126,7 +126,7 @@ export function PlayersTab({
     return (
       <EmptyBlock
         title="Игроки не загружены"
-        message="Провайдер не вернул игровую статистику для этого матча."
+        message="Источник не вернул игровую статистику для этого матча."
       />
     );
 
@@ -281,9 +281,7 @@ export function PlayerProfile({
         </div>
       </div>
       {minutes === null && (
-        <p className="chip">
-          Показатели за 90 минут недоступны: провайдер не указал минуты игрока.
-        </p>
+        <p className="chip">Показатели за 90 минут недоступны: источник не указал минуты игрока.</p>
       )}
       <h3>Статистика выбранного матча</h3>
       <div className="stat-groups">
@@ -302,7 +300,7 @@ function StatPlayerGroup({ group, minutes }: { group: PlayerStatGroup; minutes: 
     <section className="panel inner">
       <h3>{statGroupLabel(group.key, group.title)}</h3>
       {rows.length === 0 && (
-        <p className="muted small">Провайдер не вернул показатели в этой группе.</p>
+        <p className="muted small">Источник не вернул показатели в этой группе.</p>
       )}
       <div className="sp-grid">
         {rows.map(([label, v]) => {

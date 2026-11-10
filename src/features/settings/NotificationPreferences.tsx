@@ -88,10 +88,7 @@ export function NotificationPreferences() {
             />
           </label>
         </div>
-        <p className="muted small">
-          Учитывается выбранный часовой пояс и переход на летнее время. События за тихие часы не
-          воспроизводятся позже.
-        </p>
+        <p className="muted small">События в тихие часы позже не показываются.</p>
       </fieldset>
       <details>
         <summary>Настроить по командам · {teams.length}</summary>

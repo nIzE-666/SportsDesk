@@ -45,7 +45,7 @@ export function StandingsView({
       );
       const payload = reply.payload as any;
       if (!payload || !Array.isArray(payload.tables)) {
-        throw new Error('Провайдер не вернул таблицу для этой лиги');
+        throw new Error('Источник не вернул таблицу для этой лиги');
       }
       setStandings(payload as SportScoreStandings);
       setFetchedAt(reply.fetchedAt ?? null);
@@ -121,7 +121,7 @@ export function StandingsView({
       ))}
 
       {standings && tables.length === 0 && (
-        <EmptyBlock title="Пустая таблица" message="Провайдер вернул таблицу без строк." />
+        <EmptyBlock title="Пустая таблица" message="Источник вернул таблицу без строк." />
       )}
 
       <SourceLine sources={['sportscore']} fetchedAt={fetchedAt} stale={stale && !!standings} />

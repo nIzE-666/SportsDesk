@@ -125,7 +125,7 @@ export function SeasonPlayerPanel({
             ))}
           </div>
           {!stats.metrics.length && (
-            <p className="muted small">В этих матчах провайдер не вернул показатели игрока.</p>
+            <p className="muted small">В этих матчах источник не вернул показатели игрока.</p>
           )}
           <h3 className="season-recent-title">Игры, из которых сложились цифры</h3>
           <div className="season-match-list">

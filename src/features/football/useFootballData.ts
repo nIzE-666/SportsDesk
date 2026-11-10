@@ -291,7 +291,7 @@ export function useFootballData(
       const reply = await api('pitch', 'leagues');
       const raw = reply.payload?.data ?? reply.payload;
       const list: any[] = Array.isArray(raw) ? raw : Array.isArray(raw?.leagues) ? raw.leagues : [];
-      if (list.length === 0) throw new Error('Провайдер не вернул список лиг');
+      if (list.length === 0) throw new Error('Источник не вернул список лиг');
       const mapped: LeagueOption[] = [];
       for (const x of list) {
         if (!x || typeof x.id !== 'string') continue;

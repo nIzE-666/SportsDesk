@@ -165,7 +165,7 @@ function PlayerCardView({
       {busy && <LoadingBlock label="Собираем статистику по всем лигам…" rows={2} />}
       {error && <ErrorBlock title="Статистика недоступна" message={error} onRetry={retry} />}
       {stats && stats.metrics.length === 0 && !busy && (
-        <p className="muted small">Провайдер не вернул показатели игрока в матчах истории.</p>
+        <p className="muted small">Источник не вернул показатели игрока в матчах истории.</p>
       )}
       {stats && stats.metrics.length > 0 && (
         <div className="pc-metrics">
@@ -310,7 +310,7 @@ function ComparePanel({ a, b, onClose }: { a: PlayerCard; b: PlayerCard; onClose
         />
       ))}
       {labels.length === 0 && !a.busy && !b.busy && !a.error && !b.error && (
-        <p className="muted small">Провайдер не вернул показатели для сравнения.</p>
+        <p className="muted small">Источник не вернул показатели для сравнения.</p>
       )}
     </section>
   );

@@ -206,7 +206,7 @@ test('pauses a request, resumes after reload, preserves a good package on errors
   await expect(p.getByRole('button', { name: 'Удалить пакет', exact: true })).toBeDisabled();
   state.stale = true;
   await p.getByRole('button', { name: 'Обновить пакет', exact: true }).click();
-  await expect(queue).toContainText('устаревший кеш');
+  await expect(queue).toContainText('устаревшие данные');
   expect(packages.size).toBe(1);
   expect(state.commits).toBe(1);
   state.stale = false;

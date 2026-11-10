@@ -60,7 +60,7 @@ async function requestSquad(matchId: string) {
     api('pitch', `matches/${encodeURIComponent(matchId)}/players`),
   ]);
   if (lineups.status === 'rejected' && players.status === 'rejected')
-    throw new Error('Провайдер не вернул состав и статистику. Попробуйте обновить.');
+    throw new Error('Источник не вернул состав и статистику. Попробуйте обновить.');
   const lineup =
     lineups.status === 'fulfilled'
       ? ((lineups.value.payload?.data ?? lineups.value.payload) as LineupsPayload)

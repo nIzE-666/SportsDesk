@@ -181,7 +181,7 @@ it('displays shots when pressure fails, and treats malformed shots as an error',
   expect(host.textContent).toContain('Давление недоступно');
   transport.api.mockResolvedValue(reply({}));
   await click('Обновить разбор');
-  expect(host.textContent).toContain('Провайдер вернул некорректные данные.');
+  expect(host.textContent).toContain('Источник вернул некорректные данные.');
 });
 
 it('ignores a slow older response after a new refresh', async () => {
