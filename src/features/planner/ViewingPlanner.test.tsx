@@ -167,6 +167,33 @@ afterEach(async () => {
 });
 
 describe('personal sports viewing planner', () => {
+  it('shows the next available day when the coming week is empty', async () => {
+    const future = { ...firstMatch, date: '2026-11-05', time_utc: '2026-11-05T12:00:00Z' };
+    const data = vi.mocked(useFootballData).getMockImplementation()!();
+    vi.mocked(useFootballData).mockReturnValue({
+      ...data,
+      allMatches: [future],
+      matches: [future],
+    });
+    vi.mocked(useApiResource).mockImplementation(
+      () =>
+        ({
+          data: { races: [] },
+          loading: false,
+          error: null,
+          stale: false,
+          reload: vi.fn(),
+        }) as unknown as ReturnType<typeof useApiResource>,
+    );
+    await render();
+    expect(articleNames()).toEqual(['Barcelona — Real Betis']);
+    expect(host.textContent).toContain('За ближайшие 7 дней событий нет');
+    expect(host.textContent).not.toContain('В этом периоде нет событий');
+    await click(button('Сегодня'));
+    expect(articles()).toHaveLength(0);
+    expect(host.textContent).toContain('В этом периоде нет событий');
+    expect(host.querySelector('.planner-insights')).toBeNull();
+  });
   it('shows favorite football and F1 in one local-time schedule with explicit estimated endings', async () => {
     await render();
     expect(articleNames()).toEqual([

@@ -119,35 +119,37 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
           onOpen(e);
         }}
       />
-      <div className="event-toolbar">
-        <div role="group" aria-label="Фильтр событий">
-          {(
-            [
-              ['all', 'Все'],
-              ['unread', `Непрочитанные · ${unread.length}`],
-              ['football', 'Футбол'],
-              ['f1', 'Формула 1'],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              className={`ghost-btn ${filter === id ? 'active' : ''}`}
-              aria-pressed={filter === id}
-              key={id}
-              onClick={() => setFilter(id)}
-            >
-              {label}
-            </button>
-          ))}
+      {events.length > 0 && (
+        <div className="event-toolbar">
+          <div role="group" aria-label="Фильтр событий">
+            {(
+              [
+                ['all', 'Все'],
+                ['unread', `Непрочитанные · ${unread.length}`],
+                ['football', 'Футбол'],
+                ['f1', 'Формула 1'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                className={`ghost-btn ${filter === id ? 'active' : ''}`}
+                aria-pressed={filter === id}
+                key={id}
+                onClick={() => setFilter(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="ghost-btn"
+            disabled={!unread.length || saving}
+            onClick={() => void acknowledge(unread.map((e) => e.id))}
+          >
+            <CheckCheck size={15} />
+            Прочитать все
+          </button>
         </div>
-        <button
-          className="ghost-btn"
-          disabled={!unread.length || saving}
-          onClick={() => void acknowledge(unread.map((e) => e.id))}
-        >
-          <CheckCheck size={15} />
-          Прочитать все
-        </button>
-      </div>
+      )}
       {!isTauriRuntime() && (
         <p className="muted small">
           В браузерном режиме фоновый сбор событий недоступен. В приложении события собираются также

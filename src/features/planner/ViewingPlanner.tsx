@@ -108,10 +108,18 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
   const weekEnd = new Date(`${today}T00:00:00Z`);
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
   const weekEndDay = weekEnd.toISOString().slice(0, 10);
-  const inRange =
+  const periodEvents =
     range === 'day'
       ? filterViewingEventsByDay(plan.events, day, tz)
       : plan.events.filter((e) => viewingDayKey(e.start, tz) < weekEndDay);
+  const nextDay =
+    range === 'week' && !onlyPlan && !periodEvents.length
+      ? groupViewingEventsByDay(
+          plan.events.filter((event) => event.start >= now),
+          tz,
+        )[0]
+      : undefined;
+  const inRange = nextDay?.events ?? periodEvents;
   const shown = onlyPlan ? inRange.filter((e) => priorities.includes(e.id)) : inRange;
   const groups = groupViewingEventsByDay(shown, tz);
   const conflicts = findViewingConflicts(inRange);
@@ -148,20 +156,22 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         </div>
         <CalendarClock size={52} />
       </section>
-      <div className="planner-insights">
-        <div>
-          <strong>{inRange.length}</strong>
-          <span>событий в периоде</span>
+      {inRange.length > 0 && (
+        <div className="planner-insights">
+          <div>
+            <strong>{inRange.length}</strong>
+            <span>событий в периоде</span>
+          </div>
+          <div>
+            <strong>{selected.length}</strong>
+            <span>выбрано смотреть</span>
+          </div>
+          <div>
+            <strong>{conflicts.length}</strong>
+            <span>групп пересечений</span>
+          </div>
         </div>
-        <div>
-          <strong>{selected.length}</strong>
-          <span>выбрано смотреть</span>
-        </div>
-        <div>
-          <strong>{conflicts.length}</strong>
-          <span>групп пересечений</span>
-        </div>
-      </div>
+      )}
       <section className="panel planner-toolbar">
         <div className="analysis-control-group" role="group" aria-label="Период плана">
           <button
@@ -255,6 +265,11 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       {nextSchedule.error && needsNextYear && (
         <p className="muted small">
           Расписание F1 следующего года пока недоступно; показаны загруженные события.
+        </p>
+      )}
+      {nextDay && (
+        <p className="muted small">
+          За ближайшие 7 дней событий нет. Следующие события — {dayLabel(nextDay.date)}.
         </p>
       )}
       {!shown.length && !football.matchesLoading && !schedule.loading && (

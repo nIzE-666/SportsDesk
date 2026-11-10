@@ -121,6 +121,10 @@ it('filters personal views by sport and inclusive watch dates', async () => {
 });
 it('creates an offline manual record with a rating and tags without inventing a source reference', async () => {
   await renderView(false);
+  expect(host.querySelector('.diary-summary')).toBeNull();
+  expect(host.querySelector('.diary-filter-panel')).toBeNull();
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
+  expect(host.querySelector('.diary-import')).not.toBeNull();
   await click('Добавить просмотр вручную');
   await change('Название события', 'Архивная гонка');
   await change('Вид спорта записи', 'f1');
@@ -137,6 +141,7 @@ it('creates an offline manual record with a rating and tags without inventing a 
   });
   expect(host.textContent).toContain('Без привязки к источнику');
   expect(host.querySelectorAll('.diary-entry')).toHaveLength(1);
+  expect(host.querySelector('.diary-filter-panel')).not.toBeNull();
 });
 it('opens exact football and F1 references without a provider refresh', async () => {
   await renderView();

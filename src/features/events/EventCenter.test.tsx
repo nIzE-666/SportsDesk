@@ -5,6 +5,21 @@ import { expect, it, vi } from 'vitest';
 import { EventCenter } from './EventCenter';
 import { rpc } from '../../lib/bridge';
 vi.mock('../../lib/bridge', () => ({ rpc: vi.fn(), isTauriRuntime: () => false }));
+it('hides event filters when there are no events', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  vi.mocked(rpc).mockResolvedValue([]);
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<EventCenter onOpen={vi.fn()} />));
+    expect(host.querySelector('.event-toolbar')).toBeNull();
+    expect(host.textContent).toContain('Пока нет событий');
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});
 it('filters durable events, opens the exact target, and does not acknowledge failed writes', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const football = {
