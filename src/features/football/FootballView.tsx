@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { footballNav as TABS } from '../../lib/navigationMetadata';
 import { PageFrame } from '../../components/PageFrame';
-import { useViewState } from '../../lib/useViewState';
 import { Dashboard } from './Dashboard';
 import { FavoritesProvider, useFavorites } from './FavoritesProvider';
 import { LivePanel } from './LivePanel';
@@ -22,7 +21,7 @@ export interface FootballViewProps {
   selectedTeamId?: string;
   matchId?: string | null;
   onOpenMatch: (matchId: string, leagueId?: string, season?: string) => void;
-  onOpenTeam: (teamId: string, teamName?: string) => void;
+  onOpenTeam: (teamId: string, teamName?: string, leagueId?: string) => void;
   onNavigate: (section: FootballSection) => void;
   onBackFromMatch?: () => void;
 }
@@ -50,14 +49,9 @@ function FootballBody({
   useEffect(() => {
     if (leagueId && raw.selectedLeagueId !== leagueId) raw.setSelectedLeague(leagueId);
   }, [leagueId]);
-  const [localTeamId, setLocalTeamId] = useViewState<string | null>(
-    'football.team',
-    null,
-    (v) => v === null || typeof v === 'string',
-  );
   useEffect(() => seedFromCatalogue(data.teams), [data.teams, seedFromCatalogue]);
 
-  const activeTeamId = selectedTeamId ?? localTeamId ?? null;
+  const activeTeamId = selectedTeamId ?? null;
   const handleOpenMatch = (id: string) => {
     const leagueId = data.matches.some((m) => m.id === id)
       ? data.selectedLeagueId
@@ -67,13 +61,11 @@ function FootballBody({
   };
   const handleOpenTeam = (id: string, name?: string) => {
     const team = data.teams.find((t) => t.id === id);
-    if (team && team.leagueId !== data.selectedLeagueId) data.setSelectedLeague(team.leagueId);
-    onOpenTeam(id, name);
+    onOpenTeam(id, name, team?.leagueId);
   };
 
   const handlePickTeam = (teamId: string) => {
-    setLocalTeamId(teamId);
-    onNavigate('team');
+    handleOpenTeam(teamId);
   };
 
   return (

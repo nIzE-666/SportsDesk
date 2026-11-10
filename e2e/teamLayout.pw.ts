@@ -37,6 +37,14 @@ test('long away team names start inside the schedule cell', async ({ page }, tes
   await page.goto('/');
   await expect(page.locator('.football-dashboard')).toContainText('Newcastle United Football Club');
   await page.locator('aside').getByTitle('Клубы', { exact: true }).click();
+  await page
+    .locator('.team-favorites')
+    .getByRole('button', { name: 'Arsenal', exact: true })
+    .click();
+  await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
+  await page.getByRole('button', { name: 'Назад по истории' }).click();
+  await expect(page.locator('.team-view h1')).toHaveText('Клубы');
+  await page.screenshot({ path: testInfo.outputPath('favorite-teams.png') });
   await page.locator('#team-picker-select').selectOption('arsenal');
   const away = page.locator('.team-schedule .team-match-away').first();
   const name = away.locator('.truncate');

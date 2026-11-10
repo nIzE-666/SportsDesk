@@ -106,6 +106,11 @@ it('opens a club player, saves one favorite, opens it in the directory and remov
     </FavoritesProvider>,
   );
   expect(host.textContent).toContain('Избранные игроки · 1');
+  expect(
+    host
+      .querySelector('.pc-grid')
+      ?.compareDocumentPosition(host.querySelector('.player-directory')!),
+  ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   await click('Статистика: Lamine Yamal');
   expect(host.querySelector('.player-profile')?.textContent).toContain('Lamine Yamal');
   await click('К игрокам');

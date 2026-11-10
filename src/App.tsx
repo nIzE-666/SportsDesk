@@ -587,8 +587,11 @@ function MainApp() {
                       matchId={route.kind === 'football-match' ? route.matchId : null}
                       onOpenMatch={openFootballMatch}
                       onBackFromMatch={backFromMatch}
-                      onOpenTeam={(id) =>
-                        setRoute({ kind: 'football', section: 'team', teamId: id })
+                      onOpenTeam={(id, _name, teamLeagueId) =>
+                        setRoute(
+                          { kind: 'football', section: 'team', teamId: id },
+                          teamLeagueId ? { leagueId: teamLeagueId } : {},
+                        )
                       }
                       onNavigate={(section) => setRoute({ kind: 'football', section })}
                     />

@@ -79,6 +79,15 @@
 }
 
 /* Team view additions (owned by football module) */
+.team-favorites h2 {
+  font-size: 16px;
+  margin: 16px 0 8px;
+}
+.team-favorites-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .team-header-actions {
   display: flex;
   flex-wrap: wrap;

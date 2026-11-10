@@ -480,10 +480,56 @@ export function PlayersCenter({
         <div>
           <h1>Игроки</h1>
           <p className="muted small">
-            Выберите клуб, откройте игрока и сохраните его звёздочкой. Избранные футболисты и
-            сравнение находятся ниже.
+            Избранные футболисты и сравнение. Других игроков можно найти по клубу ниже.
           </p>
         </div>
+      </div>
+
+      <h2>Избранные игроки · {shown.length}</h2>
+      {shown.length > 0 && (
+        <ComparisonPicker
+          players={shown}
+          a={slotA}
+          b={slotB}
+          onClear={clearComparison}
+          onPick={(side, id) => {
+            if (
+              id &&
+              (!favoritePlayers.some((p) => p.id === id) ||
+                id === (side === 0 ? slotB?.id : slotA?.id))
+            )
+              return;
+            (side === 0 ? setSlotAId : setSlotBId)(id || null);
+          }}
+        />
+      )}
+      {slotA && slotB && <ComparePanel a={cardA} b={cardB} onClose={clearComparison} />}
+
+      {shown.length === 0 && (
+        <EmptyBlock
+          title="Избранных игроков пока нет"
+          message="Выберите клуб ниже и отметьте нужных футболистов звёздочкой. Можно также сохранить игрока из состава клуба или разбора матча."
+        />
+      )}
+
+      <div className="pc-grid">
+        {shown.map((p) => (
+          <PlayerCardView
+            key={p.id}
+            player={p}
+            matches={data.allMatches}
+            onOpen={() => setSelectedId(p.id)}
+            onRemove={() => {
+              togglePlayer(p);
+              if (slotA?.id === p.id) setSlotAId(null);
+              if (slotB?.id === p.id) setSlotBId(null);
+              if (selectedId === p.id) setSelectedId(null);
+            }}
+            onCompare={() => setSlot(p)}
+            compareSlot={slotA?.id === p.id ? 1 : slotB?.id === p.id ? 2 : null}
+            comparisonFull={!!slotA && !!slotB}
+          />
+        ))}
       </div>
 
       <section className="panel player-directory">
@@ -537,53 +583,6 @@ export function PlayersCenter({
           onOpenMatch={onOpenMatch}
         />
       )}
-      <h2>Избранные игроки · {shown.length}</h2>
-      {shown.length > 0 && (
-        <ComparisonPicker
-          players={shown}
-          a={slotA}
-          b={slotB}
-          onClear={clearComparison}
-          onPick={(side, id) => {
-            if (
-              id &&
-              (!favoritePlayers.some((p) => p.id === id) ||
-                id === (side === 0 ? slotB?.id : slotA?.id))
-            )
-              return;
-            (side === 0 ? setSlotAId : setSlotBId)(id || null);
-          }}
-        />
-      )}
-      {slotA && slotB && <ComparePanel a={cardA} b={cardB} onClose={clearComparison} />}
-
-      {shown.length === 0 && (
-        <EmptyBlock
-          title="Избранных игроков пока нет"
-          message="Выберите клуб выше и отметьте нужных футболистов звёздочкой. Можно также сохранить игрока из состава клуба или разбора матча."
-        />
-      )}
-
-      <div className="pc-grid">
-        {shown.map((p) => (
-          <PlayerCardView
-            key={p.id}
-            player={p}
-            matches={data.allMatches}
-            onOpen={() => setSelectedId(p.id)}
-            onRemove={() => {
-              togglePlayer(p);
-              if (slotA?.id === p.id) setSlotAId(null);
-              if (slotB?.id === p.id) setSlotBId(null);
-              if (selectedId === p.id) setSelectedId(null);
-            }}
-            onCompare={() => setSlot(p)}
-            compareSlot={slotA?.id === p.id ? 1 : slotB?.id === p.id ? 2 : null}
-            comparisonFull={!!slotA && !!slotB}
-          />
-        ))}
-      </div>
-
       <div className="source-foot muted small">
         <Users size={12} /> Данные игроков: PitchAPI · матчи команд из локальной истории (все
         загруженные лиги).

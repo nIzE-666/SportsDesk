@@ -12,6 +12,7 @@ import type { HistoryMatch } from './history';
 import type { MatchSummary } from './types';
 import type { UseFootballResult } from './useFootballData';
 import { viewState } from '../../lib/viewState';
+import { STORAGE_KEYS } from './storage';
 
 const transport = vi.hoisted(() => ({ api: vi.fn(), rpc: vi.fn(), isTauriRuntime: () => false }));
 vi.mock('../../lib/bridge', () => transport);
@@ -88,6 +89,23 @@ afterEach(async () => {
 async function render(element: React.ReactNode) {
   await act(async () => root.render(element));
 }
+
+it('starts the club directory with favorite teams and opens the chosen club', async () => {
+  localStorage.setItem(
+    STORAGE_KEYS.favoritesTeams,
+    JSON.stringify({ ids: ['home'], seededDefault: true }),
+  );
+  const select = vi.fn();
+  await render(
+    <TeamView teamId={null} data={makeData([])} onSelectTeam={select} onOpenMatch={vi.fn()} />,
+  );
+  expect(host.querySelector('h1')?.textContent).toBe('Клубы');
+  const favorite = host.querySelector<HTMLButtonElement>('.team-favorites button')!;
+  expect(favorite.textContent).toContain('Atlético F.C.');
+  expect(host.querySelector('#team-picker-select')).not.toBeNull();
+  await act(async () => favorite.click());
+  expect(select).toHaveBeenCalledWith('home');
+});
 
 it('uses the selected league catalogue names and badges in standings without guessing ambiguous teams', async () => {
   const clubs = [

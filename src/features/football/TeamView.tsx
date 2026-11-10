@@ -1,15 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarDays,
-  MapPin,
-  Star,
-  Target,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, CalendarDays, MapPin, Star, Target, TrendingUp, Users } from 'lucide-react';
 import { ClubPlayers } from './ClubPlayers';
 import TeamBadge from '../../components/TeamBadge';
 import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
@@ -129,7 +120,7 @@ function pickLatestPlayed(
 
 export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewProps) {
   const timezone = getUserTimezone();
-  const { isTeamFavorite, toggleTeam, seedFromCatalogue } = useFavorites();
+  const { isTeamFavorite, toggleTeam, seedFromCatalogue, teamIds } = useFavorites();
   useEffect(() => {
     seedFromCatalogue(data.teams);
   }, [data.teams, seedFromCatalogue]);
@@ -236,9 +227,9 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
       </div>
 
       <div className="panel team-header">
-        <TeamBadge name={teamName || 'Клуб'} imageUrl={teamImage} size={56} />
+        {catalogueTeam && <TeamBadge name={teamName} imageUrl={teamImage} size={56} />}
         <div className="team-header-body">
-          <h1>{catalogueTeam?.name ?? 'Клуб не выбран'}</h1>
+          <h1>{catalogueTeam?.name ?? 'Клубы'}</h1>
           {catalogueTeam && (
             <p className="muted small">
               {catalogueTeam.leagueName}
@@ -263,6 +254,25 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
               </button>
             )}
           </div>
+          {!teamId && teamIds.some((id) => data.teams.some((team) => team.id === id)) && (
+            <section className="team-favorites" aria-label="Избранные клубы">
+              <h2>Мои команды</h2>
+              <div className="team-favorites-list">
+                {teamIds
+                  .map((id) => data.teams.find((team) => team.id === id))
+                  .filter((team): team is TeamCatalogueEntry => !!team)
+                  .map((team) => (
+                    <button
+                      key={team.id}
+                      className="ghost-btn"
+                      onClick={() => onSelectTeam(team.id)}
+                    >
+                      <TeamBadge name={team.name} imageUrl={team.image_url} size={24} /> {team.name}
+                    </button>
+                  ))}
+              </div>
+            </section>
+          )}
           <div className="team-picker">
             <label htmlFor="team-picker-select" className="muted small">
               Выбрать клуб из каталога
@@ -289,12 +299,18 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
         </div>
       </div>
 
-      {!teamId && (
-        <EmptyBlock
-          title="Клуб не выбран"
-          message="Выберите клуб из списка выше. Каталог собран из реальных расписаний Premier League, LaLiga и MLS."
-        />
+      {!teamId && (data.matchesLoading || data.leaguesLoading) && !data.teams.length && (
+        <LoadingBlock label="Загружаем клубы…" rows={2} />
       )}
+      {!teamId &&
+        !data.matchesLoading &&
+        !data.leaguesLoading &&
+        !teamIds.some((id) => data.teams.some((team) => team.id === id)) && (
+          <EmptyBlock
+            title="Пока нет доступных избранных клубов"
+            message="Выберите клуб из каталога и добавьте его в избранное."
+          />
+        )}
 
       {teamId && !catalogueTeam && (
         <EmptyBlock
@@ -415,13 +431,6 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
             завершённых матчах из загруженных лиг.
           </div>
         </>
-      )}
-
-      {!teamId && (
-        <div className="source-foot muted small">
-          <AlertTriangle size={12} /> Выберите клуб, чтобы увидеть расписание, форму и состав по
-          последнему матчу.
-        </div>
       )}
     </div>
   );
