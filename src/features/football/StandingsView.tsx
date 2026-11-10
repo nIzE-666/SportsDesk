@@ -10,7 +10,7 @@ import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 const SLUG_BY_LEAGUE: Record<string, string> = {
   l_4WFCIZ: 'english-premier-league',
   l_0ErfuF: 'spanish-la-liga',
-  l_0eg6C9: 'major-league-soccer',
+  l_0eg6C9: 'united-states-major-league-soccer',
   l_0ALvwF: 'italian-serie-a',
   l_1Isor4: 'bundesliga',
   l_3FJFUl: 'french-ligue-1',

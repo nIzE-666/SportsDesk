@@ -21,6 +21,7 @@ const COMPETITIONS = new Set([
   'france ligue 1',
   'mls',
   'major league soccer',
+  'united states major league soccer',
   'uefa champions league',
   'champions league',
   'uefa europa league',
