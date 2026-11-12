@@ -115,7 +115,9 @@ it('opens a club player, saves one favorite, opens it in the directory and remov
   expect(host.querySelector('.player-profile')?.textContent).toContain('Lamine Yamal');
   await click('К игрокам');
   await click('Убрать из избранного: Lamine Yamal');
-  expect(host.textContent).toContain('Избранные игроки · 0');
+  // Nothing saved: one phrase instead of a heading with a zero.
+  expect(host.textContent).not.toContain('Избранные игроки');
+  expect(host.querySelector('.state-block')?.textContent).toContain('Избранных игроков пока нет');
   expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.favoritePlayers)!)).toEqual([]);
 });
 it('does not paint a late response from the previous club', async () => {
@@ -208,9 +210,22 @@ it('distinguishes aggregate statistics from the saved match and explains a singl
   expect(host.querySelector('.pc-origin')?.textContent).toContain(
     'Сохранён из матча: Barcelona — Betis',
   );
-  expect(host.textContent).toContain('добавьте ещё одного футболиста в избранное');
+  // A single favourite cannot be compared: no picker, no hint, no compare button.
+  expect(host.querySelector('.pc-picker')).toBeNull();
+  expect(host.querySelector('[aria-label="Сравнить: Lamine Yamal"]')).toBeNull();
+  expect(host.textContent).not.toContain('Сравнение игроков');
+  expect(host.textContent).not.toContain('добавьте ещё одного футболиста');
+});
+it('shows the comparison picker and compare buttons from two favourites on', async () => {
+  const data = seedFavorites(['yamal', 'pedri']);
+  await render(
+    <FavoritesProvider>
+      <PlayersCenter data={data} onOpenMatch={() => {}} />
+    </FavoritesProvider>,
+  );
+  expect(host.textContent).toContain('Избранные игроки · 2');
+  expect(host.querySelector('.pc-picker')).not.toBeNull();
   await click('Сравнить: Lamine Yamal');
-  expect(host.textContent).not.toContain('Слот');
   expect(
     host.querySelector<HTMLSelectElement>('[aria-label="Первый игрок для сравнения"]')?.value,
   ).toBe('yamal');
@@ -222,6 +237,33 @@ it('distinguishes aggregate statistics from the saved match and explains a singl
   expect(
     host.querySelector<HTMLSelectElement>('[aria-label="Первый игрок для сравнения"]')?.value,
   ).toBe('');
+});
+it('opens with the empty phrase and the club chooser when nothing is saved', async () => {
+  const data = seedFavorites([]);
+  await render(
+    <FavoritesProvider>
+      <PlayersCenter data={data} onOpenMatch={() => {}} />
+    </FavoritesProvider>,
+  );
+  expect(host.textContent).not.toContain('Избранные игроки');
+  expect(host.querySelector('.pc-picker')).toBeNull();
+  expect(host.querySelectorAll('.pc-card')).toHaveLength(0);
+  expect(host.querySelectorAll('.state-block')).toHaveLength(1);
+  expect(host.querySelector('.state-block')?.textContent).toContain('Избранных игроков пока нет');
+  expect(host.querySelector('[aria-label="Клуб для выбора игроков"]')).not.toBeNull();
+});
+it('lists ten favourites with the comparison picker and no zero or idle element', async () => {
+  const ids = Array.from({ length: 10 }, (_, i) => `p${i}`);
+  const data = seedFavorites(ids);
+  await render(
+    <FavoritesProvider>
+      <PlayersCenter data={data} onOpenMatch={() => {}} />
+    </FavoritesProvider>,
+  );
+  expect(host.querySelector('h2')?.textContent).toBe('Избранные игроки · 10');
+  expect(host.querySelectorAll('.pc-card')).toHaveLength(10);
+  expect(host.querySelectorAll('.pc-picker select')).toHaveLength(2);
+  expect(host.querySelector('.state-block.empty')).toBeNull();
 });
 
 it('requires two different players, shows comparison, retains the choice through profile and clears it', async () => {
@@ -276,7 +318,95 @@ it('updates comparison from the explicit player pickers and clears a removed fav
   expect(host.querySelector('.pc-compare')?.textContent).toContain('Pedri и Lamine Yamal');
   await click('Убрать из избранного: Pedri');
   expect(host.querySelector('.pc-compare')).toBeNull();
-  expect(
-    host.querySelector<HTMLSelectElement>('[aria-label="Первый игрок для сравнения"]')?.value,
-  ).toBe('');
+  // One favourite is left: nothing to compare, so the picker goes away.
+  expect(host.querySelector('.pc-picker')).toBeNull();
+  expect(host.textContent).toContain('Избранные игроки · 1');
+});
+
+const squadOf = (names: string[]): LineupsPayload => ({
+  ...lineup,
+  home: {
+    starters: names.map((name, i) => ({ player_id: `member-${i}`, name })),
+    subs: [],
+  },
+});
+function serveSquad(names: string[]) {
+  transport.api.mockImplementation(async (_source: string, path: string) => ({
+    payload: path.endsWith('/lineups') ? { data: squadOf(names) } : { data: [] },
+    source: 'pitch',
+    stale: false,
+    fetchedAt: '2026-10-21',
+  }));
+}
+// The squad of a match is cached for a quarter of an hour, so each case uses its own match.
+async function renderSquad(matchId: string) {
+  await render(
+    <FavoritesProvider>
+      <ClubPlayers team={team} matches={[{ ...match, id: matchId }]} onOpenMatch={() => {}} />
+    </FavoritesProvider>,
+  );
+}
+async function typeSearch(value: string) {
+  const input = host.querySelector<HTMLInputElement>('[aria-label="Поиск игрока в составе"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+it('counts the squad in plain Russian and offers a search only for more than one player', async () => {
+  serveSquad(['Первый', 'Второй', 'Третий']);
+  await renderSquad('squad-three');
+  expect(host.querySelector('.club-players .section-title .muted')?.textContent).toBe('3 игрока');
+  expect(host.querySelector('[aria-label="Поиск игрока в составе"]')).not.toBeNull();
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  serveSquad(['Единственный']);
+  await renderSquad('squad-one');
+  expect(host.querySelector('.club-players .section-title .muted')?.textContent).toBe('1 игрок');
+  expect(host.querySelector('[aria-label="Поиск игрока в составе"]')).toBeNull();
+});
+it('shows no count and one phrase when the source returned no squad', async () => {
+  serveSquad([]);
+  await renderSquad('squad-none');
+  expect(host.querySelector('.club-players .section-title .muted')).toBeNull();
+  expect(host.querySelector('.state-block')?.textContent).toContain('Состав отсутствует');
+  expect(host.querySelector('[aria-label="Поиск игрока в составе"]')).toBeNull();
+});
+it('says no such player is in the squad and clears the search with one action', async () => {
+  serveSquad(['Ламин Ямаль', 'Педри', 'Рафинья']);
+  await renderSquad('squad-search');
+  await typeSearch('нет такого');
+  expect(host.querySelectorAll('.squad-player')).toHaveLength(0);
+  expect(host.querySelectorAll('.state-block')).toHaveLength(1);
+  expect(host.querySelector('.state-block')?.textContent).toContain('Таких игроков в составе нет');
+  // The field stays so the query can be corrected.
+  expect(host.querySelector('[aria-label="Поиск игрока в составе"]')).not.toBeNull();
+  await click('Очистить поиск');
+  expect(host.querySelectorAll('.squad-player')).toHaveLength(3);
+  expect(host.querySelector('.state-block')).toBeNull();
+  expect(host.querySelector<HTMLInputElement>('[aria-label="Поиск игрока в составе"]')?.value).toBe(
+    '',
+  );
+});
+
+it('says once that the source returned no figures instead of a summary full of zeros', async () => {
+  const quiet = { ...match, id: 'no-figures-match' };
+  transport.api.mockImplementation(async (_source: string, path: string) => ({
+    payload: path.endsWith('/lineups') ? { data: lineup } : { data: [] },
+    source: 'pitch',
+    stale: false,
+    fetchedAt: '2026-10-21',
+  }));
+  const data = { ...seedFavorites(['yamal']), allMatches: [quiet] } as UseFootballResult;
+  await render(
+    <FavoritesProvider>
+      <PlayersCenter data={data} onOpenMatch={() => {}} />
+    </FavoritesProvider>,
+  );
+  expect(host.querySelector('.pc-card')?.textContent).toContain('Источник не вернул показатели');
+  expect(host.querySelector('.pc-scope')).toBeNull();
+  expect(host.querySelector('.pc-metrics')).toBeNull();
+  expect(host.querySelector('.pc-foot')?.textContent).toBe('проверено 1 из 1 матчей');
+  expect(host.textContent).not.toContain('0 известных минут');
+  expect(host.textContent).not.toContain('по 0 матч');
 });

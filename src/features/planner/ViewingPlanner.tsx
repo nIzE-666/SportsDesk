@@ -10,6 +10,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useNow } from '../../lib/useNow';
+import { pluralRu } from '../../lib/plural';
 import { WatchEventButton } from '../../lib/watchIntent';
 import { useViewState } from '../../lib/useViewState';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
@@ -32,7 +33,6 @@ import {
   periodChoiceUseful,
   planFilterUseful,
   plannerTiles,
-  pluralRu,
   viewingDayKey,
   type PlannerTileId,
   type ViewingEvent,

@@ -114,6 +114,7 @@ function PlayerCardView({
   onCompare,
   compareSlot,
   comparisonFull,
+  canCompare,
   matches,
   onOpen,
   onRemove,
@@ -122,11 +123,14 @@ function PlayerCardView({
   onCompare: () => void;
   compareSlot: 1 | 2 | null;
   comparisonFull: boolean;
+  canCompare: boolean;
   matches: MatchSummary[];
   onOpen: () => void;
   onRemove: () => void;
 }) {
   const { stats, busy, error, retry } = usePlayerSeason(player, matches);
+  // Nothing to summarise: say so once instead of a heading and a foot line full of zeros.
+  const noSummary = !!stats && !busy && stats.metrics.length === 0;
   return (
     <section className="panel pc-card">
       <div className="pc-head">
@@ -153,18 +157,22 @@ function PlayerCardView({
         </button>
       </div>
 
-      <div className="pc-scope">
-        <strong>
-          {stats
-            ? `Сводка по ${stats.available} ${stats.available % 10 === 1 && stats.available % 100 !== 11 ? 'матчу' : 'матчам'} с данными`
-            : 'Сводка по загруженным матчам'}
-        </strong>
-        <span>Суммы и средние показатели по матчам команды. Это не статистика одной встречи.</span>
-      </div>
+      {!noSummary && (
+        <div className="pc-scope">
+          <strong>
+            {stats
+              ? `Сводка по ${stats.available} ${stats.available % 10 === 1 && stats.available % 100 !== 11 ? 'матчу' : 'матчам'} с данными`
+              : 'Сводка по загруженным матчам'}
+          </strong>
+          <span>
+            Суммы и средние показатели по матчам команды. Это не статистика одной встречи.
+          </span>
+        </div>
+      )}
 
       {busy && <LoadingBlock label="Собираем статистику по всем лигам…" rows={2} />}
       {error && <ErrorBlock title="Статистика недоступна" message={error} onRetry={retry} />}
-      {stats && stats.metrics.length === 0 && !busy && (
+      {noSummary && (
         <p className="muted small">Источник не вернул показатели игрока в матчах истории.</p>
       )}
       {stats && stats.metrics.length > 0 && (
@@ -183,8 +191,8 @@ function PlayerCardView({
       )}
       {stats && (
         <p className="muted small pc-foot">
-          {stats.minutes} известных минут · проверено {stats.scanned} из {stats.totalCandidates}{' '}
-          матчей
+          {stats.minutes > 0 ? `${stats.minutes} известных минут · ` : ''}проверено {stats.scanned}{' '}
+          из {stats.totalCandidates} матчей
           {stats.failed ? ` · ${stats.failed} ответов недоступно` : ''}
         </p>
       )}
@@ -197,22 +205,24 @@ function PlayerCardView({
         <button className="ghost-btn" onClick={onOpen}>
           Открыть профиль
         </button>
-        <button
-          className={`ghost-btn ${compareSlot ? 'active' : ''}`}
-          onClick={onCompare}
-          aria-pressed={!!compareSlot}
-          aria-label={`${compareSlot ? 'Убрать из сравнения' : 'Сравнить'}: ${player.name}`}
-          disabled={!compareSlot && comparisonFull}
-          title={
-            !compareSlot && comparisonFull
-              ? 'Сначала уберите одного игрока из сравнения'
-              : compareSlot
-                ? 'Убрать игрока из сравнения'
-                : 'Добавить игрока в сравнение'
-          }
-        >
-          <ArrowLeftRight size={14} /> {compareSlot ? 'В сравнении · убрать' : 'Сравнить'}
-        </button>
+        {(canCompare || !!compareSlot) && (
+          <button
+            className={`ghost-btn ${compareSlot ? 'active' : ''}`}
+            onClick={onCompare}
+            aria-pressed={!!compareSlot}
+            aria-label={`${compareSlot ? 'Убрать из сравнения' : 'Сравнить'}: ${player.name}`}
+            disabled={!compareSlot && comparisonFull}
+            title={
+              !compareSlot && comparisonFull
+                ? 'Сначала уберите одного игрока из сравнения'
+                : compareSlot
+                  ? 'Убрать игрока из сравнения'
+                  : 'Добавить игрока в сравнение'
+            }
+          >
+            <ArrowLeftRight size={14} /> {compareSlot ? 'В сравнении · убрать' : 'Сравнить'}
+          </button>
+        )}
       </div>
     </section>
   );
@@ -343,13 +353,11 @@ function ComparisonPicker({
         )}
       </div>
       <p className="muted small" role="status">
-        {players.length < 2
-          ? 'Для сравнения добавьте ещё одного футболиста в избранное: выберите клуб ниже и нажмите звёздочку у игрока.'
-          : count === 0
-            ? 'Выберите двух футболистов здесь или нажмите «Сравнить» на их карточках.'
-            : count === 1
-              ? 'Один игрок выбран. Выберите второго футболиста — ниже появится сравнение.'
-              : 'Оба игрока выбраны. Сравнение показано ниже; для замены измените выбор в списке.'}
+        {count === 0
+          ? 'Выберите двух футболистов здесь или нажмите «Сравнить» на их карточках.'
+          : count === 1
+            ? 'Один игрок выбран. Выберите второго футболиста — ниже появится сравнение.'
+            : 'Оба игрока выбраны. Сравнение показано ниже; для замены измените выбор в списке.'}
       </p>
       <div className="pc-picker-grid">
         {([a, b] as const).map((player, side) => (
@@ -482,8 +490,8 @@ export function PlayersCenter({
         </div>
       </div>
 
-      <h2>Избранные игроки · {shown.length}</h2>
-      {shown.length > 0 && (
+      {shown.length > 0 && <h2>Избранные игроки · {shown.length}</h2>}
+      {shown.length > 1 && (
         <ComparisonPicker
           players={shown}
           a={slotA}
@@ -525,6 +533,7 @@ export function PlayersCenter({
             onCompare={() => setSlot(p)}
             compareSlot={slotA?.id === p.id ? 1 : slotB?.id === p.id ? 2 : null}
             comparisonFull={!!slotA && !!slotB}
+            canCompare={shown.length > 1}
           />
         ))}
       </div>

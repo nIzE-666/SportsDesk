@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, Search, Star } from 'lucide-react';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useDataRecovery } from '../../lib/useDataRecovery';
+import { pluralRu } from '../../lib/plural';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
@@ -154,7 +155,12 @@ export function ClubPlayers({
     <section className="panel club-players">
       <div className="section-title">
         <h2>Состав · {team.name}</h2>
-        <span className="muted small">{current?.members.length ?? '—'} игроков</span>
+        {!!current?.members.length && (
+          <span className="muted small">
+            {current.members.length}{' '}
+            {pluralRu(current.members.length, 'игрок', 'игрока', 'игроков')}
+          </span>
+        )}
         <button
           className="ghost-btn"
           disabled={!!match && !current}
@@ -183,15 +189,17 @@ export function ClubPlayers({
       )}
       {!!current?.members.length && (
         <>
-          <label className="player-search">
-            <Search size={16} />
-            <input
-              aria-label="Поиск игрока в составе"
-              placeholder="Найти игрока в составе"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
+          {(current.members.length > 1 || query !== '') && (
+            <label className="player-search">
+              <Search size={16} />
+              <input
+                aria-label="Поиск игрока в составе"
+                placeholder="Найти игрока в составе"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+          )}
           <div className="squad-player-grid">
             {filtered.map((p) => (
               <div className="squad-player" key={p.id}>
@@ -226,7 +234,13 @@ export function ClubPlayers({
               </div>
             ))}
           </div>
-          {!filtered.length && <p className="muted">Игроков с таким именем в этом составе нет.</p>}
+          {!filtered.length && (
+            <EmptyBlock title="Таких игроков в составе нет">
+              <button className="ghost-btn" onClick={() => setQuery('')}>
+                Очистить поиск
+              </button>
+            </EmptyBlock>
+          )}
         </>
       )}
       {current && !current.error && !current.members.length && (

@@ -11,7 +11,6 @@ import {
   periodChoiceUseful,
   planFilterUseful,
   plannerTiles,
-  pluralRu,
   viewingDayKey,
   type ViewingEvent,
 } from './plannerData';
@@ -404,24 +403,6 @@ describe('what the planner shows with few or distant events', () => {
   const zone = 'Asia/Yakutsk';
   const at = (id: string, start: string) =>
     interval(id, start, new Date(Date.parse(start) + 7_200_000).toISOString());
-  it('declines counts the Russian way', () => {
-    const forms = (n: number) => pluralRu(n, 'событие', 'события', 'событий');
-    expect([0, 1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 101, 111].map(forms)).toEqual([
-      'событий',
-      'событие',
-      'события',
-      'события',
-      'событий',
-      'событий',
-      'событий',
-      'событий',
-      'событие',
-      'события',
-      'событий',
-      'событие',
-      'событий',
-    ]);
-  });
   it('counts whole calendar days between two days across a month and a year', () => {
     expect(calendarDaysBetween('2026-10-25', '2026-11-03')).toBe(9);
     expect(calendarDaysBetween('2026-12-28', '2027-01-04')).toBe(7);

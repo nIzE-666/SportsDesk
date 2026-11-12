@@ -377,3 +377,251 @@ for (const design of ['classic', 'broadcast'])
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
     });
+
+const clubs = [
+  'Aurora City',
+  'Birchwood United',
+  'Cobalt Rovers',
+  'Dunmore Athletic',
+  'Eastvale',
+  'Fenwick Town',
+  'Granite Hill',
+  'Harbor Albion',
+  'Ironbridge',
+  'Juniper Park',
+  'Kestrel Wanderers',
+  'Lakeside',
+].map((name, i) => ({ id: `club-${i + 1}`, name }));
+const clubMatches = clubs.map((club, i) => {
+  const date = `2026-10-${String(10 + i).padStart(2, '0')}`;
+  return {
+    id: `club-match-${i + 1}`,
+    status: 'finished',
+    home_team: club,
+    away_team: clubs[(i + 1) % clubs.length]!,
+    time_utc: `${date}T15:00:00Z`,
+    date,
+    score_home: 2,
+    score_away: 1,
+  };
+});
+const surnames = [
+  'Ambrose',
+  'Baxter',
+  'Calloway',
+  'Dalton',
+  'Everett',
+  'Fletcher',
+  'Garrick',
+  'Hollis',
+  'Ingram',
+  'Jarrett',
+  'Kemp',
+  'Lowell',
+  'Marlow',
+  'Nash',
+  'Osgood',
+  'Prescott',
+  'Quill',
+  'Rowan',
+];
+const squadOf = (club: { id: string; name: string }) => {
+  const players = surnames.map((surname, k) => ({
+    player_id: `${club.id}-p${k + 1}`,
+    name: `${club.name.split(' ')[0]} ${surname}`,
+    shirt_number: String(k + 1),
+  }));
+  return {
+    formation: '4-3-3',
+    confirmed: true,
+    starters: players.slice(0, 11),
+    subs: players.slice(11),
+  };
+};
+const favoritePlayers = (count: number) =>
+  Array.from({ length: count }, (_, i) => {
+    const club = clubs[i % clubs.length]!;
+    return {
+      id: `${club.id}-p1`,
+      name: `${club.name.split(' ')[0]} ${surnames[0]}`,
+      teamId: club.id,
+      teamName: club.name,
+      matchId: `club-match-${(i % clubs.length) + 1}`,
+      matchLabel: `${club.name} — ${clubs[(i + 1) % clubs.length]!.name}`,
+      savedAt: '2026-10-20T10:00:00Z',
+    };
+  });
+async function clubFixture(page: Page, design: string) {
+  const errors = await setupVisualFixture(page, design, 'dark');
+  await page.route('**/bridge/command', async (route) => {
+    const body = route.request().postDataJSON();
+    if (String(body.command).startsWith('history_')) return route.fulfill({ json: [] });
+    return route.fallback();
+  });
+  await page.route('**/bridge/api**', async (route) => {
+    const url = new URL(route.request().url());
+    const source = url.searchParams.get('source');
+    const path = url.searchParams.get('path') ?? '';
+    if (source !== 'pitch') return route.fallback();
+    let data: unknown = {};
+    const squadPath = /^matches\/([^/]+)\/(lineups|players)$/.exec(path);
+    if (path === 'leagues')
+      data = { leagues: [{ id: 'l_4WFCIZ', name: 'Premier League', seasons: ['2026/2027'] }] };
+    else if (path.startsWith('leagues/'))
+      data = { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: clubMatches };
+    else if (squadPath?.[2] === 'lineups') {
+      const match = clubMatches.find((m) => m.id === decodeURIComponent(squadPath[1]!));
+      data = match && {
+        match_id: match.id,
+        home_team: match.home_team,
+        away_team: match.away_team,
+        home: squadOf(match.home_team),
+        away: squadOf(match.away_team),
+      };
+    } else if (squadPath?.[2] === 'players') {
+      // Figures exist for the first player of the home club only.
+      const match = clubMatches.find((m) => m.id === decodeURIComponent(squadPath[1]!));
+      data = match
+        ? [
+            {
+              player: {
+                id: `${match.home_team.id}-p1`,
+                name: `${match.home_team.name.split(' ')[0]} ${surnames[0]}`,
+              },
+              team_id: match.home_team.id,
+              stats: [
+                {
+                  key: 'summary',
+                  title: 'Summary',
+                  stats: { Goals: { key: 'goals', stat: { type: 'number', value: 1 } } },
+                },
+              ],
+            },
+          ]
+        : [];
+    }
+    await route.fulfill({
+      json: {
+        payload: { data },
+        source: 'fixture',
+        stale: false,
+        fetchedAt: '2026-10-25T00:00:00Z',
+      },
+    });
+  });
+  return errors;
+}
+const seedFavorites = (page: Page, teamIds: string[], players: unknown[]) =>
+  page.evaluate(
+    ([ids, saved]) => {
+      localStorage.setItem(
+        'sportsdesk.football.favorites.teams',
+        JSON.stringify({ ids, seeded: [], seededDefault: true }),
+      );
+      localStorage.setItem('sportsdesk.football.favorites.players', JSON.stringify(saved));
+    },
+    [teamIds, players] as const,
+  );
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: players with none, one and ten favourites, a club and a search without matches`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await clubFixture(page, design);
+      await page.goto('/');
+      const players = page.locator('.players-view');
+      const openPlayers = async (saved: unknown[]) => {
+        await seedFavorites(page, [], saved);
+        await page.reload();
+        await page.locator('aside').getByTitle('Игроки', { exact: true }).click();
+        await expect(players).toBeVisible();
+      };
+
+      await openPlayers([]);
+      await expect(players.getByRole('heading', { name: /Избранные игроки/ })).toHaveCount(0);
+      await expect(players.locator('.state-block')).toHaveCount(1);
+      await expect(players.locator('.state-block')).toContainText('Избранных игроков пока нет');
+      await expect(players.locator('.pc-picker')).toHaveCount(0);
+      await expect(players.locator('.player-directory')).toBeVisible();
+      await shoot(page, testInfo, `${design}-${width}-players-none`);
+
+      await openPlayers(favoritePlayers(1));
+      await expect(players.getByRole('heading', { name: 'Избранные игроки · 1' })).toBeVisible();
+      await expect(players.locator('.pc-card')).toHaveCount(1);
+      await expect(players.locator('.pc-picker')).toHaveCount(0);
+      await expect(players.getByRole('button', { name: /^Сравнить:/ })).toHaveCount(0);
+      await expect(players.locator('.pc-card .pc-scope')).toContainText(
+        'Сводка по 1 матчу с данными',
+      );
+      await expect(players.locator('.pc-card .pc-metrics')).toContainText('Голы');
+      await shoot(page, testInfo, `${design}-${width}-players-one`);
+
+      await openPlayers(favoritePlayers(10));
+      await expect(players.getByRole('heading', { name: 'Избранные игроки · 10' })).toBeVisible();
+      await expect(players.locator('.pc-card')).toHaveCount(10);
+      await expect(players.locator('.pc-picker select')).toHaveCount(2);
+      await shoot(page, testInfo, `${design}-${width}-players-ten`);
+
+      await openPlayers(favoritePlayers(2));
+      await players.getByLabel('Клуб для выбора игроков').selectOption('club-3');
+      const squad = players.locator('.club-players');
+      await expect(squad.locator('.squad-player')).toHaveCount(18);
+      await expect(squad.locator('.section-title .muted')).toHaveText('18 игроков');
+      await squad.getByLabel('Поиск игрока в составе').fill('нет такого игрока');
+      await expect(squad.locator('.squad-player')).toHaveCount(0);
+      await expect(squad.locator('.state-block')).toHaveCount(1);
+      await expect(squad.locator('.state-block')).toContainText('Таких игроков в составе нет');
+      await squad.scrollIntoViewIfNeeded();
+      await shoot(page, testInfo, `${design}-${width}-players-no-match`);
+      await squad.getByRole('button', { name: 'Очистить поиск' }).click();
+      await expect(squad.locator('.squad-player')).toHaveCount(18);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });
+
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: clubs with none, one and ten favourites and a club chosen`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await clubFixture(page, design);
+      await page.goto('/');
+      const view = page.locator('.team-view');
+      const openClubs = async (ids: string[]) => {
+        await seedFavorites(page, ids, []);
+        await page.reload();
+        await page.locator('aside').getByTitle('Клубы', { exact: true }).click();
+        await expect(view.locator('h1')).toHaveText('Клубы');
+      };
+      const picker = view.locator('#team-picker-select');
+
+      await openClubs([]);
+      await expect(view.locator('.team-favorites')).toHaveCount(0);
+      await expect(view.locator('.state-block')).toHaveCount(1);
+      await expect(view.locator('.state-block')).toContainText(
+        'Пока нет доступных избранных клубов',
+      );
+      await expect(picker).toBeVisible();
+      await shoot(page, testInfo, `${design}-${width}-clubs-none`);
+
+      await openClubs(['club-2']);
+      await expect(view.locator('.team-favorites button')).toHaveCount(1);
+      await expect(view.locator('.state-block')).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-clubs-one`);
+
+      await openClubs(clubs.slice(0, 10).map((club) => club.id));
+      await expect(view.locator('.team-favorites button')).toHaveCount(10);
+      await expect(view.locator('.state-block')).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-clubs-ten`);
+
+      await view.locator('.team-favorites').getByRole('button', { name: 'Cobalt Rovers' }).click();
+      await expect(view.locator('h1')).toHaveText('Cobalt Rovers');
+      await expect(picker).toHaveValue('club-3');
+      await expect(view.locator('.team-favorites')).toHaveCount(0);
+      await expect(view.locator('.club-players .squad-player')).toHaveCount(18);
+      await shoot(page, testInfo, `${design}-${width}-clubs-chosen`);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });
