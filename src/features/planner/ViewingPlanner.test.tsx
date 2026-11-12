@@ -102,6 +102,27 @@ async function selectDate(date: string) {
   });
 }
 
+function schedule(matches: MatchSummary[], races: JolpicaRace[] = []) {
+  const data = vi.mocked(useFootballData).getMockImplementation()!();
+  vi.mocked(useFootballData).mockReturnValue({ ...data, allMatches: matches, matches });
+  vi.mocked(useApiResource).mockImplementation(
+    () =>
+      ({
+        data: { races },
+        loading: false,
+        error: null,
+        stale: false,
+        reload: vi.fn(),
+      }) as unknown as ReturnType<typeof useApiResource>,
+  );
+}
+const later = (time_utc: string, id = 'later-match'): MatchSummary => ({
+  ...firstMatch,
+  id,
+  date: time_utc.slice(0, 10),
+  time_utc,
+});
+
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
@@ -188,32 +209,109 @@ describe('personal sports viewing planner', () => {
     expect(button('Обновить расписание').disabled).toBe(false);
     expect(host.textContent).toContain('Когда расписание появится');
   });
-  it('shows the next available day when the coming week is empty', async () => {
-    const future = { ...firstMatch, date: '2026-11-05', time_utc: '2026-11-05T12:00:00Z' };
-    const data = vi.mocked(useFootballData).getMockImplementation()!();
-    vi.mocked(useFootballData).mockReturnValue({
-      ...data,
-      allMatches: [future],
-      matches: [future],
-    });
-    vi.mocked(useApiResource).mockImplementation(
-      () =>
-        ({
-          data: { races: [] },
-          loading: false,
-          error: null,
-          stale: false,
-          reload: vi.fn(),
-        }) as unknown as ReturnType<typeof useApiResource>,
-    );
+  it('shows the next events with a day count, not "no events", when the coming week is empty', async () => {
+    schedule([later('2026-11-03T12:00:00Z')]);
     await render();
     expect(articleNames()).toEqual(['Barcelona — Real Betis']);
-    expect(host.textContent).toContain('За ближайшие 7 дней событий нет');
-    expect(host.textContent).not.toContain('В этом периоде нет событий');
+    expect(host.textContent).toContain('Ближайшие события — через 9 дней');
+    expect(host.textContent).not.toContain('нет событий');
+    expect(host.querySelector('.state-block')).toBeNull();
+    // One event on one day: no period to choose, nothing to count, no plan to filter.
+    expect(host.querySelector('[aria-label="Период плана"]')).toBeNull();
+    expect(host.querySelector('.planner-insights')).toBeNull();
+    expect(host.querySelector('.planner-filter')).toBeNull();
+    expect(button('Обновить расписание').disabled).toBe(false);
+  });
+  it('lets the user look at other days when the events lie beyond the week on several days', async () => {
+    schedule([later('2026-11-05T12:00:00Z'), later('2026-11-08T12:00:00Z', 'second')]);
+    await render();
+    expect(articleNames()).toEqual(['Barcelona — Real Betis']);
+    expect(host.textContent).toContain('Ближайшие события — через 11 дней');
+    // The count of the next events repeats the day heading, so it gets no tile.
+    expect(host.querySelector('.planner-insights')).toBeNull();
     await click(button('Сегодня'));
     expect(articles()).toHaveLength(0);
-    expect(host.textContent).toContain('В этом периоде нет событий');
+    expect(host.querySelectorAll('.state-block')).toHaveLength(1);
+    expect(host.textContent).toContain('В этот день событий нет');
     expect(host.querySelector('.planner-insights')).toBeNull();
+    await click(button('Показать ближайшие 7 дней'));
+    expect(articleNames()).toEqual(['Barcelona — Real Betis']);
+    expect(host.querySelector('.state-block')).toBeNull();
+    await selectDate('2026-11-08');
+    expect(articles()).toHaveLength(1);
+    expect(host.textContent).not.toContain('Ближайшие события —');
+  });
+  it('shows events of today alone without a period choice, tiles or plan filter', async () => {
+    schedule([later('2026-10-25T12:00:00Z')]);
+    await render();
+    expect(articleNames()).toEqual(['Barcelona — Real Betis']);
+    expect(host.querySelector('[aria-label="Период плана"]')).toBeNull();
+    expect(host.querySelector('.planner-insights')).toBeNull();
+    expect(host.querySelector('.planner-filter')).toBeNull();
+    expect(host.textContent).not.toContain('Ближайшие события —');
+    expect(host.querySelector('.planner-day-heading span')?.textContent).toBe('1 событие');
+    expect(button('Обновить расписание').disabled).toBe(false);
+  });
+  it('shows events later this week without a note, with a period choice only across several days', async () => {
+    schedule([later('2026-10-28T12:00:00Z')]);
+    await render();
+    expect(articleNames()).toEqual(['Barcelona — Real Betis']);
+    expect(host.textContent).not.toContain('Ближайшие события —');
+    expect(host.querySelector('[aria-label="Период плана"]')).toBeNull();
+    schedule([later('2026-10-28T12:00:00Z'), later('2026-10-30T12:00:00Z', 'second')]);
+    await render();
+    expect(articles()).toHaveLength(2);
+    expect(host.querySelector('[aria-label="Период плана"]')).not.toBeNull();
+    expect(host.querySelector('.planner-insights')?.textContent).toBe('2события в периоде');
+  });
+  it('counts only what exists: no zero tiles, and the figures say how many in Russian', async () => {
+    await render();
+    expect(
+      [...host.querySelectorAll('.planner-insights > div')].map((el) => el.textContent),
+    ).toEqual(['3события в периоде', '1группа пересечений']);
+    expect(
+      [...host.querySelectorAll('.planner-day-heading span')].map((el) => el.textContent),
+    ).toEqual(['2 события', '1 событие']);
+    await click(labelledButton('Буду смотреть: Barcelona — Villarreal'));
+    expect(
+      [...host.querySelectorAll('.planner-insights > div')].map((el) => el.textContent),
+    ).toEqual(['3события в периоде', '1выбрано смотреть', '1группа пересечений']);
+  });
+  it('offers the personal plan filter only once some, not all, of the events are chosen', async () => {
+    await render();
+    expect(host.querySelector('.planner-filter')).toBeNull();
+    await click(labelledButton('Буду смотреть: Barcelona — Real Betis'));
+    expect(host.querySelector('.planner-filter')).not.toBeNull();
+    await click(labelledButton('Буду смотреть: Гран-при Мехико · Гонка'));
+    await click(labelledButton('Буду смотреть: Barcelona — Villarreal'));
+    expect(host.querySelector('.planner-filter')).toBeNull();
+    await click(labelledButton('Убрать из плана: Barcelona — Villarreal'));
+    await click(onlyMyPlan());
+    // While it is switched on the filter stays, even if everything shown is chosen.
+    await click(labelledButton('Убрать из плана: Barcelona — Real Betis'));
+    await click(labelledButton('Убрать из плана: Гран-при Мехико · Гонка'));
+    expect(onlyMyPlan().checked).toBe(true);
+  });
+  it('says the plan is empty with one way back to all events', async () => {
+    sessionStorage.setItem('sportsdesk.view.planner.only-plan', 'true');
+    await render();
+    expect(articles()).toHaveLength(0);
+    expect(host.querySelectorAll('.state-block')).toHaveLength(1);
+    expect(host.querySelector('.state-block')?.textContent).toContain('В плане пока ничего нет');
+    expect(host.querySelector('.state-block')?.textContent).not.toContain('Отключите');
+    expect(onlyMyPlan().checked).toBe(true);
+    await click(button('Показать все события'));
+    expect(articles()).toHaveLength(3);
+    expect(host.querySelector('.state-block')).toBeNull();
+    expect(host.querySelector('.planner-filter')).toBeNull();
+  });
+  it('names events without a precise time in the right number', async () => {
+    const unscheduled = { ...firstMatch, id: 'no-time', time_utc: undefined, date: '2026-10-26' };
+    schedule([firstMatch, unscheduled]);
+    await render();
+    expect(host.querySelector('.planner-unknown summary')?.textContent).toBe(
+      'Время уточняется · 1 событие вне точной шкалы',
+    );
   });
   it('shows favorite football and F1 in one local-time schedule with explicit estimated endings', async () => {
     await render();
@@ -293,8 +391,13 @@ describe('personal sports viewing planner', () => {
     expect(articleNames()).toEqual(['Barcelona — Villarreal']);
     await selectDate('2026-10-27');
     expect(articles()).toHaveLength(0);
-    expect(host.textContent).toContain('В этом периоде нет событий');
+    expect(host.textContent).toContain('В этот день событий нет');
+    expect(host.querySelector('.planner-insights')).toBeNull();
     await click(button('Ближайшие 7 дней'));
     expect(articles()).toHaveLength(3);
+    await selectDate('2026-10-28');
+    await click(button('Показать ближайшие 7 дней'));
+    expect(articles()).toHaveLength(3);
+    expect(host.querySelector('.state-block')).toBeNull();
   });
 });

@@ -314,3 +314,67 @@ export function filterViewingEventsByDay(
     )
     .sort(eventOrder);
 }
+
+/** Russian plural form for a count: 1 событие, 2 события, 5 событий, 21 событие. */
+export function pluralRu(count: number, one: string, few: string, many: string): string {
+  const hundred = Math.abs(count) % 100;
+  const unit = hundred % 10;
+  if (hundred > 10 && hundred < 20) return many;
+  if (unit === 1) return one;
+  return unit >= 2 && unit <= 4 ? few : many;
+}
+
+/** Whole calendar days from one `YYYY-MM-DD` day to another; negative when it is earlier. */
+export function calendarDaysBetween(fromDay: string, toDay: string): number {
+  return Math.round(
+    (Date.parse(`${toDay}T00:00:00Z`) - Date.parse(`${fromDay}T00:00:00Z`)) / 86_400_000,
+  );
+}
+
+/** How far a day is from today: «сегодня», «завтра», «через 9 дней». */
+export function inDaysLabel(days: number): string {
+  if (days <= 0) return 'сегодня';
+  if (days === 1) return 'завтра';
+  return `через ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+}
+
+/**
+ * Choosing a period can change the list only when the events fall on more than one day;
+ * with a single day every period shows the same events (or none).
+ */
+export function periodChoiceUseful(
+  events: readonly ViewingEvent[],
+  timeZone = DEFAULT_VIEWING_TIMEZONE,
+): boolean {
+  return new Set(events.map((event) => viewingDayKey(event.start, timeZone))).size > 1;
+}
+
+/**
+ * «Только мой план» changes the list only while some, but not all, of the listed events are
+ * chosen. Without a choice it would empty the list, with every event chosen it changes nothing.
+ */
+export function planFilterUseful(
+  listed: readonly ViewingEvent[],
+  chosenIds: readonly string[],
+): boolean {
+  const chosen = listed.filter((event) => chosenIds.includes(event.id)).length;
+  return chosen > 0 && chosen < listed.length;
+}
+
+export type PlannerTileId = 'events' | 'chosen' | 'overlaps';
+/**
+ * Figures worth a tile: no zero, no count of a single event, and no count of the "next events"
+ * list that the day heading already gives.
+ */
+export function plannerTiles(
+  listed: number,
+  chosen: number,
+  overlapGroups: number,
+  nextEvents: boolean,
+): { id: PlannerTileId; value: number }[] {
+  const tiles: { id: PlannerTileId; value: number }[] = [];
+  if (listed > 1 && !nextEvents) tiles.push({ id: 'events', value: listed });
+  if (chosen > 0) tiles.push({ id: 'chosen', value: chosen });
+  if (overlapGroups > 0) tiles.push({ id: 'overlaps', value: overlapGroups });
+  return tiles;
+}

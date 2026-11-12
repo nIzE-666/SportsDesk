@@ -24,10 +24,17 @@ import { racePresentation } from '../f1/calendarModel';
 import type { JolpicaRace } from '../f1/types';
 import {
   buildViewingEvents,
+  calendarDaysBetween,
   filterViewingEventsByDay,
   findViewingConflicts,
   groupViewingEventsByDay,
+  inDaysLabel,
+  periodChoiceUseful,
+  planFilterUseful,
+  plannerTiles,
+  pluralRu,
   viewingDayKey,
+  type PlannerTileId,
   type ViewingEvent,
 } from './plannerData';
 import './planner.css';
@@ -56,6 +63,14 @@ function title(event: ViewingEvent) {
     ? `${racePresentation(event.race).title} · ${event.sessionLabel}`
     : event.title;
 }
+function tileLabel(id: PlannerTileId, value: number) {
+  if (id === 'events')
+    return pluralRu(value, 'событие в периоде', 'события в периоде', 'событий в периоде');
+  if (id === 'chosen') return 'выбрано смотреть';
+  return pluralRu(value, 'группа пересечений', 'группы пересечений', 'групп пересечений');
+}
+const eventsCount = (count: number) =>
+  `${count} ${pluralRu(count, 'событие', 'события', 'событий')}`;
 interface Props {
   onOpenMatch: (id: string, leagueId?: string) => void;
   onOpenWeekend: (race: JolpicaRace) => void;
@@ -126,6 +141,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
   const conflicts = findViewingConflicts(inRange);
   const selected = inRange.filter((e) => priorities.includes(e.id));
   const selectedConflicts = findViewingConflicts(selected);
+  const tiles = plannerTiles(inRange.length, selected.length, conflicts.length, !!nextDay);
   const toggle = (event: ViewingEvent) =>
     setPriorities((prev) =>
       prev.includes(event.id)
@@ -170,24 +186,18 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
         </div>
         <CalendarClock size={52} />
       </section>
-      {inRange.length > 0 && (
+      {tiles.length > 0 && (
         <div className="planner-insights">
-          <div>
-            <strong>{inRange.length}</strong>
-            <span>{nextDay ? 'ближайших событий' : 'событий в периоде'}</span>
-          </div>
-          <div>
-            <strong>{selected.length}</strong>
-            <span>выбрано смотреть</span>
-          </div>
-          <div>
-            <strong>{conflicts.length}</strong>
-            <span>групп пересечений</span>
-          </div>
+          {tiles.map((tile) => (
+            <div key={tile.id}>
+              <strong>{tile.value}</strong>
+              <span>{tileLabel(tile.id, tile.value)}</span>
+            </div>
+          ))}
         </div>
       )}
       <section className="panel planner-toolbar">
-        {!noEvents && (
+        {!noEvents && (periodChoiceUseful(plan.events, tz) || range === 'day') && (
           <div className="analysis-control-group" role="group" aria-label="Период плана">
             <button
               className={range === 'week' ? 'ghost-btn active' : 'ghost-btn'}
@@ -222,7 +232,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
             </label>
           </div>
         )}
-        {!noEvents && (
+        {!noEvents && (planFilterUseful(inRange, priorities) || onlyPlan) && (
           <label className="planner-filter">
             <input
               type="checkbox"
@@ -288,20 +298,32 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       )}
       {nextDay && (
         <p className="muted small">
-          За ближайшие 7 дней событий нет. Следующие события — {dayLabel(nextDay.date)}.
+          Ближайшие события — {inDaysLabel(calendarDaysBetween(today, nextDay.date))}.
         </p>
       )}
       {!shown.length && !football.matchesLoading && !schedule.loading && (
-        <EmptyBlock
-          title={onlyPlan ? 'В плане пока ничего нет' : 'В этом периоде нет событий'}
-          message={
-            onlyPlan
-              ? 'Отключите «Только мой план» и отметьте нужные события кнопкой «Буду смотреть».'
-              : noEvents
-                ? 'Когда расписание появится, события будут показаны здесь.'
-                : 'Выберите другой день или период.'
-          }
-        />
+        <>
+          {noEvents && (
+            <EmptyBlock
+              title="Событий пока нет"
+              message="Когда расписание появится, события будут показаны здесь."
+            />
+          )}
+          {!noEvents && onlyPlan && (
+            <EmptyBlock title="В плане пока ничего нет">
+              <button className="ghost-btn" onClick={() => setOnlyPlan(false)}>
+                Показать все события
+              </button>
+            </EmptyBlock>
+          )}
+          {!noEvents && !onlyPlan && range === 'day' && (
+            <EmptyBlock title="В этот день событий нет">
+              <button className="ghost-btn" onClick={() => setRange('week')}>
+                Показать ближайшие 7 дней
+              </button>
+            </EmptyBlock>
+          )}
+        </>
       )}
       {groups.map((group) => (
         <section className="planner-day" key={group.date}>
@@ -311,7 +333,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
                 ? 'Переходит с предыдущего дня'
                 : dayLabel(group.date)}
             </h2>
-            <span>{group.events.length} событий</span>
+            <span>{eventsCount(group.events.length)}</span>
           </div>
           <div className="planner-events">
             {group.events.map((event) => {
@@ -400,7 +422,9 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       ))}
       {!!plan.unscheduled.length && (
         <details className="panel planner-unknown">
-          <summary>Время уточняется · {plan.unscheduled.length} событий вне точной шкалы</summary>
+          <summary>
+            Время уточняется · {eventsCount(plan.unscheduled.length)} вне точной шкалы
+          </summary>
           {plan.unscheduled.slice(0, 30).map((event) => (
             <p key={event.id}>
               {event.date ?? 'Дата уточняется'} · {event.title}

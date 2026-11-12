@@ -3,9 +3,15 @@ import type { MatchSummary } from '../football/types';
 import type { JolpicaRace } from '../f1/types';
 import {
   buildViewingEvents,
+  calendarDaysBetween,
   filterViewingEventsByDay,
   findViewingConflicts,
   groupViewingEventsByDay,
+  inDaysLabel,
+  periodChoiceUseful,
+  planFilterUseful,
+  plannerTiles,
+  pluralRu,
   viewingDayKey,
   type ViewingEvent,
 } from './plannerData';
@@ -391,5 +397,83 @@ describe('local viewing dates', () => {
     expect(
       filterViewingEventsByDay([second, first], '2026-11-01', 'America/New_York'),
     ).toHaveLength(2);
+  });
+});
+
+describe('what the planner shows with few or distant events', () => {
+  const zone = 'Asia/Yakutsk';
+  const at = (id: string, start: string) =>
+    interval(id, start, new Date(Date.parse(start) + 7_200_000).toISOString());
+  it('declines counts the Russian way', () => {
+    const forms = (n: number) => pluralRu(n, 'событие', 'события', 'событий');
+    expect([0, 1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 101, 111].map(forms)).toEqual([
+      'событий',
+      'событие',
+      'события',
+      'события',
+      'событий',
+      'событий',
+      'событий',
+      'событий',
+      'событие',
+      'события',
+      'событий',
+      'событие',
+      'событий',
+    ]);
+  });
+  it('counts whole calendar days between two days across a month and a year', () => {
+    expect(calendarDaysBetween('2026-10-25', '2026-11-03')).toBe(9);
+    expect(calendarDaysBetween('2026-12-28', '2027-01-04')).toBe(7);
+    expect(calendarDaysBetween('2026-10-25', '2026-10-25')).toBe(0);
+    expect(calendarDaysBetween('2026-10-25', '2026-10-24')).toBe(-1);
+  });
+  it('says how far a day is without calling a distant event an absent one', () => {
+    expect([0, 1, 2, 9, 11, 21, 22, 31, 40].map(inDaysLabel)).toEqual([
+      'сегодня',
+      'завтра',
+      'через 2 дня',
+      'через 9 дней',
+      'через 11 дней',
+      'через 21 день',
+      'через 22 дня',
+      'через 31 день',
+      'через 40 дней',
+    ]);
+    expect(inDaysLabel(-3)).toBe('сегодня');
+  });
+  it('offers a period choice only when the events fall on more than one local day', () => {
+    expect(periodChoiceUseful([], zone)).toBe(false);
+    expect(periodChoiceUseful([at('a', '2026-10-25T12:00:00Z')], zone)).toBe(false);
+    expect(
+      periodChoiceUseful([at('a', '2026-10-25T12:00:00Z'), at('b', '2026-10-25T14:00:00Z')], zone),
+    ).toBe(false);
+    expect(
+      periodChoiceUseful([at('a', '2026-10-25T12:00:00Z'), at('b', '2026-10-26T12:00:00Z')], zone),
+    ).toBe(true);
+    // 15:30 UTC is already the next day in Yakutsk.
+    expect(
+      periodChoiceUseful([at('a', '2026-10-25T12:00:00Z'), at('b', '2026-10-25T15:30:00Z')], zone),
+    ).toBe(true);
+  });
+  it('offers the personal plan filter only while it would show some but not all events', () => {
+    const events = [at('a', '2026-10-25T12:00:00Z'), at('b', '2026-10-26T12:00:00Z')];
+    expect(planFilterUseful(events, [])).toBe(false);
+    expect(planFilterUseful(events, ['a'])).toBe(true);
+    expect(planFilterUseful(events, ['a', 'b'])).toBe(false);
+    expect(planFilterUseful(events, ['elsewhere'])).toBe(false);
+    expect(planFilterUseful([], ['a'])).toBe(false);
+  });
+  it('keeps only tiles with a figure to show', () => {
+    const ids = (...args: Parameters<typeof plannerTiles>) =>
+      plannerTiles(...args).map((t) => t.id);
+    expect(ids(0, 0, 0, false)).toEqual([]);
+    expect(ids(1, 0, 0, false)).toEqual([]);
+    expect(ids(1, 1, 0, false)).toEqual(['chosen']);
+    expect(ids(3, 0, 0, false)).toEqual(['events']);
+    expect(ids(3, 2, 1, false)).toEqual(['events', 'chosen', 'overlaps']);
+    // The list of next events is headed by its day; a count of it adds nothing.
+    expect(ids(4, 0, 1, true)).toEqual(['overlaps']);
+    expect(plannerTiles(3, 2, 1, false).map((t) => t.value)).toEqual([3, 2, 1]);
   });
 });
