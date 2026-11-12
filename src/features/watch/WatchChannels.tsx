@@ -133,10 +133,7 @@ export function ChannelInfoPanel({
           <ArrowLeftRight size={26} aria-hidden />
         </span>
         <h2>Выберите канал</h2>
-        <p className="watch-muted">
-          Выберите канал в списке слева. Воспроизведение запускается по клику — звук не включается
-          автоматически.
-        </p>
+        <p className="watch-muted">Список каналов слева; воспроизведение по клику.</p>
       </div>
       <div className="watch-info-facts">
         <div className="watch-fact">

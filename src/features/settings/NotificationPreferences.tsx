@@ -133,10 +133,7 @@ export function NotificationPreferences() {
             );
           })}
         </div>
-        <p className="muted small">
-          Общий переключатель типа события действует для всех команд. Новые команды используют общие
-          настройки.
-        </p>
+        <p className="muted small">Общие переключатели действуют для всех команд.</p>
       </details>
     </div>
   );

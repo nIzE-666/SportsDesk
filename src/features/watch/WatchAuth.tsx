@@ -31,9 +31,7 @@ export function SplitAuthPanel({
         </span>
         <div>
           <h2>Подключить Kino</h2>
-          <p className="watch-muted">
-            Вход по коду устройства. Пароль не запрашивается и не хранится в приложении.
-          </p>
+          <p className="watch-muted">Вход по коду устройства, без пароля.</p>
         </div>
       </div>
 
@@ -124,10 +122,7 @@ export function LogoutConfirm({
     >
       <div className="watch-modal">
         <h3>Выйти из Kino в SportsDesk?</h3>
-        <p className="watch-muted">
-          Будут удалены только учётные данные этого приложения. Сессии в браузере и на телевизоре не
-          затрагиваются.
-        </p>
+        <p className="watch-muted">Сессии в браузере и на телевизоре не затрагиваются.</p>
         <div className="watch-modal-actions">
           <button
             type="button"

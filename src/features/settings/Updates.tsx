@@ -184,10 +184,7 @@ export function UpdatePanel() {
         </h2>
         <span className="chip">Версия {u.version}</span>
       </div>
-      <p className="muted small">
-        Новые версии проверяются автоматически, устанавливаются по кнопке. Подпись файла проверяется
-        приложением.
-      </p>
+      <p className="muted small">Новые версии проверяются автоматически; установка — по кнопке.</p>
       {!native && (
         <p className="settings-note">Проверка и установка доступны в Windows-приложении.</p>
       )}

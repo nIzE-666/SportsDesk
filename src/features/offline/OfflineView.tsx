@@ -231,13 +231,9 @@ export function OfflineView() {
           </button>
         </form>
         {!options.length && (
-          <p className="muted">
-            Нужен каталог источника. Подключитесь к сети и нажмите «Обновить каталог».
-          </p>
+          <p className="muted">Подключитесь к сети и нажмите «Обновить каталог».</p>
         )}
-        <p className="muted small">
-          Сохраняются матчи сезона без подробной статистики и изображений.
-        </p>
+        <p className="muted small">Без подробной статистики и изображений.</p>
       </section>
       {queue.queue.jobs.length > 0 && (
         <section className="panel" aria-label="Очередь загрузки">
@@ -262,9 +258,7 @@ export function OfflineView() {
             )}
           </div>
           {pending.length > 0 && (
-            <p className="muted small">
-              После перезапуска нажмите «Продолжить». При паузе текущее сохранение завершится.
-            </p>
+            <p className="muted small">После перезапуска нажмите «Продолжить».</p>
           )}
           <ul className="offline-list">
             {queue.queue.jobs.map((j) => (
@@ -333,10 +327,7 @@ export function OfflineView() {
         ) : !packages.length && !libraryError ? (
           <div className="panel offline-empty">
             <h3>Пока нет офлайн-пакетов</h3>
-            <p className="muted">
-              Загрузите сезон, пока есть сеть. Его календарь и результаты останутся на этом
-              устройстве.
-            </p>
+            <p className="muted">Загрузите сезон, пока есть сеть.</p>
           </div>
         ) : null}
         <div className="offline-packages">
@@ -351,18 +342,20 @@ export function OfflineView() {
                   </h3>
                   <span className="offline-pin">{p.pinned ? 'Закреплён' : 'Не закреплён'}</span>
                 </div>
-                <p className={`offline-coverage ${p.coverage.state}`}>
+                <p
+                  className={`offline-coverage ${p.coverage.state}`}
+                  title={
+                    p.coverage.state === 'complete'
+                      ? 'Проверены число команд и все пары дома / в гостях.'
+                      : p.coverage.state === 'partial'
+                        ? 'Есть пропуски, лишние пары или матчи без даты.'
+                        : 'Сохранены все доступные данные; формат сезона не проверен.'
+                  }
+                >
                   {coverageLabel[p.coverage.state]} ·{' '}
                   {p.coverage.expected !== null
                     ? `${p.matches} из ${p.coverage.expected} матчей`
                     : matchesCount(p.matches)}
-                </p>
-                <p className="muted">
-                  {p.coverage.state === 'complete'
-                    ? 'Проверены число команд и все пары дома / в гостях.'
-                    : p.coverage.state === 'partial'
-                      ? 'Есть пропуски, лишние пары или матчи без даты.'
-                      : 'Сохранены все доступные данные источника; формат сезона не проверен.'}
                 </p>
                 <dl className="offline-facts">
                   <div>
@@ -392,9 +385,7 @@ export function OfflineView() {
                   )}
                 </dl>
                 {p.duplicates > 0 && (
-                  <p className="muted small">
-                    Повторных одинаковых записей источника: {p.duplicates}. В пакете они объединены.
-                  </p>
+                  <p className="muted small">Повторных записей: {p.duplicates} — объединены.</p>
                 )}
                 <div className="offline-actions">
                   <button className="primary-btn" onClick={() => setSelected({ ...p })}>
@@ -484,9 +475,7 @@ export function OfflineView() {
       {legacy.length > 0 && (
         <section className="panel" aria-label="Автоматическая история">
           <h2>Ранее сохранённая история</h2>
-          <p className="muted">
-            Эти записи доступны для анализа, но их полнота и точное время начала не проверены.
-          </p>
+          <p className="muted">Полнота и время начала не проверены.</p>
           <ul className="offline-list">
             {legacy.map((h) => (
               <li key={seasonKey(h.leagueId, h.season)}>
@@ -589,8 +578,7 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
         </button>
       </div>
       <p className="muted">
-        Данные на {formatHumanDate(summary.fetchedAt, timezone)}. Часовой пояс: {timezone}. У встреч
-        без времени показана календарная дата источника.
+        Данные на {formatHumanDate(summary.fetchedAt, timezone)}. Часовой пояс: {timezone}.
       </p>
       {error ? (
         <p role="alert" className="offline-error">

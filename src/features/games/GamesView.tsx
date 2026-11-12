@@ -21,8 +21,7 @@ export const GAMES = [
   {
     id: 'predictions',
     title: 'Угадай счёт',
-    blurb:
-      'Свой прогноз на счёт основного времени до начала матча. Очки: 3 за точный счёт, 1 за верный исход.',
+    blurb: 'Прогноз на счёт основного времени до начала матча.',
   },
 ] as const;
 export type GameId = (typeof GAMES)[number]['id'];

@@ -628,10 +628,7 @@ export function SettingsView() {
           </h2>
           <span className="chip">json</span>
         </div>
-        <p className="muted small">
-          Один файл с настройками и избранным. Ключи в копию не входят — на новом компьютере введите
-          их заново.
-        </p>
+        <p className="muted small">Файл с настройками и избранным; ключи в него не входят.</p>
         <div className="settings-actions">
           <button className="ghost-btn" onClick={() => void exportProfile()} disabled={profileBusy}>
             <Download size={14} /> {profileBusy ? 'Работаем…' : 'Экспорт профиля'}
@@ -664,7 +661,6 @@ export function SettingsView() {
               </option>
             ))}
           </select>
-          <span className="muted small">Время матчей показывается в выбранном поясе.</span>
         </div>
       </section>
 
@@ -699,10 +695,7 @@ export function SettingsView() {
           />{' '}
           Напоминать о сессиях Формулы-1
         </label>
-        <p className="muted small">
-          Практики, квалификация, спринт и гонка. Напоминания приходят, пока приложение запущено, в
-          том числе в трее.
-        </p>
+        <p className="muted small">Практики, квалификация, спринт и гонка.</p>
         <NotificationPreferences />
         <div className="settings-row settings-actions">
           <button className="ghost-btn" onClick={toggleNotifications}>
@@ -739,7 +732,7 @@ export function SettingsView() {
         </div>
         <p className="muted small">
           {trayMode
-            ? 'При закрытии окна приложение продолжает работать в трее. Для полного выхода используйте меню значка в трее.'
+            ? 'Приложение остаётся в трее; выйти можно из меню значка.'
             : 'Закрытие окна завершает приложение.'}
         </p>
         <div className="settings-actions">
@@ -763,15 +756,13 @@ export function SettingsView() {
                 : 'Не авторизован'}
           </span>
         </div>
-        <p className="muted small">
-          Вход по коду устройства. Аккаунт в браузере и на ТВ не читается и не изменяется.
-        </p>
+        <p className="muted small">Вход по коду устройства, аккаунт не изменяется.</p>
         {showKinoClientForm && (
           <div className="kino-client panel inner">
             <p className="muted small">
               {kinoClientReady
                 ? 'Новые значения заменят сохранённые. Старые не показываются.'
-                : 'Шаг 1. Укажите адрес и данные клиента KinoPub. Они сохраняются в зашифрованном виде и не показываются повторно.'}
+                : 'Шаг 1. Укажите адрес и данные клиента KinoPub.'}
             </p>
             <label htmlFor="kino-base-url" className="muted small">
               Адрес API (https://…)

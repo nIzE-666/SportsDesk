@@ -186,9 +186,7 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
               ))}
             </ul>
           )}
-          <p className="muted small">
-            Настройки уведомлений по каждому клубу — в разделе «Уведомления».
-          </p>
+          <p className="muted small">Настройки по клубам — в разделе «Уведомления».</p>
         </>
       )}
     </div>

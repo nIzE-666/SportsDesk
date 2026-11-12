@@ -35,18 +35,15 @@ export function BackupPanel() {
     return (
       <section className="panel settings-section">
         <h2>Автоматические резервные копии</h2>
-        <p className="muted">
-          Выбор папки и копирование истории доступны в приложении Windows. Экспорт профиля ниже
-          работает и в браузере.
-        </p>
+        <p className="muted">Выбор папки доступен в приложении Windows.</p>
       </section>
     );
   return (
     <section className="panel settings-section">
       <h2>Резервные копии с историей</h2>
       <p className="muted small">
-        Профиль и история матчей в одном файле. Ключи API и авторизация Kino не включаются. Хранятся
-        семь последних копий, автоматическое сохранение — раз в сутки при работающем приложении.
+        Профиль и история матчей в одном файле, ключи не включаются. Хранятся семь последних копий,
+        сохранение — раз в сутки.
       </p>
       <p className="backup-folder">{settings?.folder ?? 'Папка ещё не выбрана'}</p>
       <div className="settings-actions">

@@ -42,7 +42,7 @@ export function DiagnosticsPanel() {
             ? 'Приложение Windows'
             : 'Браузер'
           : 'Загрузка состояния…'}{' '}
-        · Ключи и адреса потоков не включаются в отчёт.
+        · Ключи и адреса потоков в отчёт не входят.
       </p>
       <div className="diagnostics-grid">
         {['pitch', 'sportscore', 'espn', 'jolpica', 'openf1'].map((source) => {

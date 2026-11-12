@@ -114,10 +114,7 @@ export function WatchView({
     <section className="panel watch-event-context" aria-label="Просмотр события">
       <div>
         <h2>{intent.title}</h2>
-        <p>
-          Выберите канал для этого события. Программа передач не подключена — наличие трансляции
-          нужно проверить на канале.
-        </p>
+        <p>Выберите канал и проверьте, идёт ли трансляция.</p>
       </div>
       {preferred[intent.sport] && channels.some((c) => c.id === preferred[intent.sport]) && (
         <button className="ghost-btn" onClick={() => setSelectedId(preferred[intent.sport]!)}>
@@ -418,9 +415,7 @@ export function WatchView({
               <MonitorPlay size={30} aria-hidden />
             </span>
             <h1>Kino Live</h1>
-            <p className="watch-muted">
-              Каналы через ваш аккаунт Kino. Подключите устройство один раз.
-            </p>
+            <p className="watch-muted">Подключите аккаунт Kino один раз.</p>
           </div>
           <SplitAuthPanel
             phase={authPhase}
@@ -429,7 +424,7 @@ export function WatchView({
             onOpenSite={openSite}
           />
           <div className="watch-browser-fallback">
-            <span className="watch-muted">Быстрый доступ без входа в приложении:</span>
+            <span className="watch-muted">Без входа в приложение:</span>
             <div className="watch-fallback-links">
               <button
                 type="button"

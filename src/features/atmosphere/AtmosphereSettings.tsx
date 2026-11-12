@@ -30,8 +30,7 @@ export function AtmosphereSettings() {
         <span className="chip">{s.enabled ? 'Включено' : 'Выключено'}</span>
       </div>
       <p className="muted small">
-        Эффекты, звуки и мини-игры. Звуки по умолчанию выключены; эффекты не раскрывают скрытые
-        результаты.
+        Эффекты, звуки и мини-игры; скрытые результаты они не раскрывают.
       </p>
       <label className="atmosphere-row">
         <input
@@ -87,7 +86,7 @@ export function AtmosphereSettings() {
             checked={s.ambient}
             onChange={(e) => writeAtmosphere({ ambient: e.target.checked })}
           />
-          Фоновый звук (стадион, двигатель): в верхней панели появится кнопка с динамиком
+          Фоновый звук стадиона и двигателя: кнопка с динамиком в верхней панели
         </label>
         <fieldset className="atmosphere-subgroup" disabled={!s.ambient}>
           <label className="atmosphere-row">
@@ -137,10 +136,6 @@ export function AtmosphereSettings() {
               <option value="keep">Продолжать звучать</option>
             </select>
           </label>
-          <p className="muted small">
-            Фон включается только кнопкой с динамиком, сам не запускается и не связан с ходом матча
-            или гонки.
-          </p>
         </fieldset>
         <label className="atmosphere-row">
           <input
@@ -167,10 +162,7 @@ export function AtmosphereSettings() {
             }}
           />
         </label>
-        <p className="muted small">
-          Реплики радио — оформление SportsDesk, а не настоящие записи команд или слова пилотов.
-          Звучат, если включены короткие звуки.
-        </p>
+        <p className="muted small">Реплики придуманы в SportsDesk, это не записи команд.</p>
       </fieldset>
       <div className="settings-actions">
         <button

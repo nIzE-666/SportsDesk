@@ -576,7 +576,7 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
             {status === 'idle' && (
               <div className="watch-player-idle">
                 <WifiOff size={26} aria-hidden />
-                <span>Для этого канала поток не возвращён API.</span>
+                <span>Для этого канала нет потока.</span>
                 <button type="button" className="watch-btn watch-btn-ghost" onClick={openSite}>
                   <ExternalLink size={15} aria-hidden /> Открыть на сайте
                 </button>
@@ -625,10 +625,7 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
       </div>
 
       <div className="watch-player-foot">
-        <span className="watch-muted">
-          Качество/дорожки показываются только если поток реально их предоставляет. Живой эфир без
-          временной шкалы.
-        </span>
+        <span className="watch-muted">Качество и дорожки — если их даёт поток.</span>
         <button type="button" className="watch-link-btn" onClick={onOpenSitePage}>
           <ExternalLink size={13} aria-hidden /> канал на kino.watch
         </button>
