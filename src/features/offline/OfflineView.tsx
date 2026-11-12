@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, rpc } from '../../lib/bridge';
+import { pluralRu } from '../../lib/plural';
 import { matchStateLabel } from '../../lib/sportsIdentity';
 import { getJson, getUserTimezone, formatDate } from '../football/storage';
 import { VERIFIED_LEAGUES } from '../football/useFootballData';
@@ -14,6 +15,7 @@ import {
 } from './offlineQueue';
 import {
   isObject,
+  readerFilterUseful,
   seasonKey,
   validOfflineSeason,
   type OfflineSeason,
@@ -33,6 +35,7 @@ const coverageLabel = {
   partial: 'Частичный календарь',
   unverified: 'Полнота не проверена',
 };
+const matchesCount = (count: number) => `${count} ${pluralRu(count, 'матч', 'матча', 'матчей')}`;
 const savedTime = (iso: string, timezone: string) =>
   `${formatDate(iso, timezone)}, ${new Intl.DateTimeFormat('ru-RU', { timeZone: timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))}`;
 const bytes = (value: number) =>
@@ -236,31 +239,33 @@ export function OfflineView() {
           Сохраняются матчи сезона без подробной статистики и изображений.
         </p>
       </section>
-      <section className="panel" aria-label="Очередь загрузки">
-        <div className="offline-heading">
-          <div>
-            <h2>Очередь загрузки</h2>
-            <p className="muted">
-              {queue.queue.paused ? 'На паузе' : 'Выполняется по одному сезону'} · ожидают:{' '}
-              {pending.length}
-            </p>
+      {queue.queue.jobs.length > 0 && (
+        <section className="panel" aria-label="Очередь загрузки">
+          <div className="offline-heading">
+            <div>
+              <h2>Очередь загрузки</h2>
+              {pending.length > 0 && (
+                <p className="muted">
+                  {queue.queue.paused ? 'На паузе' : 'Выполняется по одному сезону'} · ожидают:{' '}
+                  {pending.length}
+                </p>
+              )}
+            </div>
+            {(pending.length > 0 || queue.queue.paused || !!queue.error) && (
+              <button
+                className="ghost-btn"
+                disabled={!queue.writable || busy || (!pending.length && !queue.error)}
+                onClick={() => void attempt(() => pauseOfflineQueue(!queue.queue.paused))}
+              >
+                {queue.queue.paused ? 'Продолжить' : 'Пауза'}
+              </button>
+            )}
           </div>
-          <button
-            className="ghost-btn"
-            disabled={!queue.writable || busy || (!pending.length && !queue.error)}
-            onClick={() => void attempt(() => pauseOfflineQueue(!queue.queue.paused))}
-          >
-            {queue.queue.paused ? 'Продолжить' : 'Пауза'}
-          </button>
-        </div>
-        {queue.queue.jobs.length > 0 && (
-          <p className="muted small">
-            После перезапуска нажмите «Продолжить». При паузе текущее сохранение завершится.
-          </p>
-        )}
-        {!queue.queue.jobs.length ? (
-          <p className="muted offline-empty">Очередь пуста. Добавьте сезон выше.</p>
-        ) : (
+          {pending.length > 0 && (
+            <p className="muted small">
+              После перезапуска нажмите «Продолжить». При паузе текущее сохранение завершится.
+            </p>
+          )}
           <ul className="offline-list">
             {queue.queue.jobs.map((j) => (
               <li key={seasonKey(j.leagueId, j.season)}>
@@ -299,20 +304,24 @@ export function OfflineView() {
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
       <section aria-label="Сохранённые пакеты">
         <div className="offline-heading">
           <div>
             <h2>Сохранено на устройстве</h2>
-            <p className="muted">
-              {packages.length} из 60 пакетов · {bytes(packages.reduce((n, p) => n + p.bytes, 0))}{' '}
-              данных
-            </p>
+            {packages.length > 0 && (
+              <p className="muted">
+                {packages.length} из 60 пакетов · {bytes(packages.reduce((n, p) => n + p.bytes, 0))}{' '}
+                данных
+              </p>
+            )}
           </div>
-          <button className="ghost-btn" disabled={loading} onClick={() => void reload()}>
-            Перечитать библиотеку
-          </button>
+          {(packages.length > 0 || !!libraryError) && (
+            <button className="ghost-btn" disabled={loading} onClick={() => void reload()}>
+              Перечитать библиотеку
+            </button>
+          )}
         </div>
         {libraryError && (
           <div role="alert" className="state-card error">
@@ -343,8 +352,10 @@ export function OfflineView() {
                   <span className="offline-pin">{p.pinned ? 'Закреплён' : 'Не закреплён'}</span>
                 </div>
                 <p className={`offline-coverage ${p.coverage.state}`}>
-                  {coverageLabel[p.coverage.state]} · {p.matches}
-                  {p.coverage.expected !== null ? ` из ${p.coverage.expected}` : ''} матчей
+                  {coverageLabel[p.coverage.state]} ·{' '}
+                  {p.coverage.expected !== null
+                    ? `${p.matches} из ${p.coverage.expected} матчей`
+                    : matchesCount(p.matches)}
                 </p>
                 <p className="muted">
                   {p.coverage.state === 'complete'
@@ -362,16 +373,23 @@ export function OfflineView() {
                     <dt>Размер данных</dt>
                     <dd>{bytes(p.bytes)}</dd>
                   </div>
-                  <div>
-                    <dt>Завершено по снимку</dt>
-                    <dd>
-                      {p.coverage.finished} · без счёта: {p.coverage.missingScores}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Время уточняется</dt>
-                    <dd>{p.coverage.missingTimes} матчей</dd>
-                  </div>
+                  {p.coverage.finished > 0 && (
+                    <div>
+                      <dt>Завершено по снимку</dt>
+                      <dd>
+                        {p.coverage.finished}
+                        {p.coverage.missingScores > 0
+                          ? ` · без счёта: ${p.coverage.missingScores}`
+                          : ''}
+                      </dd>
+                    </div>
+                  )}
+                  {p.coverage.missingTimes > 0 && (
+                    <div>
+                      <dt>Время уточняется</dt>
+                      <dd>{matchesCount(p.coverage.missingTimes)}</dd>
+                    </div>
+                  )}
                 </dl>
                 {p.duplicates > 0 && (
                   <p className="muted small">
@@ -473,7 +491,7 @@ export function OfflineView() {
             {legacy.map((h) => (
               <li key={seasonKey(h.leagueId, h.season)}>
                 <span>
-                  {h.leagueName} · {h.season} · {h.matches} матчей
+                  {h.leagueName} · {h.season} · {matchesCount(h.matches)}
                 </span>
                 <button
                   className="ghost-btn"
@@ -550,6 +568,13 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
   const pages = Math.max(1, Math.ceil(matches.length / 25)),
     activePage = Math.min(page, pages),
     timezone = getUserTimezone();
+  const showSearch = (data?.matches.length ?? 0) > 1 || query !== '',
+    showFilter = readerFilterUseful(data?.matches ?? []) || filter !== 'all';
+  const resetReader = () => {
+    setQuery('');
+    setFilter('all');
+    setPage(1);
+  };
   return (
     <section className="panel offline-reader" aria-label="Офлайн-календарь">
       <div className="offline-heading">
@@ -575,32 +600,38 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
         <p role="status">Чтение пакета…</p>
       ) : (
         <>
-          <div className="offline-select">
-            <label>
-              Поиск команды
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </label>
-            <label>
-              Матчи
-              <select
-                value={filter}
-                onChange={(e) => {
-                  setFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">Все матчи</option>
-                <option value="finished">Завершённые</option>
-                <option value="remaining">Остальные</option>
-              </select>
-            </label>
-          </div>
+          {(showSearch || showFilter) && (
+            <div className="offline-select">
+              {showSearch && (
+                <label>
+                  Поиск команды
+                  <input
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                </label>
+              )}
+              {showFilter && (
+                <label>
+                  Матчи
+                  <select
+                    value={filter}
+                    onChange={(e) => {
+                      setFilter(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="all">Все матчи</option>
+                    <option value="finished">Завершённые</option>
+                    <option value="remaining">Остальные</option>
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
           <div className="offline-table">
             <table>
               <caption className="sr-only">Календарь сохранённого сезона</caption>
@@ -640,29 +671,41 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
             </table>
           </div>
           {!matches.length && (
-            <p className="muted offline-empty">Матчи по этим условиям не найдены.</p>
-          )}
-          <div className="offline-heading">
-            <span className="muted">
-              {matches.length} матчей · страница {activePage} из {pages}
-            </span>
-            <div className="offline-actions">
-              <button
-                className="ghost-btn"
-                disabled={activePage <= 1}
-                onClick={() => setPage(activePage - 1)}
-              >
-                Предыдущие
-              </button>
-              <button
-                className="ghost-btn"
-                disabled={activePage >= pages}
-                onClick={() => setPage(activePage + 1)}
-              >
-                Следующие
-              </button>
+            <div className="offline-empty">
+              <p className="muted">Матчи по этим условиям не найдены.</p>
+              {(query !== '' || filter !== 'all') && (
+                <button className="ghost-btn" onClick={resetReader}>
+                  Сбросить поиск и фильтр
+                </button>
+              )}
             </div>
-          </div>
+          )}
+          {matches.length > 0 && (
+            <div className="offline-heading">
+              <span className="muted">
+                {matchesCount(matches.length)}
+                {pages > 1 ? ` · страница ${activePage} из ${pages}` : ''}
+              </span>
+              {pages > 1 && (
+                <div className="offline-actions">
+                  <button
+                    className="ghost-btn"
+                    disabled={activePage <= 1}
+                    onClick={() => setPage(activePage - 1)}
+                  >
+                    Предыдущие
+                  </button>
+                  <button
+                    className="ghost-btn"
+                    disabled={activePage >= pages}
+                    onClick={() => setPage(activePage + 1)}
+                  >
+                    Следующие
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </section>

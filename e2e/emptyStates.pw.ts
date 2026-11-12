@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { diaryFootballEntry, diaryRaceEntry } from '../src/test/fixtures/diary';
+import { completeOfflineSeason, offlineSeason } from '../src/test/fixtures/offline';
 import type { DiaryEntry } from '../src/features/diary/diaryModel';
+import { summarizeSeason, type OfflineSeason } from '../src/features/offline/offlineModel';
 import { setupVisualFixture } from './uiFixture';
 
 /** Page height follows the content, so one screenshot shows the whole screen. */
@@ -704,6 +706,107 @@ for (const design of ['classic', 'broadcast'])
       await expect(home.locator('.favorite-section .club-tile')).toHaveCount(10);
       await expect(home.locator('.insights-row > div')).toHaveCount(3);
       await shoot(page, testInfo, `${design}-${width}-home-ten`);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });
+
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: offline seasons with no packages, a queue and a package to read`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await setupVisualFixture(page, design, 'dark');
+      const complete = completeOfflineSeason();
+      complete.season = '2025/2026';
+      const unverified = {
+        ...offlineSeason,
+        leagueId: 'l_0eg6C9',
+        leagueName: 'MLS',
+        season: '2026',
+        pinned: false,
+      };
+      const saved = { packages: [] as OfflineSeason[] };
+      await page.route('**/bridge/command', async (route) => {
+        const { command, args = {} } = route.request().postDataJSON();
+        if (command === 'offline_list')
+          return route.fulfill({ json: saved.packages.map(summarizeSeason) });
+        if (command === 'offline_get')
+          return route.fulfill({
+            json: saved.packages.find(
+              (p) => p.leagueId === args.leagueId && p.season === args.season,
+            ),
+          });
+        if (command === 'history_seasons') return route.fulfill({ json: [] });
+        return route.fallback();
+      });
+      await page.goto('/');
+      const view = page.locator('.offline-view');
+      const openOffline = async (packages: OfflineSeason[], jobs: unknown[] = []) => {
+        saved.packages = packages;
+        await page.evaluate(
+          (queue) => localStorage.setItem('sportsdesk.view.offline', JSON.stringify(queue)),
+          { version: 1, paused: false, jobs },
+        );
+        await page.reload();
+        await page.locator('aside').getByTitle('Офлайн-сезоны', { exact: true }).click();
+        await expect(view.locator('h1')).toHaveText('Офлайн-сезоны');
+      };
+      const queue = view.getByRole('region', { name: 'Очередь загрузки' });
+
+      // Nothing saved and nothing queued: one phrase, no queue, no zero count, no idle reload.
+      await openOffline([]);
+      await expect(view).toContainText('Пока нет офлайн-пакетов');
+      await expect(queue).toHaveCount(0);
+      await expect(view).not.toContainText('из 60 пакетов');
+      await expect(view.getByRole('button', { name: 'Перечитать библиотеку' })).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-offline-empty`);
+
+      // Packages with a queued season: facts without zeros, the queue with its control.
+      await openOffline(
+        [complete, unverified],
+        [
+          {
+            leagueId: 'l_4WFCIZ',
+            leagueName: 'Premier League',
+            season: '2027/2028',
+            attempt: 'attempt-1',
+            pin: true,
+            state: 'queued',
+            error: null,
+            addedAt: '2026-10-24T00:00:00Z',
+          },
+        ],
+      );
+      await expect(view).toContainText('2 из 60 пакетов');
+      // After a launch the queue waits for «Продолжить».
+      await expect(queue).toContainText('На паузе · ожидают: 1');
+      await expect(queue.getByRole('button', { name: 'Продолжить' })).toBeVisible();
+      const full = view.locator('.offline-package').filter({ hasText: 'Полный календарь' });
+      await expect(full).toContainText('380 из 380 матчей');
+      await expect(full.locator('dt')).toHaveText([
+        'Обновлён',
+        'Размер данных',
+        'Завершено по снимку',
+      ]);
+      const unknown = view.locator('.offline-package').filter({ hasText: 'Полнота не проверена' });
+      await expect(unknown).toContainText('Полнота не проверена · 2 матча');
+      await expect(unknown.locator('dt')).toContainText(['Время уточняется']);
+      await shoot(page, testInfo, `${design}-${width}-offline-packages`);
+
+      // Reading a package whose matches are all finished: no filter on "finished", a pager.
+      await full.getByRole('button', { name: 'Открыть без сети' }).click();
+      const reader = page.getByRole('region', { name: 'Офлайн-календарь' });
+      await expect(reader.getByLabel('Поиск команды')).toBeVisible();
+      await expect(reader.locator('select')).toHaveCount(0);
+      await expect(reader).toContainText('380 матчей · страница 1 из 16');
+      await reader.getByLabel('Поиск команды').fill('Неизвестная команда');
+      await expect(reader).toContainText('Матчи по этим условиям не найдены');
+      await expect(reader.getByRole('button', { name: 'Сбросить поиск и фильтр' })).toHaveCount(1);
+      await reader.scrollIntoViewIfNeeded();
+      await shoot(page, testInfo, `${design}-${width}-offline-reader`);
+      await reader.getByRole('button', { name: 'Сбросить поиск и фильтр' }).click();
+      await expect(reader.locator('tbody tr')).toHaveCount(25);
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
     });

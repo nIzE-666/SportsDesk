@@ -2,6 +2,7 @@ import { buildOfflineSeason } from './offlineSource';
 import { expect, it } from 'vitest';
 import {
   offlineMatches,
+  readerFilterUseful,
   seasonCoverage,
   validOfflineSeason,
   expectedTeams,
@@ -89,4 +90,11 @@ it('validates unknown versions, duplicate IDs, dates, scores and payload size sa
     },
   ])
     expect(validOfflineSeason(p)).toBe(false);
+});
+it('offers the finished/remaining filter only for a package that has both', () => {
+  expect(readerFilterUseful([])).toBe(false);
+  expect(readerFilterUseful(offlineSeason.matches)).toBe(true);
+  expect(readerFilterUseful([offlineSeason.matches[0]!])).toBe(false);
+  expect(readerFilterUseful([offlineSeason.matches[1]!])).toBe(false);
+  expect(readerFilterUseful(completeOfflineSeason().matches)).toBe(false);
 });

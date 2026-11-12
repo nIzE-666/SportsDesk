@@ -154,3 +154,9 @@ export function offlineMatches(p: OfflineSeason): MatchSummary[] {
     round_name: m.round,
   }));
 }
+
+/** «Завершённые» / «Остальные» can change the list only when the package has both kinds. */
+export function readerFilterUseful(matches: readonly { status: string }[]): boolean {
+  const finished = matches.filter((m) => m.status === 'finished').length;
+  return finished > 0 && finished < matches.length;
+}
