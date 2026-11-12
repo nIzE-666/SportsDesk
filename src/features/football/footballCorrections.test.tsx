@@ -312,7 +312,7 @@ it('reports the calendar events written and fixtures with no date', async () => 
     item.textContent?.includes('Матчи в календарь'),
   )!;
   await act(async () => button.click());
-  expect(host.querySelector('.calendar-export-bar')?.textContent).toContain('2 матчей');
+  expect(host.querySelector('.calendar-export-bar')?.textContent).toContain('2 матча');
   expect(host.querySelector('.calendar-export-bar')?.textContent).toContain('без времени: 1');
   expect(host.querySelector('.calendar-export-bar')?.textContent).toContain(
     'без даты, пропущено: 1',

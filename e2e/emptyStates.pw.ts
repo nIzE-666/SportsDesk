@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { diaryFootballEntry, diaryRaceEntry } from '../src/test/fixtures/diary';
 import type { DiaryEntry } from '../src/features/diary/diaryModel';
@@ -451,7 +452,12 @@ const favoritePlayers = (count: number) =>
       savedAt: '2026-10-20T10:00:00Z',
     };
   });
-async function clubFixture(page: Page, design: string) {
+async function clubFixture(
+  page: Page,
+  design: string,
+  extra: unknown[] = [],
+  state = { upcoming: true },
+) {
   const errors = await setupVisualFixture(page, design, 'dark');
   await page.route('**/bridge/command', async (route) => {
     const body = route.request().postDataJSON();
@@ -468,7 +474,10 @@ async function clubFixture(page: Page, design: string) {
     if (path === 'leagues')
       data = { leagues: [{ id: 'l_4WFCIZ', name: 'Premier League', seasons: ['2026/2027'] }] };
     else if (path.startsWith('leagues/'))
-      data = { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: clubMatches };
+      data = {
+        league: { id: 'l_4WFCIZ', name: 'Premier League' },
+        matches: state.upcoming ? [...clubMatches, ...extra] : clubMatches,
+      };
     else if (squadPath?.[2] === 'lineups') {
       const match = clubMatches.find((m) => m.id === decodeURIComponent(squadPath[1]!));
       data = match && {
@@ -622,6 +631,79 @@ for (const design of ['classic', 'broadcast'])
       await expect(view.locator('.team-favorites')).toHaveCount(0);
       await expect(view.locator('.club-players .squad-player')).toHaveCount(18);
       await shoot(page, testInfo, `${design}-${width}-clubs-chosen`);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });
+
+const defaultClubNames: string[] = JSON.parse(
+  readFileSync('src/shared/sportsContracts.json', 'utf8'),
+).teams.map((team: { name: string }) => team.name);
+const nextMatches = [2, 3].map((i) => ({
+  id: `club-next-${i}`,
+  status: 'scheduled',
+  home_team: clubs[i - 1]!,
+  away_team: clubs[i]!,
+  time_utc: `2026-10-${26 + i}T15:00:00Z`,
+  date: `2026-10-${26 + i}`,
+  score_home: null,
+  score_away: null,
+}));
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: home shows only tiles and blocks that have something to say`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const state = { upcoming: false };
+      const errors = await clubFixture(page, design, nextMatches, state);
+      await page.goto('/');
+      const home = page.locator('.football-dashboard');
+      const openHome = async (teamIds: string[], upcomingToo: boolean) => {
+        state.upcoming = upcomingToo;
+        await page.evaluate(
+          ([ids, dismissed]) =>
+            localStorage.setItem(
+              'sportsdesk.football.favorites.teams',
+              JSON.stringify({ ids, seeded: [], seededDefault: true, dismissed }),
+            ),
+          [teamIds, defaultClubNames] as const,
+        );
+        await page.reload();
+        await expect(home).toBeVisible();
+        await expect(home.locator('.state-block, .game-list button').first()).toBeVisible();
+      };
+
+      // Nothing ahead and no tracked club: no tiles, no clubs block, each column says why once.
+      await openHome([], false);
+      await expect(home.locator('.insights-row')).toHaveCount(0);
+      await expect(home.locator('.favorite-section')).toHaveCount(0);
+      await expect(home.locator('.state-block')).toHaveCount(2);
+      await shoot(page, testInfo, `${design}-${width}-home-nothing`);
+
+      // A tracked club and matches ahead: all three tiles, one club tile.
+      await openHome(['club-2'], true);
+      await expect(home.locator('.insights-row > div')).toHaveCount(3);
+      await expect(home.locator('.insights-row')).toContainText('1клуб под присмотром');
+      await expect(home.locator('.insights-row')).toContainText('2матча Premier League впереди');
+      await expect(home.locator('.insights-row')).toContainText('Birchwood United — Cobalt Rovers');
+      await expect(home.locator('.favorite-section .club-tile')).toHaveCount(1);
+      await expect(home.locator('.state-block')).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-home-tracked`);
+
+      // Matches ahead but no tracked club: the schedule tile only.
+      await openHome([], true);
+      await expect(home.locator('.insights-row > div')).toHaveCount(1);
+      await expect(home.locator('.insights-row')).toContainText('2матча Premier League впереди');
+      await expect(home.locator('.favorite-section')).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-home-schedule-only`);
+
+      await openHome(
+        clubs.slice(0, 10).map((club) => club.id),
+        true,
+      );
+      await expect(home.locator('.favorite-section .club-tile')).toHaveCount(10);
+      await expect(home.locator('.insights-row > div')).toHaveCount(3);
+      await shoot(page, testInfo, `${design}-${width}-home-ten`);
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
     });

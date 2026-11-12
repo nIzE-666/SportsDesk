@@ -24,6 +24,7 @@ import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
 import { useHomeLayout, type HomeWidgetId } from './homeLayout';
 import { HomeLayoutEditor } from './HomeLayoutEditor';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
+import { pluralRu } from '../../lib/plural';
 import { useResultHidden } from '../spoilers/spoilerStore';
 import {
   buildCalendar,
@@ -182,7 +183,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
       }
       const allDay = events.filter((event) => event.time.length === 10).length;
       const notes = [
-        `${events.length} матчей`,
+        `${events.length} ${pluralRu(events.length, 'матч', 'матча', 'матчей')}`,
         ...(fallback ? ['матчи выбранной лиги'] : []),
         ...(skippedFavorites ? [`избранных без даты: ${skippedFavorites}`] : []),
         ...(events.length > allDay
@@ -199,34 +200,50 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     }
   };
 
-  const insightsBlock = (
-    <div className="insights-row">
-      <div>
+  // A tile is shown only when it has a value: no zero, no dash, no "none yet".
+  const insightTiles: ReactNode[] = [];
+  if (favoriteTeamNames.length > 0)
+    insightTiles.push(
+      <div key="clubs">
         <Heart size={18} />
         <span>
-          <strong>{favoriteTeamNames.length || '—'}</strong>
-          <small>клубов под присмотром</small>
+          <strong>{favoriteTeamNames.length}</strong>
+          <small>
+            {pluralRu(
+              favoriteTeamNames.length,
+              'клуб под присмотром',
+              'клуба под присмотром',
+              'клубов под присмотром',
+            )}
+          </small>
         </span>
-      </div>
-      <div>
+      </div>,
+    );
+  if (leagueUpcoming.length > 0)
+    insightTiles.push(
+      <div key="upcoming">
         <CalendarDays size={18} />
         <span>
           <strong>{leagueUpcoming.length}</strong>
-          <small>матчей {league?.name ?? 'лиги'} впереди</small>
-        </span>
-      </div>
-      <div className="next-insight">
-        <Clock3 size={18} />
-        <span>
-          <strong>
-            {next ? formatFixtureTime(next, getUserTimezone()) : 'Нет ближайшего матча'}
-          </strong>
           <small>
-            {next ? `${next.home_team.name} — ${next.away_team.name}` : 'Среди ваших клубов'}
+            {pluralRu(leagueUpcoming.length, 'матч', 'матча', 'матчей')} {league?.name ?? 'лиги'}{' '}
+            впереди
           </small>
         </span>
-      </div>
-    </div>
+      </div>,
+    );
+  if (next)
+    insightTiles.push(
+      <div className="next-insight" key="next">
+        <Clock3 size={18} />
+        <span>
+          <strong>{formatFixtureTime(next, getUserTimezone())}</strong>
+          <small>{`${next.home_team.name} — ${next.away_team.name}`}</small>
+        </span>
+      </div>,
+    );
+  const insightsBlock = insightTiles.length > 0 && (
+    <div className="insights-row home-insights">{insightTiles}</div>
   );
 
   const calendarExportBlock = (
@@ -240,7 +257,8 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     </div>
   );
 
-  const favoriteClubsBlock = (
+  // With no tracked clubs the right-hand column already explains how to add them.
+  const favoriteClubsBlock = favoriteTeams.length > 0 && (
     <section className="favorite-section">
       <div className="section-title">
         <h2>
@@ -273,11 +291,6 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           </div>
         ))}
       </div>
-      {!favoriteTeams.length && !data.matchesLoading && (
-        <p className="muted small">
-          Добавьте команды звёздочкой в разделе «Матчи» — они появятся здесь и в колонке справа.
-        </p>
-      )}
     </section>
   );
 
@@ -318,7 +331,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
             <MatchRow key={m.id} match={m} onClick={() => onOpenMatch(m.id)} />
           ))}
         </div>
-        {data.matches.length > 0 && !leagueUpcoming.length && !data.matchesLoading && (
+        {!leagueUpcoming.length && !data.matchesLoading && !data.matchesError && (
           <EmptyBlock
             title="Следим за расписанием"
             message={`Будущие матчи ${league?.name ?? 'лиги'} в сезоне ${data.season ?? ''} пока не опубликованы.`}
@@ -331,7 +344,9 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           <h2>
             <Heart size={17} /> За кем вы следите
           </h2>
-          <span className="muted small">{favTotal ? `${favTotal} матчей` : ''}</span>
+          <span className="muted small">
+            {favTotal ? `${favTotal} ${pluralRu(favTotal, 'матч', 'матча', 'матчей')}` : ''}
+          </span>
         </div>
         <div className="recent-games">
           {favUpcoming.slice(0, 4).map((m) => (
@@ -341,7 +356,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
             <FeedRow key={m.id} m={m} onOpenMatch={onOpenMatch} />
           ))}
         </div>
-        {data.allMatches.length > 0 && !favTotal && !data.matchesLoading && (
+        {!favTotal && !data.matchesLoading && !data.matchesError && (
           <EmptyBlock
             title="Пока никого под присмотром"
             message="Отметьте команды звёздочкой в разделе «Матчи» — их расписание и результаты появятся в этой колонке."

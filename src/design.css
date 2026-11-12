@@ -2908,3 +2908,12 @@ html[data-scheme='light'] body {
     animation: none;
   }
 }
+/* The home tiles shown depend on which of them have a value, so they share the width evenly. */
+.insights-row.home-insights {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+@media (max-width: 720px) {
+  .insights-row.home-insights > div:last-child {
+    grid-column: auto;
+  }
+}
