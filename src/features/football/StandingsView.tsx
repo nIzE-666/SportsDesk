@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import TeamBadge from '../../components/TeamBadge';
 import { api } from '../../lib/bridge';
-import { canonicalTeamName } from '../../lib/sportsIdentity';
+import { LEAGUES } from '../../lib/navigationMetadata';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { clubKey } from './clubNames';
 import type { SportScoreStandings, SportScoreStandingRow } from './types';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 
@@ -71,7 +72,8 @@ export function StandingsView({
         <div>
           <h1>Текущая таблица</h1>
           <p className="muted small">
-            {standings?.competition ??
+            {LEAGUES.find((l) => l.id === data.selectedLeagueId)?.label ??
+              standings?.competition ??
               data.leagues.find((l) => l.id === data.selectedLeagueId)?.name ??
               'Лига'}{' '}
             · текущий сезон
@@ -130,14 +132,8 @@ export function StandingsView({
 }
 
 function matchTeam(name: string, data: UseFootballResult): TeamCatalogueEntry | undefined {
-  const key = (value: string) => {
-    const normalized = canonicalTeamName(value);
-    return normalized === 'bournemouth afc' || normalized === 'afc bournemouth'
-      ? 'bournemouth'
-      : normalized;
-  };
   const teams = data.leagueTeams.length ? data.leagueTeams : data.teams;
-  const candidates = teams.filter((team) => key(team.name) === key(name));
+  const candidates = teams.filter((team) => clubKey(team.name) === clubKey(name));
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
@@ -160,7 +156,7 @@ function StandingsRow({
         className="st-team"
         onClick={() => teamId && onOpenTeam(teamId)}
         disabled={!teamId}
-        title={teamId ? 'Открыть команду' : 'Клуб не сопоставлен с PitchAPI'}
+        title={teamId ? 'Открыть команду' : 'Для этого клуба нет страницы'}
       >
         <TeamBadge name={name} imageUrl={team?.image_url ?? row.team_logo} size={18} />
         <span>{name}</span>

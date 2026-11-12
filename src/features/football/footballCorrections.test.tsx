@@ -164,6 +164,66 @@ it('uses the selected league catalogue names and badges in standings without gue
   expect(open).toHaveBeenCalledWith('bournemouth');
 });
 
+it('shows catalogue names and crests for clubs another league table spells differently', async () => {
+  const catalogue = (id: string, name: string) => ({
+    id,
+    name,
+    image_url: `https://example.com/${id}.png`,
+    leagueId: 'l_0ALvwF',
+    leagueName: 'Serie A',
+  });
+  const clubs = [
+    catalogue('inter', 'Inter'),
+    catalogue('milan', 'Milan'),
+    catalogue('roma', 'Roma'),
+    catalogue('juve', 'Juventus'),
+  ];
+  transport.api.mockResolvedValue({
+    payload: {
+      competition: 'Italian Serie A',
+      tables: [
+        {
+          rows: [
+            { pos: 1, team: 'Inter Milan', team_logo: 'https://source.test/inter.png', pts: 9 },
+            { pos: 2, team: 'AC Milan', team_logo: 'https://source.test/milan.png', pts: 7 },
+            { pos: 3, team: 'AS Roma', team_logo: 'https://source.test/roma.png', pts: 6 },
+            { pos: 4, team: 'Juventus FC', team_logo: 'https://source.test/juve.png', pts: 4 },
+            { pos: 5, team: 'Newly Promoted', team_logo: 'https://source.test/new.png', pts: 1 },
+          ],
+        },
+      ],
+    },
+    fetchedAt: '2026-11-12T00:00:00Z',
+  });
+  const open = vi.fn();
+  await render(
+    <StandingsView
+      data={{ ...makeData([]), selectedLeagueId: 'l_0ALvwF', leagueTeams: clubs, teams: clubs }}
+      onOpenTeam={open}
+    />,
+  );
+  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team')];
+  expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual([
+    'Inter',
+    'Milan',
+    'Roma',
+    'Juventus',
+    'Newly Promoted',
+  ]);
+  expect(rows.map((row) => row.querySelector('img')?.getAttribute('src'))).toEqual([
+    'https://example.com/inter.png',
+    'https://example.com/milan.png',
+    'https://example.com/roma.png',
+    'https://example.com/juve.png',
+    'https://source.test/new.png',
+  ]);
+  expect(rows.map((row) => row.disabled)).toEqual([false, false, false, false, true]);
+  expect(rows[4]?.title).toBe('Для этого клуба нет страницы');
+  expect(host.querySelector('.dashboard-head p')?.textContent).toContain('Серия A · текущий сезон');
+  await act(async () => rows[0]?.click());
+  expect(open).toHaveBeenCalledWith('inter');
+});
+
 it('normalizes both the search and team names', async () => {
   await render(
     <FavoritesProvider>
