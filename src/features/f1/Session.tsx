@@ -5,6 +5,7 @@ import { useViewState } from '../../lib/useViewState';
 import { useSeason } from './SeasonContext';
 import { RacePacePanel } from './RacePacePanel';
 import { asArray, useApiResource } from './api';
+import { grandPrixTitle } from './calendarModel';
 import { SourceBar, State } from './shared';
 import { openF1Color } from './teamColors';
 import { formatDate, formatShort, parseUtc } from './time';
@@ -29,6 +30,12 @@ function num(v: unknown): number | null {
 
 function str(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
+}
+
+/** OpenF1 names meetings in English; show the Russian name the calendar uses. */
+function meetingTitle(meeting: OpenF1Meeting): string | null {
+  const name = meeting.meeting_name ?? meeting.meeting_official_name;
+  return name ? grandPrixTitle(name).title : null;
 }
 
 function parseMeetings(payload: unknown): OpenF1Meeting[] {
@@ -465,7 +472,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
               {meetingList.length === 0 ? <option value="">Нет данных</option> : null}
               {meetingList.map((m) => (
                 <option key={m.meeting_key} value={m.meeting_key}>
-                  {m.meeting_name ?? m.meeting_official_name ?? `Митап ${m.meeting_key}`}
+                  {meetingTitle(m) ?? `Митап ${m.meeting_key}`}
                   {m.location ? ` — ${m.location}` : ''}
                   {isMeetingCompleted(m, Date.now()) ? '' : ' (не завершён)'}
                 </option>
@@ -533,9 +540,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
 
         {selectedMeeting ? (
           <div className="f1-meta-row">
-            <span>
-              {selectedMeeting.meeting_official_name ?? selectedMeeting.meeting_name ?? 'Гран-при'}
-            </span>
+            <span>{meetingTitle(selectedMeeting) ?? 'Гран-при'}</span>
             {selectedMeeting.circuit_short_name ? (
               <span className="f1-pill">{selectedMeeting.circuit_short_name}</span>
             ) : null}
@@ -612,7 +617,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
               <div>
                 <div className="f1-eyebrow">{selectedSession.session_name ?? 'Сессия'}</div>
                 <div className="f1-title" style={{ fontSize: 17, marginTop: 4 }}>
-                  {selectedMeeting?.meeting_name ?? 'Гран-при'}
+                  {(selectedMeeting && meetingTitle(selectedMeeting)) ?? 'Гран-при'}
                 </div>
                 <div className="f1-muted">
                   {sessionShortDate(selectedSession) ?? '—'}

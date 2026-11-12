@@ -58,13 +58,13 @@ it('starts near the upcoming stage and opens the chosen weekend alongside its li
   expect(host.querySelectorAll('.calendar-stage')).toHaveLength(2);
   expect(
     host.querySelector('.calendar-detail .race-weekend')?.getAttribute('aria-label'),
-  ).toContain('Chinese Grand Prix');
+  ).toContain('Гран-при Китая');
   await click('Открыть Гран-при Японии, этап 3');
   expect(
     host
       .querySelector('.calendar-layout>.calendar-detail .race-weekend')
       ?.getAttribute('aria-label'),
-  ).toContain('Japanese Grand Prix');
+  ).toContain('Гран-при Японии');
   await click('Прошедшие');
   expect(host.querySelectorAll('.calendar-stage')).toHaveLength(1);
   expect(host.querySelector('.calendar-stage.selected')?.textContent).toContain(

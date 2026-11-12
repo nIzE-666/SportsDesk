@@ -3,6 +3,7 @@ import { ArrowLeftRight, Trophy } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useViewState } from '../../lib/useViewState';
 import { useApiResource } from './api';
+import { grandPrixTitle } from './calendarModel';
 import { ComparisonChart } from './ComparisonChart';
 import { parseDriverStandings } from './parsing';
 import { useSeason } from './SeasonContext';
@@ -144,7 +145,7 @@ export function Compare() {
           <option value="season">Весь сезон {year}</option>
           {all.series.map((row) => (
             <option key={row.round} value={row.round}>
-              {row.round}. {row.name}
+              {row.round}. {grandPrixTitle(row.name).title}
             </option>
           ))}
         </select>
@@ -213,7 +214,9 @@ export function Compare() {
             <Trophy size={16} /> Уикенды в цифрах
           </h2>
           <span className="muted small">
-            {selectedRound === 'season' ? `Сезон ${year}` : comparison.series[0]?.name}
+            {selectedRound === 'season'
+              ? `Сезон ${year}`
+              : grandPrixTitle(comparison.series[0]?.name ?? '').title}
           </span>
         </div>
         <div className="comparison-metrics">
@@ -281,7 +284,7 @@ export function Compare() {
               {comparison.series.map((row) => (
                 <tr key={row.round}>
                   <td>
-                    {row.round}. {row.name}
+                    {row.round}. {grandPrixTitle(row.name).title}
                   </td>
                   <td>{row.aQualifying ?? '—'}</td>
                   <td>{row.aPosition ?? '—'}</td>

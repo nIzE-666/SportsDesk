@@ -56,7 +56,7 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
     if (hasSprint) sprint.reload();
   };
   return (
-    <section className="f1-card race-weekend" aria-label={`Уикенд ${race.raceName}`}>
+    <section className="f1-card race-weekend" aria-label={`Уикенд ${racePresentation(race).title}`}>
       <div className="f1-card-head">
         <div>
           <div className="f1-eyebrow">ВЕСЬ УИКЕНД · РАУНД {race.round}</div>

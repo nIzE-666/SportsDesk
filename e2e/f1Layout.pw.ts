@@ -20,6 +20,8 @@ for (const design of ['classic', 'broadcast']) {
     expect((await favoriteGrid.boundingBox())!.y).toBeGreaterThan(
       (await overview.boundingBox())!.y,
     );
+    await expect(overview).toContainText('Гран-при Китая');
+    await expect(page.locator('.f1-root')).not.toContainText('Grand Prix');
     await expect(page.locator('.f1-root .f1-sourcebar')).toHaveCount(1);
     const refresh = page
       .locator('.f1-root > .f1-toolbar')

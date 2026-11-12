@@ -25,7 +25,7 @@ import { SourceBar, State, TeamDot, DriverName } from './shared';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
-import { racePresentation } from './calendarModel';
+import { grandPrixTitle, racePresentation } from './calendarModel';
 
 /**
  * Latest verified race results.
@@ -35,7 +35,8 @@ import { racePresentation } from './calendarModel';
 interface LatestRaceData {
   round: number | null;
   race: {
-    raceName: string;
+    /** The Russian name of the Grand Prix, the same one the calendar shows. */
+    title: string;
     round: string;
     Circuit: { circuitName: string; Location?: { country?: string } };
     date: string;
@@ -53,7 +54,7 @@ function transformLatest(payload: unknown): LatestRaceData {
   return {
     round: Number.isFinite(Number(row.round)) ? Number(row.round) : null,
     race: {
-      raceName: row.raceName,
+      title: grandPrixTitle(row.raceName).title,
       round: row.round,
       Circuit: {
         circuitName: row.Circuit.circuitName,
@@ -100,7 +101,7 @@ function WeekendCard({ race, broadcast = false }: { race: JolpicaRace; broadcast
             {broadcast ? racePresentation(race).title : 'Следующий Гран-при'} · Раунд {race.round}
           </div>
           <h2 className="f1-title" style={{ marginTop: 4 }}>
-            {broadcast ? 'Расписание уикенда' : race.raceName}
+            {broadcast ? 'Расписание уикенда' : racePresentation(race).title}
           </h2>
           <div className="f1-muted" style={{ marginTop: 3 }}>
             {circuit.circuitName}
@@ -161,7 +162,7 @@ function LatestRaceCard({
             Последняя гонка{roundLabel ? ` · Раунд ${roundLabel}` : ''}
           </div>
           <div className="f1-title" style={{ marginTop: 4, fontSize: 17 }}>
-            {last.race ? last.race.raceName : 'Нет данных'}
+            {last.race ? last.race.title : 'Нет данных'}
           </div>
           {last.race ? (
             <div className="f1-muted">
@@ -529,7 +530,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
   }, [favTeams, favDrivers, latestHasResults, latestByConstructor, latestByDriver, standingById]);
 
   const latestLabel = latestData?.race
-    ? `${latestData.race.raceName}${latestData.round !== null ? ` · Раунд ${latestData.round}` : ''}`
+    ? `${latestData.race.title}${latestData.round !== null ? ` · Раунд ${latestData.round}` : ''}`
     : null;
 
   const favConstructorRows = useMemo(() => {
@@ -770,7 +771,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
                   currentTeam={currentTeam}
                   lineupSourceLabel={latestHasResults && currentTeam ? latestLabel : null}
                   latestRound={latestData?.round ?? null}
-                  latestRaceName={latestData?.race?.raceName ?? null}
+                  latestRaceName={latestData?.race?.title ?? null}
                   latestEntry={entry}
                 />
               );
