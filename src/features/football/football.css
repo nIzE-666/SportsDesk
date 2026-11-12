@@ -167,9 +167,15 @@
   border-top: 1px solid var(--line);
 }
 
+/* Club names are never cut: a long one wraps, and a narrow column stacks the two clubs. */
+.team-schedule {
+  container: team-schedule / inline-size;
+}
+
 .team-match-row {
+  --team-status-col: 104px;
   display: grid;
-  grid-template-columns: 110px 22px minmax(0, 1fr) 58px 86px;
+  grid-template-columns: 110px 22px minmax(0, 1fr) 58px var(--team-status-col);
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -178,6 +184,11 @@
   padding: 9px 4px;
   text-align: left;
   font-size: 13px;
+}
+
+/* A finished match only shows the one-letter result. */
+.team-match-row:has(.wdl) {
+  --team-status-col: 26px;
 }
 
 .team-match-row:hover {
@@ -202,17 +213,23 @@
   min-width: 0;
 }
 
-.team-match-away {
-  display: inline-flex;
-  justify-content: flex-end;
-  gap: 4px;
+.team-match-side {
+  display: flex;
   align-items: center;
+  gap: 6px;
   min-width: 0;
 }
-.team-match-away .truncate {
-  min-width: 0;
+
+.team-match-away {
+  justify-content: flex-end;
 }
-.team-match-away :is(.team-badge, .team-badge-fallback) {
+
+.team-match-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.team-match-side :is(.team-badge, .team-badge-fallback) {
   flex-shrink: 0;
 }
 
@@ -226,6 +243,27 @@
 .team-match-status {
   display: flex;
   justify-content: flex-end;
+}
+
+/* In a half-width column the home club goes above the away club, each on its own line. */
+@container team-schedule (max-width: 740px) {
+  .team-match-row {
+    grid-template-columns: 88px 20px minmax(0, 1fr) 54px var(--team-status-col);
+    padding-block: 6px;
+  }
+  .team-match-teams {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+  }
+  .team-match-dash {
+    display: none;
+  }
+  .team-match-away {
+    justify-content: flex-start;
+  }
+  .team-match-away :is(.team-badge, .team-badge-fallback) {
+    order: -1;
+  }
 }
 
 .team-squad {
