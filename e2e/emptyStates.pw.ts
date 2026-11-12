@@ -1,5 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { diaryFootballEntry, diaryRaceEntry } from '../src/test/fixtures/diary';
+import type { DiaryEntry } from '../src/features/diary/diaryModel';
 import { setupVisualFixture } from './uiFixture';
+
+/** Page height follows the content, so one screenshot shows the whole screen. */
+async function shoot(page: Page, testInfo: TestInfo, name: string) {
+  const style = await page.addStyleTag({
+    content:
+      '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
+  });
+  await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
+  await style.evaluate((el) => el.parentNode?.removeChild(el));
+}
+const noOverflow = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 
 test('empty diary and event center keep useful actions without empty filters', async ({
   page,
@@ -56,3 +70,77 @@ test('empty planner hides filters while retaining a way to refresh', async ({ pa
   await expect(page.getByRole('button', { name: 'Обновить расписание' })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath('empty-planner.png') });
 });
+
+const manualView = (i: number, patch: Partial<DiaryEntry> = {}): DiaryEntry => ({
+  ...diaryFootballEntry,
+  id: `manual:e2e-${i}`,
+  event: { ...diaryFootballEntry.event, title: `Матч ${i}`, reference: null },
+  tags: [],
+  rating: null,
+  ...patch,
+});
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: diary with saved views keeps only useful tiles and filters`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await setupVisualFixture(page, design, 'dark');
+      await page.goto('/');
+      const openDiary = async (entries: DiaryEntry[]) => {
+        await page.evaluate(
+          (value) =>
+            localStorage.setItem(
+              'sportsdesk.view.diary',
+              JSON.stringify({ version: 1, entries: value }),
+            ),
+          entries,
+        );
+        await page.reload();
+        await page.locator('aside').getByTitle('Дневник просмотра').click();
+        await expect(page.locator('.diary-view')).toBeVisible();
+      };
+      const diary = page.locator('.diary-view');
+
+      await openDiary([diaryFootballEntry]);
+      await expect(diary.locator('.diary-entry')).toHaveCount(1);
+      await expect(diary.locator('.diary-summary')).toHaveCount(0);
+      await expect(diary.locator('.diary-filter-panel')).toHaveCount(0);
+      await expect(diary.locator('.diary-season-stats')).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-diary-one`);
+
+      await openDiary([
+        manualView(1, { rating: 7, tags: ['друзья'] }),
+        manualView(2, { rating: 8, tags: ['друзья', 'вечер'] }),
+        manualView(3, { tags: ['друзья'] }),
+      ]);
+      await expect(diary.locator('.diary-summary > div')).toHaveCount(2);
+      await expect(diary.locator('.diary-summary')).not.toContainText('Формула 1');
+      await expect(diary.getByLabel('Фильтр по спорту')).toHaveCount(0);
+      await expect(diary.getByLabel('Фильтр по сезону')).toHaveCount(0);
+      await expect(diary.getByLabel('Просмотрено с')).toHaveCount(0);
+      await expect(diary.getByLabel('Фильтр по тегу')).toBeVisible();
+      await expect(diary.getByLabel('Поиск по дневнику')).toBeVisible();
+      await expect(diary.locator('.diary-season-stats')).toHaveCount(0);
+      await expect(diary.getByRole('button', { name: 'Сбросить фильтры' })).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-diary-one-sport`);
+
+      await openDiary([diaryFootballEntry, diaryRaceEntry]);
+      await expect(diary.locator('.diary-summary > div')).toHaveCount(4);
+      await expect(diary.locator('.diary-filter-panel label')).toHaveCount(6);
+      await expect(diary.locator('.diary-season-stats tbody tr')).toHaveCount(2);
+      await shoot(page, testInfo, `${design}-${width}-diary-mixed`);
+
+      await diary.getByLabel('Поиск по дневнику').fill('такого нет нигде');
+      await expect(diary.locator('.diary-entry')).toHaveCount(0);
+      await expect(diary.locator('.state-block')).toHaveCount(1);
+      await expect(diary.locator('.state-block')).toContainText('Таких просмотров нет');
+      await expect(diary.locator('.diary-summary')).toHaveCount(0);
+      await expect(diary.locator('.diary-season-stats')).toHaveCount(0);
+      await expect(diary.getByRole('button', { name: 'Сбросить фильтры' })).toHaveCount(1);
+      await shoot(page, testInfo, `${design}-${width}-diary-no-match`);
+      await diary.getByRole('button', { name: 'Сбросить фильтры' }).click();
+      await expect(diary.locator('.diary-entry')).toHaveCount(2);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });

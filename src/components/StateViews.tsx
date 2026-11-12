@@ -61,7 +61,7 @@ export function EmptyBlock({
       <div>
         <strong>{title}</strong>
         {message && <p>{message}</p>}
-        {children}
+        {children && <div className="state-action">{children}</div>}
       </div>
     </div>
   );

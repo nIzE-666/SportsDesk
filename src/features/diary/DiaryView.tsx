@@ -6,30 +6,36 @@ import { spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import { settle, usePredictions } from '../games/predictions';
 import { DiaryEntryForm } from './DiaryEntryForm';
 import { diarySpoiler } from './DiaryMarkButton';
+import { EmptyBlock } from '../../components/StateViews';
 import { deleteDiaryEntry, importDiary, useDiary } from './diaryStore';
 import {
+  diaryFilterActive,
+  diaryFilterControls,
   diaryReadError,
   diarySeasons,
+  diaryTiles,
   filterDiary,
   newDiaryEntry,
   parseDiaryText,
+  summarizeDiary,
   todayInTimezone,
   validDay,
+  EMPTY_DIARY_FILTER,
   MAX_DIARY_BYTES,
   type DiaryEntry,
   type DiaryFilter,
   type DiaryReference,
   type DiaryStore,
+  type DiaryTileId,
 } from './diaryModel';
 import './diary.css';
 
-const EMPTY_FILTER: DiaryFilter = {
-  sport: 'All',
-  from: '',
-  to: '',
-  season: 'All',
-  tag: '',
-  query: '',
+const EMPTY_FILTER = EMPTY_DIARY_FILTER;
+const TILE_LABELS: Record<DiaryTileId, string> = {
+  total: 'Просмотров',
+  football: 'Футбол',
+  f1: 'Формула 1',
+  average: 'Средняя личная оценка',
 };
 const sportName = (sport: string) => (sport === 'football' ? 'Футбол' : 'Формула 1');
 const number = (v: number | null) =>
@@ -79,13 +85,26 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
   };
   const visibleForStats = entries.filter((e) => !isHidden(e)),
     seasons = diarySeasons(visibleForStats);
-  const rated = visibleForStats.filter((e) => e.rating !== null),
-    average = rated.length ? rated.reduce((sum, e) => sum + e.rating!, 0) / rated.length : null;
+  const summary = summarizeDiary(entries, visibleForStats),
+    tiles = diaryTiles(summary),
+    controls = diaryFilterControls(state.store.entries, filter, isHidden),
+    filtered = diaryFilterActive(filter),
+    showPanel =
+      controls.sport ||
+      controls.seasons.length > 0 ||
+      controls.dates ||
+      controls.tags.length > 0 ||
+      controls.search ||
+      (filtered && entries.length > 0);
   const pageCount = Math.max(1, Math.ceil(entries.length / 25)),
     activePage = Math.min(page, pageCount);
   const shown = entries.slice((activePage - 1) * 25, activePage * 25);
   const set = (patch: Partial<DiaryFilter>) => {
     setFilter({ ...filter, ...patch });
+    setPage(1);
+  };
+  const resetFilters = () => {
+    setFilter(EMPTY_FILTER);
     setPage(1);
   };
   const attempt = (run: () => void) => {
@@ -178,28 +197,23 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           />
         </EntryGate>
       )}
-      {state.store.entries.length > 0 && (
-        <>
-          <div className="diary-summary" aria-label="Итоги просмотра">
-            <div>
-              <strong>{entries.length}</strong>
-              <span>Просмотров по фильтру</span>
+      {tiles.length > 0 && (
+        <div className="diary-summary" aria-label="Итоги просмотра">
+          {tiles.map((tile) => (
+            <div key={tile.id}>
+              <strong>{number(tile.value)}</strong>
+              <span>
+                {tile.id === 'total' && filtered ? 'Просмотров по фильтру' : TILE_LABELS[tile.id]}
+                {tile.id === 'average' ? ` · оценено: ${summary.rated}` : ''}
+              </span>
             </div>
-            <div>
-              <strong>{entries.filter((e) => e.event.sport === 'football').length}</strong>
-              <span>Футбол</span>
-            </div>
-            <div>
-              <strong>{entries.filter((e) => e.event.sport === 'f1').length}</strong>
-              <span>Формула 1</span>
-            </div>
-            <div>
-              <strong>{number(average)}</strong>
-              <span>Средняя личная оценка · оценено: {rated.length}</span>
-            </div>
-          </div>
-          <section className="panel diary-filter-panel" aria-label="Фильтры дневника">
-            <div className="diary-form-grid">
+          ))}
+        </div>
+      )}
+      {showPanel && (
+        <section className="panel diary-filter-panel" aria-label="Фильтры дневника">
+          <div className="diary-form-grid">
+            {controls.sport && (
               <label>
                 Вид спорта
                 <select
@@ -212,6 +226,8 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   <option value="f1">Формула 1</option>
                 </select>
               </label>
+            )}
+            {controls.seasons.length > 0 && (
               <label>
                 Сезон
                 <select
@@ -220,34 +236,37 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   onChange={(e) => set({ season: e.target.value })}
                 >
                   <option value="All">Все сезоны</option>
-                  {[...new Set(state.store.entries.map((e) => e.event.season ?? 'Unknown'))]
-                    .sort()
-                    .reverse()
-                    .map((s) => (
-                      <option key={s} value={s}>
-                        {s === 'Unknown' ? 'Без сезона' : s}
-                      </option>
-                    ))}
+                  {controls.seasons.map((s) => (
+                    <option key={s} value={s}>
+                      {s === 'Unknown' ? 'Без сезона' : s}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label>
-                Просмотрено с
-                <input
-                  aria-label="Просмотрено с"
-                  type="date"
-                  value={filter.from}
-                  onChange={(e) => set({ from: e.target.value })}
-                />
-              </label>
-              <label>
-                Просмотрено по
-                <input
-                  aria-label="Просмотрено по"
-                  type="date"
-                  value={filter.to}
-                  onChange={(e) => set({ to: e.target.value })}
-                />
-              </label>
+            )}
+            {controls.dates && (
+              <>
+                <label>
+                  Просмотрено с
+                  <input
+                    aria-label="Просмотрено с"
+                    type="date"
+                    value={filter.from}
+                    onChange={(e) => set({ from: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Просмотрено по
+                  <input
+                    aria-label="Просмотрено по"
+                    type="date"
+                    value={filter.to}
+                    onChange={(e) => set({ to: e.target.value })}
+                  />
+                </label>
+              </>
+            )}
+            {controls.tags.length > 0 && (
               <label>
                 Тег
                 <select
@@ -256,19 +275,15 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   onChange={(e) => set({ tag: e.target.value })}
                 >
                   <option value="">Все теги</option>
-                  {[
-                    ...new Set(
-                      state.store.entries.filter((e) => !isHidden(e)).flatMap((e) => e.tags),
-                    ),
-                  ]
-                    .sort()
-                    .map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
+                  {controls.tags.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </label>
+            )}
+            {controls.search && (
               <label>
                 Поиск
                 <input
@@ -279,29 +294,26 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   placeholder="Событие, заметка или тег"
                 />
               </label>
-            </div>
-            <button
-              className="ghost-btn"
-              onClick={() => {
-                setFilter(EMPTY_FILTER);
-                setPage(1);
-              }}
-            >
+            )}
+          </div>
+          {filtered && entries.length > 0 && (
+            <button className="ghost-btn" onClick={resetFilters}>
               Сбросить фильтры
             </button>
-            {invalidDates && (
-              <p className="diary-notice" role="alert">
-                Проверьте даты: начало периода должно быть не позже окончания.
-              </p>
-            )}
-          </section>
-        </>
+          )}
+          {invalidDates && (
+            <p className="diary-notice" role="alert">
+              Проверьте даты: начало периода должно быть не позже окончания.
+            </p>
+          )}
+        </section>
       )}
       <section className="diary-records" aria-label="История просмотров">
         {state.store.entries.length > 0 && (
           <div className="diary-heading">
             <h2>
-              Мои просмотры · {entries.length} из {state.store.entries.length}
+              Мои просмотры · {filtered ? `${entries.length} из ` : ''}
+              {state.store.entries.length}
             </h2>
           </div>
         )}
@@ -311,7 +323,11 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
             <p>В карточке матча или гонки нажмите «Отметить просмотр».</p>
           </div>
         ) : !entries.length ? (
-          <p className="panel muted">По выбранным фильтрам записей нет.</p>
+          <EmptyBlock title="Таких просмотров нет">
+            <button className="ghost-btn" onClick={resetFilters}>
+              Сбросить фильтры
+            </button>
+          </EmptyBlock>
         ) : (
           shown.map((entry) => {
             const ref = entry.event.reference,
@@ -438,41 +454,37 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           </nav>
         )}
       </section>
-      {state.store.entries.length > 0 && (
+      {seasons.length > 1 && (
         <section className="panel diary-season-stats" aria-label="Статистика просмотра по сезонам">
           <h2>По сезонам</h2>
           <p className="muted small">
             Статистика по текущим фильтрам. Скрытые записи не участвуют в оценках и таблице сезонов.
           </p>
-          {!seasons.length ? (
-            <p className="muted">Нет открытых записей для статистики.</p>
-          ) : (
-            <div className="diary-table-wrap">
-              <table>
-                <caption>Ваша история по сезонам</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Спорт</th>
-                    <th scope="col">Сезон</th>
-                    <th scope="col">Просмотры</th>
-                    <th scope="col">Оценки</th>
-                    <th scope="col">Средняя оценка</th>
+          <div className="diary-table-wrap">
+            <table>
+              <caption>Ваша история по сезонам</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Спорт</th>
+                  <th scope="col">Сезон</th>
+                  <th scope="col">Просмотры</th>
+                  <th scope="col">Оценки</th>
+                  <th scope="col">Средняя оценка</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seasons.map((s) => (
+                  <tr key={`${s.sport}:${s.season}`}>
+                    <td>{sportName(s.sport)}</td>
+                    <td>{s.season ?? 'Не указан'}</td>
+                    <td>{s.count}</td>
+                    <td>{s.rated}</td>
+                    <td>{number(s.average)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {seasons.map((s) => (
-                    <tr key={`${s.sport}:${s.season}`}>
-                      <td>{sportName(s.sport)}</td>
-                      <td>{s.season ?? 'Не указан'}</td>
-                      <td>{s.count}</td>
-                      <td>{s.rated}</td>
-                      <td>{number(s.average)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
       <section className="panel diary-import" aria-label="Перенос дневника">

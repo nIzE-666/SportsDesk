@@ -259,6 +259,85 @@ export function filterDiary(entries: DiaryEntry[], f: DiaryFilter): DiaryEntry[]
       (a, b) => b.watchedOn.localeCompare(a.watchedOn) || b.updatedAt.localeCompare(a.updatedAt),
     );
 }
+export const EMPTY_DIARY_FILTER: DiaryFilter = {
+  sport: 'All',
+  from: '',
+  to: '',
+  season: 'All',
+  tag: '',
+  query: '',
+};
+export function diaryFilterActive(f: DiaryFilter): boolean {
+  return (Object.keys(EMPTY_DIARY_FILTER) as (keyof DiaryFilter)[]).some(
+    (key) => f[key] !== EMPTY_DIARY_FILTER[key],
+  );
+}
+export interface DiaryFilterControls {
+  sport: boolean;
+  /** Season values to choose from; empty when the control is not needed. */
+  seasons: string[];
+  dates: boolean;
+  /** Tag values to choose from; empty when the control is not needed. */
+  tags: string[];
+  search: boolean;
+}
+/**
+ * A control is offered only when it can split the saved views into two parts,
+ * or while its value is set (so an active filter never disappears). Tags of
+ * entries whose result is hidden are not offered.
+ */
+export function diaryFilterControls(
+  entries: readonly DiaryEntry[],
+  filter: DiaryFilter,
+  hidden: (entry: DiaryEntry) => boolean = () => false,
+): DiaryFilterControls {
+  const seasons = [...new Set(entries.map((e) => e.event.season ?? 'Unknown'))].sort().reverse();
+  const tags = [...new Set(entries.filter((e) => !hidden(e)).flatMap((e) => e.tags))].sort();
+  const hasTag = (e: DiaryEntry, tag: string) => e.tags.some((t) => fold(t) === fold(tag));
+  return {
+    sport: new Set(entries.map((e) => e.event.sport)).size > 1 || filter.sport !== 'All',
+    seasons: seasons.length > 1 || filter.season !== 'All' ? seasons : [],
+    dates: new Set(entries.map((e) => e.watchedOn)).size > 1 || !!filter.from || !!filter.to,
+    tags: tags.some((tag) => entries.some((e) => !hasTag(e, tag))) || !!filter.tag ? tags : [],
+    search: entries.length > 1 || filter.query !== '',
+  };
+}
+export interface DiarySummary {
+  total: number;
+  football: number;
+  f1: number;
+  rated: number;
+  average: number | null;
+}
+/** `visible` leaves out entries whose result is hidden: they do not enter the average. */
+export function summarizeDiary(
+  entries: readonly DiaryEntry[],
+  visible: readonly DiaryEntry[] = entries,
+): DiarySummary {
+  const rated = visible.filter((e) => e.rating !== null);
+  return {
+    total: entries.length,
+    football: entries.filter((e) => e.event.sport === 'football').length,
+    f1: entries.filter((e) => e.event.sport === 'f1').length,
+    rated: rated.length,
+    average: rated.length
+      ? rated.reduce((sum, e) => sum + (e.rating ?? 0), 0) / rated.length
+      : null,
+  };
+}
+export type DiaryTileId = 'total' | 'football' | 'f1' | 'average';
+/**
+ * Tiles worth showing: nothing for a single view or an empty list, no zero,
+ * no dash, no sport split when only one sport is present, no lone total.
+ */
+export function diaryTiles(summary: DiarySummary): { id: DiaryTileId; value: number }[] {
+  if (summary.total < 2) return [];
+  const tiles: { id: DiaryTileId; value: number }[] = [];
+  if (summary.football > 0 && summary.f1 > 0)
+    tiles.push({ id: 'football', value: summary.football }, { id: 'f1', value: summary.f1 });
+  if (summary.average !== null) tiles.push({ id: 'average', value: summary.average });
+  return tiles.length ? [{ id: 'total', value: summary.total }, ...tiles] : [];
+}
 export function diarySeasons(entries: DiaryEntry[]) {
   const groups = new Map<
     string,

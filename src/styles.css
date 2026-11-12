@@ -396,6 +396,14 @@ a {
   line-height: 1.55;
 }
 
+/* The one action of an empty state sits on its own line under the phrase. */
+.state-block .state-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .state-block.error {
   border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
   background: color-mix(in srgb, var(--danger) 7%, var(--panel));

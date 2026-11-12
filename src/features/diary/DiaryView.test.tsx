@@ -13,7 +13,7 @@ import { hideResult } from '../spoilers/spoilerStore';
 import { PREDICTIONS_KEY, type Prediction } from '../games/predictions';
 import { DiaryView } from './DiaryView';
 import { DiaryMarkButton } from './DiaryMarkButton';
-import { DIARY_KEY, footballDiaryEvent } from './diaryModel';
+import { DIARY_KEY, footballDiaryEvent, type DiaryEntry } from './diaryModel';
 import { readDiary } from './diaryStore';
 let host: HTMLDivElement, root: Root;
 const onOpen = vi.fn();
@@ -141,7 +141,10 @@ it('creates an offline manual record with a rating and tags without inventing a 
   });
   expect(host.textContent).toContain('Без привязки к источнику');
   expect(host.querySelectorAll('.diary-entry')).toHaveLength(1);
-  expect(host.querySelector('.diary-filter-panel')).not.toBeNull();
+  // A single view has nothing to filter, summarise or split by season.
+  expect(host.querySelector('.diary-filter-panel')).toBeNull();
+  expect(host.querySelector('.diary-summary')).toBeNull();
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
 });
 it('opens exact football and F1 references without a provider refresh', async () => {
   await renderView();
@@ -171,10 +174,12 @@ it('hides private notes, ratings and their seasonal statistics until the result 
   expect(host.querySelector('[aria-label="Фильтр по тегу"]')?.textContent).not.toContain('разгром');
   expect(host.textContent).not.toContain(diaryFootballEntry.note);
   expect(host.querySelector('.diary-summary')?.textContent).toContain('9');
-  expect(host.querySelector('.diary-season-stats')?.textContent).not.toContain('2026/2027');
+  // Only the open race is left, so there is no season table to split it into.
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
   await click('Показать результат');
   expect(host.textContent).toContain(diaryFootballEntry.note);
   expect(host.querySelector('.diary-summary')?.textContent).toContain('8,5');
+  expect(host.querySelector('.diary-season-stats')?.textContent).toContain('2026/2027');
 });
 it('requires explicit deletion and leaves game predictions untouched', async () => {
   await renderView();
@@ -221,4 +226,113 @@ it('keeps the editor and stored note intact after a failed save', async () => {
   expect(readDiary().store.entries.find((e) => e.id === diaryFootballEntry.id)?.note).toBe(
     diaryFootballEntry.note,
   );
+});
+
+const manualEntry = (i: number, patch: Partial<DiaryEntry> = {}): DiaryEntry => ({
+  ...diaryFootballEntry,
+  id: `manual:view-${i}`,
+  event: { ...diaryFootballEntry.event, title: `Матч ${i}`, reference: null },
+  tags: [],
+  rating: null,
+  ...patch,
+});
+async function renderWith(entries: DiaryEntry[]) {
+  localStorage.setItem(DIARY_KEY, JSON.stringify({ version: 1, entries }));
+  await act(async () => root.render(<DiaryView onOpen={onOpen} />));
+}
+const tileTexts = () =>
+  [...host.querySelectorAll('.diary-summary > div')].map((el) => el.textContent ?? '');
+const filterLabels = () =>
+  [...host.querySelectorAll('.diary-filter-panel [aria-label]')].map((el) =>
+    el.getAttribute('aria-label'),
+  );
+const resetButtons = () =>
+  [...host.querySelectorAll('button')].filter((b) => b.textContent === 'Сбросить фильтры');
+
+it('shows one saved view without tiles, filters or a season table', async () => {
+  await renderWith([diaryFootballEntry]);
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(1);
+  expect(host.querySelector('.diary-summary')).toBeNull();
+  expect(host.querySelector('.diary-filter-panel')).toBeNull();
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
+  expect(host.querySelector('.diary-records h2')?.textContent).toBe('Мои просмотры · 1');
+  expect(host.querySelector('.diary-import')).not.toBeNull();
+});
+it('shows several views of one sport without zero tiles or filters that change nothing', async () => {
+  await renderWith([
+    manualEntry(1, { rating: 7, tags: ['друзья'] }),
+    manualEntry(2, { rating: 8, tags: ['друзья', 'вечер'] }),
+    manualEntry(3, { rating: null, tags: ['друзья'] }),
+  ]);
+  expect(tileTexts()).toEqual(['3Просмотров', '7,5Средняя личная оценка · оценено: 2']);
+  expect(host.textContent).not.toContain('Формула 1');
+  expect(filterLabels()).toEqual(['Фильтр по тегу', 'Поиск по дневнику']);
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
+  expect(host.querySelector('.diary-records h2')?.textContent).toBe('Мои просмотры · 3');
+  // No filter is set yet, so there is nothing to reset.
+  expect(resetButtons()).toHaveLength(0);
+});
+it('keeps a tag filter out of the way while every view carries the same tag', async () => {
+  await renderWith([manualEntry(1, { tags: ['друзья'] }), manualEntry(2, { tags: ['друзья'] })]);
+  expect(filterLabels()).toEqual(['Поиск по дневнику']);
+});
+it('shows matches and races with every tile and a split by season', async () => {
+  await renderWith(diaryFixture.entries);
+  expect(tileTexts()).toEqual([
+    '2Просмотров',
+    '1Футбол',
+    '1Формула 1',
+    '8,5Средняя личная оценка · оценено: 2',
+  ]);
+  expect(filterLabels()).toEqual([
+    'Фильтр по спорту',
+    'Фильтр по сезону',
+    'Просмотрено с',
+    'Просмотрено по',
+    'Фильтр по тегу',
+    'Поиск по дневнику',
+  ]);
+  expect(host.querySelectorAll('.diary-season-stats tbody tr')).toHaveLength(2);
+  expect(resetButtons()).toHaveLength(0);
+});
+it('counts what the filter leaves and offers a reset only while a filter is set', async () => {
+  await renderWith(diaryFixture.entries);
+  await change('Фильтр по спорту', 'football');
+  expect(host.querySelector('.diary-records h2')?.textContent).toBe('Мои просмотры · 1 из 2');
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(1);
+  // One view is left: no tiles, no season table, but the controls stay to undo the filter.
+  expect(host.querySelector('.diary-summary')).toBeNull();
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
+  expect(resetButtons()).toHaveLength(1);
+  await click('Сбросить фильтры');
+  expect(host.querySelector('.diary-records h2')?.textContent).toBe('Мои просмотры · 2');
+  expect(resetButtons()).toHaveLength(0);
+});
+it('says so once and offers one reset when the filters leave nothing', async () => {
+  await renderWith(diaryFixture.entries);
+  await change('Поиск по дневнику', 'такого нет нигде');
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(0);
+  expect(host.querySelector('.diary-summary')).toBeNull();
+  expect(host.querySelector('.diary-season-stats')).toBeNull();
+  expect(host.querySelectorAll('.state-block')).toHaveLength(1);
+  expect(host.querySelector('.state-block')?.textContent).toContain('Таких просмотров нет');
+  // The panel stays so the filters can be adjusted, but only the empty state offers the reset.
+  expect(host.querySelector('.diary-filter-panel')).not.toBeNull();
+  expect(resetButtons()).toHaveLength(1);
+  expect(host.querySelector('.state-block')?.contains(resetButtons()[0] ?? null)).toBe(true);
+  await click('Сбросить фильтры');
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(2);
+  expect(host.querySelector('.state-block')).toBeNull();
+});
+it('recovers from a remembered filter that no longer matches any view', async () => {
+  sessionStorage.setItem(
+    'sportsdesk.view.diary.filters',
+    JSON.stringify({ sport: 'f1', from: '', to: '', season: 'All', tag: '', query: '' }),
+  );
+  await renderWith([manualEntry(1)]);
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(0);
+  expect(host.querySelector('.state-block')?.textContent).toContain('Таких просмотров нет');
+  expect(resetButtons()).toHaveLength(1);
+  await click('Сбросить фильтры');
+  expect(host.querySelectorAll('.diary-entry')).toHaveLength(1);
 });

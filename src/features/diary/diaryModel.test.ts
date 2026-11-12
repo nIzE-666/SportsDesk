@@ -7,8 +7,12 @@ import {
 } from '../../test/fixtures/diary';
 import {
   diaryEventKey,
+  diaryFilterActive,
+  diaryFilterControls,
   diaryReadError,
   diarySeasons,
+  diaryTiles,
+  EMPTY_DIARY_FILTER,
   filterDiary,
   footballDiaryEvent,
   isDiaryEntry,
@@ -19,6 +23,7 @@ import {
   parseDiary,
   parseDiaryText,
   parseTags,
+  summarizeDiary,
   todayInTimezone,
   validDay,
   withDiaryEntry,
@@ -161,4 +166,98 @@ it('creates a manual note only when called explicitly and keeps its snapshot sel
   expect(e.rating).toBeNull();
   expect(e.event).not.toBe(event);
   expect(isDiaryEntry(e)).toBe(true);
+});
+
+const football = (i: number, patch: Partial<DiaryEntry> = {}): DiaryEntry => ({
+  ...diaryFootballEntry,
+  id: `manual:f${i}`,
+  event: { ...diaryFootballEntry.event, reference: null },
+  ...patch,
+});
+it('knows when a filter is set and what an empty one looks like', () => {
+  expect(diaryFilterActive(EMPTY_DIARY_FILTER)).toBe(false);
+  expect(diaryFilterActive({ ...EMPTY_DIARY_FILTER, tag: 'тактика' })).toBe(true);
+  expect(diaryFilterActive({ ...EMPTY_DIARY_FILTER, query: ' ' })).toBe(true);
+  expect(diaryFilterActive({ ...EMPTY_DIARY_FILTER, sport: 'f1' })).toBe(true);
+});
+it('offers no filter that cannot change a list of one saved view', () => {
+  expect(diaryFilterControls([diaryFootballEntry], filter)).toEqual({
+    sport: false,
+    seasons: [],
+    dates: false,
+    tags: [],
+    search: false,
+  });
+});
+it('offers only the filters that split several views of one sport, season and day', () => {
+  const same = [
+    football(1, { tags: [] }),
+    football(2, { tags: ['тактика'] }),
+    football(3, { tags: [] }),
+  ];
+  expect(diaryFilterControls(same, filter)).toEqual({
+    sport: false,
+    seasons: [],
+    dates: false,
+    tags: ['тактика'],
+    search: true,
+  });
+  // A tag held by every view splits nothing.
+  const shared = [football(1), football(2)].map((e) => ({ ...e, tags: ['друзья'] }));
+  expect(diaryFilterControls(shared, filter).tags).toEqual([]);
+});
+it('offers sport, season and date filters when the views differ in them', () => {
+  const controls = diaryFilterControls(diaryFixture.entries, filter);
+  expect(controls.sport).toBe(true);
+  expect(controls.seasons).toEqual(['2026/2027', '2026']);
+  expect(controls.dates).toBe(true);
+  expect(controls.tags).toEqual(['друзья', 'пересмотреть', 'тактика', 'шины']);
+  expect(controls.search).toBe(true);
+  const later = [football(1), football(2, { watchedOn: '2026-11-10' })];
+  expect(diaryFilterControls(later, filter).dates).toBe(true);
+  const undated = [football(1), football(2, { event: { ...football(2).event, season: null } })];
+  expect(diaryFilterControls(undated, filter).seasons).toEqual(['Unknown', '2026/2027']);
+});
+it('keeps a control visible while its value is set', () => {
+  const one = [diaryFootballEntry];
+  expect(diaryFilterControls(one, { ...filter, sport: 'f1' }).sport).toBe(true);
+  expect(diaryFilterControls(one, { ...filter, from: '2026-11-01' }).dates).toBe(true);
+  expect(diaryFilterControls(one, { ...filter, query: 'xyz' }).search).toBe(true);
+  expect(diaryFilterControls(one, { ...filter, season: '2020' }).seasons).toEqual(['2026/2027']);
+  expect(diaryFilterControls(one, { ...filter, tag: 'тактика' }).tags).toEqual([
+    'друзья',
+    'тактика',
+  ]);
+});
+it('does not offer tags of views whose result is hidden', () => {
+  const hidden = (e: DiaryEntry) => e.id === diaryFootballEntry.id;
+  expect(diaryFilterControls(diaryFixture.entries, filter, hidden).tags).toEqual([
+    'пересмотреть',
+    'шины',
+  ]);
+});
+it('counts views by sport and averages only open, rated views', () => {
+  const summary = summarizeDiary(diaryFixture.entries);
+  expect(summary).toEqual({ total: 2, football: 1, f1: 1, rated: 2, average: 8.5 });
+  const hiddenFootball = summarizeDiary(diaryFixture.entries, [diaryRaceEntry]);
+  expect(hiddenFootball).toEqual({ total: 2, football: 1, f1: 1, rated: 1, average: 9 });
+  expect(summarizeDiary([football(1, { rating: null })]).average).toBeNull();
+  expect(summarizeDiary([])).toEqual({ total: 0, football: 0, f1: 0, rated: 0, average: null });
+});
+it('shows tiles only for values that say something', () => {
+  const ids = (entries: DiaryEntry[]) => diaryTiles(summarizeDiary(entries)).map((t) => t.id);
+  expect(ids([])).toEqual([]);
+  expect(ids([diaryFootballEntry])).toEqual([]);
+  expect(ids(diaryFixture.entries)).toEqual(['total', 'football', 'f1', 'average']);
+  // One sport: no zero tile and no sport tile that repeats the total.
+  expect(ids([football(1), football(2)])).toEqual(['total', 'average']);
+  // Nothing rated: no dash tile, and a lone total is not worth a tile row.
+  const unrated = [football(1, { rating: null }), football(2, { rating: null })];
+  expect(ids(unrated)).toEqual([]);
+  const mixed = [football(1, { rating: null }), { ...diaryRaceEntry, rating: null }];
+  expect(ids(mixed)).toEqual(['total', 'football', 'f1']);
+  expect(diaryTiles(summarizeDiary(diaryFixture.entries)).find((t) => t.id === 'average')).toEqual({
+    id: 'average',
+    value: 8.5,
+  });
 });
