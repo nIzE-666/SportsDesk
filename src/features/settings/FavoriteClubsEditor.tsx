@@ -109,14 +109,10 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
         />
       </label>
       {catalogue.length === 0 && (
-        <p className="muted small">
-          Каталог клубов пополняется, когда вы открываете лиги в разделе «Футбол».
-        </p>
+        <p className="muted small">Каталог клубов пополняется, когда вы открываете лиги.</p>
       )}
       {query.trim() !== '' && results.length === 0 && catalogue.length > 0 && (
-        <p className="muted small">
-          Ничего не найдено. Откройте нужную лигу, чтобы клуб попал в каталог.
-        </p>
+        <p className="muted small">Ничего не найдено. Откройте лигу клуба — он появится здесь.</p>
       )}
       {grouped.map(([league, teams]) => (
         <div key={league} className="fav-editor-group">
