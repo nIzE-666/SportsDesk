@@ -87,7 +87,7 @@ export function SavedPlayerProfile({
           {busy && <LoadingBlock label="Загружаем показатели сохранённого матча…" rows={2} />}
           {error && (
             <p role="status" className="muted">
-              {error} Можно собрать показатели других загруженных матчей ниже.
+              {error}
             </p>
           )}
         </section>

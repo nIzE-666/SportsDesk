@@ -123,14 +123,9 @@ export function CatchUpPanel({
       <p className="muted small">
         {when(summary.from)} — {when(summary.to)}
       </p>
-      {summary.truncated && (
-        <p className="muted small">Показаны только последние 72 часа отсутствия.</p>
-      )}
+      {summary.truncated && <p className="muted small">Показаны последние 72 часа.</p>}
       {summary.footballIncomplete && (
-        <p className="muted small">
-          Футбол: часть данных не загрузилась — список может быть неполным. Догрузим при следующей
-          проверке.
-        </p>
+        <p className="muted small">Футбол: неполные данные, догрузим при следующей проверке.</p>
       )}
       {summary.f1Incomplete && (
         <p className="muted small">Формула 1: итоги некоторых сессий ещё недоступны.</p>

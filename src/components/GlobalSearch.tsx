@@ -128,8 +128,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
                 </button>
               </div>
               <p className="command-hint">
-                {query ? 'Результаты по загруженным данным' : 'Недавние переходы и разделы'} · без
-                дополнительных запросов
+                {query ? 'Результаты по загруженным данным' : 'Недавние переходы и разделы'}
               </p>
               <div
                 className="command-results"
@@ -156,8 +155,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
                 ))}
                 {!results.length && (
                   <p className="command-empty">
-                    Совпадений нет. Поиск пополняется при открытии лиг, составов, зачётов F1 и
-                    каталога каналов.
+                    Совпадений нет. Поиск работает по тому, что вы уже открывали.
                   </p>
                 )}
               </div>

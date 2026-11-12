@@ -23,9 +23,6 @@ export function HomeLayoutEditor({ design, onClose }: { design: HomeDesign; onCl
           Готово
         </button>
       </div>
-      <p className="muted small">
-        Порядок и видимость сохраняются после перезапуска и входят в резервную копию профиля.
-      </p>
       <ol className="home-layout-list">
         {layout.order.map((id, index) => {
           const meta = homeWidgetMeta(id);

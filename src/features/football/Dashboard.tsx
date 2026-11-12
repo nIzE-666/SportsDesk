@@ -248,12 +248,15 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
 
   const calendarExportBlock = (
     <div className="calendar-export-bar">
-      <button className="ghost-btn" onClick={() => void exportToCalendar()} disabled={calBusy}>
+      <button
+        className="ghost-btn"
+        onClick={() => void exportToCalendar()}
+        disabled={calBusy}
+        title="Будущие матчи отслеживаемых команд, с напоминанием за 15 минут"
+      >
         <CalendarPlus size={14} /> {calBusy ? 'Сохраняем…' : 'Матчи в календарь (.ics)'}
       </button>
-      <span className="muted small">
-        {calMessage ?? 'Будущие матчи отслеживаемых команд — с системным напоминанием за 15 минут.'}
-      </span>
+      {calMessage && <span className="muted small">{calMessage}</span>}
     </div>
   );
 
@@ -359,7 +362,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         {!favTotal && !data.matchesLoading && !data.matchesError && (
           <EmptyBlock
             title="Пока никого под присмотром"
-            message="Отметьте команды звёздочкой в разделе «Матчи» — их расписание и результаты появятся в этой колонке."
+            message="Отметьте команды звёздочкой в разделе «Матчи»."
           />
         )}
       </section>

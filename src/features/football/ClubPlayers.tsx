@@ -120,9 +120,7 @@ export function ClubPlayers({
                 <p>{team.name}</p>
               </div>
             </div>
-            <p className="muted small">
-              Есть в заявке последнего матча, но индивидуальная статистика этого матча отсутствует.
-            </p>
+            <p className="muted small">В заявке последнего матча, но статистики нет.</p>
             <button
               className="ghost-btn"
               aria-pressed={isPlayerFavorite(selected.id)}
@@ -173,7 +171,7 @@ export function ClubPlayers({
       <p className="muted small">
         {match
           ? `Заявка последнего завершённого матча: ${match.home_team.name} — ${match.away_team.name} · ${formatHumanDate(match.time_utc ?? match.date, getUserTimezone())}.`
-          : 'В загруженном расписании нет завершённого матча этого клуба.'}
+          : 'В расписании нет завершённого матча этого клуба.'}
       </p>
       {match && !current && <LoadingBlock label="Загружаем игроков и фотографии…" rows={3} />}
       {current?.error && (

@@ -340,7 +340,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               {!upcoming.length && (
                 <EmptyBlock
                   title="Розыгрыш завершён"
-                  message="Выберите другой сезон или посмотрите результаты матчей."
+                  message="Результаты — в разделе «Все матчи»."
                 />
               )}
             </section>
@@ -359,17 +359,14 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                   {tableError && <p className="muted small">{tableError}</p>}
                 </>
               ) : (
-                <p className="muted small">
-                  Общая таблица доступна для текущего розыгрыша. Матчи и сетка выбранного сезона
-                  сохранены в своих разделах.
-                </p>
+                <p className="muted small">Таблица есть только для текущего розыгрыша.</p>
               )}
             </section>
           </div>
           <section className="ucl-teams panel">
             <div className="section-title">
               <h2>Клубы этого сезона</h2>
-              <span className="muted small">Нажмите на эмблему, чтобы найти матчи команды</span>
+              <span className="muted small">Эмблема открывает матчи команды</span>
             </div>
             <div className="ucl-logo-wall">
               {teams.map((t) => (
@@ -387,7 +384,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
           {season !== current ? (
             <EmptyBlock
               title="Архивная таблица не предоставлена"
-              message="Этот источник возвращает таблицу текущего сезона. Сетка и результаты выбранного сезона доступны отдельно."
+              message="Таблица есть только для текущего сезона."
             />
           ) : tableError ? (
             <ErrorBlock
@@ -406,10 +403,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                   <i />
                   Места 9–24
                 </span>
-                <small>
-                  Положение в текущей таблице; итоговые участники плей-офф определятся после
-                  завершения этапа.
-                </small>
+                <small>Участники плей-офф определятся после завершения этапа.</small>
               </div>
               <Table rows={rows} onTeam={teamMatches} />
             </>
@@ -466,7 +460,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
         <>
           <div className="bracket-intro">
             <GitBranch size={19} />
-            <p>Откройте пару, чтобы посмотреть матчи и подробную статистику.</p>
+            <p>Откройте пару, чтобы увидеть её матчи.</p>
             <span className="chip">{season}</span>
           </div>
           {bracketBusy && (
@@ -503,7 +497,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                           <div className="tie-placeholder">
                             <Trophy size={18} />
                             <strong>Пары ещё не определены</strong>
-                            <small>Появятся после жеребьёвки и публикации расписания.</small>
+                            <small>Появятся после жеребьёвки.</small>
                           </div>
                         )}
                       </div>
@@ -513,8 +507,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               </div>
               {bracket.missingDetails > 0 && (
                 <p className="muted small">
-                  Часть данных о стадиях не получена ({bracket.missingDetails}). Показаны
-                  подтверждённые пары.
+                  Неполные данные: часть стадий не получена ({bracket.missingDetails}).
                 </p>
               )}
             </>
@@ -552,10 +545,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               </div>
             </div>
             {season !== current ? (
-              <p className="muted small">
-                Рейтинг игроков доступен только для текущего розыгрыша. Подробные показатели за
-                архивный сезон можно открыть в каждом матче.
-              </p>
+              <p className="muted small">Рейтинг игроков есть только для текущего розыгрыша.</p>
             ) : scorerError ? (
               <ErrorBlock
                 title="Рейтинг недоступен"
@@ -631,9 +621,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
             {playerInfo && typeof playerInfo.nationality === 'string' && (
               <p className="muted small">{playerInfo.nationality}</p>
             )}
-            <p className="muted small">
-              Подробные передачи, удары и действия игрока доступны в статистике конкретного матча.
-            </p>
+            <p className="muted small">Подробности — в статистике матча.</p>
             <button
               className="primary-btn"
               onClick={() => {

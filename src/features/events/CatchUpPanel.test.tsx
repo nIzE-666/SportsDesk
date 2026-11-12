@@ -49,7 +49,7 @@ it('shows missed results with honest notes, opens targets and dismisses', async 
     expect(host.textContent).toContain('Пока вас не было');
     expect(host.textContent).toContain('Arsenal 2 : 1 Chelsea');
     expect(host.textContent).toContain('последние 72 часа');
-    expect(host.textContent).toContain('список может быть неполным');
+    expect(host.textContent).toContain('неполные данные');
     expect(host.textContent).not.toContain('Формула 1: итоги');
     await act(async () => button('Открыть матч').click());
     expect(open).toHaveBeenCalledWith(item);

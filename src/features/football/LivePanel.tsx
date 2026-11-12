@@ -147,7 +147,7 @@ export function LivePanel() {
           <h1>
             <Radio size={18} /> Счёт и события
           </h1>
-          <p className="muted small">Матчи ваших клубов и доступных турниров.</p>
+          <p className="muted small">Ваши клубы и турниры.</p>
         </div>
         <div className="dashboard-head-actions">
           <button className="ghost-btn" onClick={() => void load()} disabled={loading}>
@@ -180,7 +180,7 @@ export function LivePanel() {
       {!loading && !error && visible.length === 0 && personalMatches.length === 0 && (
         <EmptyBlock
           title="В ленте нет матчей ваших клубов и турниров"
-          message="Лента содержит только 50 первых матчей дня по времени начала, поэтому вечерние игры могут в неё не попасть."
+          message="В ленте только 50 первых матчей дня, поэтому вечерние игры могут не попасть."
         />
       )}
       {!loading && !error && visible.length === 0 && personalMatches.length > 0 && (

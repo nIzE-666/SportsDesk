@@ -93,7 +93,7 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
           <h2>
             <CalendarClock size={23} /> Календарь сезона {year}
           </h2>
-          <p>Выберите этап — расписание и результаты откроются рядом. Время: {timezone}.</p>
+          <p>Время: {timezone}.</p>
         </div>
         <span className="chip">{ordered.length} этапов</span>
       </div>
@@ -197,7 +197,7 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
             <section className="panel calendar-empty-detail">
               <CalendarClock size={32} />
               <h2>Выберите этап</h2>
-              <p>Откройте весь сезон или измените фильтр, чтобы посмотреть уикенд.</p>
+              <p>Откройте весь сезон или измените фильтр.</p>
             </section>
           )}
         </div>

@@ -439,7 +439,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
     pickDefaultSession(sessionList, Date.now()) === null;
 
   const liveNote = (
-    <div className="f1-pill warn" title="OpenF1 бесплатный доступ не предоставляет живые данные">
+    <div className="f1-pill warn" title="Живые данные недоступны: только история">
       <Radio size={12} aria-hidden="true" /> Прямая телеметрия недоступна
     </div>
   );
@@ -449,7 +449,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
       <div className="f1-card">
         <div className="f1-card-head">
           <div>
-            <div className="f1-eyebrow">Сессии OpenF1 · исторические данные</div>
+            <div className="f1-eyebrow">Сессии · исторические данные</div>
             <div className="f1-title" style={{ marginTop: 4, fontSize: 20 }}>
               {mode === 'pace' ? 'Темп пилотов внутри гонки' : 'Обзор гоночных сессий'}
             </div>
@@ -457,7 +457,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           {liveNote}
         </div>
         <div className="f1-muted" style={{ fontSize: 12 }}>
-          Круги, шины и пит-стопы с 2023 года — через 30 минут после окончания сессии.
+          Данные с 2023 года, через 30 минут после сессии.
         </div>
         <div className="f1-toolbar">
           <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -525,7 +525,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
         </div>
 
         {meetings.loading && !meetings.data ? (
-          <State kind="loading" title="Загрузка календаря OpenF1…" />
+          <State kind="loading" title="Загрузка календаря…" />
         ) : null}
         {meetings.error && !meetings.data ? (
           <State kind="error" title="Не удалось загрузить список Гран-при">
@@ -533,8 +533,8 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           </State>
         ) : null}
         {!meetings.loading && !meetings.error && meetingList.length === 0 ? (
-          <State kind="empty" title={`Нет данных OpenF1 за ${selectedYear}`}>
-            Бесплатный доступ OpenF1 содержит только сессии начиная с 2023 года.
+          <State kind="empty" title={`Нет данных за ${selectedYear}`}>
+            Данные о сессиях есть только с 2023 года.
           </State>
         ) : null}
 
@@ -553,9 +553,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
               </span>
             ) : null}
             {!isMeetingCompleted(selectedMeeting, Date.now()) ? (
-              <span className="f1-pill warn">
-                Уик-энд ещё не завершён — данные могут быть неполными
-              </span>
+              <span className="f1-pill warn">Уик-энд не завершён · неполные данные</span>
             ) : null}
           </div>
         ) : null}
@@ -592,13 +590,11 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
         </State>
       ) : null}
       {sessionsEmptyForMeeting ? (
-        <State kind="empty" title="Для этого Гран-при сессий нет">
-          Для выбранного уик-энда сессий не найдено.
-        </State>
+        <State kind="empty" title="Для этого Гран-при сессий нет" />
       ) : null}
       {noCompletedSession && !selectedSession ? (
         <State kind="empty" title="Нет завершённых сессий">
-          В этом уик-энде ещё не было завершённых сессий. Выберите другую сессию вручную из списка.
+          Завершённых сессий в этом уик-энде ещё нет.
         </State>
       ) : null}
 
@@ -635,7 +631,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             ) : null}
             {!drivers.loading && !drivers.error && driverList.length === 0 ? (
               <State kind="empty" title="Список пилотов недоступен">
-                OpenF1 не вернул пилотов для этой сессии.
+                Пилотов для этой сессии нет.
               </State>
             ) : null}
 
@@ -682,8 +678,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             ) : null}
             {laps.data && lapRows.length === 0 ? (
               <State kind="empty" title="Круговые данные недоступны">
-                Для этой сессии и пилота кругов нет. Возможно, данные ещё не опубликованы или сессия
-                не проводилась.
+                Для этой сессии и пилота кругов нет.
               </State>
             ) : null}
 
@@ -813,7 +808,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             ) : null}
             {pits.data && pitRows.length === 0 ? (
               <div className="f1-muted" style={{ fontSize: 12 }}>
-                Пит-стопы не зафиксированы OpenF1 для этого пилота в этой сессии.
+                Пит-стопы не зафиксированы.
               </div>
             ) : null}
             {pitRows.length > 0 ? (
@@ -862,7 +857,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
       </div>
       {!selectedSession && !meetings.loading && meetingList.length > 0 && !noCompletedSession ? (
         <State kind="empty" title="Выберите сессию">
-          Укажите пилота и сессию, чтобы увидеть круги, отрезки и пит-стопы.
+          Выберите пилота и сессию.
         </State>
       ) : null}
     </div>

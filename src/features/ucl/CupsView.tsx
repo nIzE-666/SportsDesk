@@ -348,7 +348,7 @@ function Inner({
               {!upcoming.length && (
                 <EmptyBlock
                   title="Розыгрыш завершён"
-                  message="Выберите другой сезон или посмотрите результаты."
+                  message="Результаты — в разделе «Все матчи»."
                 />
               )}
             </section>
@@ -375,13 +375,10 @@ function Inner({
           {season && currentSeason && season !== currentSeason ? (
             <EmptyBlock
               title="Архивная таблица недоступна"
-              message="Источник предоставляет таблицу только текущего сезона. Матчи выбранного сезона и сетка доступны в соседних разделах."
+              message="Таблица есть только для текущего сезона."
             />
           ) : !competition.sportscoreSlug ? (
-            <EmptyBlock
-              title="Таблица не предоставлена"
-              message="Для этого турнира источник таблицы недоступен; матчи и сетка — в своих разделах."
-            />
+            <EmptyBlock title="Таблица не предоставлена" message="Для этого турнира таблицы нет." />
           ) : tableError ? (
             <ErrorBlock
               title="Таблица недоступна"
@@ -445,7 +442,7 @@ function Inner({
         <>
           <div className="bracket-intro">
             <GitBranch size={19} />
-            <p>Откройте пару, чтобы посмотреть матчи и подробную статистику.</p>
+            <p>Откройте пару, чтобы увидеть её матчи.</p>
             <span className="chip">{season}</span>
           </div>
           {bracketBusy && <LoadingBlock label="Собираем подтверждённые пары…" rows={3} />}
@@ -480,7 +477,7 @@ function Inner({
                           <div className="tie-placeholder">
                             <Trophy size={18} />
                             <strong>Пары ещё не определены</strong>
-                            <small>Появятся после жеребьёвки и публикации расписания.</small>
+                            <small>Появятся после жеребьёвки.</small>
                           </div>
                         )}
                       </div>
@@ -490,8 +487,7 @@ function Inner({
               </div>
               {bracket.missingDetails > 0 && (
                 <p className="muted small">
-                  Часть данных о стадиях не получена ({bracket.missingDetails}). Показаны
-                  подтверждённые пары.
+                  Неполные данные: часть стадий не получена ({bracket.missingDetails}).
                 </p>
               )}
             </>

@@ -95,7 +95,7 @@ function DriverRow({ s }: { s: JolpicaDriverStanding }) {
               </div>
               {(s.Constructors ?? []).length > 1 ? (
                 <div className="f1-muted" style={{ marginTop: 6 }}>
-                  Несколько команд за сезон (возможен переход); актуальная — по последнему этапу.
+                  Несколько команд за сезон: показана последняя.
                 </div>
               ) : null}
             </div>

@@ -155,7 +155,7 @@ it('keeps substitutes selectable when individual match stats are missing', async
     </FavoritesProvider>,
   );
   await click('Статистика: Запасной');
-  expect(host.textContent).toContain('индивидуальная статистика этого матча отсутствует');
+  expect(host.textContent).toContain('статистики нет');
   await click('В избранное');
   expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.favoritePlayers)!)[0].id).toBe('bench');
 });

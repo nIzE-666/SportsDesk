@@ -152,9 +152,7 @@ export function RacePacePanel({
         </div>
         <span className="chip">{available ? 'Исторические данные' : 'Данные ещё недоступны'}</span>
       </div>
-      <p className="analysis-description">
-        Два пилота, одна сессия: круги, шины и пит-стопы. Это не график отрыва на трассе.
-      </p>
+      <p className="analysis-description">Два пилота, одна сессия: круги, шины и пит-стопы.</p>
       <div className="pace-driver-selectors">
         {(
           [
@@ -208,17 +206,11 @@ export function RacePacePanel({
           {busy ? 'Загружаем круги…' : raw ? 'Обновить сравнение' : 'Сравнить темп'}
         </button>
       </div>
-      {!available && (
-        <p className="muted small">
-          Круги появляются через 30 минут после окончания сессии. Выберите более раннюю.
-        </p>
-      )}
-      {drivers.length < 2 && (
-        <p className="muted small">Для сравнения нужны данные хотя бы двух пилотов этой сессии.</p>
-      )}
+      {!available && <p className="muted small">Круги появляются через 30 минут после сессии.</p>}
+      {drivers.length < 2 && <p className="muted small">Нужны данные хотя бы двух пилотов.</p>}
       {busy && (
         <p role="status" className="muted small">
-          Загружаем круги, отрезки и пит-стопы двух пилотов.
+          Загружаем круги и пит-стопы…
         </p>
       )}
       {error && (
@@ -315,7 +307,7 @@ export function RacePacePanel({
             </ResponsiveContainer>
           </div>
           {!comparison.a.validLapCount && !comparison.b.validLapCount && (
-            <p className="muted">В выбранных данных нет подходящих кругов с временем.</p>
+            <p className="muted">Нет подходящих кругов с временем.</p>
           )}
           <div className="pace-tyres">
             {(['a', 'b'] as const).map((side) => (

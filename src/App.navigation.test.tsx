@@ -336,7 +336,7 @@ it('explains that upcoming match statistics are not available yet and points to 
   await renderApp();
   await click(host.querySelector<HTMLButtonElement>('.fixture-club')!);
   expect(host.textContent).toContain('Матч ещё не начался');
-  expect(host.textContent).toContain('Опубликованные составы можно посмотреть');
+  expect(host.textContent).toContain('составы — во вкладке «Поле и оценки»');
   expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
 });
 

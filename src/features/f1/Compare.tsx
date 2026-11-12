@@ -251,8 +251,8 @@ export function Compare() {
             <span>{comparison.qualifyingHeadToHead.b}</span>
           </div>
         )}
-        <p className="muted small">
-          Очки — из результатов гонок и спринтов; в опубликованном зачёте они могут отличаться.
+        <p className="muted small" title="В опубликованном зачёте очки могут отличаться.">
+          Очки — по результатам гонок и спринтов.
         </p>
       </section>
       <ComparisonChart
@@ -262,9 +262,7 @@ export function Compare() {
       />
       <section className="panel comparison-races">
         <h3>Каждый этап крупным планом</h3>
-        <p className="muted small">
-          К — квалификация, Г — финиш гонки. «—» означает отсутствие результата.
-        </p>
+        <p className="muted small">К — квалификация, Г — финиш гонки.</p>
         <div className="f1-scroll">
           <table>
             <thead>

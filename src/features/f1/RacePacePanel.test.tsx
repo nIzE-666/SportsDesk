@@ -263,7 +263,7 @@ it.each([
     root.render(<RacePacePanel session={{ ...session, date_end: end }} drivers={drivers} />),
   );
   expect(button('Сравнить темп').disabled).toBe(true);
-  expect(host.textContent).toContain('после окончания сессии');
+  expect(host.textContent).toContain('после сессии');
   expect(loadRacePace).not.toHaveBeenCalled();
 });
 

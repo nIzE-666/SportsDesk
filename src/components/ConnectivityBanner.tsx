@@ -49,7 +49,7 @@ export function ConnectivityBanner({ sources }: { sources?: readonly string[] })
       <small>
         {health.autoRetryPending
           ? 'Повторяем автоматически.'
-          : 'Проверьте настройки источника или повторите вручную.'}
+          : 'Повторите вручную или проверьте настройки.'}
       </small>
     </div>
   );

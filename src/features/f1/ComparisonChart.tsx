@@ -23,7 +23,7 @@ export function ComparisonChart({
     <section className="panel">
       <div className="section-title">
         <h2>Каждый этап сезона</h2>
-        <span className="muted small">Позиции в основных гонках · меньше — выше</span>
+        <span className="muted small">Позиции в гонках: меньше — выше</span>
       </div>
       <div className="season-chart">
         <ResponsiveContainer width="100%" height={260}>
@@ -72,9 +72,7 @@ export function ComparisonChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="muted small">
-        Разрыв линии означает отсутствие финиша или опубликованного результата.
-      </p>
+      <p className="muted small">Разрыв линии — нет финиша или результата.</p>
     </section>
   );
 }
