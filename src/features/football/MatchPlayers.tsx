@@ -6,7 +6,8 @@ import { useViewState } from '../../lib/useViewState';
 import { useFavorites } from './FavoritesProvider';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
 import { PlayerFormPanel } from './PlayerFormPanel';
-import { formatDate, getUserTimezone } from './storage';
+import { formatHumanDate } from '../../lib/humanDate';
+import { getUserTimezone } from './storage';
 import { formatDistanceStat, formatTeamStat, statGroupLabel, statLabel } from './statLabels';
 import type {
   MatchDetail,
@@ -273,7 +274,7 @@ export function PlayerProfile({
           <h2>{entry.player.name}</h2>
           <p className="muted small">
             {teamName} · матч: {matchLabel} ·{' '}
-            {formatDate(detail.time_utc ?? detail.date, getUserTimezone())}
+            {formatHumanDate(detail.time_utc ?? detail.date, getUserTimezone())}
           </p>
           <p className="muted small">
             Статистика именно этого матча, не сезонная. Минуты: {minutes ?? '—'}.

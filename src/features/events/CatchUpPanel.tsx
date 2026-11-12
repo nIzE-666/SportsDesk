@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
-import { formatDateTime, getUserTimezone } from '../football/storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from '../football/storage';
 import type { SportsEvent } from './EventCenter';
 import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
 
@@ -51,7 +52,7 @@ export function parseCatchUpSummary(value: unknown): CatchUpSummary | null {
   };
 }
 
-const when = (ms: number) => formatDateTime(new Date(ms).toISOString(), getUserTimezone());
+const when = (ms: number) => formatHumanDateTime(ms, getUserTimezone());
 
 export function CatchUpPanel({
   refreshKey = 0,

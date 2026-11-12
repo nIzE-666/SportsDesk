@@ -34,7 +34,8 @@ test('measure user journeys from launch', async ({ page }) => {
     await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
     clicks = 0;
   }
-  const match = () => page.getByRole('button', { name: /21 окт\..*Arsenal 2 Chelsea 1/ }).first();
+  const match = () =>
+    page.getByRole('button', { name: /вчера 03:00.*Arsenal 2 Chelsea 1/ }).first();
   const save = (scenario: string, note: string) => results.push({ scenario, clicks, note });
   await start();
   await expect(match()).toBeVisible();

@@ -3,12 +3,15 @@
  * `sportsdesk.timezone` (default Asia/Yakutsk). All upstream times are UTC.
  */
 
+import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
+import { isValidTimezone } from '../football/storage';
+
 export const DEFAULT_TZ = 'Asia/Yakutsk';
 
 export function getTimeZone(): string {
   try {
     const raw = localStorage.getItem('sportsdesk.timezone');
-    if (raw && raw.trim()) return raw.trim();
+    if (raw && raw.trim() && isValidTimezone(raw.trim())) return raw.trim();
   } catch {
     /* ignore */
   }
@@ -28,49 +31,19 @@ export function parseUtc(date?: string | null, time?: string | null): Date | nul
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** «сегодня 12:00», «сб, 22 нояб., 12:00»; без даты — «—». */
 export function formatDateTime(d: Date | null, tz = getTimeZone()): string {
-  if (!d) return '—';
-  try {
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: tz,
-    }).format(d);
-  } catch {
-    return d.toISOString().slice(0, 16).replace('T', ' ');
-  }
+  return formatHumanDateTime(d, tz);
 }
 
+/** «сегодня», «сб, 22 нояб.», для другого года — с годом. */
 export function formatDate(d: Date | null, tz = getTimeZone()): string {
-  if (!d) return '—';
-  try {
-    return new Intl.DateTimeFormat('ru-RU', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: tz,
-    }).format(d);
-  } catch {
-    return d.toISOString().slice(0, 10);
-  }
+  return formatHumanDate(d, tz);
 }
 
+/** Раньше был компактный числовой вид; теперь везде один человеческий формат. */
 export function formatShort(d: Date | null, tz = getTimeZone()): string {
-  if (!d) return '—';
-  try {
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: tz,
-    }).format(d);
-  } catch {
-    return d.toISOString().slice(5, 16).replace('T', ' ');
-  }
+  return formatHumanDateTime(d, tz);
 }
 
 export function formatFetchedAt(iso?: string | null): string {

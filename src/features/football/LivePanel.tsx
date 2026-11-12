@@ -8,7 +8,8 @@ import { useViewState } from '../../lib/useViewState';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
 import { matchInvolvesFavorite, useFavorites } from './FavoritesProvider';
 import { isPersonalLiveMatch } from './liveCompetitions';
-import { formatDateTime, getUserTimezone } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from './storage';
 
 interface FlatSportScoreMatch {
   home?: string;
@@ -221,7 +222,7 @@ export function LivePanel() {
                       </span>
                     )}
                     {m.time && (
-                      <span className="muted small">{formatDateTime(m.time, timezone)}</span>
+                      <span className="muted small">{formatHumanDateTime(m.time, timezone)}</span>
                     )}
                     {url ? (
                       <button

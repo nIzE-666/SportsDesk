@@ -1,7 +1,8 @@
 import { ChevronRight } from 'lucide-react';
 import TeamBadge from './TeamBadge';
 import type { MatchSummary } from '../features/football/types';
-import { formatDateTime, getUserTimezone } from '../features/football/storage';
+import { getUserTimezone } from '../features/football/storage';
+import { formatHumanDateTime } from '../lib/humanDate';
 import { classifyMatchStatus } from '../lib/sportsIdentity';
 import { scoreText, useResultHidden } from '../features/spoilers/spoilerStore';
 import '../features/spoilers/spoilers.css';
@@ -23,10 +24,10 @@ export function MatchRow({
     <button
       className={`game-row ${compact ? 'compact' : ''}`}
       onClick={onClick}
-      aria-label={`${m.home_team.name} — ${m.away_team.name}, ${formatDateTime(m.time_utc ?? m.date, getUserTimezone())}`}
+      aria-label={`${m.home_team.name} — ${m.away_team.name}, ${formatHumanDateTime(m.time_utc ?? m.date, getUserTimezone())}`}
     >
       <span className="game-time">
-        <strong>{formatDateTime(m.time_utc ?? m.date, getUserTimezone())}</strong>
+        <strong>{formatHumanDateTime(m.time_utc ?? m.date, getUserTimezone())}</strong>
         <small className={live ? 'is-live' : ''}>
           {finished
             ? 'Завершён'

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pin, Radio, X } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
-import { getUserTimezone, formatDateTime } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone, formatUpdatedAt } from './storage';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { loadLiveFeed, type LiveMatch } from './liveFeed';
 import { SPOILER_MASK, spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
@@ -98,7 +99,9 @@ export function MiniWindow() {
         <span className="mini-title">
           <Radio size={13} /> Live-мини
         </span>
-        <span className="mini-updated muted">{updatedAt ? formatDateTime(updatedAt, tz) : ''}</span>
+        <span className="mini-updated muted">
+          {updatedAt ? formatUpdatedAt(updatedAt, tz) : ''}
+        </span>
         <button className="mini-close" onClick={() => void close()} aria-label="Закрыть">
           <X size={13} />
         </button>
@@ -134,7 +137,7 @@ export function MiniWindow() {
             </div>
             <span className="mini-status">
               {isLive(m) ? <i className="mini-live-dot" /> : null}
-              {m.time ? formatDateTime(m.time, tz) : (m.status_text ?? '')}
+              {m.time ? formatHumanDateTime(m.time, tz) : (m.status_text ?? '')}
             </span>
           </div>
         ))}

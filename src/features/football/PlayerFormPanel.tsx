@@ -19,6 +19,7 @@ import {
   type PlayerFormMetricKey,
   type PlayerFormWindow,
 } from './playerForm';
+import { formatHumanDate } from '../../lib/humanDate';
 import { formatDate, getUserTimezone } from './storage';
 import type { MatchSummary } from './types';
 import './playerForm.css';
@@ -275,7 +276,7 @@ export function PlayerFormPanel({
                     onClick={() => onOpenMatch?.(row.id)}
                   >
                     <small>
-                      {row.date ? formatDate(row.date, tz) : 'Дата уточняется'}
+                      {row.date ? formatHumanDate(row.date, tz) : 'Дата уточняется'}
                       {row.status === 'failed'
                         ? ' · ответ недоступен'
                         : row.status === 'missing'

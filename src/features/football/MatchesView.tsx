@@ -7,7 +7,8 @@ import { SourceLine } from '../../components/SourceLine';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
-import { formatDateTime, getUserTimezone, normalizeName } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone, normalizeName } from './storage';
 import type { MatchSummary } from './types';
 import { SPOILER_MASK, isResultHidden } from '../spoilers/spoilerStore';
 import type { UseFootballResult } from './useFootballData';
@@ -228,13 +229,13 @@ function MatchRow({
       className={favorite ? 'mt-row favorite' : 'mt-row'}
       role="group"
       data-match-id={match.id}
-      aria-label={`Матч: ${match.home_team.name} — ${match.away_team.name}, ${formatDateTime(match.time_utc ?? match.date, timezone)}`}
+      aria-label={`Матч: ${match.home_team.name} — ${match.away_team.name}, ${formatHumanDateTime(match.time_utc ?? match.date, timezone)}`}
       onClick={(event) => {
         if (!(event.target as Element).closest('button')) onOpen();
       }}
     >
       <span className="mt-date muted small">
-        {formatDateTime(match.time_utc ?? match.date, timezone)}
+        {formatHumanDateTime(match.time_utc ?? match.date, timezone)}
       </span>
       <div className="fixture-teams">
         {[

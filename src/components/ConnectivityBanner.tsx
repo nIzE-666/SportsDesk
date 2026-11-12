@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { CloudOff, History, RefreshCw } from 'lucide-react';
-import { formatDateTime, getUserTimezone } from '../features/football/storage';
+import { formatUpdatedAt, getUserTimezone } from '../features/football/storage';
 import {
   getHealthSnapshot,
   subscribeHealth,
@@ -37,7 +37,7 @@ export function ConnectivityBanner({ sources }: { sources?: readonly string[] })
         {online ? 'Часть источников недоступна.' : 'Нет сети.'}{' '}
         {saved ? 'Показаны сохранённые данные.' : 'Часть данных пока не загружена.'}
       </span>
-      {saved && <small>Сохранено {formatDateTime(saved, getUserTimezone())}</small>}
+      {saved && <small>Сохранено {formatUpdatedAt(saved, getUserTimezone())}</small>}
       <button
         className="ghost-btn"
         disabled={health.retrying}

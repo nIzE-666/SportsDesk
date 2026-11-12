@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Clock3, Flag, Goal } from 'lucide-react';
 import { loadLiveFeed, type LiveFeed } from '../features/football/liveFeed';
 import { getUserTimezone } from '../features/football/storage';
+import { formatHumanDateTime } from '../lib/humanDate';
 import { useApiResource } from '../features/f1/api';
 import { parseSchedule } from '../features/f1/parsing';
 import { weekendSchedule } from '../features/f1/weekendSchedule';
@@ -94,14 +95,7 @@ export function TodaySidebar({ onMatch, onWeekend }: Props) {
       .sort((a, b) => Number(b.live) - Number(a.live) || a.start - b.start)
       .slice(0, 3);
   }, [feed, schedule.data, now, onMatch, onWeekend]);
-  const clock = (start: number) =>
-    new Intl.DateTimeFormat('ru-RU', {
-      timeZone: tz,
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(start);
+  const clock = (start: number) => formatHumanDateTime(start, tz, now);
   const countdown = (start: number) => {
     const minutes = Math.ceil((start - now) / 60000);
     return minutes < 60

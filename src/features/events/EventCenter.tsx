@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Bell, CheckCheck, RefreshCw } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
-import { formatDateTime, getUserTimezone } from '../football/storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from '../football/storage';
 import { CatchUpPanel } from './CatchUpPanel';
 import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
 import { eventFilterChoices, filterEvents, type EventFilter } from './eventFilters';
@@ -185,7 +186,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
                 {!e.read ? ' · Новое' : ''}
               </span>
               <time dateTime={new Date(e.occurredAt).toISOString()}>
-                {formatDateTime(new Date(e.occurredAt).toISOString(), getUserTimezone())}
+                {formatHumanDateTime(e.occurredAt, getUserTimezone())}
               </time>
             </div>
             <h2>{e.title}</h2>

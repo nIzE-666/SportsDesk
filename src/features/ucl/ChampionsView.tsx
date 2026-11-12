@@ -25,13 +25,8 @@ const STAT_CAPTIONS: Record<StatTileId, string> = {
 };
 import { FavoritesProvider } from '../football/FavoritesProvider';
 import { MatchDetailView } from '../football/MatchDetailView';
-import {
-  formatDateTime,
-  getUserTimezone,
-  getString,
-  setString,
-  normalizeName,
-} from '../football/storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone, getString, setString, normalizeName } from '../football/storage';
 import {
   currentUclSeason,
   fetchUclSeason,
@@ -759,7 +754,7 @@ function TieCard({ tie: t, onOpen }: { tie: BracketTie; onOpen: (id: string) => 
             <button key={l.id} onClick={() => onOpen(l.id)}>
               <span>
                 Матч {i + 1}
-                <small>{formatDateTime(l.date, getUserTimezone())}</small>
+                <small>{formatHumanDateTime(l.date, getUserTimezone())}</small>
               </span>
               <b>
                 {l.homeScore ?? '—'} : {l.awayScore ?? '—'}

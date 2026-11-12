@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, rpc } from '../../lib/bridge';
 import { pluralRu } from '../../lib/plural';
 import { matchStateLabel } from '../../lib/sportsIdentity';
-import { getJson, getUserTimezone, formatDate } from '../football/storage';
+import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
+import { getJson, getUserTimezone } from '../football/storage';
 import { VERIFIED_LEAGUES } from '../football/useFootballData';
 import { fetchHistorySeasons, type HistorySeasonInfo } from '../football/history';
 import { HiddenScore } from '../spoilers/SpoilerGate';
@@ -36,8 +37,7 @@ const coverageLabel = {
   unverified: 'Полнота не проверена',
 };
 const matchesCount = (count: number) => `${count} ${pluralRu(count, 'матч', 'матча', 'матчей')}`;
-const savedTime = (iso: string, timezone: string) =>
-  `${formatDate(iso, timezone)}, ${new Intl.DateTimeFormat('ru-RU', { timeZone: timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))}`;
+const savedTime = (iso: string, timezone: string) => formatHumanDateTime(iso, timezone);
 const bytes = (value: number) =>
   value < 1024
     ? `${value} Б`
@@ -589,8 +589,8 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
         </button>
       </div>
       <p className="muted">
-        Данные на {formatDate(summary.fetchedAt, timezone)}. Часовой пояс: {timezone}. У встреч без
-        времени показана календарная дата источника.
+        Данные на {formatHumanDate(summary.fetchedAt, timezone)}. Часовой пояс: {timezone}. У встреч
+        без времени показана календарная дата источника.
       </p>
       {error ? (
         <p role="alert" className="offline-error">
@@ -650,7 +650,7 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
                       {m.timeUtc
                         ? savedTime(m.timeUtc, timezone)
                         : m.date
-                          ? `${formatDate(m.date, timezone)} · время уточняется`
+                          ? `${formatHumanDate(m.date, timezone)} · время уточняется`
                           : 'Дата уточняется'}
                     </td>
                     <td>

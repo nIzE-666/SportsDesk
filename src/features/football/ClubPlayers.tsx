@@ -10,7 +10,8 @@ import { PlayerProfile } from './MatchPlayers';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
 import { PlayerFormPanel } from './PlayerFormPanel';
 import { loadSquad, mergeSquad, type SquadMember } from './squad';
-import { formatDate, getUserTimezone } from './storage';
+import { formatHumanDate } from '../../lib/humanDate';
+import { getUserTimezone } from './storage';
 import type { FavoritePlayer, MatchSummary, TeamRef } from './types';
 import './players.css';
 
@@ -171,7 +172,7 @@ export function ClubPlayers({
       </div>
       <p className="muted small">
         {match
-          ? `Заявка последнего завершённого матча: ${match.home_team.name} — ${match.away_team.name} · ${formatDate(match.time_utc ?? match.date, getUserTimezone())}.`
+          ? `Заявка последнего завершённого матча: ${match.home_team.name} — ${match.away_team.name} · ${formatHumanDate(match.time_utc ?? match.date, getUserTimezone())}.`
           : 'В загруженном расписании нет завершённого матча этого клуба.'}
       </p>
       {match && !current && <LoadingBlock label="Загружаем игроков и фотографии…" rows={3} />}

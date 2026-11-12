@@ -133,7 +133,10 @@
 .planner-day-heading h2 {
   font-size: 17px;
   margin: 0;
-  text-transform: capitalize;
+}
+/* «сегодня», «сб, 24 нояб.» — с большой буквы только первая буква, без «Нояб.». */
+.planner-day-heading h2::first-letter {
+  text-transform: uppercase;
 }
 .planner-day-heading > span {
   color: var(--muted);

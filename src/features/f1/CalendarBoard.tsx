@@ -10,6 +10,7 @@ import {
   raceStart,
 } from './calendarModel';
 import { RaceWeekend } from './RaceWeekend';
+import { formatHumanDate } from '../../lib/humanDate';
 import { formatDateTime, getTimeZone } from './time';
 import { weekendSchedule } from './weekendSchedule';
 import type { JolpicaRace } from './types';
@@ -78,7 +79,9 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
                 <strong>{formatDateTime(s.start, timezone)}</strong>
               </div>
             ))}
-            {!upcoming.length && <p>Расписание уточняется · {next.date}</p>}
+            {!upcoming.length && (
+              <p>Расписание уточняется · {formatHumanDate(next.date, timezone)}</p>
+            )}
           </div>
           <button className="primary-btn" onClick={jumpToNext}>
             Открыть уикенд <ChevronRight size={16} />
@@ -156,7 +159,7 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
                         <Clock3 size={12} />
                         {raceStart(race)
                           ? formatDateTime(raceStart(race), timezone)
-                          : `${race.date} · время уточняется`}
+                          : `${formatHumanDate(race.date, timezone)} · время уточняется`}
                       </span>
                       <span className="calendar-stage-tags">
                         {next?.round === race.round && (

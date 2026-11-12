@@ -215,9 +215,9 @@ it('shows a calendar-only match on its original day and converts a timestamp in 
   const rows = [...host.querySelectorAll<HTMLElement>('.form-match-row')];
   expect(
     rows.find((item) => item.textContent?.includes('Opponent calendar'))?.textContent,
-  ).toContain('2 октября 2026');
+  ).toContain('пт, 2 окт.');
   expect(rows.find((item) => item.textContent?.includes('Opponent timed'))?.textContent).toContain(
-    '3 октября 2026',
+    'сб, 3 окт.',
   );
 });
 

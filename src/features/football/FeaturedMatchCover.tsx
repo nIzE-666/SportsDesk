@@ -2,7 +2,8 @@ import { ArrowUpRight } from 'lucide-react';
 import { EventCover } from '../../components/EventCover';
 import TeamBadge from '../../components/TeamBadge';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import { formatDateTime, getUserTimezone } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from './storage';
 import type { MatchSummary } from './types';
 import { SPOILER_MASK, useResultHidden } from '../spoilers/spoilerStore';
 
@@ -91,7 +92,7 @@ export function FeaturedMatchCover({
             {score}
           </div>
           <p>
-            {formatDateTime(match.time_utc ?? match.date, getUserTimezone())}
+            {formatHumanDateTime(match.time_utc ?? match.date, getUserTimezone())}
             {match.round_name ? ` · ${match.round_name}` : ''}
           </p>
           <div className="event-cover-actions">

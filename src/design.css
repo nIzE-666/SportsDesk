@@ -1063,7 +1063,7 @@ img {
 }
 .game-row {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr) 45px minmax(0, 1fr) 12px;
+  grid-template-columns: 108px minmax(0, 1fr) 45px minmax(0, 1fr) 12px;
   align-items: center;
   gap: 10px;
   background: none;

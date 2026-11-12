@@ -22,7 +22,8 @@ import { HiddenScore, SpoilerGate } from '../spoilers/SpoilerGate';
 import { SpoilerToggle } from '../spoilers/SpoilerToggle';
 import { PredictionPanel } from '../games/PredictionPanel';
 import '../spoilers/spoilers.css';
-import { formatDate, formatDateTime, getUserTimezone } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { formatUpdatedAt, getUserTimezone } from './storage';
 import type {
   EventsPayload,
   LineupsPayload,
@@ -335,7 +336,7 @@ export function MatchDetailView({
           <ArrowLeft size={14} /> Назад
         </button>
         <div className="muted small">
-          {detail.league?.name} · {detail.season ?? ''}
+          {[detail.league?.name, detail.season].filter(Boolean).join(' · ')}
         </div>
         <button
           className="ghost-btn"
@@ -361,11 +362,13 @@ export function MatchDetailView({
           {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
             <span className="chip live-watch-chip">
               <Radio size={10} className="watch-spin-slow" /> следим{' '}
-              {liveAt ? `· обновлено ${formatDateTime(liveAt, timezone)}` : '· автообновление'}
+              {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
             </span>
           )}
-          <span className="muted small">{formatDateTime(detail.time_utc, timezone)}</span>
-          {!broadcast && <MatchMetadata detail={detail} timezone={timezone} />}
+          <span className="muted small">
+            {formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}
+          </span>
+          {!broadcast && <MatchMetadata detail={detail} />}
         </div>
         <div className="md-team right">
           <span>{detail.away_team.name}</span>
@@ -373,9 +376,9 @@ export function MatchDetailView({
         </div>
       </div>
 
-      {broadcast && (
+      {broadcast && hasMetadata(detail) && (
         <div className="md-meta-strip">
-          <MatchMetadata detail={detail} timezone={timezone} />
+          <MatchMetadata detail={detail} />
         </div>
       )}
       <div className="md-actions">
@@ -526,7 +529,12 @@ export function MatchDetailView({
   );
 }
 
-function MatchMetadata({ detail, timezone }: { detail: MatchDetail; timezone: string }) {
+function hasMetadata(detail: MatchDetail) {
+  return !!(detail.round_name || detail.stadium || detail.referee);
+}
+
+/** Тур или стадия, стадион и арбитр. Дата не повторяется: она уже стоит рядом со счётом. */
+function MatchMetadata({ detail }: { detail: MatchDetail }) {
   const round = detail.round_name
     ? ((
         {
@@ -537,10 +545,10 @@ function MatchMetadata({ detail, timezone }: { detail: MatchDetail; timezone: st
           '1/16': 'Стыковые матчи',
         } as Record<string, string>
       )[detail.round_name.toLowerCase()] ?? `Тур ${detail.round_name}`)
-    : formatDate(detail.date, timezone);
+    : null;
   return (
     <>
-      <span className="muted small">{round}</span>
+      {round && <span className="muted small">{round}</span>}
       {detail.stadium && <span className="muted small">{detail.stadium}</span>}
       {detail.referee && <span className="muted small">Арбитр: {detail.referee}</span>}
     </>
@@ -605,7 +613,7 @@ function Overview({
     }
   } else {
     summaryLines.push(
-      `Матч ${formatDateTime(detail.time_utc, timezone)}. Статус: ${matchStatusLabel(detail.status)}.`,
+      `Матч ${formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}. Статус: ${matchStatusLabel(detail.status)}.`,
     );
   }
 

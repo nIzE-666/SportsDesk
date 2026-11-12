@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useViewState } from '../../lib/useViewState';
-import { formatDate, getUserTimezone } from '../football/storage';
+import { formatHumanDate } from '../../lib/humanDate';
+import { getUserTimezone } from '../football/storage';
 import { SpoilerGate } from '../spoilers/SpoilerGate';
 import { spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import { settle, usePredictions } from '../games/predictions';
@@ -346,9 +347,9 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                     </span>
                     <h3>{isHidden(entry) ? 'Событие без спойлеров' : entry.event.title}</h3>
                     <p className="muted small">
-                      Просмотрено {formatDate(entry.watchedOn, timezone)}
+                      Просмотрено {formatHumanDate(entry.watchedOn, timezone)}
                       {entry.event.eventDate
-                        ? ` · Событие ${formatDate(entry.event.eventDate, timezone)}`
+                        ? ` · Событие ${formatHumanDate(entry.event.eventDate, timezone)}`
                         : ''}
                     </p>
                   </div>

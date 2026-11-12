@@ -1,3 +1,5 @@
+import { formatHumanDateTime } from '../../lib/humanDate';
+
 const PREFIX = 'sportsdesk.';
 
 function safeGet(key: string): string | null {
@@ -144,7 +146,7 @@ function dayKey(date: Date, timezone: string): string | null {
 
 /**
  * Время последнего обновления человеческим языком: «18:42» сегодня, «вчера 18:42»,
- * иначе дата и время. Пустое или неразборчивое значение даёт «—».
+ * иначе «сб, 7 нояб., 18:42». Пустое или неразборчивое значение даёт «—».
  */
 export function formatUpdatedAt(
   iso: string | null | undefined,
@@ -154,7 +156,7 @@ export function formatUpdatedAt(
   if (!iso) return '—';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime()) || /^\d{4}-\d{2}-\d{2}$/.test(iso))
-    return formatDateTime(iso, timezone);
+    return formatHumanDateTime(iso, timezone, now);
   const time = (() => {
     try {
       return new Intl.DateTimeFormat('ru-RU', {
@@ -167,10 +169,10 @@ export function formatUpdatedAt(
     }
   })();
   const day = dayKey(date, timezone);
-  if (!time || !day) return formatDateTime(iso, timezone);
+  if (!time || !day) return formatHumanDateTime(iso, timezone, now);
   if (day === dayKey(new Date(now), timezone)) return time;
   if (day === dayKey(new Date(now - 24 * 60 * 60 * 1000), timezone)) return `вчера ${time}`;
-  return formatDateTime(iso, timezone);
+  return formatHumanDateTime(iso, timezone, now);
 }
 
 export function formatDate(iso: string | null | undefined, timezone: string): string {

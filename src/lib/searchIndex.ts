@@ -1,11 +1,6 @@
 import type { FavoritePlayer } from '../features/football/types';
-import {
-  formatDateTime,
-  getJson,
-  getUserTimezone,
-  setJson,
-  STORAGE_KEYS,
-} from '../features/football/storage';
+import { getJson, getUserTimezone, setJson, STORAGE_KEYS } from '../features/football/storage';
+import { formatHumanDateTime } from './humanDate';
 
 export type SearchTarget =
   | { kind: 'team'; id: string; leagueId?: string }
@@ -199,7 +194,10 @@ export function indexSportsPayload(source: string, path: string, payload: any) {
         items.push({
           key: `match:${m.id}`,
           title: `${m.home_team.name} — ${m.away_team.name}`,
-          subtitle: [data.league?.name, formatDateTime(m.time_utc ?? m.date, getUserTimezone())]
+          subtitle: [
+            data.league?.name,
+            formatHumanDateTime(m.time_utc ?? m.date, getUserTimezone()),
+          ]
             .filter(Boolean)
             .join(' · '),
           target: { kind: 'match', id: m.id, leagueId },

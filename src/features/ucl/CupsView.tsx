@@ -12,13 +12,8 @@ import { CompetitionInsights } from './CompetitionInsights';
 import { MatchDetailView } from '../football/MatchDetailView';
 import { useDataRecovery } from '../../lib/useDataRecovery';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
-import {
-  formatDateTime,
-  getUserTimezone,
-  getString,
-  setString,
-  normalizeName,
-} from '../football/storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone, getString, setString, normalizeName } from '../football/storage';
 import {
   CUP_COMPETITIONS,
   fetchCupSeason,
@@ -587,7 +582,7 @@ function CupTieCard({ tie: t, onOpen }: { tie: BracketTie; onOpen: (id: string) 
             <button key={l.id} onClick={() => onOpen(l.id)}>
               <span>
                 Матч {i + 1}
-                <small>{formatDateTime(l.date, getUserTimezone())}</small>
+                <small>{formatHumanDateTime(l.date, getUserTimezone())}</small>
               </span>
               <b>
                 {l.homeScore ?? '—'} : {l.awayScore ?? '—'}

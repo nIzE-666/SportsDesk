@@ -58,9 +58,8 @@ it('describes the last update as today, yesterday or a date', () => {
   const now = Date.parse('2026-11-10T20:00:00Z');
   expect(formatUpdatedAt('2026-11-10T09:15:00Z', 'UTC', now)).toBe('09:15');
   expect(formatUpdatedAt('2026-11-09T23:59:00Z', 'UTC', now)).toBe('вчера 23:59');
-  expect(formatUpdatedAt('2026-11-07T09:15:00Z', 'UTC', now)).toBe(
-    formatDateTime('2026-11-07T09:15:00Z', 'UTC'),
-  );
+  expect(formatUpdatedAt('2026-11-07T09:15:00Z', 'UTC', now)).toBe('сб, 7 нояб., 09:15');
+  expect(formatUpdatedAt('2025-12-31T09:15:00Z', 'UTC', now)).toBe('ср, 31 дек. 2025, 09:15');
   // Для часового пояса «сегодня» считается по его календарю, а не по UTC.
   expect(formatUpdatedAt('2026-11-10T20:30:00Z', 'Pacific/Kiritimati', now)).toBe('10:30');
   expect(formatUpdatedAt(null, 'UTC', now)).toBe('—');

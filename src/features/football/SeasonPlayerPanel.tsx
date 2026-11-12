@@ -3,7 +3,8 @@ import { BarChart3, ChevronRight } from 'lucide-react';
 import { fetchPlayerSeasonStats } from './playerAnalytics';
 import type { PlayerSeasonStats } from './playerAnalytics';
 import type { MatchSummary } from './types';
-import { formatDateTime, getUserTimezone } from './storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from './storage';
 import { statLabel } from './statLabels';
 
 export function SeasonPlayerPanel({
@@ -137,7 +138,7 @@ export function SeasonPlayerPanel({
                 return (
                   <button key={m.id} onClick={() => onOpenMatch(m.id)}>
                     <span>
-                      {formatDateTime(fixture?.time_utc ?? m.date, getUserTimezone())}
+                      {formatHumanDateTime(fixture?.time_utc ?? m.date, getUserTimezone())}
                       <strong>
                         {fixture ? `${fixture.home_team.name} — ${fixture.away_team.name}` : 'Матч'}
                       </strong>

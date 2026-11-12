@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { formatDate, getUserTimezone } from '../football/storage';
+import { formatHumanDate } from '../../lib/humanDate';
+import { getUserTimezone } from '../football/storage';
 import { useResultHidden, f1SpoilerId } from '../spoilers/spoilerStore';
 import {
   diaryEventKey,
@@ -54,7 +55,7 @@ function DiaryMarkState({
         </button>
         {existing && !hidden && (
           <span className="muted small">
-            Просмотрено · {formatDate(existing.watchedOn, getUserTimezone())}
+            Просмотрено · {formatHumanDate(existing.watchedOn, getUserTimezone())}
           </span>
         )}
         {hidden && (

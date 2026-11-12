@@ -258,7 +258,7 @@ function LatestRaceCard({
               Сходы: <b>{summary.retirements}</b>
             </span>
             <span className="f1-muted">
-              Дата: {last.race.date} · {formatShort(parseUtc(last.race.date, last.race.time))}
+              Дата: {formatShort(parseUtc(last.race.date, last.race.time))}
             </span>
           </div>
         </div>

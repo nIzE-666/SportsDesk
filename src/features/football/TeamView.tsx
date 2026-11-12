@@ -6,7 +6,8 @@ import TeamBadge from '../../components/TeamBadge';
 import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
 import type { MatchSummary } from './types';
-import { formatDate, getUserTimezone, normalizeName } from './storage';
+import { formatHumanDate } from '../../lib/humanDate';
+import { getUserTimezone, normalizeName } from './storage';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 import { useFavorites } from './FavoritesProvider';
 import { compareUpcoming, formatFixtureTime, isUpcomingFixture } from './calendar';
@@ -179,7 +180,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
         <button className="team-match-row" onClick={() => onOpenMatch(match.id)}>
           <span className="team-match-date muted small">
             {match.status === 'finished'
-              ? formatDate(match.time_utc ?? match.date, timezone)
+              ? formatHumanDate(match.time_utc ?? match.date, timezone)
               : formatFixtureTime(match, timezone)}
           </span>
           <span className="team-match-op muted small">{isHome ? 'Д' : 'Г'}</span>
@@ -671,7 +672,7 @@ function SeasonAnalytics({
             <ul className="team-match-list sa-h2h-list">
               {h2h.slice(0, 8).map((m) => (
                 <li key={m.id} className="team-match-row-static">
-                  <span className="muted small">{m.date}</span>
+                  <span className="muted small">{formatHumanDate(m.date, getUserTimezone())}</span>
                   <span className="truncate">
                     {m.homeName} — {m.awayName}
                   </span>

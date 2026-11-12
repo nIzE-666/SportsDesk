@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { api } from '../../lib/bridge';
 import { useNow } from '../../lib/useNow';
-import { formatDateTime, getUserTimezone } from '../football/storage';
+import { formatHumanDateTime } from '../../lib/humanDate';
+import { getUserTimezone } from '../football/storage';
 import { SPOILER_MASK, useSpoilerSet, spoilerKey } from '../spoilers/spoilerStore';
 import {
   needsCheck,
@@ -101,7 +102,7 @@ export function PredictionsGame({
     const settled = settle(item);
     if (settled.state === 'pending')
       return Date.parse(item.kickoff) > now
-        ? `начало ${formatDateTime(item.kickoff, timezone)}`
+        ? `начало ${formatHumanDateTime(item.kickoff, timezone)}`
         : 'ждём итог';
     if (settled.state === 'void')
       return settled.reason === 'cancelled'

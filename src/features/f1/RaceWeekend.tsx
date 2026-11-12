@@ -2,6 +2,7 @@ import { useViewState } from '../../lib/useViewState';
 import { useApiResource } from './api';
 import { parseQualifying, parseRaceResults } from './parsing';
 import { SourceBar, State } from './shared';
+import { formatHumanDate } from '../../lib/humanDate';
 import { formatDateTime, getTimeZone } from './time';
 import type { JolpicaRace } from './types';
 import { QualifyingResultsTable, RaceResultsTable, WeekendPointsTable } from './WeekendResults';
@@ -81,7 +82,9 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             <strong>
               {session.start
                 ? formatDateTime(session.start)
-                : (session.date ?? 'Дата не объявлена')}
+                : session.date
+                  ? formatHumanDate(session.date, getTimeZone())
+                  : 'Дата не объявлена'}
             </strong>
             {!session.start && <span className="muted small">Время не объявлено</span>}
           </div>

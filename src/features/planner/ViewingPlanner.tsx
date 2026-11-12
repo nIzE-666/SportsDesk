@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useNow } from '../../lib/useNow';
 import { pluralRu } from '../../lib/plural';
+import { formatHumanDate } from '../../lib/humanDate';
 import { WatchEventButton } from '../../lib/watchIntent';
 import { useViewState } from '../../lib/useViewState';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
@@ -47,13 +48,9 @@ function time(timestamp: number, tz: string) {
     timeZone: tz,
   }).format(timestamp);
 }
-function dayLabel(date: string) {
-  return new Intl.DateTimeFormat('ru-RU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T12:00:00Z`));
+/** «сегодня», «завтра», «сб, 14 нояб.». */
+function dayLabel(date: string, tz: string, now: number) {
+  return formatHumanDate(date, tz, now);
 }
 function overlap(a: ViewingEvent, b: ViewingEvent) {
   return a.id !== b.id && a.start < b.end && b.start < a.end;
@@ -331,7 +328,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
             <h2>
               {range === 'day' && group.date < day
                 ? 'Переходит с предыдущего дня'
-                : dayLabel(group.date)}
+                : dayLabel(group.date, tz, now)}
             </h2>
             <span>{eventsCount(group.events.length)}</span>
           </div>

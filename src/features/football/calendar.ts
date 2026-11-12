@@ -1,6 +1,6 @@
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import type { MatchSummary } from './types';
-import { formatDate, formatDateTime } from './storage';
+import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
 
 export interface CalendarMatch {
   id: string;
@@ -41,9 +41,16 @@ export function fixtureCalendarTime(match: MatchSummary): string | null {
   return calendarTime(match.time_utc) ?? calendarTime(match.date);
 }
 
-export function formatFixtureTime(match: MatchSummary, timezone: string): string {
+/** Время матча для списков: «сегодня 21:30», «сб, 22 нояб., 21:30»; день без времени — без времени. */
+export function formatFixtureTime(
+  match: MatchSummary,
+  timezone: string,
+  now: number = Date.now(),
+): string {
   const time = fixtureCalendarTime(match);
-  return time?.length === 10 ? formatDate(time, 'UTC') : formatDateTime(time, timezone);
+  return time?.length === 10
+    ? formatHumanDate(time, timezone, now)
+    : formatHumanDateTime(time, timezone, now);
 }
 
 /** Scheduled and live fixtures remain visible; postponed and cancelled ones do not. */
