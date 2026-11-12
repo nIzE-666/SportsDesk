@@ -191,7 +191,7 @@ describe('PredictionPanel', () => {
     render(
       <PredictionPanel detail={detail({ status: 'finished', score_home: 2, score_away: 1 })} />,
     );
-    expect(text()).toContain('результат скрыт режимом без спойлеров');
+    expect(text()).toContain('результат скрыт, очки появятся после показа');
     expect(text()).not.toContain('итог основного времени');
     expect(text()).not.toMatch(/очк[а-я]* \(/);
   });
@@ -205,7 +205,7 @@ describe('PredictionPanel', () => {
         <PredictionPanel detail={detail({ status: 'AET', score_home: 1, score_away: 1 })} />,
       ),
     );
-    expect(text()).toContain('дополнительного времени');
+    expect(text()).toContain('дополнительное время');
     act(() => root?.render(<PredictionPanel detail={detail({ status: 'postponed' })} />));
     expect(text()).toContain('Матч перенесён');
     expect(text()).toContain('сохранится');

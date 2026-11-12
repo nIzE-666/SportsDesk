@@ -125,10 +125,7 @@ export function PlayersTab({
     return <EmptyBlock title="Данные игроков недоступны" message={error} />;
   if (entries.length === 0)
     return (
-      <EmptyBlock
-        title="Игроки не загружены"
-        message="Источник не вернул игровую статистику для этого матча."
-      />
+      <EmptyBlock title="Игроки не загружены" message="Источник не передал статистику игроков." />
     );
 
   const selected = selectedId ? (entries.find((e) => e.player.id === selectedId) ?? null) : null;
@@ -273,18 +270,21 @@ export function PlayerProfile({
         <div>
           <h2>{entry.player.name}</h2>
           <p className="muted small">
-            {teamName} · матч: {matchLabel} ·{' '}
-            {formatHumanDate(detail.time_utc ?? detail.date, getUserTimezone())}
-          </p>
-          <p className="muted small">
-            Статистика именно этого матча, не сезонная. Минуты: {minutes ?? '—'}.
+            {teamName} · {matchLabel} ·{' '}
+            {formatHumanDate(detail.time_utc ?? detail.date, getUserTimezone())} · {minutes ?? '—'}{' '}
+            мин.
           </p>
         </div>
       </div>
       {minutes === null && (
-        <p className="chip">Показатели за 90 минут недоступны: источник не указал минуты игрока.</p>
+        <p
+          className="chip"
+          title="Источник не указал минуты игрока, поэтому показатели за 90 минут недоступны."
+        >
+          Неполные данные: нет минут игрока
+        </p>
       )}
-      <h3>Статистика выбранного матча</h3>
+      <h3>Статистика матча</h3>
       <div className="stat-groups">
         {entry.stats.map((group, i) => (
           <StatPlayerGroup key={`${group.key || 'group'}-${i}`} group={group} minutes={minutes} />
@@ -300,9 +300,7 @@ function StatPlayerGroup({ group, minutes }: { group: PlayerStatGroup; minutes: 
   return (
     <section className="panel inner">
       <h3>{statGroupLabel(group.key, group.title)}</h3>
-      {rows.length === 0 && (
-        <p className="muted small">Источник не вернул показатели в этой группе.</p>
-      )}
+      {rows.length === 0 && <p className="muted small">Показателей в этой группе нет.</p>}
       <div className="sp-grid">
         {rows.map(([label, v]) => {
           const stat = v?.stat;
@@ -388,9 +386,6 @@ export function MatchPlayersComparison({
     <section className="panel compare-panel">
       <div className="section-title">
         <h2>Сравнение двух игроков матча</h2>
-        <span className="muted small">
-          Общий контекст: {detail.home_team.name} — {detail.away_team.name}
-        </span>
       </div>
       <div className="compare-selects">
         <select
@@ -454,14 +449,12 @@ export function MatchPlayersComparison({
             );
           })}
           {commonItems.length === 0 && (
-            <p className="muted small">У выбранных игроков нет общих ключей статистики.</p>
+            <p className="muted small">У этих игроков нет общих показателей.</p>
           )}
         </div>
       ) : (
         <p className="muted small">
-          {entries.length < 2
-            ? 'Для сравнения нужна статистика хотя бы двух игроков.'
-            : 'Выберите двух игроков из этого матча.'}
+          {entries.length < 2 ? 'Нужна статистика хотя бы двух игроков.' : 'Выберите двух игроков.'}
         </p>
       )}
     </section>

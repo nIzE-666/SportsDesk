@@ -40,9 +40,7 @@ export function SpoilerGate({
       <EyeOff size={18} />
       <div>
         <strong>Результат скрыт</strong>
-        <p className="muted small">
-          События, статистика и оценки появятся после нажатия «Показать результат».
-        </p>
+        <p className="muted small">События, статистика и оценки скрыты.</p>
       </div>
       <button type="button" className="ghost-btn" onClick={() => revealResult(kind, id)}>
         Показать результат

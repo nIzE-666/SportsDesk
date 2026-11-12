@@ -61,20 +61,14 @@ export function SeasonPlayerPanel({
         </h2>
         <span className="muted tiny">{teamName}</span>
       </div>
-      <p className="muted small">
-        Суммы и средние показатели игрока по загруженным завершённым матчам этой команды. После
-        подсчёта ниже появятся показатели и список встреч, из которых они сложились. Это не полная
-        статистика карьеры.
-      </p>
+      <p className="muted small">Суммы и средние по завершённым матчам этой команды.</p>
       {!stats && !busy && (
         <button className="primary-btn" disabled={!candidates.length} onClick={load}>
           Собрать статистику по матчам <ChevronRight size={14} />
         </button>
       )}
       {!candidates.length && (
-        <p className="muted small">
-          В загруженном расписании пока нет завершённых матчей этой команды.
-        </p>
+        <p className="muted small">В расписании нет завершённых матчей этой команды.</p>
       )}
       {busy && (
         <div className="season-progress">
@@ -98,8 +92,8 @@ export function SeasonPlayerPanel({
             <strong>{stats.available} матчей с данными игрока</strong>
             <span>
               Проверено {stats.scanned} из {stats.totalCandidates} · {stats.minutes} известных минут
-              {stats.failed ? ` · ${stats.failed} ответов недоступно` : ''}
-              {stats.stale ? ' · Сохранённые данные могут быть устаревшими' : ''}
+              {stats.failed ? ` · не загрузились: ${stats.failed}` : ''}
+              {stats.stale ? ' · данные могут быть устаревшими' : ''}
             </span>
           </div>
           <div className="season-metrics">
@@ -126,9 +120,9 @@ export function SeasonPlayerPanel({
             ))}
           </div>
           {!stats.metrics.length && (
-            <p className="muted small">В этих матчах источник не вернул показатели игрока.</p>
+            <p className="muted small">В этих матчах показателей игрока нет.</p>
           )}
-          <h3 className="season-recent-title">Игры, из которых сложились цифры</h3>
+          <h3 className="season-recent-title">Матчи в подсчёте</h3>
           <div className="season-match-list">
             {stats.matches
               .slice()

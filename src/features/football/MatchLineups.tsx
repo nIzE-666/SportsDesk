@@ -55,10 +55,7 @@ export function MatchLineups({
     return (
       <EmptyBlock
         title={error ? 'Составы недоступны' : 'Составы пока не опубликованы'}
-        message={
-          error ??
-          'Когда источник опубликует состав, здесь появятся игроки. Оценки доступны по мере появления статистики матча.'
-        }
+        message={error ?? 'Игроки появятся, когда состав будет опубликован.'}
       />
     );
   }
@@ -92,9 +89,7 @@ export function MatchLineups({
             <h2>
               <Map size={18} /> Поле и оценки
             </h2>
-            <p className="analysis-subtitle">
-              Стартовая расстановка · нажмите на игрока, чтобы открыть показатели этого матча
-            </p>
+            <p className="analysis-subtitle">Стартовая расстановка</p>
           </div>
           <span className="chip">Оценки 0–10</span>
           {onOpenTactics && (
@@ -124,8 +119,8 @@ export function MatchLineups({
                   {team.confirmed ? 'Состав подтверждён' : 'Состав предварительный'}
                 </p>
                 <small>
-                  Средняя оценка старта: {ratingText(team.average)} · {team.rated}/
-                  {team.starters.length} с оценкой
+                  Средняя оценка: {ratingText(team.average)} ({team.rated} из {team.starters.length}
+                  )
                 </small>
               </div>
             </div>
@@ -182,7 +177,7 @@ export function MatchLineups({
         ) : (
           <EmptyBlock
             title="Координаты расстановки пока недоступны"
-            message="Опубликованные игроки перечислены ниже. Позиции на поле появятся, если источник их предоставит."
+            message="Игроки перечислены ниже."
           />
         )}
         <div className="pitch-legend">
@@ -193,13 +188,10 @@ export function MatchLineups({
           <span className="muted small">— оценка отсутствует</span>
         </div>
         <p className="pitch-caption">
-          <ArrowLeftRight size={14} /> Хозяева атакуют вправо, гости — влево. Показана стартовая
-          схема по координатам источника; это не карта перемещений игроков.
+          <ArrowLeftRight size={14} /> Хозяева атакуют вправо, гости — влево.
         </p>
         {unpositioned && (
-          <p className="muted small">
-            Для части игроков координаты не указаны — они есть в списке состава ниже.
-          </p>
+          <p className="muted small">У части игроков нет позиции на поле — они в списках ниже.</p>
         )}
       </section>
       <div className="lineup-team-lists">
@@ -218,10 +210,6 @@ export function MatchLineups({
           </section>
         ))}
       </div>
-      <p className="muted small">
-        Оценки и фотографии — из статистики выбранного матча PitchAPI. Среднее считается только по
-        опубликованным оценкам стартового состава.
-      </p>
     </div>
   );
 }

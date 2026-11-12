@@ -55,10 +55,7 @@ export function DiaryEntryForm({
       <h3>
         {entry.note || entry.rating !== null ? 'Моя запись о просмотре' : 'Отметить просмотр'}
       </h3>
-      <p className="muted small">
-        Сохранение подтверждает вашу ручную отметку. Открытие события или канала ничего не отмечает
-        автоматически.
-      </p>
+      <p className="muted small">Просмотр отмечается только вручную.</p>
       <div className="diary-form-grid">
         <label className="diary-wide">
           Событие

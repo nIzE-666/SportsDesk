@@ -288,7 +288,7 @@ it('requires two different players, shows comparison, retains the choice through
     ].map((o) => o.value),
   ).not.toContain('yamal');
   await click('Статистика: Lamine Yamal');
-  expect(host.querySelector('.player-profile h3')?.textContent).toBe('Статистика выбранного матча');
+  expect(host.querySelector('.player-profile h3')?.textContent).toBe('Статистика матча');
   expect(host.textContent).toContain('Собрать статистику по матчам');
   await click('К игрокам');
   expect(host.querySelector('.pc-compare')).not.toBeNull();

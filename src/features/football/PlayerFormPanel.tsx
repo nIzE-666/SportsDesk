@@ -101,7 +101,7 @@ export function PlayerFormPanel({
           <h2>
             <Activity size={18} /> Форма игрока
           </h2>
-          <p className="analysis-subtitle">{teamName} · динамика по последним матчам команды</p>
+          <p className="analysis-subtitle">{teamName} · последние матчи</p>
         </div>
         <div className="analysis-control-group" role="group" aria-label="Окно формы игрока">
           {([5, 10] as const).map((n) => (
@@ -116,10 +116,6 @@ export function PlayerFormPanel({
           ))}
         </div>
       </div>
-      <p className="analysis-description">
-        Рейтинг, минуты, голы и передачи — по матчам, а не одной суммой. Сравнение со средним по
-        доступной базе покажет, как меняются показатели. Пропуски данных остаются пропусками.
-      </p>
       {!data && !busy && (
         <button
           className="primary-btn"
@@ -130,7 +126,7 @@ export function PlayerFormPanel({
         </button>
       )}
       {!candidates.length && (
-        <p className="muted small">В загруженном расписании нет завершённых матчей этого клуба.</p>
+        <p className="muted small">В расписании нет завершённых матчей этого клуба.</p>
       )}
       {busy && (
         <div className="analysis-progress" role="status">
@@ -156,9 +152,9 @@ export function PlayerFormPanel({
               {data.recent.available}
             </strong>
             <span>
-              База: {data.baseline.fixtures} проверенных встреч из {data.totalCandidates}{' '}
-              загруженных{data.stale ? ' · есть сохранённые данные' : ''}
-              {data.failed ? ` · ${data.failed} ответов недоступно` : ''}
+              База: {data.baseline.fixtures} из {data.totalCandidates} матчей
+              {data.stale ? ' · есть сохранённые данные' : ''}
+              {data.failed ? ` · не загрузились: ${data.failed}` : ''}
             </span>
           </div>
           <div className="form-summary-grid">
@@ -259,7 +255,7 @@ export function PlayerFormPanel({
           </div>
           <div className="form-match-list">
             <div className="form-match-header">
-              <span>Матч · старые слева на графике</span>
+              <span>Матч · новые сверху</span>
               <span>Рейтинг</span>
               <span>Мин.</span>
               <span>Голы</span>
@@ -278,11 +274,11 @@ export function PlayerFormPanel({
                     <small>
                       {row.date ? formatHumanDate(row.date, tz) : 'Дата уточняется'}
                       {row.status === 'failed'
-                        ? ' · ответ недоступен'
+                        ? ' · не загрузился'
                         : row.status === 'missing'
                           ? ' · нет данных игрока'
                           : row.status === 'not-played'
-                            ? ' · 0 минут по данным источника'
+                            ? ' · 0 минут'
                             : ''}
                     </small>
                     <span>
@@ -297,10 +293,7 @@ export function PlayerFormPanel({
               ))}
           </div>
           <div className="analysis-footer">
-            <span>
-              База — до 60 загруженных матчей клуба. Сравнение описывает показатели, а не причину их
-              изменения.
-            </span>
+            <span>База — до 60 последних матчей клуба.</span>
             <button className="ghost-btn" disabled={busy} onClick={() => void load()}>
               <RefreshCw size={13} /> Повторить подсчёт
             </button>

@@ -36,7 +36,7 @@ export function toObservedMatch(detail: MatchDetail): ObservedMatch {
 export function closedMessage(reason: ClosedReason): string {
   switch (reason) {
     case 'unknown-kickoff':
-      return 'Время начала не объявлено — прогноз откроется, когда оно появится.';
+      return 'Время начала не объявлено — прогноз пока закрыт.';
     case 'started':
       return 'Матч начался — прогноз закрыт.';
     case 'finished':
@@ -44,7 +44,7 @@ export function closedMessage(reason: ClosedReason): string {
     case 'cancelled':
       return 'Матч отменён — очки не начисляются.';
     case 'postponed':
-      return 'Матч перенесён. Прогноз сохранится и откроется снова, когда назначат новое время.';
+      return 'Матч перенесён — прогноз сохранится и откроется, когда назначат время.';
     case 'unknown-status':
       return 'Статус матча уточняется — прогноз пока закрыт.';
     case 'unsupported':
@@ -204,11 +204,11 @@ export function PredictionPanel({
                 (settled.reason === 'cancelled'
                   ? ' — матч отменён, очки не начисляются.'
                   : settled.reason === 'extra-time'
-                    ? ' — матч дошёл до дополнительного времени: источник не отделяет основное время, очки не начисляются.'
+                    ? ' — было дополнительное время: очки не начисляются.'
                     : ' — прогноз изменён уже после начала матча и не учитывается.')}
               {settled?.state === 'scored' &&
                 (hiddenResult
-                  ? ' — результат скрыт режимом без спойлеров, очки появятся после показа.'
+                  ? ' — результат скрыт, очки появятся после показа.'
                   : ` · итог основного времени ${settled.result.home} : ${settled.result.away} · ${
                       settled.points
                     } ${plural(settled.points)} (${HIT_LABEL[settled.kind]})`)}
@@ -220,8 +220,7 @@ export function PredictionPanel({
             </p>
           )}
           <p className="muted small">
-            3 очка за точный счёт основного времени, 1 — за верный исход, иначе 0. Игра только для
-            вас: она не связана с прогнозами приложения.
+            3 очка за точный счёт основного времени, 1 — за верный исход.
           </p>
         </section>
       )}

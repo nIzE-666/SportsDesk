@@ -86,7 +86,7 @@ it('shows actual ratings and portraits on the pitch; substitutes and missing pos
   expect(host.querySelector('.pitch-player.home')?.textContent).toContain('8,25');
   expect(host.querySelector('.pitch-player.away')?.textContent).toContain('6,40');
   expect(host.querySelectorAll('.pitch-player img')).toHaveLength(2);
-  expect(host.textContent).toContain('Для части игроков координаты не указаны');
+  expect(host.textContent).toContain('У части игроков нет позиции на поле');
   expect(host.querySelector('.lineup-team-lists')?.textContent).toContain('Запасной');
   expect(host.querySelector('.lineup-team-lists')?.textContent).toContain('Без координат');
 });
@@ -109,7 +109,7 @@ it('keeps unknown ratings as dashes and disables unavailable player details', as
     expect(p.disabled).toBe(true);
     expect(p.querySelector('.lineup-rating')?.textContent).toBe('—');
   }
-  expect(host.textContent).toContain('0/2 с оценкой');
+  expect(host.textContent).toContain('(0 из 2)');
   expect(host.textContent).not.toContain('0,00');
 });
 

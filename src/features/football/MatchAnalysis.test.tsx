@@ -163,7 +163,7 @@ it('retains the last successful response on failure and allows a manual retry', 
   transport.api.mockRejectedValue(new Error('Источник недоступен'));
   await render(1);
   expect(host.querySelectorAll('.analysis-shot')).toHaveLength(2);
-  expect(host.textContent).toContain('Показан предыдущий ответ.');
+  expect(host.textContent).toContain('Показаны прежние данные.');
   expect(host.textContent).toContain('Источник недоступен');
   await click('Обновить разбор');
   expect(transport.api).toHaveBeenLastCalledWith('pitch', 'matches/fixture/momentum', {
@@ -250,12 +250,12 @@ it('distinguishes unavailable match events from an empty event list', async () =
     ),
   );
   expect(host.textContent).toContain('События матча пока недоступны');
-  expect(host.textContent).not.toContain('Голы в ленте событий не указаны');
+  expect(host.textContent).not.toContain('Голы не указаны');
   transport.api.mockImplementation(async (_source: string, path: string) =>
     reply(path === 'matches/fixture' ? detail : path.endsWith('/events') ? { events: [] } : {}),
   );
   await click('Обновить данные');
-  expect(host.textContent).toContain('Голы в ленте событий не указаны');
+  expect(host.textContent).toContain('Голы не указаны');
 });
 
 it('shows one source summary for a match and refreshes analysis without leaving its tab', async () => {

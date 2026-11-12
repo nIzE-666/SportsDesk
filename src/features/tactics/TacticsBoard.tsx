@@ -133,14 +133,14 @@ export function TacticsBoard({
       );
       setDraft(result);
       setPast([]);
-      setMessage('Схема сохранена на этом компьютере и входит в резервную копию профиля.');
+      setMessage('Схема сохранена.');
     });
   return (
     <section className="tactics-workspace" aria-label="Тактическая доска">
       <header className="tactics-heading">
         <div>
           <h2>Мои схемы</h2>
-          <p className="muted">Личная доска: перемещайте игроков и рисуйте направления передач.</p>
+          <p className="muted">Расставляйте игроков и рисуйте передачи.</p>
         </div>
         <button
           className="ghost-btn"
@@ -154,11 +154,7 @@ export function TacticsBoard({
           {loading ? 'Загружаем состав…' : 'Создать из состава'}
         </button>
       </header>
-      {sourceError && (
-        <p className="tactics-notice">
-          {sourceError} · Сохранённые схемы доступны независимо от источника.
-        </p>
-      )}
+      {sourceError && <p className="tactics-notice">{sourceError} · Сохранённые схемы доступны.</p>}
       {saved.error && (
         <p className="tactics-notice" role="alert">
           {saved.error}
@@ -197,13 +193,7 @@ export function TacticsBoard({
       {!draft ? (
         <div className="panel">
           <h3>Разберите свою расстановку</h3>
-          <p>
-            Создайте копию состава или откройте сохранённую схему. Схемы команды доступны и в других
-            её матчах.
-          </p>
-          <p className="muted">
-            Игроки без позиции и запасные останутся в списке для ручного размещения.
-          </p>
+          <p>Создайте схему из состава или откройте сохранённую.</p>
         </div>
       ) : (
         <>
@@ -243,7 +233,7 @@ export function TacticsBoard({
               </label>
             </div>
             <div className="tactics-source">
-              <strong>Исходный состав при создании схемы · PitchAPI</strong>
+              <strong>Исходный состав при создании схемы</strong>
               <span>
                 {draft.source.home.name}: {sourceStatus(draft.source.homeConfirmed)}
                 {draft.source.homeFormation && ` · ${draft.source.homeFormation}`}
@@ -252,10 +242,7 @@ export function TacticsBoard({
                 {draft.source.away.name}: {sourceStatus(draft.source.awayConfirmed)}
                 {draft.source.awayFormation && ` · ${draft.source.awayFormation}`}
               </span>
-              <p className="muted">
-                Это ваша копия. Состав источника сохраняется отдельно и не меняется от ваших
-                действий.
-              </p>
+              <p className="muted">Это ваша копия: исходный состав не меняется.</p>
             </div>
             <div className="tactics-actions">
               <button
@@ -319,12 +306,12 @@ export function TacticsBoard({
             </div>
             <p className="tactics-state" role="status">
               {compare
-                ? 'Показан исходный состав, редактирование временно выключено.'
+                ? 'Показан исходный состав: редактирование выключено.'
                 : mode === 'arrow'
                   ? arrowStart
                     ? 'Выберите конец стрелки. Esc отменяет начало.'
-                    : 'Выберите начало и конец стрелки на поле или задайте координаты ниже.'
-                  : 'Выберите игрока. Перетащите фишку, используйте стрелки клавиатуры или введите координаты.'}
+                    : 'Выберите начало и конец стрелки на поле.'
+                  : 'Выберите игрока: перетащите его или двигайте стрелками клавиатуры.'}
             </p>
             <div className="tactics-layout">
               <div>
@@ -467,10 +454,6 @@ export function TacticsBoard({
                     );
                   })}
                 </div>
-                <p className="muted small">
-                  Координаты хранятся в долях поля и сохраняются при изменении размера окна.
-                  Черновик остаётся в этой сессии; для резервной копии нажмите «Сохранить схему».
-                </p>
               </div>
               <aside className="tactics-roster" aria-label="Игроки для размещения">
                 <h3>Игроки на доске</h3>
@@ -545,10 +528,7 @@ export function TacticsBoard({
                     </div>
                   </div>
                 ) : (
-                  <p className="muted">
-                    Выберите фишку или игрока из списка. Запасные и игроки без координат тоже
-                    доступны.
-                  </p>
+                  <p className="muted">Выберите игрока на поле или в списке.</p>
                 )}
               </aside>
             </div>
@@ -637,11 +617,7 @@ export function TacticsBoard({
             {showAll ? 'Только этот матч и команды' : 'Показать все сохранённые схемы'}
           </button>
         </div>
-        {!library.length && (
-          <p className="muted">
-            Сохранённых схем пока нет. Схема с привязкой к команде появится и в других её матчах.
-          </p>
-        )}
+        {!library.length && <p className="muted">Сохранённых схем пока нет.</p>}
         <ul>
           {library.map((s) => (
             <li key={s.id}>

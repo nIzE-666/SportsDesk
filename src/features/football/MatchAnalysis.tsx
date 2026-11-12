@@ -31,6 +31,12 @@ interface Resource<T> {
   fetchedAt?: string | null;
 }
 const empty = <T,>(): Resource<T> => ({ data: null, loading: true });
+/** «1 точка», «2 точки», «5 точек». */
+const pointsWord = (count: number) => {
+  const tail = count % 100;
+  if (tail >= 11 && tail <= 14) return 'точек';
+  return count % 10 === 1 ? 'точка' : count % 10 >= 2 && count % 10 <= 4 ? 'точки' : 'точек';
+};
 const decimal = (value: number | null) =>
   value === null
     ? '—'
@@ -105,7 +111,7 @@ function ResourceNotice({ resource }: { resource: Resource<unknown> }) {
       )}
       {resource.error && (
         <p className="analysis-notice" role="status">
-          {resource.data !== null ? 'Показан предыдущий ответ. ' : ''}
+          {resource.data !== null ? 'Показаны прежние данные. ' : ''}
           {resource.error}
         </p>
       )}
@@ -189,10 +195,9 @@ export function MatchAnalysis({
         )}
       </header>
       <section className="panel analysis-pressure">
-        <h3>Давление по ходу матча</h3>
+        <h3 title="Показатель источника, а не вероятность гола">Давление по ходу матча</h3>
         <p className="muted small">
-          Показатель источника: выше нуля — {detail.home_team.name}, ниже — {detail.away_team.name}.
-          Это не вероятность гола.
+          Выше нуля — давление {detail.home_team.name}, ниже — {detail.away_team.name}.
         </p>
         <ResourceNotice resource={pressure} />
         {pressure.loading && !pressure.data ? (
@@ -204,7 +209,7 @@ export function MatchAnalysis({
         ) : null}
         {!!pressure.data?.rejected && (
           <p className="analysis-notice">
-            Часть точек давления некорректна и пропущена: {pressure.data.rejected}.
+            Пропущено некорректных точек давления: {pressure.data.rejected}.
           </p>
         )}
       </section>
@@ -214,12 +219,9 @@ export function MatchAnalysis({
         {shots.loading && !shots.data ? (
           <LoadingBlock label="Загружаем удары…" rows={3} />
         ) : !shots.data ? (
-          <p className="muted">Счёт, составы и события доступны в соседних вкладках.</p>
+          <p className="muted">Данные об ударах недоступны.</p>
         ) : !knownShots.length ? (
-          <p className="muted">
-            Источник не опубликовал удары для этого матча. Счёт, составы и события доступны в
-            соседних вкладках.
-          </p>
+          <p className="muted">Источник не опубликовал удары для этого матча.</p>
         ) : (
           <>
             <div className="analysis-filters">
@@ -268,8 +270,7 @@ export function MatchAnalysis({
             </div>
             {(homeXg.incomplete || awayXg.incomplete) && (
               <p className="analysis-notice">
-                Неполная кривая xG: суммируются только известные значения. «—» означает отсутствие
-                данных, а не ноль.
+                Неполная кривая xG: суммируются только известные значения.
               </p>
             )}
             <div className="analysis-visuals">
@@ -277,12 +278,11 @@ export function MatchAnalysis({
                 <h4>Карта ударов</h4>
                 <ShotMap shots={visible} homeId={detail.home_team.id} selected={selected} />
                 <p className="muted small">
-                  Обе команды атакуют вправо. Размер круга зависит от xG, квадрат — xG неизвестен,
-                  кольцо — гол. Выберите удар в списке ниже.
+                  Обе команды атакуют вправо; круг — xG, квадрат — xG неизвестен, кольцо — гол.
                 </p>
                 {missingCoordinates > 0 && (
                   <p className="analysis-notice">
-                    Без координат: {missingCoordinates}. Эти удары есть в списке.
+                    Без координат: {missingCoordinates} (есть в списке).
                   </p>
                 )}
               </div>
@@ -293,10 +293,11 @@ export function MatchAnalysis({
                 ) : (
                   <p className="muted">Для кривой нужны xG, минута и период удара.</p>
                 )}
-                <p className="muted small">
-                  Сумма опубликованного xG выбранных ударов. Округление отдельных ударов может
-                  давать отличие от командной статистики. Автоголы и серия пенальти не входят в
-                  расчёт. Покрытие источника может быть неполным.
+                <p
+                  className="muted small"
+                  title="Сумма может отличаться от командной статистики из-за округления отдельных ударов."
+                >
+                  Сумма xG выбранных ударов; автоголы и серия пенальти не входят.
                 </p>
               </div>
             </div>
@@ -353,15 +354,11 @@ export function MatchAnalysis({
                 </tbody>
               </table>
             </div>
-            {!visible.length && (
-              <p className="muted">Нет ударов для выбранной команды и периода.</p>
-            )}
+            {!visible.length && <p className="muted">Нет ударов для этого выбора.</p>}
           </>
         )}
         {omitted > 0 && (
-          <p className="analysis-notice">
-            Неполный ответ: записей без корректного ID или команды матча — {omitted}.
-          </p>
+          <p className="analysis-notice">Неполные данные: пропущено записей — {omitted}.</p>
         )}
       </section>
       {!onSourceStatus && (
@@ -518,7 +515,9 @@ function PressureChart({ data, detail }: { data: PressureData; detail: MatchDeta
         ))}
       </svg>
       <details>
-        <summary>Давление в числах · {data.points.length} точек</summary>
+        <summary>
+          Давление в числах · {data.points.length} {pointsWord(data.points.length)}
+        </summary>
         <div className="analysis-table-wrap">
           <table className="analysis-table">
             <caption>Исходные значения давления</caption>

@@ -591,7 +591,7 @@ function Overview({
           '.',
       );
     } else if (events?.events) {
-      summaryLines.push('Голы в ленте событий не указаны.');
+      summaryLines.push('Голы не указаны.');
     } else {
       summaryLines.push('События матча пока недоступны.');
     }
@@ -613,7 +613,7 @@ function Overview({
     }
   } else {
     summaryLines.push(
-      `Матч ${formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}. Статус: ${matchStatusLabel(detail.status)}.`,
+      `Начало ${formatHumanDateTime(detail.time_utc ?? detail.date, timezone)} · ${matchStatusLabel(detail.status)}.`,
     );
   }
 
@@ -621,7 +621,7 @@ function Overview({
     <div className="md-overview">
       <section className="panel">
         <div className="section-title">
-          <h2>Фактическая сводка</h2>
+          <h2>Сводка матча</h2>
         </div>
         {summaryLines.map((line, i) => (
           <p key={i} className="summary-p">
@@ -667,7 +667,7 @@ function EventsTab({
 }) {
   if (error) return <EmptyBlock title="События недоступны" message={error} />;
   if (!payload?.events || payload.events.length === 0)
-    return <EmptyBlock title="Лента событий пуста" message="Попробуйте обновить данные позже." />;
+    return <EmptyBlock title="Лента событий пуста" />;
   return (
     <div className="panel">
       <ul className="event-list">

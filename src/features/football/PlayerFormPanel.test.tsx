@@ -146,10 +146,8 @@ it('loads only on request, shows per-metric coverage and preserves missing versu
   expect(host.querySelector('.analysis-coverage')?.textContent).toContain(
     'Последние 5 матчей команды · показатели есть в 3',
   );
-  expect(host.querySelector('.analysis-coverage')?.textContent).toContain(
-    'База: 6 проверенных встреч из 6 загруженных',
-  );
-  expect(host.querySelector('.analysis-coverage')?.textContent).toContain('1 ответов недоступно');
+  expect(host.querySelector('.analysis-coverage')?.textContent).toContain('База: 6 из 6 матчей');
+  expect(host.querySelector('.analysis-coverage')?.textContent).toContain('не загрузились: 1');
   const summary = [...host.querySelectorAll<HTMLButtonElement>('.form-summary-card')];
   expect(summary[0]?.querySelector('strong')?.textContent).toBe('7');
   expect(summary[0]?.textContent).toContain('Наблюдений: 2 / 5; в базе: 3');
@@ -166,7 +164,7 @@ it('loads only on request, shows per-metric coverage and preserves missing versu
     '—',
   ]);
   const dnp = rows.find((element) => element.textContent?.includes('Opponent D'))!;
-  expect(dnp.textContent).toContain('0 минут по данным источника');
+  expect(dnp.textContent).toContain('0 минут');
   expect([...dnp.children].slice(1).map((element) => element.textContent)).toEqual([
     '—',
     '0',
@@ -175,7 +173,7 @@ it('loads only on request, shows per-metric coverage and preserves missing versu
   ]);
   expect(
     rows.find((element) => element.textContent?.includes('Opponent E'))?.textContent,
-  ).toContain('ответ недоступен');
+  ).toContain('не загрузился');
   await click(rows[0]!.querySelector<HTMLButtonElement>('button')!);
   expect(openMatch).toHaveBeenCalledWith('F');
 });
