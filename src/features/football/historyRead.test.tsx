@@ -163,7 +163,9 @@ it('retries each history query in team analytics', async () => {
   await retry('История команды недоступна');
   await retry('История сезона недоступна');
   expect(host.querySelector('.sa-chart')?.textContent).toContain('6 очков после 2 матчей');
-  const select = host.querySelector<HTMLSelectElement>('[aria-label="Соперник для head-to-head"]')!;
+  const select = host.querySelector<HTMLSelectElement>(
+    '[aria-label="Соперник для личных встреч"]',
+  )!;
   await act(async () => {
     select.value = 'rival';
     select.dispatchEvent(new Event('change', { bubbles: true }));

@@ -632,11 +632,11 @@ function SeasonAnalytics({
             </div>
 
             <div className="sa-h2h">
-              <span className="muted small">Head-to-head</span>
+              <span className="muted small">Личные встречи</span>
               <select
                 value={rivalId}
                 onChange={(e) => setRivalId(e.target.value)}
-                aria-label="Соперник для head-to-head"
+                aria-label="Соперник для личных встреч"
               >
                 <option value="">Выберите соперника</option>
                 {rivals.map((t) => (
