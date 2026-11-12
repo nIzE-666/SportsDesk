@@ -102,14 +102,14 @@ it.each([
   { offset: 0, limit: 50 },
 ])('rejects inconsistent page metadata', async ({ offset, limit }) => {
   vi.mocked(api).mockResolvedValueOnce(page([race(1, 0, 2)], { total: 2, offset, limit }));
-  await expect(fetchSeasonResults(2025)).rejects.toThrow('offset или limit');
+  await expect(fetchSeasonResults(2025)).rejects.toThrow('некорректные данные страницы');
 });
 
 it('rejects a changing total and inconsistent metadata for a split race', async () => {
   vi.mocked(api)
     .mockResolvedValueOnce(page([race(1, 0, 100)]))
     .mockResolvedValueOnce(page([race(1, 100, 111)], { total: 111, offset: 100 }));
-  await expect(fetchSeasonResults(2025)).rejects.toThrow('противоречивый total');
+  await expect(fetchSeasonResults(2025)).rejects.toThrow('противоречивые данные между страницами');
 
   const next = race(1, 100, 110);
   next.raceName = 'Different race';

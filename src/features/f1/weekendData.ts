@@ -111,15 +111,15 @@ async function fetchPage(year: number, source: SourceName, offset: number): Prom
   const reply = await api('jolpica', `${year}/${source}.json?limit=${PAGE_LIMIT}&offset=${offset}`);
   const mr = obj(obj(reply.payload)?.MRData);
   if (!mr) {
-    throw new Error('В ответе Jolpica отсутствует MRData.');
+    throw new Error('Источник вернул неполные данные.');
   }
   const total = toInt(mr.total);
   if (total === null || total < 0) {
-    throw new Error('В ответе Jolpica отсутствует корректный total.');
+    throw new Error('Источник вернул неполные данные.');
   }
   const table = obj(mr.RaceTable);
   if (!table || !Array.isArray(table.Races)) {
-    throw new Error('В ответе Jolpica отсутствует RaceTable.');
+    throw new Error('Источник вернул неполные данные.');
   }
 
   let rows: JolpicaRaceResultRow[] = [];
@@ -251,7 +251,7 @@ async function fetchSprintSeason(
     pages += 1;
     if (total === -1) total = page.total;
     else if (page.total !== total) {
-      throw new Error('Jolpica вернул противоречивый total между страницами');
+      throw new Error('Источник вернул противоречивые данные между страницами');
     }
     fetchedAt = earliest(fetchedAt, page.fetchedAt);
     if (page.stale) stale = true;
@@ -260,7 +260,7 @@ async function fetchSprintSeason(
     offset += PAGE_LIMIT;
     if (total === 0) break;
     if (countRows(page.rows) === 0 && prevOffset < total) {
-      throw new Error('Jolpica вернул пустую страницу до завершения загрузки');
+      throw new Error('Источник вернул пустую страницу до завершения загрузки');
     }
   }
 
@@ -299,7 +299,7 @@ async function fetchQualifyingSeason(
     pages += 1;
     if (total === -1) total = page.total;
     else if (page.total !== total) {
-      throw new Error('Jolpica вернул противоречивый total между страницами');
+      throw new Error('Источник вернул противоречивые данные между страницами');
     }
     fetchedAt = earliest(fetchedAt, page.fetchedAt);
     if (page.stale) stale = true;
@@ -308,7 +308,7 @@ async function fetchQualifyingSeason(
     offset += PAGE_LIMIT;
     if (total === 0) break;
     if (countQualy(page.qualy) === 0 && prevOffset < total) {
-      throw new Error('Jolpica вернул пустую страницу до завершения загрузки');
+      throw new Error('Источник вернул пустую страницу до завершения загрузки');
     }
   }
 

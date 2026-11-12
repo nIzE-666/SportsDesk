@@ -154,7 +154,8 @@ async function readEndpoint(path: string, refresh: boolean): Promise<ApiReply> {
   const request = (async () => {
     await requestSlot();
     const reply = await api('openf1', path);
-    if (!Array.isArray(reply.payload)) throw new Error('OpenF1 вернул некорректный список данных.');
+    if (!Array.isArray(reply.payload))
+      throw new Error('Источник вернул некорректный список данных.');
     responseCache.delete(path);
     responseCache.set(path, { reply, expiresAt: Date.now() + CACHE_TTL_MS });
     while (responseCache.size > MAX_CACHE_ENTRIES) {

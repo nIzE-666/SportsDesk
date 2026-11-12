@@ -230,7 +230,7 @@ export async function fetchCupSeason(leagueId: string, season: string): Promise<
 
   const seasons = await cupSeasons(leagueId);
   if (seasons.length > 0 && !seasons.includes(requested)) {
-    throw new Error(`Сезон ${requested} недоступен в PitchAPI.`);
+    throw new Error(`Сезон ${requested} недоступен в источнике.`);
   }
 
   const path = `leagues/${leagueId}/matches?season=${encodeURIComponent(requested)}&status=all`;
@@ -238,7 +238,7 @@ export async function fetchCupSeason(leagueId: string, season: string): Promise<
 
   const payload = reply.payload;
   const data = isRecord(payload) && isRecord(payload.data) ? payload.data : undefined;
-  if (!data) throw new Error('PitchAPI вернул неожиданный формат матчей.');
+  if (!data) throw new Error('Источник вернул неожиданный формат матчей.');
 
   const matches = asArray(data.matches)
     .map(parseMatch)
@@ -302,10 +302,10 @@ export async function fetchCupStandings(slug: string): Promise<{
   const reply = await api(SPORTSCORE, `standings/?sport=football&slug=${encodeURIComponent(slug)}`);
 
   const payload = reply.payload;
-  if (!isRecord(payload)) throw new Error('SportScore вернул неожиданный формат таблицы.');
+  if (!isRecord(payload)) throw new Error('Источник вернул неожиданный формат таблицы.');
 
   const tables = asArray(payload.tables).filter(isRecord);
-  if (tables.length === 0) throw new Error('Таблица пока недоступна на SportScore.');
+  if (tables.length === 0) throw new Error('Таблица пока недоступна.');
 
   const rows: CupTableRow[] = [];
   for (const table of tables) {

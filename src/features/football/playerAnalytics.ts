@@ -79,7 +79,7 @@ export function loadMatchPlayers(matchId: string): Promise<CachedPlayers> {
     const payload = reply.payload as RawPlayersPayload | null | undefined;
     const raw = payload && Array.isArray(payload.data) ? payload.data : null;
     if (!raw) {
-      throw new Error('Ответ PitchAPI не содержит данных игроков матча.');
+      throw new Error('Источник не передал данные игроков матча.');
     }
     return {
       entries: raw,

@@ -174,7 +174,7 @@ export async function fetchUclSeason(season: string): Promise<UclSeasonData> {
 
   const seasons = await loadSeasons();
   if (!seasons.includes(requested)) {
-    throw new Error(`Сезон ${requested} недоступен в PitchAPI.`);
+    throw new Error(`Сезон ${requested} недоступен в источнике.`);
   }
 
   const path = `leagues/${UCL_ID}/matches?season=${encodeURIComponent(requested)}&status=all`;
@@ -183,7 +183,7 @@ export async function fetchUclSeason(season: string): Promise<UclSeasonData> {
   const payload = reply.payload;
   const data = isRecord(payload) && isRecord(payload.data) ? payload.data : undefined;
   if (!data) {
-    throw new Error('PitchAPI вернул неожиданный формат матчей Лиги чемпионов.');
+    throw new Error('Источник вернул неожиданный формат матчей Лиги чемпионов.');
   }
 
   const matches = asArray(data.matches)
@@ -252,12 +252,12 @@ export async function fetchUclStandings(): Promise<{
 
   const payload = reply.payload;
   if (!isRecord(payload)) {
-    throw new Error('SportScore вернул неожиданный формат таблицы Лиги чемпионов.');
+    throw new Error('Источник вернул неожиданный формат таблицы Лиги чемпионов.');
   }
 
   const tables = asArray(payload.tables).filter(isRecord);
   if (tables.length === 0) {
-    throw new Error('Таблица Лиги чемпионов пока недоступна на SportScore.');
+    throw new Error('Таблица Лиги чемпионов пока недоступна.');
   }
 
   const rows: UclTableRow[] = [];
@@ -324,7 +324,7 @@ export async function fetchUclScorers(
 
   const payload = reply.payload;
   if (!isRecord(payload)) {
-    throw new Error('SportScore вернул неожиданный формат бомбардиров Лиги чемпионов.');
+    throw new Error('Источник вернул неожиданный формат бомбардиров Лиги чемпионов.');
   }
 
   const players = asArray(payload.scorers)
@@ -357,7 +357,7 @@ export async function fetchUclPlayer(slug: string): Promise<Record<string, unkno
   );
 
   if (!isRecord(reply.payload)) {
-    throw new Error('SportScore вернул неожиданный формат профиля игрока.');
+    throw new Error('Источник вернул неожиданный формат профиля игрока.');
   }
   return reply.payload;
 }

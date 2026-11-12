@@ -81,14 +81,14 @@ async function fetchPage(year: number, offset: number): Promise<Page> {
   const reply = await api('jolpica', `${year}/results.json?limit=${PAGE_LIMIT}&offset=${offset}`);
   const mr = (reply.payload as { MRData?: Record<string, unknown> } | null)?.MRData;
   if (!mr || typeof mr !== 'object') {
-    throw new Error('В ответе Jolpica отсутствует MRData.');
+    throw new Error('Источник вернул неполные данные.');
   }
   const total = paginationInt(mr.total);
   if (total === null) {
-    throw new Error('В ответе Jolpica отсутствует корректный total.');
+    throw new Error('Источник вернул неполные данные.');
   }
   if (paginationInt(mr.offset) !== offset || paginationInt(mr.limit) !== PAGE_LIMIT) {
-    throw new Error('Jolpica вернул некорректные offset или limit страницы.');
+    throw new Error('Источник вернул некорректные данные страницы.');
   }
 
   const table = mr.RaceTable;
@@ -97,15 +97,15 @@ async function fetchPage(year: number, offset: number): Promise<Page> {
       ? (table as Record<string, unknown>).Races
       : null;
   if (!Array.isArray(rawRaces)) {
-    throw new Error('В ответе Jolpica отсутствует список гонок.');
+    throw new Error('Источник вернул неполные данные.');
   }
   const rawResultCounts = rawRaces.map((race) => {
     if (!race || typeof race !== 'object' || Array.isArray(race)) {
-      throw new Error('Jolpica вернул некорректную гонку.');
+      throw new Error('Источник вернул некорректную гонку.');
     }
     const results = (race as Record<string, unknown>).Results;
     if (!Array.isArray(results) || results.length === 0) {
-      throw new Error('Jolpica вернул некорректный список результатов гонки.');
+      throw new Error('Источник вернул некорректный список результатов гонки.');
     }
     return results.length;
   });
@@ -114,7 +114,7 @@ async function fetchPage(year: number, offset: number): Promise<Page> {
     rows.length !== rawRaces.length ||
     rows.some((row, index) => row.Results.length !== rawResultCounts[index])
   ) {
-    throw new Error('Не удалось разобрать все результаты страницы Jolpica.');
+    throw new Error('Не удалось разобрать все результаты страницы.');
   }
   for (const row of rows) {
     const round = paginationInt(row.round);
@@ -125,14 +125,14 @@ async function fetchPage(year: number, offset: number): Promise<Page> {
       !row.raceName ||
       !row.date
     ) {
-      throw new Error('Jolpica вернул некорректные данные гонки.');
+      throw new Error('Источник вернул некорректные данные гонки.');
     }
   }
   const resultCount = rawResultCounts.reduce((sum, count) => sum + count, 0);
   const expected = Math.min(PAGE_LIMIT, Math.max(0, total - offset));
   if (resultCount !== expected) {
     throw new Error(
-      `Jolpica вернул неполную или избыточную страницу (${resultCount} из ${expected}).`,
+      `Источник вернул неполную или избыточную страницу (${resultCount} из ${expected}).`,
     );
   }
   return { rows, total, resultCount, fetchedAt: reply.fetchedAt, stale: reply.stale };
@@ -163,13 +163,13 @@ function mergeRaces(
       current.Circuit.circuitId !== row.Circuit.circuitId ||
       current.Circuit.circuitName !== row.Circuit.circuitName
     ) {
-      throw new Error('Jolpica вернул противоречивые данные одного раунда.');
+      throw new Error('Источник вернул противоречивые данные одного раунда.');
     }
     const drivers = new Map<string, (typeof row.Results)[number]>();
     for (const r of current.Results) drivers.set(r.Driver.driverId, r);
     for (const r of row.Results) {
       if (drivers.has(r.Driver.driverId)) {
-        throw new Error('Jolpica вернул повторный результат пилота в одном раунде.');
+        throw new Error('Источник вернул повторный результат пилота в одном раунде.');
       }
       drivers.set(r.Driver.driverId, r);
     }
@@ -206,14 +206,14 @@ export async function fetchSeasonResults(year: number): Promise<SeasonResults> {
       pages += 1;
       if (total === -1) total = page.total;
       else if (page.total !== total) {
-        throw new Error('Jolpica вернул противоречивый total между страницами.');
+        throw new Error('Источник вернул противоречивые данные между страницами.');
       }
       fetchedAt = page.fetchedAt;
       if (page.stale) stale = true;
       for (const race of page.rows) {
         const drivers = new Set(race.Results.map((result) => result.Driver.driverId));
         if (drivers.size !== race.Results.length) {
-          throw new Error('Jolpica вернул повторный результат пилота в одном раунде.');
+          throw new Error('Источник вернул повторный результат пилота в одном раунде.');
         }
       }
       races = mergeRaces(races, page.rows);
