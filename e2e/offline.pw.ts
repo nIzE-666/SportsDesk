@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { E2E_ORIGIN } from './origin';
 import { offlineSeason, offlinePayload, completeOfflineSeason } from '../src/test/fixtures/offline';
 import {
   seasonKey,
@@ -106,7 +107,7 @@ async function setup(page: Page, design = 'classic', scheme = 'dark', seed = tru
       });
     }
     if (url.pathname.startsWith('/bridge/')) return route.fulfill({ json: {} });
-    if (url.origin !== 'http://127.0.0.1:1421')
+    if (url.origin !== E2E_ORIGIN)
       return route.fulfill({
         status: 200,
         contentType: 'image/svg+xml',

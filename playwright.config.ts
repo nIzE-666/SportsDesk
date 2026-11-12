@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { E2E_ORIGIN, E2E_PORT } from './e2e/origin';
 
 export default defineConfig({
   testDir: './e2e',
@@ -7,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:1421',
+    baseURL: E2E_ORIGIN,
     browserName: 'chromium',
     locale: 'ru-RU',
     timezoneId: 'Asia/Yakutsk',
@@ -16,8 +17,8 @@ export default defineConfig({
   },
   expect: { toHaveScreenshot: { animations: 'disabled', caret: 'hide' } },
   webServer: {
-    command: 'npm run dev -- --port 1421',
-    url: 'http://127.0.0.1:1421',
+    command: `npm run dev -- --port ${E2E_PORT}`,
+    url: E2E_ORIGIN,
     reuseExistingServer: false,
     timeout: 120000,
   },

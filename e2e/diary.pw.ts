@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { E2E_ORIGIN } from './origin';
 import { readFile } from 'node:fs/promises';
 import {
   diaryFixture,
@@ -51,7 +52,7 @@ async function setup(page: Page, design: string, scheme: string, seed = true) {
       });
     }
     if (url.pathname.startsWith('/bridge/')) return route.fulfill({ json: {} });
-    if (url.origin !== 'http://127.0.0.1:1421')
+    if (url.origin !== E2E_ORIGIN)
       return route.fulfill({
         status: 200,
         contentType: 'image/svg+xml',
