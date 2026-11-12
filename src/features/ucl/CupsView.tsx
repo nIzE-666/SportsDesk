@@ -8,6 +8,7 @@ import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { CompetitionInsights } from './CompetitionInsights';
 import { MatchDetailView } from '../football/MatchDetailView';
 import { useDataRecovery } from '../../lib/useDataRecovery';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
@@ -318,29 +319,7 @@ function Inner({
               onSeeAllMatches={() => chooseTab('matches')}
             />
           )}
-          <div className="insights-row ucl-insights">
-            <div>
-              <Trophy size={18} />
-              <span>
-                <strong>{teams.length || '—'}</strong>
-                <small>команд в розыгрыше</small>
-              </span>
-            </div>
-            <div>
-              <CalendarDays size={18} />
-              <span>
-                <strong>{played.length}</strong>
-                <small>сыгранных матчей</small>
-              </span>
-            </div>
-            <div>
-              <span className="metric-star">✦</span>
-              <span>
-                <strong>{totalGoals}</strong>
-                <small>голов в завершённых матчах</small>
-              </span>
-            </div>
-          </div>
+          <CompetitionInsights teams={teams.length} played={played.length} goals={totalGoals} />
         </>
       )}
 

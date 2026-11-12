@@ -102,7 +102,7 @@ it.each(['champions', 'cup'] as const)(
     expect(host.querySelector('.event-cover-teams')?.textContent).toContain('Live Home');
     expect(host.querySelector('.event-cover-status')?.textContent).toContain('В игре');
     const played = [...host.querySelectorAll('.insights-row small')].find((element) =>
-      element.textContent?.includes('сыгранных матчей'),
+      element.textContent?.includes('сыгранных матча'),
     );
     expect(played?.parentElement?.querySelector('strong')?.textContent).toBe('2');
 

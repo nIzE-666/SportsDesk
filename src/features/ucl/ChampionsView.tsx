@@ -16,6 +16,13 @@ import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
 import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { CompetitionInsights, statSummaryTiles, type StatTileId } from './CompetitionInsights';
+const STAT_CAPTIONS: Record<StatTileId, string> = {
+  played: 'Матчей сыграно',
+  goals: 'Голов забито',
+  average: 'Голов за матч',
+  teams: 'Участников',
+};
 import { FavoritesProvider } from '../football/FavoritesProvider';
 import { MatchDetailView } from '../football/MatchDetailView';
 import {
@@ -218,6 +225,11 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
     }
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [data]);
+  const statTiles = statSummaryTiles({
+    teams: teams.length,
+    played: played.length,
+    goals: totalGoals,
+  });
   const upcoming = matches
     .filter(
       (m) =>
@@ -301,29 +313,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               onSeeAllMatches={() => chooseTab('matches')}
             />
           )}
-          <div className="insights-row ucl-insights">
-            <div>
-              <Trophy size={18} />
-              <span>
-                <strong>{teams.length || '—'}</strong>
-                <small>команд в розыгрыше</small>
-              </span>
-            </div>
-            <div>
-              <CalendarDays size={18} />
-              <span>
-                <strong>{played.length}</strong>
-                <small>сыгранных матчей</small>
-              </span>
-            </div>
-            <div>
-              <span className="metric-star">✦</span>
-              <span>
-                <strong>{totalGoals}</strong>
-                <small>голов в завершённых матчах</small>
-              </span>
-            </div>
-          </div>
+          <CompetitionInsights teams={teams.length} played={played.length} goals={totalGoals} />
         </>
       )}
       {loading && <LoadingBlock label="Загружаем европейский футбол…" rows={4} />}
@@ -538,24 +528,16 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       )}
       {tab === 'stats' && data && (
         <>
-          <div className="ucl-stat-summary">
-            <div className="panel">
-              <small>Матчей сыграно</small>
-              <strong>{played.length}</strong>
+          {statTiles.length > 0 && (
+            <div className="ucl-stat-summary">
+              {statTiles.map(({ id, value }) => (
+                <div className="panel" key={id}>
+                  <small>{STAT_CAPTIONS[id]}</small>
+                  <strong>{value}</strong>
+                </div>
+              ))}
             </div>
-            <div className="panel">
-              <small>Голов забито</small>
-              <strong>{totalGoals}</strong>
-            </div>
-            <div className="panel">
-              <small>Голов за матч</small>
-              <strong>{played.length ? (totalGoals / played.length).toFixed(2) : '—'}</strong>
-            </div>
-            <div className="panel">
-              <small>Участников</small>
-              <strong>{teams.length}</strong>
-            </div>
-          </div>
+          )}
           <section className="panel">
             <div className="section-title">
               <h2>Главные действующие лица</h2>

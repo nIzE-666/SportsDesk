@@ -810,3 +810,79 @@ for (const design of ['classic', 'broadcast'])
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
     });
+
+const uclMatch = (i: number, finished: boolean) => ({
+  id: `ucl-${i}`,
+  status: finished ? 'finished' : 'scheduled',
+  home_team: clubs[i % clubs.length]!,
+  away_team: clubs[(i + 3) % clubs.length]!,
+  time_utc: `2026-${finished ? '10-2' + (i % 5) : '11-0' + (1 + (i % 5))}T19:00:00Z`,
+  date: `2026-${finished ? '10-2' + (i % 5) : '11-0' + (1 + (i % 5))}`,
+  score_home: finished ? 2 : null,
+  score_away: finished ? 1 : null,
+});
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: champions league tiles before the first match and with results`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await clubFixture(page, design);
+      const season = { matches: [] as unknown[] };
+      await page.route('**/bridge/api**', async (route) => {
+        const url = new URL(route.request().url());
+        const path = url.searchParams.get('path') ?? '';
+        if (url.searchParams.get('source') !== 'pitch') return route.fallback();
+        let data: unknown;
+        if (path === 'leagues')
+          data = {
+            leagues: [
+              { id: 'l_4WFCIZ', name: 'Premier League', seasons: ['2026/2027'] },
+              { id: 'l_0bfbkO', name: 'Champions League', seasons: ['2026/2027'] },
+            ],
+          };
+        else if (path.startsWith('leagues/l_0bfbkO'))
+          data = { league: { id: 'l_0bfbkO', name: 'Champions League' }, matches: season.matches };
+        else return route.fallback();
+        await route.fulfill({
+          json: {
+            payload: { data },
+            source: 'fixture',
+            stale: false,
+            fetchedAt: '2026-10-25T00:00:00Z',
+          },
+        });
+      });
+      await page.goto('/');
+      const openChampions = async (matches: unknown[]) => {
+        season.matches = matches;
+        await page.reload();
+        await page.getByRole('tab', { name: 'Лига чемпионов', exact: true }).click();
+        await page
+          .locator('aside.sidebar')
+          .getByTitle('Европейский вечер', { exact: true })
+          .click();
+        await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+      };
+      const tiles = page.locator('.ucl-insights > div');
+
+      // Draw made, nothing played: only the teams.
+      await openChampions([uclMatch(1, false), uclMatch(2, false)]);
+      await expect(tiles).toHaveCount(1);
+      await expect(page.locator('.ucl-insights')).toContainText('4команды в розыгрыше');
+      await expect(page.locator('.ucl-insights')).not.toContainText('сыгранных');
+      await shoot(page, testInfo, `${design}-${width}-ucl-before`);
+
+      // Two matches played: teams, matches and goals.
+      await openChampions([uclMatch(1, true), uclMatch(2, true), uclMatch(3, false)]);
+      await expect(tiles).toHaveCount(3);
+      await expect(page.locator('.ucl-insights')).toContainText('2сыгранных матча');
+      await expect(page.locator('.ucl-insights')).toContainText('6голов в завершённых матчах');
+      await shoot(page, testInfo, `${design}-${width}-ucl-played`);
+
+      // Nothing published at all: no tile row.
+      await openChampions([]);
+      await expect(page.locator('.ucl-insights')).toHaveCount(0);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });

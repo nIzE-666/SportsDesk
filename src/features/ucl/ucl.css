@@ -21,7 +21,7 @@
 }
 .ucl-insights {
   margin: 0 0 5px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 .metric-star {
   color: var(--accent);
@@ -354,7 +354,7 @@
 }
 .ucl-stat-summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
 }
 .ucl-stat-summary small {
