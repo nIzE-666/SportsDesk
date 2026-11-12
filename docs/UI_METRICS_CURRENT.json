@@ -6,19 +6,19 @@
   "screens": [
     {
       "name": "Футбол: обзор",
-      "height": 1038,
+      "height": 804,
       "viewport": 822,
-      "buttons": 12,
+      "buttons": 10,
       "fields": 0,
-      "words": 127
+      "words": 81
     },
     {
       "name": "Матч",
-      "height": 599,
+      "height": 581,
       "viewport": 822,
-      "buttons": 11,
+      "buttons": 12,
       "fields": 0,
-      "words": 59
+      "words": 48
     },
     {
       "name": "Матчи",
@@ -26,15 +26,15 @@
       "viewport": 822,
       "buttons": 10,
       "fields": 4,
-      "words": 71
+      "words": 60
     },
     {
       "name": "Таблица",
-      "height": 362,
+      "height": 311,
       "viewport": 822,
-      "buttons": 2,
+      "buttons": 3,
       "fields": 0,
-      "words": 46
+      "words": 22
     },
     {
       "name": "Счёт и события",
@@ -42,69 +42,69 @@
       "viewport": 822,
       "buttons": 6,
       "fields": 0,
-      "words": 80
-    },
-    {
-      "name": "Игроки",
-      "height": 582,
-      "viewport": 822,
-      "buttons": 0,
-      "fields": 1,
-      "words": 81
-    },
-    {
-      "name": "Клубы",
-      "height": 367,
-      "viewport": 822,
-      "buttons": 0,
-      "fields": 1,
       "words": 44
     },
     {
+      "name": "Игроки",
+      "height": 447,
+      "viewport": 822,
+      "buttons": 0,
+      "fields": 1,
+      "words": 28
+    },
+    {
+      "name": "Клубы",
+      "height": 269,
+      "viewport": 822,
+      "buttons": 2,
+      "fields": 1,
+      "words": 18
+    },
+    {
       "name": "Формула 1",
-      "height": 928,
+      "height": 964,
       "viewport": 822,
-      "buttons": 12,
+      "buttons": 1,
       "fields": 1,
-      "words": 182
-    },
-    {
-      "name": "Календарь F1",
-      "height": 1136,
-      "viewport": 822,
-      "buttons": 20,
-      "fields": 1,
-      "words": 165
-    },
-    {
-      "name": "Планировщик",
-      "height": 660,
-      "viewport": 822,
-      "buttons": 3,
-      "fields": 2,
-      "words": 102
-    },
-    {
-      "name": "Дневник",
-      "height": 1138,
-      "viewport": 822,
-      "buttons": 4,
-      "fields": 6,
       "words": 129
     },
     {
+      "name": "Календарь F1",
+      "height": 1022,
+      "viewport": 822,
+      "buttons": 12,
+      "fields": 1,
+      "words": 123
+    },
+    {
+      "name": "Планировщик",
+      "height": 924,
+      "viewport": 822,
+      "buttons": 9,
+      "fields": 1,
+      "words": 79
+    },
+    {
+      "name": "Дневник",
+      "height": 404,
+      "viewport": 822,
+      "buttons": 2,
+      "fields": 0,
+      "words": 44
+    },
+    {
       "name": "Настройки",
-      "height": 5152,
+      "height": 4995,
       "viewport": 822,
       "buttons": 39,
       "fields": 86,
-      "words": 936
+      "words": 656
     }
   ],
   "shell": {
     "topbarButtons": 11,
     "sidebarButtons": 34,
     "matchTabs": 7,
-    "matchTabsTop": 476
+    "matchTabsTop": 453
   }
 }
