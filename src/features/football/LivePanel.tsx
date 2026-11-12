@@ -228,7 +228,7 @@ export function LivePanel() {
                       <button
                         className="link-btn"
                         onClick={() => void openExternal(url).catch(() => undefined)}
-                        title="Открыть на SportScore"
+                        title="Открыть на сайте источника"
                       >
                         Открыть <ExternalLink size={11} />
                       </button>

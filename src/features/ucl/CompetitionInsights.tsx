@@ -35,15 +35,14 @@ export function statSummaryTiles(f: CompetitionFigures): { id: StatTileId; value
 
 const caption = (id: CompetitionTileId, value: number) =>
   id === 'teams'
-    ? pluralRu(value, 'команда в розыгрыше', 'команды в розыгрыше', 'команд в розыгрыше')
+    ? pluralRu(value, ['команда в розыгрыше', 'команды в розыгрыше', 'команд в розыгрыше'])
     : id === 'played'
-      ? pluralRu(value, 'сыгранный матч', 'сыгранных матча', 'сыгранных матчей')
-      : pluralRu(
-          value,
+      ? pluralRu(value, ['сыгранный матч', 'сыгранных матча', 'сыгранных матчей'])
+      : pluralRu(value, [
           'гол в завершённых матчах',
           'гола в завершённых матчах',
           'голов в завершённых матчах',
-        );
+        ]);
 
 /** The overview tile row of a tournament; absent while there is nothing to count. */
 export function CompetitionInsights(figures: CompetitionFigures) {

@@ -56,7 +56,7 @@ it('deduplicates identical stable IDs but rejects conflicting duplicates', () =>
   v.data.matches.push({ ...v.data.matches[0]! });
   expect(build(v)).toMatchObject({ duplicates: 1, matches: offlineSeason.matches });
   v.data.matches[2]!.score_home = 9;
-  expect(() => build(v)).toThrow('одинаковым ID');
+  expect(() => build(v)).toThrow('одинаковым идентификатором');
 });
 it('refuses wrong-season, malformed and empty responses as a whole', () => {
   for (const v of [

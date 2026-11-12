@@ -26,6 +26,7 @@ const STAT_CAPTIONS: Record<StatTileId, string> = {
 import { FavoritesProvider } from '../football/FavoritesProvider';
 import { MatchDetailView } from '../football/MatchDetailView';
 import { formatHumanDateTime } from '../../lib/humanDate';
+import { countRu, MATCHES } from '../../lib/plural';
 import { getUserTimezone, getString, setString, normalizeName } from '../football/storage';
 import {
   currentUclSeason,
@@ -444,7 +445,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                 </button>
               )}
             </div>
-            <span className="muted small">{filtered.length} матчей</span>
+            <span className="muted small">{countRu(filtered.length, MATCHES)}</span>
           </div>
           <section className="panel ucl-match-list">
             {filtered.map((m) => (
@@ -639,7 +640,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                   openExternal(`https://sportscore.com/football/player/${selectedPlayer.slug}/`)
                 }
               >
-                Профиль SportScore <ArrowUpRight size={14} />
+                Профиль на сайте источника <ArrowUpRight size={14} />
               </button>
             )}
           </section>

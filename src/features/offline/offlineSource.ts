@@ -44,7 +44,9 @@ export function buildOfflineSeason(
     const previous = matches.get(m.id);
     if (previous) {
       if (JSON.stringify(previous) !== JSON.stringify(m))
-        throw new Error('Источник вернул разные матчи с одинаковым ID. Повторите загрузку.');
+        throw new Error(
+          'Источник вернул разные матчи с одинаковым идентификатором. Повторите загрузку.',
+        );
       duplicates++;
     } else matches.set(m.id, m);
   }

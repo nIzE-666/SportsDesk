@@ -13,6 +13,7 @@ import { MatchDetailView } from '../football/MatchDetailView';
 import { useDataRecovery } from '../../lib/useDataRecovery';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { formatHumanDateTime } from '../../lib/humanDate';
+import { countRu, MATCHES } from '../../lib/plural';
 import { getUserTimezone, getString, setString, normalizeName } from '../football/storage';
 import {
   CUP_COMPETITIONS,
@@ -425,7 +426,7 @@ function Inner({
                 </button>
               )}
             </div>
-            <span className="muted small">{filtered.length} матчей</span>
+            <span className="muted small">{countRu(filtered.length, MATCHES)}</span>
           </div>
           <section className="panel ucl-match-list">
             {filtered.map((m) => (

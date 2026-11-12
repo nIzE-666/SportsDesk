@@ -17,6 +17,7 @@ import { SourceLine } from '../../components/SourceLine';
 import { useFavorites, matchInvolvesFavorite } from './FavoritesProvider';
 import type { UseFootballResult } from './useFootballData';
 import type { MatchSummary } from './types';
+import { countRu, MATCHES, pluralRu } from '../../lib/plural';
 import { getUserTimezone } from './storage';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { rpc } from '../../lib/bridge';
@@ -24,7 +25,6 @@ import { FeaturedMatchCover, selectFeaturedMatch } from './FeaturedMatchCover';
 import { useHomeLayout, type HomeWidgetId } from './homeLayout';
 import { HomeLayoutEditor } from './HomeLayoutEditor';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
-import { pluralRu } from '../../lib/plural';
 import { useResultHidden } from '../spoilers/spoilerStore';
 import {
   buildCalendar,
@@ -183,7 +183,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
       }
       const allDay = events.filter((event) => event.time.length === 10).length;
       const notes = [
-        `${events.length} ${pluralRu(events.length, 'матч', 'матча', 'матчей')}`,
+        countRu(events.length, MATCHES),
         ...(fallback ? ['матчи выбранной лиги'] : []),
         ...(skippedFavorites ? [`избранных без даты: ${skippedFavorites}`] : []),
         ...(events.length > allDay
@@ -209,12 +209,11 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         <span>
           <strong>{favoriteTeamNames.length}</strong>
           <small>
-            {pluralRu(
-              favoriteTeamNames.length,
+            {pluralRu(favoriteTeamNames.length, [
               'клуб под присмотром',
               'клуба под присмотром',
               'клубов под присмотром',
-            )}
+            ])}
           </small>
         </span>
       </div>,
@@ -226,8 +225,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
         <span>
           <strong>{leagueUpcoming.length}</strong>
           <small>
-            {pluralRu(leagueUpcoming.length, 'матч', 'матча', 'матчей')} {league?.name ?? 'лиги'}{' '}
-            впереди
+            {pluralRu(leagueUpcoming.length, MATCHES)} {league?.name ?? 'лиги'} впереди
           </small>
         </span>
       </div>,
@@ -347,9 +345,7 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
           <h2>
             <Heart size={17} /> За кем вы следите
           </h2>
-          <span className="muted small">
-            {favTotal ? `${favTotal} ${pluralRu(favTotal, 'матч', 'матча', 'матчей')}` : ''}
-          </span>
+          <span className="muted small">{favTotal ? countRu(favTotal, MATCHES) : ''}</span>
         </div>
         <div className="recent-games">
           {favUpcoming.slice(0, 4).map((m) => (

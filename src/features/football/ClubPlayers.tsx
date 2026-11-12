@@ -3,7 +3,6 @@ import { ArrowLeft, ChevronRight, Search, Star } from 'lucide-react';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useDataRecovery } from '../../lib/useDataRecovery';
-import { pluralRu } from '../../lib/plural';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
@@ -11,6 +10,7 @@ import { SeasonPlayerPanel } from './SeasonPlayerPanel';
 import { PlayerFormPanel } from './PlayerFormPanel';
 import { loadSquad, mergeSquad, type SquadMember } from './squad';
 import { formatHumanDate } from '../../lib/humanDate';
+import { countRu, PLAYERS } from '../../lib/plural';
 import { getUserTimezone } from './storage';
 import type { FavoritePlayer, MatchSummary, TeamRef } from './types';
 import './players.css';
@@ -155,10 +155,7 @@ export function ClubPlayers({
       <div className="section-title">
         <h2>Состав · {team.name}</h2>
         {!!current?.members.length && (
-          <span className="muted small">
-            {current.members.length}{' '}
-            {pluralRu(current.members.length, 'игрок', 'игрока', 'игроков')}
-          </span>
+          <span className="muted small">{countRu(current.members.length, PLAYERS)}</span>
         )}
         <button
           className="ghost-btn"

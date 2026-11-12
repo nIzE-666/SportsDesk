@@ -62,12 +62,12 @@ function title(event: ViewingEvent) {
 }
 function tileLabel(id: PlannerTileId, value: number) {
   if (id === 'events')
-    return pluralRu(value, 'событие в периоде', 'события в периоде', 'событий в периоде');
+    return pluralRu(value, ['событие в периоде', 'события в периоде', 'событий в периоде']);
   if (id === 'chosen') return 'выбрано смотреть';
-  return pluralRu(value, 'группа пересечений', 'группы пересечений', 'групп пересечений');
+  return pluralRu(value, ['группа пересечений', 'группы пересечений', 'групп пересечений']);
 }
 const eventsCount = (count: number) =>
-  `${count} ${pluralRu(count, 'событие', 'события', 'событий')}`;
+  `${count} ${pluralRu(count, ['событие', 'события', 'событий'])}`;
 interface Props {
   onOpenMatch: (id: string, leagueId?: string) => void;
   onOpenWeekend: (race: JolpicaRace) => void;

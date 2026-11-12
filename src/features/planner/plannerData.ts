@@ -327,7 +327,7 @@ export function calendarDaysBetween(fromDay: string, toDay: string): number {
 export function inDaysLabel(days: number): string {
   if (days <= 0) return 'сегодня';
   if (days === 1) return 'завтра';
-  return `через ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+  return `через ${days} ${pluralRu(days, ['день', 'дня', 'дней'])}`;
 }
 
 /**

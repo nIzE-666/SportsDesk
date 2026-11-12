@@ -177,8 +177,8 @@ it('recomputes pit filtering locally, preserves null gaps in plotted laps, and r
   vi.mocked(loadRacePace).mockResolvedValue(fixture());
   await act(async () => root.render(<RacePacePanel session={session} drivers={drivers} />));
   await act(async () => button('Сравнить темп').click());
-  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('2 кругов с временем');
-  expect(host.querySelector('.pace-summary')?.textContent).toContain('2 пар кругов');
+  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('2 круга с временем');
+  expect(host.querySelector('.pace-summary')?.textContent).toContain('2 пары кругов');
   expect(plotRows().map((row) => row.a.paceSeconds)).toEqual([null, 90, null, null, null, 92]);
   expect(
     Array.from(host.querySelectorAll('[data-series]')).map((line) =>
@@ -187,8 +187,8 @@ it('recomputes pit filtering locally, preserves null gaps in plotted laps, and r
   ).toEqual(['false', 'false']);
   await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
   expect(loadRacePace).toHaveBeenCalledTimes(1);
-  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('4 кругов с временем');
-  expect(host.querySelector('.pace-summary')?.textContent).toContain('4 пар кругов');
+  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('4 круга с временем');
+  expect(host.querySelector('.pace-summary')?.textContent).toContain('4 пары кругов');
   expect(plotRows().map((row) => row.a.paceSeconds)).toEqual([null, 90, 120, 110, null, 92]);
   expect(plotRows()[4]?.deltaSeconds).toBeNull();
 });

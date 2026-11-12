@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, rpc } from '../../lib/bridge';
-import { pluralRu } from '../../lib/plural';
 import { matchStateLabel } from '../../lib/sportsIdentity';
 import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
+import { countRu, MATCHES } from '../../lib/plural';
 import { getJson, getUserTimezone } from '../football/storage';
 import { VERIFIED_LEAGUES } from '../football/useFootballData';
 import { fetchHistorySeasons, type HistorySeasonInfo } from '../football/history';
@@ -36,7 +36,7 @@ const coverageLabel = {
   partial: 'Частичный календарь',
   unverified: 'Полнота не проверена',
 };
-const matchesCount = (count: number) => `${count} ${pluralRu(count, 'матч', 'матча', 'матчей')}`;
+const matchesCount = (count: number) => countRu(count, MATCHES);
 const savedTime = (iso: string, timezone: string) => formatHumanDateTime(iso, timezone);
 const bytes = (value: number) =>
   value < 1024

@@ -8,6 +8,7 @@ import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
 import { formatHumanDateTime } from '../../lib/humanDate';
+import { countRu, MATCHES } from '../../lib/plural';
 import { getUserTimezone, normalizeName } from './storage';
 import type { MatchSummary } from './types';
 import { SPOILER_MASK, isResultHidden } from '../spoilers/spoilerStore';
@@ -65,7 +66,7 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
           <h1>Матчи</h1>
           <p className="muted small">
             {data.leagueName(data.selectedLeagueId)} · сезон {data.season ?? '—'} ·{' '}
-            {data.matches.length} матчей · {timezone}
+            {countRu(data.matches.length, MATCHES)} · {timezone}
           </p>
         </div>
         <div className="dashboard-head-actions">

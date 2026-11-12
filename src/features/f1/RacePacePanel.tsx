@@ -14,6 +14,7 @@ import {
 import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useNow } from '../../lib/useNow';
+import { countRu, LAP_PAIRS, LAPS, pluralRu } from '../../lib/plural';
 import { SourceBar } from './shared';
 import { useSourceSummaryAvailable } from './SourceSummary';
 import {
@@ -235,7 +236,7 @@ export function RacePacePanel({
               <div key={name} style={{ borderTopColor: color }}>
                 <span>{name}</span>
                 <strong>{duration(value.medianSeconds)}</strong>
-                <small>Медиана · {value.validLapCount} кругов с временем</small>
+                <small>Медиана · {countRu(value.validLapCount, LAPS)} с временем</small>
                 <small>
                   Среднее: {duration(value.meanSeconds)} · пит-кругов исключено:{' '}
                   {value.excludedPitLapCount}
@@ -245,7 +246,10 @@ export function RacePacePanel({
             <div>
               <span>Разница на общих кругах</span>
               <strong>{seconds(comparison.paired.meanDeltaSeconds)}</strong>
-              <small>Среднее A − B · {comparison.paired.lapCount} пар кругов</small>
+              <small>
+                Среднее A − B · {comparison.paired.lapCount}{' '}
+                {pluralRu(comparison.paired.lapCount, LAP_PAIRS)} кругов
+              </small>
               <small>
                 Минус — быстрее {nameA}; плюс — {nameB}
               </small>

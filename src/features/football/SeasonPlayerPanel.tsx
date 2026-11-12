@@ -4,6 +4,7 @@ import { fetchPlayerSeasonStats } from './playerAnalytics';
 import type { PlayerSeasonStats } from './playerAnalytics';
 import type { MatchSummary } from './types';
 import { formatHumanDateTime } from '../../lib/humanDate';
+import { MATCHES, pluralRu } from '../../lib/plural';
 import { getUserTimezone } from './storage';
 import { statLabel } from './statLabels';
 
@@ -89,7 +90,9 @@ export function SeasonPlayerPanel({
       {stats && (
         <>
           <div className="season-coverage">
-            <strong>{stats.available} матчей с данными игрока</strong>
+            <strong>
+              {stats.available} {pluralRu(stats.available, MATCHES)} с данными игрока
+            </strong>
             <span>
               Проверено {stats.scanned} из {stats.totalCandidates} · {stats.minutes} известных минут
               {stats.failed ? ` · не загрузились: ${stats.failed}` : ''}

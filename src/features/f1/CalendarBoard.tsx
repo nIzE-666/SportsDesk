@@ -11,6 +11,7 @@ import {
 } from './calendarModel';
 import { RaceWeekend } from './RaceWeekend';
 import { formatHumanDate } from '../../lib/humanDate';
+import { countRu, STAGES } from '../../lib/plural';
 import { formatDateTime, getTimeZone } from './time';
 import { weekendSchedule } from './weekendSchedule';
 import type { JolpicaRace } from './types';
@@ -95,7 +96,7 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
           </h2>
           <p>Время: {timezone}.</p>
         </div>
-        <span className="chip">{ordered.length} этапов</span>
+        <span className="chip">{countRu(ordered.length, STAGES)}</span>
       </div>
       <div className="calendar-filters" role="group" aria-label="Фильтр этапов">
         {(
