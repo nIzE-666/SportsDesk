@@ -5,6 +5,12 @@ import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateView
 import { formatDateTime, getUserTimezone } from '../football/storage';
 import { CatchUpPanel } from './CatchUpPanel';
 import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
+import { eventFilterChoices, filterEvents, type EventFilter } from './eventFilters';
+const FILTER_LABELS: Record<Exclude<EventFilter, 'unread'>, string> = {
+  all: 'Все',
+  football: 'Футбол',
+  f1: 'Формула 1',
+};
 export interface SportsEvent {
   id: string;
   sport: 'football' | 'f1';
@@ -22,7 +28,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
   const [events, setEvents] = useState<SportsEvent[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
-    [filter, setFilter] = useState<'all' | 'football' | 'f1' | 'unread'>('all'),
+    [filter, setFilter] = useState<EventFilter>('all'),
     [tick, setTick] = useState(0),
     [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -93,9 +99,8 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
     }
   };
   const spoilers = useSpoilerSet();
-  const shown = events.filter(
-      (e) => filter === 'all' || (filter === 'unread' && !e.read) || e.sport === filter,
-    ),
+  const choices = eventFilterChoices(events, filter),
+    shown = filterEvents(events, filter),
     unread = events.filter((e) => !e.read);
   return (
     <div className="event-center">
@@ -116,35 +121,32 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
           onOpen(e);
         }}
       />
-      {events.length > 0 && (
+      {(choices.length > 0 || unread.length > 0) && (
         <div className="event-toolbar">
-          <div role="group" aria-label="Фильтр событий">
-            {(
-              [
-                ['all', 'Все'],
-                ['unread', `Непрочитанные · ${unread.length}`],
-                ['football', 'Футбол'],
-                ['f1', 'Формула 1'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                className={`ghost-btn ${filter === id ? 'active' : ''}`}
-                aria-pressed={filter === id}
-                key={id}
-                onClick={() => setFilter(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            className="ghost-btn"
-            disabled={!unread.length || saving}
-            onClick={() => void acknowledge(unread.map((e) => e.id))}
-          >
-            <CheckCheck size={15} />
-            Прочитать все
-          </button>
+          {choices.length > 0 && (
+            <div role="group" aria-label="Фильтр событий">
+              {choices.map((id) => (
+                <button
+                  className={`ghost-btn ${filter === id ? 'active' : ''}`}
+                  aria-pressed={filter === id}
+                  key={id}
+                  onClick={() => setFilter(id)}
+                >
+                  {id === 'unread' ? `Непрочитанные · ${unread.length}` : FILTER_LABELS[id]}
+                </button>
+              ))}
+            </div>
+          )}
+          {unread.length > 0 && (
+            <button
+              className="ghost-btn"
+              disabled={saving}
+              onClick={() => void acknowledge(unread.map((e) => e.id))}
+            >
+              <CheckCheck size={15} />
+              Прочитать все
+            </button>
+          )}
         </div>
       )}
       {!isTauriRuntime() && (
@@ -161,11 +163,18 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
         />
       )}
       {loading && <LoadingBlock label="Загружаем события…" rows={3} />}
-      {!loading && !shown.length && !error && (
+      {!loading && !events.length && !error && (
         <EmptyBlock
-          title={filter === 'unread' ? 'Всё прочитано' : 'Пока нет событий'}
-          message="Новые события появятся, когда приложение заметит изменения в матчах отслеживаемых команд или напоминания F1. Итоги избранных матчей и сессий F1, пропущенные пока приложение было закрыто, появятся в блоке «Пока вас не было»."
+          title="Пока нет событий"
+          message="Здесь появятся события избранных команд и напоминания Формулы 1."
         />
+      )}
+      {!loading && !!events.length && !shown.length && !error && (
+        <EmptyBlock title={filter === 'unread' ? 'Всё прочитано' : 'Таких событий нет'}>
+          <button className="ghost-btn" onClick={() => setFilter('all')}>
+            Показать все события
+          </button>
+        </EmptyBlock>
       )}
       <div className="event-list">
         {shown.map((e) => (

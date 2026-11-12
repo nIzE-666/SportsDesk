@@ -279,3 +279,101 @@ for (const design of ['classic', 'broadcast'])
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
     });
+
+const centerEvent = (id: string, sport: 'football' | 'f1', read: boolean, hoursAgo: number) => ({
+  id,
+  sport,
+  kind: sport === 'f1' ? 'reminder' : 'goal',
+  title: sport === 'f1' ? 'Скоро гонка' : 'Изменение счёта',
+  body: sport === 'f1' ? 'Гран-при Мехико · Гонка' : 'Arsenal — Chelsea · 2 : 1',
+  occurredAt: Date.parse('2026-10-25T00:00:00Z') - hoursAgo * 3_600_000,
+  read,
+  ...(sport === 'f1' ? { season: '2026', round: '20' } : { matchId: id, leagueId: 'l_4WFCIZ' }),
+});
+for (const design of ['classic', 'broadcast'])
+  for (const width of [1100, 1440])
+    test(`${design} ${width}: event center with read and unread events of one or two sports`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      const errors = await setupVisualFixture(page, design, 'dark');
+      const state = { events: [] as ReturnType<typeof centerEvent>[], catchUp: false };
+      await page.route('**/bridge/command', async (route) => {
+        const body = route.request().postDataJSON();
+        if (body.command === 'event_center_list') return route.fulfill({ json: state.events });
+        if (body.command === 'event_center_mark_read') {
+          const ids: string[] = body.args?.ids ?? [];
+          state.events = state.events.map((e) => (ids.includes(e.id) ? { ...e, read: true } : e));
+          return route.fulfill({ json: {} });
+        }
+        if (body.command === 'catchup_summary' && state.catchUp)
+          return route.fulfill({
+            json: {
+              from: Date.parse('2026-10-23T00:00:00Z'),
+              to: Date.parse('2026-10-25T00:00:00Z'),
+              truncated: false,
+              footballIncomplete: false,
+              f1Incomplete: false,
+              items: [
+                { ...centerEvent('missed-1', 'football', false, 20), title: 'Матч завершён' },
+              ],
+            },
+          });
+        return route.fulfill({ json: {} });
+      });
+      await page.goto('/');
+      const center = page.locator('.event-center');
+      const openCenter = async (events: ReturnType<typeof centerEvent>[], catchUp = false) => {
+        state.events = events;
+        state.catchUp = catchUp;
+        await page.reload();
+        await page.getByRole('button', { name: 'Центр событий' }).click();
+        await expect(center).toBeVisible();
+      };
+      const filters = center.getByRole('group', { name: 'Фильтр событий' });
+
+      // One sport, all unread: nothing to filter, one action.
+      await openCenter([
+        centerEvent('a', 'football', false, 3),
+        centerEvent('b', 'football', false, 5),
+      ]);
+      await expect(center.locator('article')).toHaveCount(2);
+      await expect(filters).toHaveCount(0);
+      await expect(center.getByRole('button', { name: 'Прочитать все' })).toBeEnabled();
+      await shoot(page, testInfo, `${design}-${width}-events-one-sport`);
+
+      // Both sports, some read, with the missed-results card.
+      await openCenter(
+        [
+          centerEvent('a', 'football', false, 3),
+          centerEvent('b', 'f1', false, 6),
+          centerEvent('c', 'football', true, 30),
+        ],
+        true,
+      );
+      await expect(center.locator('.catchup-panel')).toBeVisible();
+      await expect(center.locator('article')).toHaveCount(3);
+      await expect(filters.getByRole('button')).toHaveText([
+        'Все',
+        'Непрочитанные · 2',
+        'Футбол',
+        'Формула 1',
+      ]);
+      await shoot(page, testInfo, `${design}-${width}-events-mixed`);
+
+      // The unread filter runs out: one phrase, one way back.
+      await filters.getByRole('button', { name: 'Непрочитанные · 2' }).click();
+      await expect(center.locator('article')).toHaveCount(2);
+      await center.getByRole('button', { name: 'Прочитать все' }).click();
+      await expect(center.locator('.state-block')).toHaveCount(1);
+      await expect(center.locator('.state-block')).toContainText('Всё прочитано');
+      await expect(center.getByRole('button', { name: 'Прочитать все' })).toHaveCount(0);
+      await shoot(page, testInfo, `${design}-${width}-events-all-read`);
+      await center.getByRole('button', { name: 'Показать все события' }).click();
+      await expect(center.locator('article')).toHaveCount(3);
+      // Everything is read: only the sport filters are left, no unread count, no "read all".
+      await expect(filters.getByRole('button')).toHaveText(['Все', 'Футбол', 'Формула 1']);
+      await expect(center.getByRole('button', { name: 'Прочитать все' })).toHaveCount(0);
+      expect(await noOverflow(page)).toBe(true);
+      expect(errors).toEqual([]);
+    });
