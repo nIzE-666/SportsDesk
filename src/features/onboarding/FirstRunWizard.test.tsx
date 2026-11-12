@@ -154,6 +154,22 @@ describe('FirstRunWizard', () => {
     vi.unstubAllGlobals();
   });
 
+  it('speaks plainly on every step: no source names, no internals, one sentence to start and end', () => {
+    openWizard();
+    const steps: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      steps.push(host.querySelector('.onboarding-card')?.textContent ?? '');
+      if (i === 0 || i === 6)
+        expect(host.querySelectorAll('.onboarding-body > p'), `step ${i + 1}`).toHaveLength(1);
+      if (i < 6) click(button(i === 0 ? 'Начать' : 'Далее'));
+    }
+    expect(steps).toHaveLength(7);
+    for (const text of steps)
+      expect(text).not.toMatch(
+        /PitchAPI|KinoPub|Jolpica|OpenF1|SportScore|Rust|SQLite|DPAPI|localStorage|бандл|кеш|токен|провайдер|мастер|отслеживаем/i,
+      );
+  });
+
   it('finishes on the last step', () => {
     const onOpenSettings = vi.fn();
     openWizard({ onOpenSettings });

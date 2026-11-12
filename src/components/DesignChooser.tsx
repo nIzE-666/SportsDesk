@@ -50,7 +50,6 @@ export function DesignChooser() {
           </label>
         ))}
       </div>
-      <p className="settings-note">Выбор применяется сразу и сохраняется.</p>
     </fieldset>
   );
 }

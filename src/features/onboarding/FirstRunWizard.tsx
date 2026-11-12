@@ -161,6 +161,7 @@ export function FirstRunWizard({
           className="icon-button modal-close"
           onClick={postpone}
           aria-label="Отложить настройку"
+          title="Отложить: настройка продолжится при следующем запуске"
         >
           <X size={18} />
         </button>
@@ -219,9 +220,7 @@ export function FirstRunWizard({
           )}
         </div>
         {origin === 'manual' && (
-          <p className="settings-note">
-            Текущие настройки сохраняются: мастер меняет только то, что вы выберете.
-          </p>
+          <p className="settings-note">Меняется только то, что вы выберете.</p>
         )}
       </section>
     </div>
@@ -229,18 +228,7 @@ export function FirstRunWizard({
 }
 
 function WelcomeStep() {
-  return (
-    <>
-      <p>
-        Пара коротких шагов: лига, избранное в F1, часовой пояс, уведомления и внешний вид. Любой
-        шаг можно пропустить, а настройки изменить позже в «Настройках».
-      </p>
-      <p className="muted small">
-        Мастер работает без интернета. Если закрыть окно, при следующем запуске он продолжится с
-        того же шага.
-      </p>
-    </>
-  );
+  return <p>Несколько шагов — любой можно пропустить и всё изменить позже в «Настройках».</p>;
 }
 
 function FootballStep({ onLeagueChange }: { onLeagueChange?: (id: string) => void }) {
@@ -270,11 +258,9 @@ function FootballStep({ onLeagueChange }: { onLeagueChange?: (id: string) => voi
         </div>
       </fieldset>
       <div>
-        <strong className="small">Отслеживаемые клубы</strong>
         <FavoriteClubsEditor compact />
         <p className="muted small">
-          Позже клубы можно менять в «Настройки → Избранное» или звёздочкой в «Матчах» — изменения
-          сразу попадут в планировщик и уведомления.
+          Позже клубы можно менять в «Настройках → Избранное» или звёздочкой в «Матчах».
         </p>
       </div>
     </>
@@ -287,7 +273,7 @@ function F1Step() {
   return (
     <>
       <fieldset className="onboarding-choice">
-        <legend>Команды</legend>
+        <legend>Избранные команды</legend>
         <div className="onboarding-options">
           {WIZARD_F1_TEAMS.map(([id, label]) => (
             <label key={id} className={`onboarding-option ${teams.includes(id) ? 'selected' : ''}`}>
@@ -298,7 +284,7 @@ function F1Step() {
         </div>
       </fieldset>
       <fieldset className="onboarding-choice">
-        <legend>Пилоты</legend>
+        <legend>Избранные пилоты</legend>
         <div className="onboarding-options">
           {WIZARD_F1_DRIVERS.map(([id, label]) => (
             <label
@@ -315,7 +301,9 @@ function F1Step() {
           ))}
         </div>
       </fieldset>
-      <p className="muted small">Остальных пилотов можно отметить в разделе F1.</p>
+      <p className="muted small">
+        Остальных пилотов можно отметить звёздочкой в «Зачётах» Формулы 1.
+      </p>
     </>
   );
 }
@@ -378,7 +366,6 @@ function NotificationsStep() {
         <input type="checkbox" checked={enabled} onChange={() => void toggle()} />
         <span>
           <strong>Голы, старт и итоги матчей избранных клубов</strong>
-          <small>Подробности, тихие часы и отдельные команды — в «Настройках».</small>
         </span>
       </label>
       <label className="onboarding-toggle">
@@ -392,7 +379,7 @@ function NotificationsStep() {
           }}
         />
         <span>
-          <strong>Напоминания о сессиях F1</strong>
+          <strong>Напоминания о сессиях Формулы 1</strong>
           <small>Работают, когда уведомления включены.</small>
         </span>
       </label>
@@ -455,8 +442,8 @@ function SourcesStep({
   return (
     <>
       <p>
-        Футбол и F1 работают сразу. Ключ PitchAPI добавляет расширенную статистику, а вход в KinoPub
-        — онлайн-просмотр. Оба шага необязательны и доступны в «Настройках» в любой момент.
+        Футбол и Формула 1 работают сразу; расширенную статистику (по ключу) и онлайн-просмотр
+        (после входа) можно подключить позже в «Настройках».
       </p>
       <div className="onboarding-actions">
         {onOpenSettings && (
@@ -466,7 +453,7 @@ function SourcesStep({
         )}
         {onOpenWatch && (
           <button className="ghost-btn" onClick={onOpenWatch}>
-            Перейти к просмотру
+            Открыть онлайн-просмотр
           </button>
         )}
       </div>

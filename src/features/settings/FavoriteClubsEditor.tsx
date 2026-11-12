@@ -63,7 +63,7 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
   return (
     <div className="fav-editor">
       <h3 className="fav-editor-title">
-        <Star size={14} /> Отслеживаемые клубы · {tracked.length + pendingDefaults.length}
+        <Star size={14} /> Избранные клубы · {tracked.length + pendingDefaults.length}
       </h3>
       {tracked.length + pendingDefaults.length === 0 ? (
         <p className="muted small">Пока ничего не выбрано — найдите клуб ниже.</p>

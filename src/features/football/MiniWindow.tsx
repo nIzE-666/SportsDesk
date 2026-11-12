@@ -96,7 +96,7 @@ export function MiniWindow() {
     <div className="mini-root">
       <header className="mini-top">
         <span className="mini-title">
-          <Radio size={13} /> SportsDesk Live
+          <Radio size={13} /> Live-мини
         </span>
         <span className="mini-updated muted">{updatedAt ? formatDateTime(updatedAt, tz) : ''}</span>
         <button className="mini-close" onClick={() => void close()} aria-label="Закрыть">
@@ -117,7 +117,7 @@ export function MiniWindow() {
         {shown.length === 0 && !error && (
           <div className="mini-empty">
             <Pin size={20} />
-            <span>Нет live-матчей и матчей отслеживаемых команд прямо сейчас.</span>
+            <span>Сейчас нет матчей избранных клубов.</span>
           </div>
         )}
         {shown.map((m, i) => (
