@@ -1,4 +1,6 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +21,8 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     watch: {
-      ignored: ['**/src-tauri/**'],
+      // Claude Code keeps its session worktrees under .claude; they are other checkouts.
+      ignored: ['**/src-tauri/**', '**/.claude/**'],
     },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
@@ -28,5 +31,8 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 1400,
+  },
+  test: {
+    exclude: [...configDefaults.exclude, '.claude/**'],
   },
 });
