@@ -159,7 +159,7 @@ it('starts on «Сегодня» when the flag is on, whatever the saved sport w
   expect(host.querySelector('.topbar')).toBeNull();
   expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
   expect(host.querySelector('.shell-page-title')?.textContent).toBe('Сегодня');
-  expect(host.querySelector('.football-dashboard')).not.toBeNull();
+  expect(host.querySelector('.today-view')).not.toBeNull();
 });
 
 it('keeps the remembered place of each section when switching between them', async () => {

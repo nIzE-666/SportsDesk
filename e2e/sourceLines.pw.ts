@@ -67,7 +67,7 @@ test('every screen shows at most one data-source line and one refresh button', a
   await page.setViewportSize({ width: 1440, height: 900 });
   const pageErrors = await setupVisualFixture(page, 'broadcast', 'dark', true);
   await page.goto('/');
-  await expect(page.locator('.football-dashboard')).toBeVisible();
+  await expect(page.locator('.today-view')).toBeVisible();
 
   const report: string[] = [];
   const failures: string[] = [];
@@ -128,8 +128,9 @@ test('every screen shows at most one data-source line and one refresh button', a
   // Матч: каждая вкладка отдельно.
   await sportTab(page, 'Футбол');
   await aside(page, 'Мой обзор');
-  await page.locator('.recent-game').first().click();
-  await expect(page.locator('.md-score')).toContainText('2 : 1');
+  await page.locator('.today-team-tile:not(.today-team-f1)').first().click();
+  await page.getByRole('button', { name: /Последний матч/u }).click();
+  await expect(page.locator('.md-tabs')).toBeVisible();
   const tabs = page.locator('.md-tabs button');
   const count = await tabs.count();
   for (let index = 0; index < count; index += 1) {

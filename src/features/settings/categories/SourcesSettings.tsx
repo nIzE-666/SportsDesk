@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Radio } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
+import {
+  LIVE_SOURCE_KEY,
+  readLiveSourceChoice,
+  type LiveSourceChoice,
+} from '../../football/liveData';
+import { setString } from '../../football/storage';
 import { DiagnosticsPanel } from '../DiagnosticsPanel';
 
 interface SecretStatus {
@@ -15,7 +21,12 @@ export function SourcesSettings() {
   const [keyInput, setKeyInput] = useState('');
   const [keyBusy, setKeyBusy] = useState(false);
   const [keyMessage, setKeyMessage] = useState<string | null>(null);
+  const [liveSource, setLiveSource] = useState<LiveSourceChoice>(() => readLiveSourceChoice());
   const mounted = useRef(true);
+  const chooseLiveSource = (value: LiveSourceChoice) => {
+    setLiveSource(value);
+    setString(LIVE_SOURCE_KEY, value);
+  };
 
   const refreshSecret = useCallback(async () => {
     try {
@@ -114,6 +125,29 @@ export function SourcesSettings() {
           </button>
         </div>
         {keyMessage && <p className="settings-note">{keyMessage}</p>}
+      </section>
+
+      <section className="panel settings-section">
+        <div className="section-title">
+          <h3>
+            <Radio size={15} /> Живые матчи
+          </h3>
+        </div>
+        <div className="settings-row">
+          <label htmlFor="live-source" className="muted small">
+            Источник
+          </label>
+          <select
+            id="live-source"
+            value={liveSource}
+            onChange={(event) => chooseLiveSource(event.target.value as LiveSourceChoice)}
+          >
+            <option value="auto">Авто (LiveScore, при сбое ESPN)</option>
+            <option value="livescore">Только LiveScore</option>
+            <option value="espn">Только ESPN</option>
+          </select>
+        </div>
+        <p className="muted small">LiveScore и ESPN — неофициальные бесплатные источники.</p>
       </section>
 
       <DiagnosticsPanel />

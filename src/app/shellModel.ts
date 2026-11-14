@@ -145,13 +145,19 @@ function f1Tabs(route: Extract<ShellRoute, { kind: 'f1' }>): HeaderTab[] {
 export function headerTabs(route: ShellRoute): HeaderTab[] {
   switch (route.kind) {
     case 'today': {
-      const active = route.mode === 'plan' ? 'plan' : 'today';
+      const active = route.mode ?? 'today';
       return [
         {
           key: 'today',
           label: 'Сегодня',
           active: active === 'today',
           route: { kind: 'today', mode: 'today' },
+        },
+        {
+          key: 'week',
+          label: 'Неделя',
+          active: active === 'week',
+          route: { kind: 'today', mode: 'week' },
         },
         {
           key: 'plan',

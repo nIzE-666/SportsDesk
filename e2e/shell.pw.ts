@@ -38,7 +38,7 @@ for (const design of ['classic', 'broadcast']) {
   }) => {
     const rail = await openShell(page, design);
     await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
-    await expect(page.locator('.football-dashboard')).toBeVisible();
+    await expect(page.locator('.today-view')).toBeVisible();
 
     await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Premier League', exact: true })).toBeVisible();

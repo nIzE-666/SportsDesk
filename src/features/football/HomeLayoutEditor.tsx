@@ -6,18 +6,30 @@ import {
   homeWidgetMeta,
   useHomeLayout,
   type HomeDesign,
+  type HomeLayoutScope,
 } from './homeLayout';
 import './homeLayout.css';
 
 /** Панель настройки главной: порядок и видимость блоков кнопками (без перетаскивания). */
-export function HomeLayoutEditor({ design, onClose }: { design: HomeDesign; onClose: () => void }) {
-  const layout = useHomeLayout(design);
+export function HomeLayoutEditor({
+  design,
+  scope = 'dashboard',
+  onClose,
+}: {
+  design: HomeDesign;
+  scope?: HomeLayoutScope;
+  onClose: () => void;
+}) {
+  const layout = useHomeLayout(design, scope);
   const last = layout.order.length - 1;
   return (
-    <section className="panel home-layout-editor" aria-label="Настройка главной">
+    <section
+      className="panel home-layout-editor"
+      aria-label={scope === 'today' ? 'Настройка блоков «Сегодня»' : 'Настройка главной'}
+    >
       <div className="section-title">
         <h2>
-          <LayoutGrid size={16} /> Блоки главной
+          <LayoutGrid size={16} /> {scope === 'today' ? 'Блоки «Сегодня»' : 'Блоки главной'}
         </h2>
         <button className="text-link" onClick={onClose}>
           Готово
@@ -39,7 +51,7 @@ export function HomeLayoutEditor({ design, onClose }: { design: HomeDesign; onCl
                   aria-label={`Выше: ${meta.label}`}
                   title="Выше"
                   disabled={index === 0}
-                  onClick={() => moveHomeWidget(design, id, -1)}
+                  onClick={() => moveHomeWidget(design, id, -1, scope)}
                 >
                   <ArrowUp size={14} />
                 </button>
@@ -48,14 +60,14 @@ export function HomeLayoutEditor({ design, onClose }: { design: HomeDesign; onCl
                   aria-label={`Ниже: ${meta.label}`}
                   title="Ниже"
                   disabled={index === last}
-                  onClick={() => moveHomeWidget(design, id, 1)}
+                  onClick={() => moveHomeWidget(design, id, 1, scope)}
                 >
                   <ArrowDown size={14} />
                 </button>
                 <button
                   className="ghost-btn"
                   aria-label={`${hidden ? 'Показать' : 'Скрыть'}: ${meta.label}`}
-                  onClick={() => setHomeWidgetHidden(design, id, !hidden)}
+                  onClick={() => setHomeWidgetHidden(design, id, !hidden, scope)}
                 >
                   {hidden ? <Eye size={14} /> : <EyeOff size={14} />}{' '}
                   {hidden ? 'Показать' : 'Скрыть'}
@@ -66,7 +78,11 @@ export function HomeLayoutEditor({ design, onClose }: { design: HomeDesign; onCl
         })}
       </ol>
       <div className="home-layout-foot">
-        <button className="ghost-btn" onClick={resetHomeLayout} disabled={!layout.custom}>
+        <button
+          className="ghost-btn"
+          onClick={() => resetHomeLayout(scope)}
+          disabled={!layout.custom}
+        >
           <RotateCcw size={14} /> Восстановить стандартное расположение
         </button>
       </div>

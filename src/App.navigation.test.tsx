@@ -189,23 +189,14 @@ it('switches designs in place, keeps the selected fixture/tab and does not refet
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
 }, 15000);
 
-it('applies the design from Settings, restores it on launch, and uses a real fixture on the cover', async () => {
+it('applies the design from Settings, restores it on launch, and shows a real fixture on «Сегодня»', async () => {
   localStorage.setItem('sportsdesk.design', 'broadcast');
   viewState.write('navigation.football', { kind: 'football', section: 'dashboard' });
   await renderApp();
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
-  expect(host.querySelector('.event-cover')?.textContent).toContain('Arsenal');
-  expect(host.querySelector('.event-cover-score')?.textContent).toBe('2 : 1');
-  const dashboard = host.querySelector('.football-dashboard')!;
-  const focusOrder = [...dashboard.querySelectorAll('button')];
-  expect(
-    focusOrder.indexOf(dashboard.querySelector<HTMLButtonElement>('.recent-game')!),
-  ).toBeLessThan(
-    focusOrder.indexOf(dashboard.querySelector<HTMLButtonElement>('.calendar-export-bar button')!),
-  );
-  await click(button('Разбор матча'));
-  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-  await click(button('Назад'));
+  const tile = host.querySelector('.today-team-tile');
+  expect(tile?.textContent).toContain('Arsenal');
+  expect(tile?.textContent).toContain('2:1');
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
   await click(button('Внешний вид'));
   await click(
@@ -448,7 +439,7 @@ it('returns from settings and football details to the planner, then back to its 
   expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
     'Формула 1',
   );
-  await click(button('Вернуться к спорту'));
+  await click(button('Мой спортивный вечер'));
   expect(host.querySelector('.viewing-planner')).toBeNull();
   expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
     'Формула 1',
@@ -486,7 +477,7 @@ it('restores the original football league after opening a planner match in anoth
   await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
   expect(localStorage.getItem('sportsdesk.league')).toBe('l_0ErfuF');
   await click(button('Назад'));
-  await click(button('Вернуться к спорту'));
+  await click(button('Мой спортивный вечер'));
   expect(localStorage.getItem('sportsdesk.league')).toBe('l_4WFCIZ');
   expect(host.querySelector('.viewing-planner')).toBeNull();
 });
@@ -513,7 +504,7 @@ it('preserves the original match back target when another match is opened from i
   await click(button('Мой спортивный вечер'));
   await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
   await click(button('Мой спортивный вечер'));
-  await click(button('Вернуться к спорту'));
+  await click(button('Мой спортивный вечер'));
   expect(viewState.read('navigation.football', {})).toEqual({
     kind: 'football-match',
     matchId: fixture.id,

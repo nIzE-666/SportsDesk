@@ -57,9 +57,15 @@ const when = (ms: number) => formatHumanDateTime(ms, getUserTimezone());
 export function CatchUpPanel({
   refreshKey = 0,
   onOpen,
+  headingCount = false,
+  block = false,
 }: {
   refreshKey?: number;
   onOpen?: (event: SportsEvent) => void;
+  /** Показывает число пропущенных результатов в заголовке экрана «Сегодня». */
+  headingCount?: boolean;
+  /** Помечает панель блоком «Сегодня» для настройки порядка. */
+  block?: boolean;
 }) {
   const [summary, setSummary] = useState<CatchUpSummary | null>(null),
     [tick, setTick] = useState(0),
@@ -111,10 +117,15 @@ export function CatchUpPanel({
     }
   };
   return (
-    <section className="panel catchup-panel" aria-label="Пока вас не было">
+    <section
+      className={block ? 'panel catchup-panel today-block' : 'panel catchup-panel'}
+      data-block={block ? 'catchup' : undefined}
+      aria-label="Пока вас не было"
+    >
       <div className="section-heading">
         <h2>
           <History size={20} /> Пока вас не было
+          {headingCount ? ` · ${summary.items.length}` : ''}
         </h2>
         <button className="ghost-btn" disabled={busy} onClick={() => void dismiss()}>
           Скрыть

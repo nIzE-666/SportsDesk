@@ -43,7 +43,7 @@ export function minuteLabel(minute: string | null): string | null {
   return NUMERIC_MINUTE.test(minute) ? minute : null;
 }
 
-function competitionLabel(match: LiveMatch): string {
+export function competitionLabel(match: LiveMatch): string {
   const known = match.leagueId ? COMPETITION_LABELS.get(match.leagueId) : undefined;
   return known ?? (match.competition || 'Футбол');
 }

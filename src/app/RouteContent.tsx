@@ -45,8 +45,8 @@ const CupsView = lazy(() =>
 const WatchView = lazy(() =>
   import('../features/watch/WatchView').then((m) => ({ default: m.WatchView })),
 );
-const ViewingPlanner = lazy(() =>
-  import('../features/planner/ViewingPlanner').then((m) => ({ default: m.ViewingPlanner })),
+const TodayView = lazy(() =>
+  import('../features/today/TodayView').then((m) => ({ default: m.TodayView })),
 );
 const EventCenter = lazy(() =>
   import('../features/events/EventCenter').then((m) => ({ default: m.EventCenter })),
@@ -71,6 +71,8 @@ interface RouteContentProps {
   showMyTabs?: boolean;
   /** The new frame has one competition switcher in the header, so screens hide their own. */
   newFrame?: boolean;
+  /** The legacy frame has no header tabs, so «Сегодня» shows its own mode switch. */
+  showTodayModeSwitch?: boolean;
 }
 
 /** One route-to-screen mapping shared by the current frame and the new shell. */
@@ -88,6 +90,7 @@ export function RouteContent({
   auxiliaryBack,
   showMyTabs = false,
   newFrame,
+  showTodayModeSwitch = false,
 }: RouteContentProps) {
   const competitionId =
     route.kind === 'football' || route.kind === 'football-match' ? route.competitionId : leagueId;
@@ -112,8 +115,7 @@ export function RouteContent({
     route.kind === 'settings' ||
     route.kind === 'events' ||
     route.kind === 'my' ||
-    route.kind === 'offline' ||
-    (route.kind === 'today' && route.mode === 'plan');
+    route.kind === 'offline';
 
   const setF1Tab = (tab: F1Tab) => {
     rememberAnalysisMode(tab);
@@ -130,7 +132,7 @@ export function RouteContent({
     <>
       <ConnectivityBanner
         sources={
-          route.kind === 'today' && route.mode === 'plan'
+          route.kind === 'today'
             ? ['pitch', 'jolpica']
             : route.kind === 'settings' ||
                 route.kind === 'watch' ||
@@ -146,9 +148,27 @@ export function RouteContent({
       <UpdateNotice />
       {contentHeader}
       <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
+        {!auxiliary && route.kind === 'today' && (
+          <SectionBoundary name="Сегодня" resetKey={`today.${route.mode ?? 'today'}`}>
+            <TodayView
+              mode={route.mode ?? 'today'}
+              onModeChange={(mode) => onNavigate({ kind: 'today', mode })}
+              showModeSwitch={showTodayModeSwitch}
+              onOpenMatch={onOpenMatch}
+              onOpenWeekend={(race) => onOpenWeekend(race.season, race.round)}
+              onOpenTeam={(id, _name, teamLeagueId) => {
+                const teamLeague = isLeagueId(teamLeagueId) ? teamLeagueId : leagueId;
+                onNavigate(
+                  { kind: 'football', competitionId: teamLeague, tab: 'team', teamId: id },
+                  { leagueId: teamLeague },
+                );
+              }}
+              onOpenF1={() => onNavigate({ kind: 'f1', tab: 'overview' })}
+            />
+          </SectionBoundary>
+        )}
         {!auxiliary &&
-          (route.kind === 'today' ||
-            (route.kind === 'football' && competition === 'league') ||
+          ((route.kind === 'football' && competition === 'league') ||
             route.kind === 'football-match') && (
             <SectionBoundary
               name="Футбол"
@@ -158,13 +178,7 @@ export function RouteContent({
                 leagueId={competitionId}
                 onLeagueChange={onLeagueChange}
                 showLeaguePicker={!newFrame}
-                section={
-                  route.kind === 'today'
-                    ? 'dashboard'
-                    : route.kind === 'football-match'
-                      ? 'matches'
-                      : leagueTab
-                }
+                section={route.kind === 'football-match' ? 'matches' : leagueTab}
                 selectedTeamId={
                   route.kind === 'football' && route.tab === 'team' ? route.teamId : undefined
                 }
@@ -214,9 +228,7 @@ export function RouteContent({
                   : shownMyTab === 'diary'
                     ? 'diary'
                     : `my.${shownMyTab}`
-                : route.kind === 'today'
-                  ? 'planner'
-                  : route.kind
+                : route.kind
             }
           >
             {auxiliaryBack}
@@ -253,11 +265,6 @@ export function RouteContent({
                     onOpenWeekend(event.season, event.round);
                   else if (event.matchId) onOpenMatch(event.matchId, event.leagueId);
                 }}
-              />
-            ) : route.kind === 'today' ? (
-              <ViewingPlanner
-                onOpenMatch={onOpenMatch}
-                onOpenWeekend={(race) => onOpenWeekend(race.season, race.round)}
               />
             ) : (
               <SettingsView

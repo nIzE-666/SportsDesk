@@ -370,6 +370,11 @@ export function Dashboard({ data, onOpenMatch, onOpenTeam, onSeeAllMatches }: Da
     calendar: calendarExportBlock,
     clubs: favoriteClubsBlock,
     editorial: editorialBlock,
+    // Blocks of the new «Сегодня» screen; the old dashboard keeps its own layout.
+    catchup: null,
+    live: null,
+    upcoming: null,
+    teams: null,
   };
   const visibleWidgets = homeLayout.order.filter((id) => !homeLayout.hidden.includes(id));
 

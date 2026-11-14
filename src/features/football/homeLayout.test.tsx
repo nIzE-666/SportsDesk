@@ -92,6 +92,32 @@ it('hiding without reordering keeps following the design default order', () => {
   expect(readHomeLayout('broadcast').hidden).toEqual(['insights']);
 });
 
+it('keeps separate block orders for the dashboard and «Сегодня» in one key', () => {
+  const today = readHomeLayout('classic', 'today');
+  expect(today.order).toEqual(['catchup', 'live', 'upcoming', 'teams']);
+  expect(today.custom).toBe(false);
+  moveHomeWidget('classic', 'live', -1, 'today');
+  setHomeWidgetHidden('classic', 'teams', true, 'today');
+  expect(readHomeLayout('classic', 'today').order).toEqual([
+    'live',
+    'catchup',
+    'upcoming',
+    'teams',
+  ]);
+  expect(readHomeLayout('classic', 'today').hidden).toEqual(['teams']);
+  // The old dashboard keeps its own defaults and hidden list.
+  expect(readHomeLayout('classic').order).toEqual(DEFAULT_HOME_ORDER.classic);
+  expect(readHomeLayout('classic').hidden).toEqual([]);
+  resetHomeLayout('today');
+  expect(readHomeLayout('classic', 'today').order).toEqual([
+    'catchup',
+    'live',
+    'upcoming',
+    'teams',
+  ]);
+  expect(readHomeLayout('classic', 'today').hidden).toEqual([]);
+});
+
 it('is part of the profile backup and a broken value is rejected on restore', () => {
   expect(allowedProfileKey(HOME_LAYOUT_KEY)).toBe(true);
   expect(isValidHomeLayoutValue('{"version":1,"order":null,"hidden":[]}')).toBe(true);
