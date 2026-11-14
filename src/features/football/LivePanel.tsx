@@ -4,6 +4,8 @@ import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateView
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
 import { useViewState } from '../../lib/useViewState';
+import { LEAGUES } from '../../lib/navigationMetadata';
+import { CUP_COMPETITIONS } from '../ucl/cups';
 import { clubKey } from './clubNames';
 import { useFavorites } from './FavoritesProvider';
 import { isFollowedCompetition } from './liveCompetitions';
@@ -27,6 +29,24 @@ const LEAGUE_IDS = [
   'l_1XLtP0',
 ] as const;
 const LEAGUE_ID_SET = new Set<string>(LEAGUE_IDS);
+const COMPETITION_LABELS = new Map<string, string>([
+  ...LEAGUES.map((league) => [league.id, league.label] as const),
+  ...CUP_COMPETITIONS.map((cup) => [cup.id, cup.title] as const),
+]);
+
+const NUMERIC_MINUTE = /^\d{1,3}(?:'\+\d{1,2}|\+\d{1,2}|)'$/;
+
+/** `HT` reads as a word; an unfamiliar live label is left out instead of shown raw. */
+export function minuteLabel(minute: string | null): string | null {
+  if (!minute) return null;
+  if (minute === 'HT') return 'Перерыв';
+  return NUMERIC_MINUTE.test(minute) ? minute : null;
+}
+
+function competitionLabel(match: LiveMatch): string {
+  const known = match.leagueId ? COMPETITION_LABELS.get(match.leagueId) : undefined;
+  return known ?? (match.competition || 'Футбол');
+}
 
 const STATE_LABELS: Record<LiveState, string> = {
   scheduled: 'Запланирован',
@@ -168,9 +188,10 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
               const clickableId =
                 onOpenMatch && pitchMatches.length > 0 ? findPitchMatchId(m, pitchMatches) : null;
               const kickoff = m.state === 'scheduled' ? kickoffTime(m.kickoffUtc, timezone) : null;
+              const minute = minuteLabel(m.minute);
               const row = (
                 <>
-                  <div className="live-flat-comp muted small">{m.competition || 'Футбол'}</div>
+                  <div className="live-flat-comp muted small">{competitionLabel(m)}</div>
                   <div className="live-flat-teams">
                     <span className="live-team">
                       <TeamBadge name={m.home.name} size={20} />
@@ -188,7 +209,7 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
                     <span className={live ? 'chip live-chip' : 'chip'}>
                       {STATE_LABELS[m.state]}
                     </span>
-                    {live && m.minute && <span className="chip live-chip">{m.minute}</span>}
+                    {live && minute && <span className="chip live-chip">{minute}</span>}
                     {favorite && (
                       <span className="chip fav-chip">
                         <Star size={10} /> Избранное

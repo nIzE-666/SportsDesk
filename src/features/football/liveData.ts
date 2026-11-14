@@ -317,34 +317,27 @@ export async function loadLiveDay(options: LiveLoadOptions): Promise<LiveData> {
   return loadEspnDay(options);
 }
 
-/** Matches in progress. Auto uses LiveScore and falls back to ESPN's scoreboards. */
-export async function loadLiveNow(options: LiveLoadOptions): Promise<LiveData> {
-  const choice = readLiveSourceChoice();
+/**
+ * Matches in progress. The live sheet always uses the source of the current day sheet:
+ * ESPN is only read when ESPN answered the day, so one list never mixes the two sources.
+ */
+export async function loadLiveNow(
+  options: LiveLoadOptions & { source: LiveSource },
+): Promise<LiveData> {
+  if (options.source === 'espn') return loadEspnDay(options);
   const now = options.now ?? new Date();
-  if (choice !== 'espn') {
-    const day = localDayIso(now, options.timeZone);
-    if (day) {
-      const offset = liveScoreOffset(day, options.timeZone);
-      try {
-        const reply = await api('livescore', `live/soccer/${offset}?MD=1`, {
-          automatic: options.automatic,
-        });
-        const parsed = parseLiveScore(reply.payload, offset);
-        if (parsed.length > 0 || choice === 'livescore')
-          return {
-            matches: sortMatches(parsed),
-            source: 'livescore',
-            fetchedAt: reply.fetchedAt ?? null,
-            stale: reply.stale,
-          };
-      } catch (error) {
-        if (choice === 'livescore') throw error;
-      }
-    } else if (choice === 'livescore') {
-      throw new Error('Не удалось определить местную дату.');
-    }
-  }
-  return loadEspnDay(options);
+  const day = localDayIso(now, options.timeZone);
+  if (!day) throw new Error('Не удалось определить местную дату.');
+  const offset = liveScoreOffset(day, options.timeZone);
+  const reply = await api('livescore', `live/soccer/${offset}?MD=1`, {
+    automatic: options.automatic,
+  });
+  return {
+    matches: sortMatches(parseLiveScore(reply.payload, offset)),
+    source: 'livescore',
+    fetchedAt: reply.fetchedAt ?? null,
+    stale: reply.stale,
+  };
 }
 
 /**
@@ -420,7 +413,13 @@ export function useLiveMatches({
   const merged = useCallback((): LiveMatch[] => {
     const byId = new Map<string, LiveMatch>();
     for (const match of dayRef.current) byId.set(match.id, match);
-    for (const match of liveRef.current) byId.set(match.id, match);
+    // Only a live sheet from the same source as the day sheet may update it.
+    if (
+      dayMetaRef.current.source !== null &&
+      liveMetaRef.current.source === dayMetaRef.current.source
+    ) {
+      for (const match of liveRef.current) byId.set(match.id, match);
+    }
     return sortMatches([...byId.values()]);
   }, []);
 
@@ -428,7 +427,12 @@ export function useLiveMatches({
     const matches = merged();
     let meta = dayMetaRef.current;
     const live = liveMetaRef.current;
-    if (live.fetchedAt && (!meta.fetchedAt || live.fetchedAt >= meta.fetchedAt)) meta = live;
+    if (
+      live.source === meta.source &&
+      live.fetchedAt &&
+      (!meta.fetchedAt || live.fetchedAt >= meta.fetchedAt)
+    )
+      meta = live;
     setData({ matches, source: meta.source, fetchedAt: meta.fetchedAt, stale: meta.stale });
   }, [merged]);
 
@@ -439,6 +443,8 @@ export function useLiveMatches({
   const loadLive = useCallback(
     async (automatic: boolean) => {
       if (liveInFlightRef.current) return;
+      const source = dayMetaRef.current.source;
+      if (!source) return;
       liveInFlightRef.current = true;
       syncBusy();
       const startedAt = Date.now();
@@ -450,10 +456,12 @@ export function useLiveMatches({
           timeZone,
           now: new Date(startedAt),
           automatic,
+          source,
         });
         if (!mountedRef.current) return;
         const currentDay = localDayIso(new Date(), timeZone);
         if (requestedDay && currentDay && requestedDay !== currentDay) return;
+        if (dayMetaRef.current.source !== source) return;
         liveRef.current = result.matches;
         liveMetaRef.current = {
           source: result.source,
@@ -468,6 +476,7 @@ export function useLiveMatches({
         if (!mountedRef.current) return;
         const currentDay = localDayIso(new Date(), timeZone);
         if (requestedDay && currentDay && requestedDay !== currentDay) return;
+        if (dayMetaRef.current.source !== source) return;
         liveFailuresRef.current += 1;
         nextLiveAtRef.current = Date.now() + backoffMs(liveFailuresRef.current);
         setError(caught instanceof Error ? caught.message : 'Матчи недоступны');
@@ -496,12 +505,17 @@ export function useLiveMatches({
         });
         if (!mountedRef.current) return;
         if (dayDateRef.current && requestedDay && dayDateRef.current !== requestedDay) return;
+        const previousSource = dayMetaRef.current.source;
         dayRef.current = result.matches;
         dayMetaRef.current = {
           source: result.source,
           fetchedAt: result.fetchedAt,
           stale: result.stale,
         };
+        if (previousSource !== result.source) {
+          liveRef.current = [];
+          liveMetaRef.current = { source: null, fetchedAt: null, stale: false };
+        }
         dayDateRef.current = requestedDay;
         dayFailuresRef.current = 0;
         nextDayAtRef.current = Date.now() + DAY_INTERVAL_MS;

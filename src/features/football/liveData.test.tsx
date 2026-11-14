@@ -214,6 +214,7 @@ describe('loadLiveNow', () => {
       leagueIds: ['l_4WFCIZ'],
       timeZone: 'Asia/Yakutsk',
       now: new Date('2026-11-14T15:01:00Z'),
+      source: 'livescore',
     });
     expect(calledPaths('livescore')).toEqual(['live/soccer/9?MD=1']);
     expect(result.source).toBe('livescore');
@@ -227,8 +228,53 @@ describe('loadLiveNow', () => {
       leagueIds: ['l_4WFCIZ'],
       timeZone: 'Asia/Kolkata',
       now: new Date('2026-11-14T15:01:00Z'),
+      source: 'livescore',
     });
     expect(calledPaths('livescore')).toEqual(['live/soccer/0?MD=1']);
+  });
+
+  it('does not call ESPN for the live sheet when the day sheet is LiveScore', async () => {
+    setString(LIVE_SOURCE_KEY, 'auto');
+    vi.mocked(api).mockRejectedValue(new Error('LiveScore недоступен'));
+    await expect(
+      loadLiveNow({
+        leagueIds: ['l_4WFCIZ'],
+        timeZone: 'Asia/Yakutsk',
+        now: new Date('2026-11-14T15:01:00Z'),
+        source: 'livescore',
+      }),
+    ).rejects.toThrow('LiveScore недоступен');
+    expect(calledPaths('espn')).toEqual([]);
+  });
+
+  it('re-reads ESPN scoreboards when the day sheet is ESPN', async () => {
+    vi.mocked(api).mockResolvedValue(reply(ESPN_ENG1));
+    const result = await loadLiveNow({
+      leagueIds: ['l_4WFCIZ'],
+      timeZone: 'Asia/Yakutsk',
+      now: new Date('2026-11-08T10:00:00Z'),
+      source: 'espn',
+    });
+    expect(calledPaths('livescore')).toEqual([]);
+    expect(calledPaths('espn').sort()).toEqual([
+      'eng.1/scoreboard?dates=20261107',
+      'eng.1/scoreboard?dates=20261108',
+    ]);
+    expect(result.source).toBe('espn');
+    expect(result.matches).toHaveLength(4);
+  });
+
+  it('treats an empty LiveScore live answer as normal', async () => {
+    vi.mocked(api).mockResolvedValue(reply({ Stages: [] }));
+    const result = await loadLiveNow({
+      leagueIds: ['l_4WFCIZ'],
+      timeZone: 'Asia/Yakutsk',
+      now: new Date('2026-11-14T15:01:00Z'),
+      source: 'livescore',
+    });
+    expect(result.source).toBe('livescore');
+    expect(result.matches).toEqual([]);
+    expect(calledPaths('espn')).toEqual([]);
   });
 });
 
@@ -403,9 +449,61 @@ describe('useLiveMatches', () => {
     expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toHaveLength(3);
   });
 
-  it('waits longer after each live error, up to fifteen minutes', async () => {
+  it('keeps the day sheet when LiveScore reports that nothing is running', async () => {
     vi.setSystemTime(new Date('2026-11-14T15:01:00Z'));
-    setString(LIVE_SOURCE_KEY, 'livescore');
+    setString(LIVE_SOURCE_KEY, 'auto');
+    vi.mocked(api).mockImplementation(async (source, path) => {
+      if (source === 'livescore' && path.startsWith('date/')) return reply(HOOK_LIVE);
+      if (source === 'livescore' && path.startsWith('live/')) return reply({ Stages: [] });
+      return reply({});
+    });
+    await render();
+    expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toHaveLength(1);
+    expect(calledPaths('espn')).toEqual([]);
+    expect(latest?.error).toBeNull();
+    expect(latest?.matches).toHaveLength(2);
+    expect(latest?.source).toBe('livescore');
+  });
+
+  it('re-reads ESPN scoreboards when ESPN answered the day sheet', async () => {
+    vi.setSystemTime(new Date('2026-11-14T15:01:00Z'));
+    setString(LIVE_SOURCE_KEY, 'auto');
+    const espnLive = {
+      leagues: [{ slug: 'eng.1', name: 'English Premier League' }],
+      events: [
+        {
+          id: 'espn-live',
+          date: '2026-11-14T15:00Z',
+          status: {
+            displayClock: "10'",
+            type: { name: 'STATUS_FIRST_HALF', state: 'in', completed: false },
+          },
+          competitions: [
+            {
+              competitors: [
+                { homeAway: 'home', score: '0', team: { displayName: 'Arsenal' } },
+                { homeAway: 'away', score: '0', team: { displayName: 'Chelsea' } },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.mocked(api).mockImplementation(async (source) => {
+      if (source === 'livescore') throw new Error('LiveScore недоступен');
+      return reply(espnLive);
+    });
+    await render();
+    expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toEqual([]);
+    expect(calledPaths('espn').length).toBeGreaterThan(2);
+    expect(latest?.source).toBe('espn');
+    expect(latest?.matches).toHaveLength(1);
+    expect(latest?.matches[0]).toMatchObject({ state: 'live', minute: "10'" });
+  });
+
+  it('waits longer after each live error, up to fifteen minutes, without switching sources', async () => {
+    vi.setSystemTime(new Date('2026-11-14T15:01:00Z'));
+    setString(LIVE_SOURCE_KEY, 'auto');
     vi.mocked(api).mockImplementation(async (source, path) => {
       if (source === 'livescore' && path.startsWith('date/')) return reply(HOOK_LIVE);
       if (source === 'livescore' && path.startsWith('live/')) throw new Error('нет связи');
@@ -427,6 +525,7 @@ describe('useLiveMatches', () => {
     expect(liveCalls()).toBe(4);
     expect(latest?.error).toBe('нет связи');
     expect(latest?.matches.length).toBeGreaterThan(0);
+    expect(calledPaths('espn')).toEqual([]);
   });
 
   it('keeps the last day and its fetch time when an hourly refresh fails', async () => {

@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../lib/bridge';
 import { viewState } from '../../lib/viewState';
-import { LivePanel, type LivePanelProps } from './LivePanel';
+import { LivePanel, minuteLabel, type LivePanelProps } from './LivePanel';
 
 vi.mock('../../lib/bridge', () => ({
   api: vi.fn(),
@@ -180,6 +180,91 @@ describe('LivePanel', () => {
     expect(scheduled?.textContent).toContain('— : —');
     expect(scheduled?.textContent).toContain('22:30');
     expect(scheduled?.textContent).not.toContain("67'");
+  });
+
+  it('shows half-time in words and hides unfamiliar live labels', async () => {
+    vi.mocked(api).mockResolvedValue(
+      reply({
+        Stages: [
+          {
+            CompN: 'Premier League',
+            CompD: 'England',
+            Cnm: 'England',
+            Events: [
+              {
+                Eid: 'half',
+                T1: [{ Nm: 'Arsenal' }],
+                T2: [{ Nm: 'Visitor' }],
+                Eps: 'HT',
+                Esd: 20261108200000,
+              },
+              {
+                Eid: 'added',
+                T1: [{ Nm: 'Everton' }],
+                T2: [{ Nm: 'Chelsea' }],
+                Eps: "90+3'",
+                Esd: 20261108200000,
+                Tr1: '1',
+                Tr2: '0',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await render();
+    expect(rowFor(host, 'Arsenal')?.textContent).toContain('Перерыв');
+    expect(rowFor(host, 'Arsenal')?.textContent).not.toContain('HT');
+    expect(rowFor(host, 'Everton')?.textContent).toContain("90+3'");
+    expect(minuteLabel('HT')).toBe('Перерыв');
+    expect(minuteLabel("45+2'")).toBe("45+2'");
+    expect(minuteLabel("90'+6'")).toBe("90'+6'");
+    expect(minuteLabel('PEN')).toBeNull();
+  });
+
+  it('uses the app name for a known competition and the source name for an unknown one', async () => {
+    vi.mocked(api).mockResolvedValue(
+      reply({
+        Stages: [
+          {
+            CompN: 'LaLiga',
+            CompD: 'Spain',
+            Cnm: 'Spain',
+            Events: [
+              {
+                Eid: 'laliga',
+                T1: [{ Nm: 'Real Madrid' }],
+                T2: [{ Nm: 'Barcelona' }],
+                Eps: 'FT',
+                Esd: 20261108200000,
+                Tr1: '1',
+                Tr2: '0',
+              },
+            ],
+          },
+          {
+            CompN: 'Jamaica Premier League',
+            CompD: 'Jamaica',
+            Cnm: 'Jamaica',
+            Events: [
+              {
+                Eid: 'favorite-unknown',
+                T1: [{ Nm: 'Arsenal' }],
+                T2: [{ Nm: 'Visitor' }],
+                Eps: 'FT',
+                Esd: 20261108200000,
+                Tr1: '0',
+                Tr2: '0',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await render();
+    expect(host.textContent).toContain('Ла Лига');
+    expect(host.textContent).not.toContain('LaLiga');
+    expect(host.textContent).toContain('Jamaica Premier League');
   });
 
   it('opens only a row that matches a loaded PitchAPI fixture', async () => {
