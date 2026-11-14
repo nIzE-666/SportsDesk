@@ -77,7 +77,12 @@ test('measure user journeys from launch', async ({ page }) => {
 
   await start();
   await click(page.getByRole('button', { name: 'Настройки', exact: true }).first());
-  await click(page.locator('summary').filter({ hasText: 'Настроить по командам' }));
+  await click(
+    page
+      .getByRole('navigation', { name: 'Категории настроек' })
+      .getByRole('button', { name: 'Уведомления', exact: true }),
+  );
+  await click(page.locator('summary').filter({ hasText: 'Настройки по клубам' }));
   const team = page.locator('.notification-teams fieldset').filter({ hasText: 'Arsenal' });
   await click(team.getByLabel('Уведомления команды'));
   await expect(team.getByLabel('Уведомления команды')).not.toBeChecked();

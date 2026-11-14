@@ -88,10 +88,9 @@ export function NotificationPreferences() {
             />
           </label>
         </div>
-        <p className="muted small">События в тихие часы позже не показываются.</p>
       </fieldset>
       <details>
-        <summary>Настроить по командам · {teams.length}</summary>
+        <summary>Настройки по клубам · {teams.length}</summary>
         <div className="notification-teams">
           {teams.map((t) => {
             const p = policy.teams[t.id] ?? { enabled: true, ...EVENTS };
@@ -133,7 +132,6 @@ export function NotificationPreferences() {
             );
           })}
         </div>
-        <p className="muted small">Общие переключатели действуют для всех команд.</p>
       </details>
     </div>
   );

@@ -134,7 +134,7 @@ describe('FavoriteClubsEditor', () => {
 
   it('без каталога подсказывает, где он пополняется', () => {
     const el = mount(<FavoriteClubsEditor compact />);
-    expect(el.textContent).toContain('Каталог клубов пополняется');
+    expect(el.textContent).toContain('Каталог пополняется после открытия лиг');
     expect(el.textContent).not.toContain('Избранные игроки');
   });
 });

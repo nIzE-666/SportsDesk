@@ -149,7 +149,21 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Центр событий', exact: true }).first().click();
   await dump('Центр событий');
   await page.getByRole('button', { name: 'Настройки', exact: true }).first().click();
-  await dump('Настройки');
+  const settingsNav = page.getByRole('navigation', { name: 'Категории настроек' });
+  for (const category of [
+    'Основное',
+    'Избранное',
+    'Уведомления',
+    'Внешний вид',
+    'Модули',
+    'Просмотр',
+    'Данные',
+    'Источники',
+    'О программе',
+  ]) {
+    await settingsNav.getByRole('button', { name: category, exact: true }).click();
+    await dump(`Настройки: ${category}`);
+  }
 
   // Вкладки матча. Завершённый матч: сначала с тем, что отдаёт базовый ответ (составы и статистика без игроков),
   // потом с подробностями (оценки, сравнение игроков, события, удары с xG), потом матч, который ещё не начался.

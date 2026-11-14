@@ -52,7 +52,7 @@ it('stops the Settings poll and ignores its late authorization response', async 
   document.body.append(host);
   const root = createRoot(host);
   try {
-    await act(async () => root.render(<SettingsView />));
+    await act(async () => root.render(<SettingsView category="watch" />));
     await act(async () => button(host, 'Войти по коду устройства').click());
     await act(async () => vi.advanceTimersByTimeAsync(4000));
     await act(async () => button(host, 'Остановить ожидание').click());
@@ -86,7 +86,7 @@ it('cancels an attempt even if the Settings screen unmounts before its ID arrive
   const host = document.createElement('div');
   document.body.append(host);
   const root = createRoot(host);
-  await act(async () => root.render(<SettingsView />));
+  await act(async () => root.render(<SettingsView category="watch" />));
   await act(async () => button(host, 'Войти по коду устройства').click());
   await act(async () => root.unmount());
   await act(async () => begin.resolve({ sessionId: 'late-begin' }));

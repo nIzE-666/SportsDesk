@@ -56,7 +56,7 @@ function cachedCatalogue(): Record<string, string[]> {
       )
     : {};
 }
-export function OfflineView() {
+export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
   const queue = useOfflineQueue();
   const [catalogue, setCatalogue] = useState(cachedCatalogue);
   const [leagueId, setLeagueId] = useState(VERIFIED_LEAGUES[0]!.id);
@@ -156,12 +156,14 @@ export function OfflineView() {
     ? packages.find((p) => p.leagueId === selected.leagueId && p.season === selected.season)
     : null;
   return (
-    <div className="offline-view">
-      <header>
-        <p className="eyebrow">ЛОКАЛЬНАЯ БИБЛИОТЕКА</p>
-        <h1>Офлайн-сезоны</h1>
-        <p className="muted">Сезоны для просмотра без сети.</p>
-      </header>
+    <div className={`offline-view${embedded ? ' offline-view-embedded' : ''}`}>
+      {!embedded && (
+        <header>
+          <p className="eyebrow">ЛОКАЛЬНАЯ БИБЛИОТЕКА</p>
+          <h1>Офлайн-сезоны</h1>
+          <p className="muted">Сезоны для просмотра без сети.</p>
+        </header>
+      )}
       {(error || queue.error) && (
         <div className="state-card error" role="alert">
           {error || queue.error}

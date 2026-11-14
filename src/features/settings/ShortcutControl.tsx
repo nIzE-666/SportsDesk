@@ -51,7 +51,7 @@ export function ShortcutControl() {
           Применить
         </button>
       </div>
-      <p className="muted small">Мини-окно поверх программ; пустое поле отключает клавишу.</p>
+      <p className="muted small">Пустое поле выключает клавишу.</p>
       <p role="status" className="settings-note">
         {status}
       </p>

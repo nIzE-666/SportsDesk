@@ -40,6 +40,11 @@ test('source information and settings remain clear when saved data is stale', as
   await expect(page.locator('.live-view .source-foot')).toContainText('устаревшими');
   await page.getByRole('button', { name: 'Настройки', exact: true }).first().click();
   await expect(page.locator('.settings-view h1')).toHaveText('Настройки');
+  await page
+    .getByRole('navigation', { name: 'Категории настроек' })
+    .getByRole('button', { name: 'Источники', exact: true })
+    .click();
+  await expect(page.locator('.settings-category > h2')).toHaveText('Источники');
   await expect(page.locator('.settings-view')).toContainText('Ключи хранятся в зашифрованном виде');
   await expect(page.locator('.settings-view')).not.toContainText(
     /DPAPI|JS-бандл|localStorage|опрос на Rust/,

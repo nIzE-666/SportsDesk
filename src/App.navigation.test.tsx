@@ -207,6 +207,7 @@ it('applies the design from Settings, restores it on launch, and uses a real fix
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
   await click(button('Назад'));
   await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
+  await click(button('Внешний вид'));
   await click(
     host.querySelector<HTMLInputElement>('input[name="interface-design"][value="classic"]')!,
   );

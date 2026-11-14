@@ -9,7 +9,6 @@ import {
   type AmbientChoice,
   type AmbientHiddenPolicy,
   type AmbientVideoPolicy,
-  type MotionMode,
 } from './atmosphereStore';
 import { CELEBRATE_PREVIEW_EVENT } from './celebrationRules';
 import { FINISH_PREVIEW_EVENT } from './finishRules';
@@ -24,14 +23,12 @@ export function AtmosphereSettings() {
   return (
     <section className="panel settings-section" aria-label="Игры и атмосфера">
       <div className="section-title">
-        <h2>
+        <h3>
           <Sparkles size={15} /> Игры и атмосфера
-        </h2>
+        </h3>
         <span className="chip">{s.enabled ? 'Включено' : 'Выключено'}</span>
       </div>
-      <p className="muted small">
-        Эффекты, звуки и мини-игры; скрытые результаты они не раскрывают.
-      </p>
+      <p className="muted small">Эффекты, звуки и мини-игры.</p>
       <label className="atmosphere-row">
         <input
           type="checkbox"
@@ -58,17 +55,6 @@ export function AtmosphereSettings() {
           Короткие звуковые сигналы: рог при голе, радио F1
         </label>
         <label className="atmosphere-row">
-          Движение
-          <select
-            value={s.motion}
-            onChange={(e) => writeAtmosphere({ motion: e.target.value as MotionMode })}
-          >
-            <option value="system">Как в системе</option>
-            <option value="reduced">Спокойно, без частиц</option>
-            <option value="full">Полная анимация</option>
-          </select>
-        </label>
-        <label className="atmosphere-row">
           Громкость сигналов
           <input
             type="range"
@@ -89,9 +75,10 @@ export function AtmosphereSettings() {
           Фоновый звук стадиона и двигателя: кнопка с динамиком в верхней панели
         </label>
         <fieldset className="atmosphere-subgroup" disabled={!s.ambient}>
-          <label className="atmosphere-row">
-            Звук
+          <div className="atmosphere-row">
+            <label htmlFor="ambient-kind">Звук</label>
             <select
+              id="ambient-kind"
               value={s.ambientKind}
               onChange={(e) => writeAtmosphere({ ambientKind: e.target.value as AmbientChoice })}
             >
@@ -99,7 +86,7 @@ export function AtmosphereSettings() {
               <option value="stadium">Всегда стадион</option>
               <option value="engine">Всегда двигатель</option>
             </select>
-          </label>
+          </div>
           <label className="atmosphere-row">
             Громкость фона
             <input
@@ -112,9 +99,10 @@ export function AtmosphereSettings() {
             />
             <span className="muted small">{Math.round(s.ambientVolume * 100)}%</span>
           </label>
-          <label className="atmosphere-row">
-            Пока играет видео со звуком
+          <div className="atmosphere-row">
+            <label htmlFor="ambient-video">Пока играет видео со звуком</label>
             <select
+              id="ambient-video"
               value={s.ambientVideo}
               onChange={(e) =>
                 writeAtmosphere({ ambientVideo: e.target.value as AmbientVideoPolicy })
@@ -123,10 +111,11 @@ export function AtmosphereSettings() {
               <option value="stop">Остановить фон</option>
               <option value="lower">Приглушить фон</option>
             </select>
-          </label>
-          <label className="atmosphere-row">
-            Когда окно скрыто в трей или свёрнуто
+          </div>
+          <div className="atmosphere-row">
+            <label htmlFor="ambient-hidden">Когда окно скрыто в трей или свёрнуто</label>
             <select
+              id="ambient-hidden"
               value={s.ambientHidden}
               onChange={(e) =>
                 writeAtmosphere({ ambientHidden: e.target.value as AmbientHiddenPolicy })
@@ -135,7 +124,7 @@ export function AtmosphereSettings() {
               <option value="stop">Остановить фон</option>
               <option value="keep">Продолжать звучать</option>
             </select>
-          </label>
+          </div>
         </fieldset>
         <label className="atmosphere-row">
           <input
@@ -162,7 +151,7 @@ export function AtmosphereSettings() {
             }}
           />
         </label>
-        <p className="muted small">Реплики придуманы в SportsDesk, это не записи команд.</p>
+        <p className="muted small">Реплики вымышлены.</p>
       </fieldset>
       <div className="settings-actions">
         <button

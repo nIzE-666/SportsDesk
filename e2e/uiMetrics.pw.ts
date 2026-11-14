@@ -92,6 +92,10 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
   await sidebar('Дневник просмотра');
   await capture('Дневник', '.diary-view');
   await page.getByRole('button', { name: 'Настройки', exact: true }).first().click();
+  await page
+    .getByRole('navigation', { name: 'Категории настроек' })
+    .getByRole('button', { name: 'Основное', exact: true })
+    .click();
   await capture('Настройки', '.settings-view');
   await writeFile(
     output!,

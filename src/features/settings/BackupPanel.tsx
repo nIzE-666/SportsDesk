@@ -34,17 +34,14 @@ export function BackupPanel() {
   if (!isTauriRuntime())
     return (
       <section className="panel settings-section">
-        <h2>Автоматические резервные копии</h2>
-        <p className="muted">Выбор папки доступен в приложении Windows.</p>
+        <h3>Автоматические резервные копии</h3>
+        <p className="muted">Доступно в приложении Windows.</p>
       </section>
     );
   return (
     <section className="panel settings-section">
-      <h2>Резервные копии с историей</h2>
-      <p className="muted small">
-        Профиль и история матчей в одном файле, ключи не включаются. Хранятся семь последних копий,
-        сохранение — раз в сутки.
-      </p>
+      <h3>Резервные копии с историей</h3>
+      <p className="muted small">Профиль и история без ключей.</p>
       <p className="backup-folder">{settings?.folder ?? 'Папка ещё не выбрана'}</p>
       <div className="settings-actions">
         <button

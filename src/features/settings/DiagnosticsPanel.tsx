@@ -31,7 +31,7 @@ export function DiagnosticsPanel() {
   return (
     <section className="panel settings-section diagnostics-panel">
       <div className="section-title">
-        <h2>Диагностика источников</h2>
+        <h3>Диагностика источников</h3>
         <button className="ghost-btn" disabled={busy} onClick={() => void load()}>
           Обновить диагностику
         </button>
@@ -41,8 +41,7 @@ export function DiagnosticsPanel() {
           ? backend.runtime.startsWith('Windows')
             ? 'Приложение Windows'
             : 'Браузер'
-          : 'Загрузка состояния…'}{' '}
-        · Ключи и адреса потоков в отчёт не входят.
+          : 'Загрузка состояния…'}
       </p>
       <div className="diagnostics-grid">
         {['pitch', 'sportscore', 'espn', 'jolpica', 'openf1'].map((source) => {
@@ -109,6 +108,7 @@ export function DiagnosticsPanel() {
       </details>
       <button
         className="ghost-btn"
+        title="Отчёт без ключей и адресов."
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(

@@ -179,19 +179,14 @@ export function UpdatePanel() {
   return (
     <section className="panel settings-section updates-panel">
       <div className="section-title">
-        <h2>
+        <h3>
           <Download size={17} /> Обновления приложения
-        </h2>
+        </h3>
         <span className="chip">Версия {u.version}</span>
       </div>
-      <p className="muted small">Новые версии проверяются автоматически; установка — по кнопке.</p>
-      {!native && (
-        <p className="settings-note">Проверка и установка доступны в Windows-приложении.</p>
-      )}
-      {!u.source && (
-        <p className="settings-note">
-          Автообновление пока не подключено: новые версии устанавливаются вручную.
-        </p>
+      {!native && <p className="settings-note">Только в приложении Windows.</p>}
+      {native && !u.source && (
+        <p className="settings-note">Новые версии устанавливаются вручную.</p>
       )}
       <label className="update-source-label" htmlFor="update-source">
         HTTPS-адрес файла latest.json

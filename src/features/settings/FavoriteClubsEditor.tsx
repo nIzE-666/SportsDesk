@@ -66,7 +66,7 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
         <Star size={14} /> Избранные клубы · {tracked.length + pendingDefaults.length}
       </h3>
       {tracked.length + pendingDefaults.length === 0 ? (
-        <p className="muted small">Пока ничего не выбрано — найдите клуб ниже.</p>
+        <p className="muted small">Пока ничего не выбрано.</p>
       ) : (
         <ul className="fav-editor-list" aria-label="Избранные клубы">
           {tracked.map(({ id, entry }) => (
@@ -109,10 +109,10 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
         />
       </label>
       {catalogue.length === 0 && (
-        <p className="muted small">Каталог клубов пополняется, когда вы открываете лиги.</p>
+        <p className="muted small">Каталог пополняется после открытия лиг.</p>
       )}
       {query.trim() !== '' && results.length === 0 && catalogue.length > 0 && (
-        <p className="muted small">Ничего не найдено. Откройте лигу клуба — он появится здесь.</p>
+        <p className="muted small">Ничего не найдено.</p>
       )}
       {grouped.map(([league, teams]) => (
         <div key={league} className="fav-editor-group">
@@ -165,7 +165,7 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
             <Star size={14} /> Избранные игроки · {favoritePlayers.length}
           </h3>
           {favoritePlayers.length === 0 ? (
-            <p className="muted small">Отмечайте игроков звёздочкой в составах и профилях.</p>
+            <p className="muted small">Звёздочка в составах добавляет игрока.</p>
           ) : (
             <ul className="fav-editor-list" aria-label="Избранные игроки">
               {favoritePlayers.map((p) => (
@@ -182,7 +182,6 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
               ))}
             </ul>
           )}
-          <p className="muted small">Настройки по клубам — в разделе «Уведомления».</p>
         </>
       )}
     </div>
