@@ -126,7 +126,7 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root {height:auto;min-height:100vh;overflow:visible} .shell,.content {overflow:visible}',
         });
-
+        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-tactics.png`);
         await capture.evaluate((el) => el.parentNode?.removeChild(el));
         await page.getByRole('button', { name: 'Сравнить с исходной', exact: true }).click();
         await expect(feature.locator('.tactics-player')).toHaveCount(4);

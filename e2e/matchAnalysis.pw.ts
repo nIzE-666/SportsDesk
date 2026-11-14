@@ -145,7 +145,7 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root { height: auto; min-height: 100vh; overflow: visible; } .shell, .content { overflow: visible; }',
         });
-
+        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-analysis.png`);
         await captureStyle.evaluate((element) => element.parentNode?.removeChild(element));
         await page.getByLabel('Команда', { exact: true }).selectOption(home.id);
         await page.getByLabel('Период', { exact: true }).selectOption('FirstHalf');

@@ -162,6 +162,7 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
         });
+        await expect(feature).toHaveScreenshot(`offline-${design}-${scheme}-${width}.png`);
         await capture.evaluate((el) => el.parentNode?.removeChild(el));
         state.offline = true;
         const partial = feature
