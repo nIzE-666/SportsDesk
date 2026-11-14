@@ -5,3 +5,5 @@ src-tauri/gen
 src-tauri/icons
 public
 package-lock.json
+# Raw source captures; the parser is tested against these exact bytes.
+src/test/fixtures/liveSources

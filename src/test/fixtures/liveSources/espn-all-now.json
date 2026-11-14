@@ -1,0 +1,346 @@
+{
+ "leagues": [],
+ "events": [
+  {
+   "id": "401861163",
+   "date": "2026-11-14T14:00Z",
+   "name": "Israel at Kosovo",
+   "status": {
+    "clock": 2700,
+    "displayClock": "45'",
+    "period": 1,
+    "type": {
+     "id": "23",
+     "name": "STATUS_HALFTIME",
+     "state": "in",
+     "completed": false,
+     "description": "Halftime",
+     "detail": "HT",
+     "shortDetail": "HT"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401861163",
+     "date": "2026-11-14T14:00Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "18272",
+        "displayName": "Kosovo",
+        "shortDisplayName": "Kosovo",
+        "abbreviation": "KOS"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "461",
+        "displayName": "Israel",
+        "shortDisplayName": "Israel",
+        "abbreviation": "ISR"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401902865",
+   "date": "2026-11-14T13:30Z",
+   "name": "Manchester City at Chelsea",
+   "status": {
+    "clock": 4260,
+    "displayClock": "71'",
+    "period": 2,
+    "type": {
+     "id": "26",
+     "name": "STATUS_SECOND_HALF",
+     "state": "in",
+     "completed": false,
+     "description": "Second Half",
+     "detail": "71'",
+     "shortDetail": "71'"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401902865",
+     "date": "2026-11-14T13:30Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "1",
+       "winner": false,
+       "team": {
+        "id": "19970",
+        "displayName": "Chelsea",
+        "shortDisplayName": "Chelsea ",
+        "abbreviation": "CHE"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "19257",
+        "displayName": "Manchester City",
+        "shortDisplayName": "Man City",
+        "abbreviation": "MNC"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401902861",
+   "date": "2026-11-14T15:00Z",
+   "name": "Everton at Tottenham Hotspur",
+   "status": {
+    "clock": 120,
+    "displayClock": "2'",
+    "period": 1,
+    "type": {
+     "id": "25",
+     "name": "STATUS_FIRST_HALF",
+     "state": "in",
+     "completed": false,
+     "description": "First Half",
+     "detail": "2'",
+     "shortDetail": "2'"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401902861",
+     "date": "2026-11-14T15:00Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "20062",
+        "displayName": "Tottenham Hotspur",
+        "shortDisplayName": "Spurs",
+        "abbreviation": "TOT"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "19972",
+        "displayName": "Everton",
+        "shortDisplayName": "Everton ",
+        "abbreviation": "EVE"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401933734",
+   "date": "2026-11-14T17:00Z",
+   "name": "Utah Royals at Washington Spirit",
+   "status": {
+    "clock": 0,
+    "displayClock": "0'",
+    "type": {
+     "id": "1",
+     "name": "STATUS_SCHEDULED",
+     "state": "pre",
+     "completed": false,
+     "description": "Scheduled",
+     "detail": "Sat, November 14th at 12:00 PM EST",
+     "shortDetail": "Scheduled"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401933734",
+     "date": "2026-11-14T17:00Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "15365",
+        "displayName": "Washington Spirit",
+        "shortDisplayName": "Washington",
+        "abbreviation": "WAS"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "19141",
+        "displayName": "Utah Royals",
+        "shortDisplayName": "Utah",
+        "abbreviation": "UTA"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401929774",
+   "date": "2026-11-14T19:00Z",
+   "name": "French Guiana at Sint Maarten",
+   "status": {
+    "clock": 0,
+    "displayClock": "0'",
+    "type": {
+     "id": "1",
+     "name": "STATUS_SCHEDULED",
+     "state": "pre",
+     "completed": false,
+     "description": "Scheduled",
+     "detail": "Sat, November 14th at 2:00 PM EST",
+     "shortDetail": "Scheduled"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401929774",
+     "date": "2026-11-14T19:00Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "18243",
+        "displayName": "Sint Maarten",
+        "shortDisplayName": "Sint Maarten",
+        "abbreviation": "SMA"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "10532",
+        "displayName": "French Guiana",
+        "shortDisplayName": "French Guiana",
+        "abbreviation": "GUF"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401933864",
+   "date": "2026-11-14T05:30Z",
+   "name": "Cook Islands at Tahiti",
+   "status": {
+    "clock": 5400,
+    "displayClock": "90'",
+    "period": 2,
+    "type": {
+     "id": "28",
+     "name": "STATUS_FULL_TIME",
+     "state": "post",
+     "completed": true,
+     "description": "Full Time",
+     "detail": "FT",
+     "shortDetail": "FT"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401933864",
+     "date": "2026-11-14T05:30Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "4",
+       "winner": true,
+       "team": {
+        "id": "4863",
+        "displayName": "Tahiti",
+        "shortDisplayName": "Tahiti",
+        "abbreviation": "TAH"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "4884",
+        "displayName": "Cook Islands",
+        "shortDisplayName": "Cook Isl",
+        "abbreviation": "COK"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401930879",
+   "date": "2026-11-14T06:00Z",
+   "name": "Yemen at Bahrain",
+   "status": {
+    "clock": 5400,
+    "displayClock": "90'",
+    "period": 2,
+    "type": {
+     "id": "28",
+     "name": "STATUS_FULL_TIME",
+     "state": "post",
+     "completed": true,
+     "description": "Full Time",
+     "detail": "FT",
+     "shortDetail": "FT"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401930879",
+     "date": "2026-11-14T06:00Z",
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "3",
+       "winner": true,
+       "team": {
+        "id": "4381",
+        "displayName": "Bahrain",
+        "shortDisplayName": "Bahrain",
+        "abbreviation": "BHR"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "1",
+       "winner": false,
+       "team": {
+        "id": "6014",
+        "displayName": "Yemen",
+        "shortDisplayName": "Yemen",
+        "abbreviation": "YEM"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

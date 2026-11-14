@@ -1,0 +1,3933 @@
+{
+ "Stages": [
+  {
+   "Sid": "26268",
+   "Snm": "League Stage",
+   "Scd": "league-stage",
+   "Cnm": "Europa League",
+   "CnmT": "europa-league",
+   "Csnm": "Europa League",
+   "Ccd": "europa-league",
+   "CompId": "36",
+   "CompCnmt": "europe",
+   "CompN": "Europa League",
+   "CompUrlName": "europa-league",
+   "CompD": "UEFA",
+   "Scu": 0,
+   "badgeUrl": "europa-league-2024.png",
+   "firstColor": "B44A1E",
+   "Feed": {
+    "Id": "cp:36",
+    "Items": [
+     "cp:36-a:4283024",
+     "cp:36-a:4282106",
+     "cp:36-a:4281254",
+     "cp:36-a:4272037",
+     "cp:36-a:4271259"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1883478",
+     "Pids": {
+      "8": "1883478",
+      "112": "SBTE_2_1028946346"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 4",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "ESPN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "espn.png",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 45,
+        "Nm": 2,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "2",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "2988",
+       "Nm": "AC Milan",
+       "Img": "enet/8564.png",
+       "NewsTag": "/team/ac-milan-2021020913320920836-245/",
+       "Abr": "MIL",
+       "Fc": "FB090B",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "380",
+       "Nm": "Ferencvaros",
+       "Img": "enet/8222.png",
+       "Abr": "FER",
+       "Fc": "246f00",
+       "Sc": "fee86b"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883534",
+     "Pids": {
+      "8": "1883534",
+      "112": "SBTE_2_1028946348"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         1,
+         0
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "0",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "2",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "472",
+       "Nm": "Anderlecht",
+       "Img": "enet/8635.png",
+       "NewsTag": "/team/anderlecht-2021020913320920836-418/",
+       "Abr": "ADL",
+       "Fc": "2d1053",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4661",
+       "Nm": "FC Salzburg",
+       "Img": "enet/10013.png",
+       "NewsTag": "/team/salzburg-2021020913320920836-497/",
+       "Abr": "SAL",
+       "Fc": "FDFDFD",
+       "Sc": "DF003C"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 304071549,
+     "EOX": 304071549,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883544",
+     "Pids": {
+      "8": "1883544",
+      "112": "SBTE_2_1028946353"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 1",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "ESPN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "espn.png",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Premier Sports 1",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "premier-sports.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 44,
+        "Nm": 1,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "1",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "2772",
+       "Nm": "Crystal Palace",
+       "Img": "enet/9826.png",
+       "NewsTag": "/team/crystal-palace-2021020913320920836-110/",
+       "Abr": "CRY",
+       "Fc": "1B458F",
+       "Sc": "C4122E"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3333",
+       "Nm": "Hoffenheim",
+       "Img": "enet/8226.png",
+       "NewsTag": "/team/hoffenheim-2021020913320920836-222/",
+       "Abr": "TSG",
+       "Fc": "1961B5",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883600",
+     "Pids": {
+      "8": "1883600",
+      "112": "SBTE_2_1028946359"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "6552",
+       "Nm": "Levski Sofia",
+       "Img": "enet/8632.png",
+       "Abr": "LEV",
+       "Fc": "002aff",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6078",
+       "Nm": "Jagiellonia Bialystok",
+       "Img": "enet/1957.png",
+       "Abr": "JAG",
+       "Fc": "fff700",
+       "Sc": "ff0000"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270257021,
+     "EOX": 270257021,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883592",
+     "Pids": {
+      "8": "1883592",
+      "112": "SBTE_2_1028946354"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "0",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "7082",
+       "Nm": "Lillestroem",
+       "Img": "enet/8476.png",
+       "Abr": "LIL",
+       "Fc": "ffff00",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6476",
+       "Nm": "Viktoria Plzen",
+       "Img": "enet/6033.png",
+       "NewsTag": "/team/viktoria-plzen-2021020913320920836-971/",
+       "Abr": "VPL",
+       "Fc": "019df3",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270254973,
+     "EOX": 270254973,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883591",
+     "Pids": {
+      "8": "1883591",
+      "112": "SBTE_2_1029241832"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "3",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "4202",
+       "Nm": "NEC Nijmegen",
+       "Img": "enet/8464.png",
+       "NewsTag": "/team/nec-nijmegen-2022062716001253418-385/",
+       "Abr": "NEC",
+       "Fc": "ed1c24",
+       "Sc": "009b69"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "356",
+       "Nm": "Omonia Nicosia",
+       "Img": "enet/8044.png",
+       "NewsTag": "/team/omonia-nicosia-2022062716001253418-895/",
+       "Abr": "OMO",
+       "Fc": "108e40",
+       "Sc": "faf9f9"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270254973,
+     "EOX": 270254973,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883491",
+     "Pids": {
+      "8": "1883491",
+      "112": "SBTE_2_1028946344"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "Claro TV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "1",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "4169",
+       "Nm": "Real Sociedad",
+       "Img": "enet/8560.png",
+       "NewsTag": "/team/real-sociedad-2022062716001253418-202/",
+       "Abr": "SOC",
+       "Fc": "0067B1",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3656",
+       "Nm": "Lyon",
+       "Img": "enet/9748.png",
+       "NewsTag": "/team/lyon-2021020913320920836-291/",
+       "Abr": "LYO",
+       "Fc": "14387F",
+       "Sc": "DA0812"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270517117,
+     "EOX": 270517117,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883524",
+     "Pids": {
+      "8": "1883524",
+      "112": "SBTE_2_1028946350"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 2",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Premier Sports 2",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "premier-sports.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "1": [
+       {
+        "IT": 44,
+        "Nm": 1,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "3",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "3",
+     "T1": [
+      {
+       "ID": "6613",
+       "Nm": "Sparta Prague",
+       "Img": "enet/10247.png",
+       "Abr": "SPA",
+       "Fc": "990000",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3928",
+       "Nm": "AFC Bournemouth",
+       "Img": "enet/8678.png",
+       "NewsTag": "/team/bournemouth-2021020913320920836-123/",
+       "Abr": "BOU",
+       "Fc": "DA291C",
+       "Sc": "000000"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883483",
+     "Pids": {
+      "8": "1883483",
+      "112": "SBTE_2_1028946357"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 4",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "ESPN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "espn.png",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "2",
+     "Trh1": "0",
+     "Trh2": "2",
+     "Tr1OR": "1",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "236",
+       "Nm": "AZ Alkmaar",
+       "Img": "enet/10229.png",
+       "NewsTag": "/team/az-alkmaar-2021020913320920836-404/",
+       "Abr": "AZA",
+       "Fc": "db0021",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4238",
+       "Nm": "Juventus",
+       "Img": "enet/9885.png",
+       "NewsTag": "/team/juventus-2021020913320920836-255/",
+       "Abr": "JUV",
+       "Fc": "000000",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883463",
+     "Pids": {
+      "8": "1883463",
+      "112": "SBTE_2_1028946360"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "15",
+       "Nm": "Bayer Leverkusen",
+       "Img": "enet/8178.png",
+       "NewsTag": "/team/bayer-leverkusen-2021020913320920836-221/",
+       "Abr": "B04",
+       "Fc": "E32221",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "206",
+       "Nm": "Marseille",
+       "Img": "teambadge/marseille-2026.png",
+       "NewsTag": "/team/marseille-2021020913320920836-289/",
+       "Abr": "OLM",
+       "Fc": "FDFDFD",
+       "Sc": "2FAEE0"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270517117,
+     "EOX": 270517117,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883469",
+     "Pids": {
+      "8": "1883469",
+      "112": "SBTE_2_1028946343"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "1",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "3",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "304",
+       "Nm": "Benfica",
+       "Img": "enet/9772.png",
+       "NewsTag": "/team/benfica-2021020913320920836-450/",
+       "Abr": "SLB",
+       "Fc": "ee3124",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4888",
+       "Nm": "Lech Poznan",
+       "Img": "enet/2182.png",
+       "Abr": "LEC",
+       "Fc": "0037ff",
+       "Sc": "b2af5c"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270517117,
+     "EOX": 270517117,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883569",
+     "Pids": {
+      "8": "1883569",
+      "112": "SBTE_2_1028946352"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "2",
+     "Trh1": "1",
+     "Trh2": "1",
+     "Tr1OR": "1",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "4162",
+       "Nm": "Celta Vigo",
+       "Img": "enet/9910.png",
+       "NewsTag": "/team/celta-vigo-2021020913320920836-212/",
+       "Abr": "CLV",
+       "Fc": "8AC3EE",
+       "Sc": "E5254E"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3468",
+       "Nm": "Union St.Gilloise",
+       "Img": "enet/7978.png",
+       "Abr": "USG",
+       "Fc": "f8d807",
+       "Sc": "213442"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883522",
+     "Pids": {
+      "8": "1883522",
+      "112": "SBTE_2_1028946345"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 3",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Premier Sports 1",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "premier-sports.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "2",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "3",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "4700",
+       "Nm": "Celtic",
+       "Img": "enet/9925.png",
+       "NewsTag": "/team/celtic-2021020913320920836-863/",
+       "Abr": "CEL",
+       "Fc": "018749",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "291",
+       "Nm": "Beşiktaş",
+       "Img": "enet/10188.png",
+       "NewsTag": "/team/besiktas-2021020913320920836-521/",
+       "Abr": "BES",
+       "Fc": "000000",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883586",
+     "Pids": {
+      "8": "1883586",
+      "112": "SBTE_2_1028946349"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 2,
+        "Sc": [
+         0,
+         2
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "2",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "0",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "3316",
+       "Nm": "Hapoel Beer Sheva",
+       "Img": "enet/9754.png",
+       "Abr": "HAP",
+       "Fc": "ff0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3925",
+       "Nm": "OFI Crete",
+       "Img": "enet/7753.png",
+       "Abr": "OFI",
+       "Fc": "ffffff",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270191485,
+     "EOX": 270191485,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883538",
+     "Pids": {
+      "8": "1883538",
+      "112": "SBTE_2_1028946358"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "3",
+     "Trh1": "1",
+     "Trh2": "2",
+     "Tr1OR": "2",
+     "Tr2OR": "3",
+     "T1": [
+      {
+       "ID": "2963",
+       "Nm": "Sturm Graz",
+       "Img": "enet/10014.png",
+       "Abr": "SGR",
+       "Fc": "5c5c5c",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "7877",
+       "Nm": "NK Celje",
+       "Img": "enet/4622.png",
+       "Abr": "NKC",
+       "Fc": "10121f",
+       "Sc": "ffe55b"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270517117,
+     "EOX": 270517117,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883547",
+     "Pids": {
+      "8": "1883547",
+      "112": "SBTE_2_1028946347"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 1",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Premier Sports 2",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "premier-sports.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         0,
+         2
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "2",
+     "Trh1": "0",
+     "Trh2": "2",
+     "Tr1OR": "0",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "2949",
+       "Nm": "Sunderland",
+       "Img": "enet/8472.png",
+       "NewsTag": "/team/sunderland-2022062716001253418-85/",
+       "Abr": "SUN",
+       "Fc": "eb172b",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6179",
+       "Nm": "Dinamo Zagreb",
+       "Img": "enet/10156.png",
+       "Abr": "DZA",
+       "Fc": "021ef2",
+       "Sc": "e0e29a"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 303809405,
+     "EOX": 303809405,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883581",
+     "Pids": {
+      "8": "1883581",
+      "112": "SBTE_2_1028946356"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "1": [
+       {
+        "IT": 45,
+        "Nm": 1,
+        "NoP": false
+       }
+      ],
+      "2": [
+       {
+        "IT": 45,
+        "Nm": 2,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "2",
+     "Trh1": "1",
+     "Trh2": "1",
+     "Tr1OR": "3",
+     "Tr2OR": "2",
+     "T1": [
+      {
+       "ID": "4093",
+       "Nm": "Torreense",
+       "Img": "enet/212820.png",
+       "Abr": "TOR",
+       "Fc": "a81951",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "8049",
+       "Nm": "Ararat Armenia",
+       "Img": "enet/866109.png",
+       "Abr": "ARA",
+       "Fc": "cc0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "4",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270254973,
+     "EOX": 270254973,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ]
+  },
+  {
+   "Sid": "26269",
+   "Snm": "League Stage",
+   "Scd": "league-stage",
+   "Cnm": "Conference League",
+   "CnmT": "conference-league",
+   "Csnm": "Conference League",
+   "Ccd": "conference-league",
+   "CompId": "62",
+   "CompCnmt": "europe",
+   "CompN": "Conference League",
+   "CompUrlName": "conference-league",
+   "CompD": "UEFA",
+   "Scu": 0,
+   "badgeUrl": "2023-europa-league-1.png",
+   "firstColor": "3E8728",
+   "Feed": {
+    "Id": "cp:62",
+    "Items": [
+     "cp:62-a:4277268",
+     "cp:62-a:4254312",
+     "cp:62-a:4250050",
+     "cp:62-a:4249939",
+     "cp:62-a:4249372"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1883690",
+     "Pids": {
+      "8": "1883690",
+      "112": "SBTE_2_1028946478"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "4583",
+       "Nm": "AGF",
+       "Img": "enet/8071.png",
+       "Abr": "AGF",
+       "Fc": "ffffff",
+       "Sc": "003366"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4270",
+       "Nm": "SC Braga",
+       "Img": "enet/10264.png",
+       "Abr": "SBR",
+       "Fc": "c82b20",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270191485,
+     "EOX": 270191485,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883608",
+     "Pids": {
+      "8": "1883608",
+      "112": "SBTE_2_1028946481"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "3416",
+       "Nm": "Atalanta",
+       "Img": "enet/8524.png",
+       "NewsTag": "/team/atalanta-2021020913320920836-259/",
+       "Abr": "ATT",
+       "Fc": "1E71B8",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "7366",
+       "Nm": "Kairat Almaty",
+       "Img": "enet/8037.png",
+       "Abr": "KAI",
+       "Fc": "000000",
+       "Sc": "ffff00"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883626",
+     "Pids": {
+      "8": "1883626",
+      "112": "SBTE_2_1028946490"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "1": [
+       {
+        "IT": 44,
+        "Nm": 1,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "6",
+     "Trh1": "1",
+     "Trh2": "1",
+     "Tr1OR": "1",
+     "Tr2OR": "6",
+     "T1": [
+      {
+       "ID": "4580",
+       "Nm": "FC Midtjylland",
+       "Img": "enet/8113.png",
+       "Abr": "FCM",
+       "Fc": "000000",
+       "Sc": "c70000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3476",
+       "Nm": "Ajax",
+       "Img": "teambadge/ajax-2026.png",
+       "NewsTag": "/team/ajax-2021020913320920836-390/",
+       "Abr": "AJA",
+       "Fc": "FDFDFD",
+       "Sc": "D2122E"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270451581,
+     "EOX": 270451581,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883634",
+     "Pids": {
+      "8": "1883634",
+      "112": "SBTE_2_1028946492"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "1": [
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         0,
+         0
+        ]
+       },
+       {
+        "IT": 45,
+        "Nm": 1,
+        "NoP": false
+       }
+      ],
+      "2": [
+       {
+        "IT": 44,
+        "Nm": 2,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "2",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "6492",
+       "Nm": "FK Crvena Zvezda",
+       "Img": "enet/8687.png",
+       "Abr": "CRV",
+       "Fc": "ec0e0e",
+       "Sc": "121111"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6292",
+       "Nm": "Inter Club d'Escaldes",
+       "Img": "enet/10050.png",
+       "Abr": "INT"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883650",
+     "Pids": {
+      "8": "1883650",
+      "112": "SBTE_2_1028946460"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "5077",
+       "Nm": "KuPS",
+       "Img": "enet/1693.png",
+       "Abr": "KUP",
+       "Fc": "ffef2f",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "390",
+       "Nm": "Gent",
+       "Img": "enet/9991.png",
+       "Abr": "GNT",
+       "Fc": "0026bd",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270191485,
+     "EOX": 270191485,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883659",
+     "Pids": {
+      "8": "1883659",
+      "112": "SBTE_2_1028946463"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "4513",
+       "Nm": "Lincoln Red Imps FC",
+       "Img": "enet/545012.png",
+       "Abr": "LIN"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6272",
+       "Nm": "Hajduk Split",
+       "Img": "enet/10154.png",
+       "Abr": "HAJ",
+       "Fc": "ffffff",
+       "Sc": "0057ae"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270158717,
+     "EOX": 270158717,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883698",
+     "Pids": {
+      "8": "1883698",
+      "112": "SBTE_2_1028946472"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "2",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "8332",
+       "Nm": "Mjaellby",
+       "Img": "enet/8127.png",
+       "Abr": "MJA",
+       "Fc": "ffff00",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "7221",
+       "Nm": "Borac Banja Luka",
+       "Img": "enet/10116.png",
+       "Abr": "BOR"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270158717,
+     "EOX": 270158717,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883699",
+     "Pids": {
+      "8": "1883699",
+      "112": "SBTE_2_1028946491"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 3",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "1",
+     "Trh1": "2",
+     "Trh2": "0",
+     "Tr1OR": "3",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "2856",
+       "Nm": "Thun",
+       "Img": "enet/10191.png",
+       "Abr": "THU",
+       "Fc": "ff0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4669",
+       "Nm": "Hearts",
+       "Img": "enet/9860.png",
+       "NewsTag": "/team/hearts-2022062716001253418-883/",
+       "Abr": "HOM",
+       "Fc": "800910",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 303743869,
+     "EOX": 303743869,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883672",
+     "Pids": {
+      "8": "1883672",
+      "112": "SBTE_2_1028946473"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "0",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "378",
+       "Nm": "Trabzonspor",
+       "Img": "enet/9752.png",
+       "Abr": "TRA",
+       "Fc": "5a0e27",
+       "Sc": "75b7e5"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "365",
+       "Nm": "Freiburg",
+       "Img": "enet/8358.png",
+       "NewsTag": "/team/freiburg-2021020913320920836-223/",
+       "Abr": "SCF",
+       "Fc": "FF0008",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106024500,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883623",
+     "Pids": {
+      "8": "1883623",
+      "112": "SBTE_2_1028946474"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         1,
+         0
+        ]
+       },
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         1,
+         0
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "0",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "2",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "4328",
+       "Nm": "AS Monaco",
+       "Img": "enet/9829.png",
+       "NewsTag": "/team/monaco-2022062716001253418-293/",
+       "Abr": "ASM",
+       "Fc": "E51B22",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "5043",
+       "Nm": "FC Nordsjaelland",
+       "Img": "enet/10202.png",
+       "Abr": "FCN",
+       "Fc": "cc0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883678",
+     "Pids": {
+      "8": "1883678",
+      "112": "SBTE_2_1028946483"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "1": [
+       {
+        "IT": 1037,
+        "Nm": 1,
+        "Sc": [
+         1,
+         0
+        ]
+       }
+      ],
+      "2": [
+       {
+        "IT": 44,
+        "Nm": 2,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "0",
+     "Trh1": "2",
+     "Trh2": "0",
+     "Tr1OR": "2",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "5269",
+       "Nm": "CS Universitatea Craiova",
+       "Img": "enet/480286.png",
+       "Abr": "CSU",
+       "Fc": "ffffff",
+       "Sc": "2b72ce"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "185282",
+       "Nm": "KF Egnatia",
+       "Img": "enet/10039.png",
+       "Abr": "EGN"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270156669,
+     "EOX": 270156669,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883622",
+     "Pids": {
+      "8": "1883622",
+      "112": "SBTE_2_1028946476"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "ESPN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "espn.png",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 2,
+        "Sc": [
+         2,
+         1
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "1",
+     "Trh1": "2",
+     "Trh2": "1",
+     "Tr1OR": "2",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "178282",
+       "Nm": "FC Copenhagen",
+       "Img": "enet/8391.png",
+       "NewsTag": "/team/fc-koebenhavn-2022062716001253418-870/",
+       "Abr": "COP",
+       "Fc": "FDFDFD",
+       "Sc": "375197"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "7299",
+       "Nm": "FC Iberia 1999",
+       "Img": "enet/480291.png",
+       "Abr": "IBE",
+       "Fc": "ff0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883655",
+     "Pids": {
+      "8": "1883655",
+      "112": "SBTE_2_1029241831"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 44,
+        "Nm": 2,
+        "NoP": false
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "3",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "3519",
+       "Nm": "FC Twente",
+       "Img": "enet/8611.png",
+       "NewsTag": "/team/twente-2022062716001253418-386/",
+       "Abr": "TWE",
+       "Fc": "E6001A",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "357",
+       "Nm": "Pafos FC",
+       "Img": "enet/2137.png",
+       "Abr": "PAF",
+       "Fc": "cceeff",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "League Stage",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883648",
+     "Pids": {
+      "8": "1883648",
+      "112": "SBTE_2_1028946498"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "TNT Sports 2",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "Claro TV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "3379",
+       "Nm": "Getafe",
+       "Img": "enet/8305.png",
+       "NewsTag": "/team/getafe-2021020913320920836-197/",
+       "Abr": "GET",
+       "Fc": "005999",
+       "Sc": "C43A2F"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2918",
+       "Nm": "Brighton",
+       "Img": "enet/10204.png",
+       "NewsTag": "/team/brighton-2021020913320920836-134/",
+       "Abr": "BHA",
+       "Fc": "0057B8",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 2,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 304006013,
+     "EOX": 304006013,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883647",
+     "Pids": {
+      "8": "1883647",
+      "112": "SBTE_2_1028946516"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "3",
+     "Tr2": "0",
+     "Trh1": "3",
+     "Trh2": "0",
+     "Tr1OR": "3",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "334",
+       "Nm": "Lugano",
+       "Img": "teambadge/lugano.png",
+       "Abr": "LUG",
+       "Fc": "000000",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "8487",
+       "Nm": "FK Kauno Zalgiris",
+       "Img": "enet/439132.png",
+       "Abr": "FKK",
+       "Fc": "006600",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883635",
+     "Pids": {
+      "8": "1883635",
+      "112": "SBTE_2_1028946503"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Disney+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "2",
+     "Tr2": "1",
+     "Trh1": "1",
+     "Trh2": "1",
+     "Tr1OR": "2",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "4189",
+       "Nm": "Panathinaikos",
+       "Img": "enet/10200.png",
+       "NewsTag": "/team/panathinaikos-2022062716001253418-551/",
+       "Abr": "PAN",
+       "Fc": "ffffff",
+       "Sc": "009900"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6663",
+       "Nm": "PFC CSKA Sofia",
+       "Img": "enet/10144.png",
+       "Abr": "CSK",
+       "Fc": "ff0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 1,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270420861,
+     "EOX": 270420861,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883681",
+     "Pids": {
+      "8": "1883681",
+      "112": "SBTE_2_1028946505"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Inc-f": {
+      "2": [
+       {
+        "IT": 1038,
+        "Nm": 1,
+        "Sc": [
+         1,
+         1
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "1",
+     "Trh1": "1",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "9818",
+       "Nm": "Riga FC",
+       "Img": "enet/624924.png",
+       "Abr": "RIG",
+       "Fc": "0000cc",
+       "Sc": "dd0000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "6790",
+       "Nm": "Jablonec",
+       "Img": "enet/7758.png",
+       "Abr": "JAB",
+       "Fc": "4a9581",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270156669,
+     "EOX": 270156669,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1883666",
+     "Pids": {
+      "8": "1883666",
+      "112": "SBTE_2_1028946501"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "TNT Sports Extra",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-sports.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Claro Sports Premium",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "MX"
+        ]
+       },
+       {
+        "eventId": "HBO Max",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "tnt-hbo-max.png",
+        "allowedCountries": [
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       }
+      ]
+     },
+     "Tr1": "1",
+     "Tr2": "1",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "1",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "4387",
+       "Nm": "St.Truiden",
+       "Img": "enet/9997.png",
+       "Abr": "SIT",
+       "Fc": "ffea00",
+       "Sc": "3333cc"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "7916",
+       "Nm": "Brann",
+       "Img": "enet/8468.png",
+       "Abr": "BRA",
+       "Fc": "df0000",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "FT",
+     "Esid": 6,
+     "Epr": 2,
+     "Ecov": 0,
+     "ErnInf": "3",
+     "Ewt": 0,
+     "Et": 1,
+     "Esd": 20261106050000,
+     "EO": 270189437,
+     "EOX": 270189437,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ]
+  }
+ ]
+}

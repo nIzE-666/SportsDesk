@@ -1,0 +1,1228 @@
+{
+ "Stages": [
+  {
+   "Sid": "24560",
+   "Snm": "League B: Group 3",
+   "Scd": "league-b-group-3",
+   "Cnm": "UEFA Nations League",
+   "CnmT": "uefa-nations-league",
+   "Csnm": "UEFA Nations League",
+   "Ccd": "uefa-nations-league",
+   "CompId": "523",
+   "CompCnmt": "international",
+   "CompN": "UEFA Nations League",
+   "CompUrlName": "uefa-nations-league",
+   "CompD": "UEFA",
+   "Scu": 0,
+   "badgeUrl": "uefa-nations-league-2024.png",
+   "Feed": {
+    "Id": "cp:523",
+    "Items": [
+     "cp:523-a:1794596475786",
+     "cp:523-a:1794596502132",
+     "cp:523-a:4286629",
+     "cp:523-a:4287767",
+     "cp:523-a:4286956"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1738278",
+     "Pids": {
+      "8": "1738278",
+      "112": "SBTE_2_1026632432"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "FuboTV",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "fubo.png",
+        "allowedCountries": [
+         "CA",
+         "US"
+        ]
+       },
+       {
+        "eventId": "DAZN",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "dazn.png",
+        "allowedCountries": [
+         "CA"
+        ]
+       },
+       {
+        "eventId": "Fox Soccer Plus",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Sky Sports",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "skysports.png",
+        "allowedCountries": [
+         "MX"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "4012",
+       "Nm": "Kosovo",
+       "Img": "enet/430156.png",
+       "NewsTag": "/team/kosovo-2021020913320920836-6887/",
+       "Abr": "KOS",
+       "Fc": "0c4da2",
+       "Sc": "f9ed26"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "9134",
+       "Nm": "Israel",
+       "Img": "enet/8567.png",
+       "Abr": "ISR",
+       "Fc": "FDFDFD",
+       "Sc": "65c7ed"
+      }
+     ],
+     "Eps": "46'",
+     "Esid": 3,
+     "Etm": {
+      "ATm": 1794668502654,
+      "RTm": 2700000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "5",
+     "Et": 1,
+     "Esd": 20261114230000,
+     "EO": 337560431,
+     "EOX": 337560431,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ],
+   "Games": {
+    "ls6": [
+     {
+      "id": "679a5dc64c58a24929681a30",
+      "status": "ACTIVE",
+      "closeTime": 1794675600000,
+      "allowedCountries": [
+       "GB",
+       "IE"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "Sid": "24073",
+   "Snm": "Friendlies",
+   "Scd": "friendlies",
+   "Cnm": "International Friendlies",
+   "CnmT": "international-friendlies",
+   "Ccd": "international-friendlies",
+   "CompId": "537",
+   "CompN": "International Friendlies",
+   "CompUrlName": "friendlies",
+   "CompD": "2026",
+   "CompST": "2026",
+   "Scu": 1,
+   "Feed": {
+    "Id": "cp:537",
+    "Items": [
+     "cp:537-a:1794659579339",
+     "cp:537-a:1791097956440"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1913914",
+     "Pids": {
+      "8": "1913914",
+      "112": "SBTE_2_1029766324"
+     },
+     "T1": [
+      {
+       "ID": "9004",
+       "Nm": "Palestine",
+       "Img": "enet/6333.png",
+       "Abr": "PLE",
+       "Fc": "FDFDFD",
+       "Sc": "e83643"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "9593",
+       "Nm": "Iran",
+       "Img": "enet/6711.png",
+       "NewsTag": "/team/iran-2021020913320920836-1361/",
+       "Abr": "IRN",
+       "Fc": "FDFDFD",
+       "Sc": "239F40"
+      }
+     ],
+     "Eps": "NS",
+     "Esid": 1,
+     "Epr": 0,
+     "Ecov": 0,
+     "ErnInf": "1",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 806666343,
+     "EOX": 806666343,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ]
+  },
+  {
+   "Sid": "25616",
+   "Snm": "League 1",
+   "Scd": "league-1",
+   "Cnm": "England",
+   "CnmT": "england",
+   "Csnm": "England",
+   "Ccd": "england",
+   "CompId": "71",
+   "CompN": "League 1",
+   "CompUrlName": "league-1",
+   "CompD": "England",
+   "CompST": "England",
+   "Scu": 0,
+   "badgeUrl": "england-league-1.png",
+   "firstColor": "B90B2F",
+   "Feed": {
+    "Id": "cp:71",
+    "Items": [
+     "cp:71-a:1794665970627",
+     "cp:71-a:4292669",
+     "cp:71-a:4292668",
+     "cp:71-a:4291769",
+     "cp:71-a:4291637"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1803029",
+     "Pids": {
+      "8": "1803029",
+      "112": "SBTE_2_1028143414"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2834",
+       "Nm": "AFC Wimbledon",
+       "Img": "enet/158319.png",
+       "NewsTag": "/team/afc-wimbledon-2022081113203185684-2578/",
+       "Abr": "AWM",
+       "Fc": "004899",
+       "Sc": "ffdd00"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2929",
+       "Nm": "Blackpool",
+       "Img": "enet/8483.png",
+       "NewsTag": "/news/team/blackpool-2021020913320920836-119/",
+       "Abr": "BLP",
+       "Fc": "F68712",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668501614,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803033",
+     "Pids": {
+      "8": "1803033",
+      "112": "SBTE_2_1028143402"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "3040",
+       "Nm": "MK Dons",
+       "Img": "enet/8645.png",
+       "NewsTag": "/team/milton-keynes-dons-2021020913320920836-90/",
+       "Abr": "MKD",
+       "Fc": "FDFDFD",
+       "Sc": "ec1d27"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3019",
+       "Nm": "Burton Albion",
+       "Img": "teambadge/burton-albion-2026.png",
+       "NewsTag": "/team/burton-2022062716001253418-146/",
+       "Abr": "BTN",
+       "Fc": "fde92b",
+       "Sc": "231f20"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668531236,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803039",
+     "Pids": {
+      "8": "1803039",
+      "112": "SBTE_2_1028143391"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "3144",
+       "Nm": "Sheffield Wednesday",
+       "Img": "teambadge/sheffield-wednesday.png",
+       "NewsTag": "/team/sheffield-wednesday-2021020913320920836-138/",
+       "Abr": "SHW",
+       "Fc": "FDFDFD",
+       "Sc": "4681cf"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2936",
+       "Nm": "Plymouth Argyle",
+       "Img": "enet/8401.png",
+       "NewsTag": "/team/plymouth-2021020913320920836-3411/",
+       "Abr": "PLY",
+       "Fc": "005045",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668441453,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899465831,
+     "EOX": 899465831,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803036",
+     "Pids": {
+      "8": "1803036",
+      "112": "SBTE_2_1028143398"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "3362",
+       "Nm": "Stockport County",
+       "Img": "enet/10007.png",
+       "NewsTag": "/team/stockport-county-2022081113203185684-132/",
+       "Abr": "STO",
+       "Fc": "194f90",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3059",
+       "Nm": "Reading",
+       "Img": "enet/9798.png",
+       "NewsTag": "/team/reading-2022062716001253418-114/",
+       "Abr": "REA",
+       "Fc": "004494",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668491758,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "15",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803037",
+     "Pids": {
+      "8": "1803037",
+      "112": "SBTE_2_1028143394"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "3015",
+       "Nm": "Wigan Athletic",
+       "Img": "enet/8528.png",
+       "NewsTag": "/team/wigan-2022062716001253418-112/",
+       "Abr": "WIG",
+       "Fc": "1d59af",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2829",
+       "Nm": "Barnsley",
+       "Img": "enet/8283.png",
+       "NewsTag": "/team/barnsley-2022062716001253418-124/",
+       "Abr": "BAR",
+       "Fc": "D71921",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668471295,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899465831,
+     "EOX": 899465831,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ]
+  },
+  {
+   "Sid": "25617",
+   "Snm": "League 2",
+   "Scd": "league-2",
+   "Cnm": "England",
+   "CnmT": "england",
+   "Csnm": "England",
+   "Ccd": "england",
+   "CompId": "72",
+   "CompN": "League 2",
+   "CompUrlName": "league-2",
+   "CompD": "England",
+   "CompST": "England",
+   "Scu": 0,
+   "badgeUrl": "england-league-2.png",
+   "firstColor": "B90B2F",
+   "Feed": {
+    "Id": "cp:72",
+    "Items": [
+     "cp:72-a:4291569",
+     "cp:72-a:4291234",
+     "cp:72-a:4289287",
+     "cp:72-a:4288276",
+     "cp:72-a:4287529"
+    ]
+   },
+   "Events": [
+    {
+     "Eid": "1803603",
+     "Pids": {
+      "8": "1803603",
+      "112": "SBTE_2_1028143724"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2879",
+       "Nm": "Bristol Rovers",
+       "Img": "enet/10104.png",
+       "NewsTag": "/team/bristol-rovers-2022062716001253418-2448/",
+       "Abr": "BRR",
+       "Fc": "004b95",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "4535",
+       "Nm": "Chesterfield",
+       "Img": "enet/9786.png",
+       "NewsTag": "/team/chesterfield-2022081113203185684-3468/",
+       "Abr": "CHF"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668471593,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899465831,
+     "EOX": 899465831,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803607",
+     "Pids": {
+      "8": "1803607",
+      "112": "SBTE_2_1028143712"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "Tr1OR": "0",
+     "Tr2OR": "0",
+     "T1": [
+      {
+       "ID": "2966",
+       "Nm": "Colchester United",
+       "Img": "teambadge/colchester-united-2024.png",
+       "NewsTag": "/team/colchester-2022081113203185684-3414/",
+       "Abr": "COL",
+       "Fc": "0266a3",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2946",
+       "Nm": "Gillingham",
+       "Img": "enet/10173.png",
+       "NewsTag": "/team/gillingham-2022081113203185684-2474/",
+       "Abr": "GIL",
+       "Fc": "1a5dad",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668501813,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "15",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803604",
+     "Pids": {
+      "8": "1803604",
+      "112": "SBTE_2_1028143715"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2783",
+       "Nm": "Crewe Alexandra",
+       "Img": "enet/9784.png",
+       "NewsTag": "/team/crewe-2022081113203185684-126/",
+       "Abr": "CRE",
+       "Fc": "d52c1e",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2942",
+       "Nm": "Newport County",
+       "Img": "enet/10262.png",
+       "NewsTag": "/team/newport-2022081113203185684-2532/",
+       "Abr": "NEW",
+       "Fc": "f7911a",
+       "Sc": "231f20"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668501377,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899597167,
+     "EOX": 899597167,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803626",
+     "Pids": {
+      "8": "1803626",
+      "112": "SBTE_2_1028143717"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2742",
+       "Nm": "Port Vale",
+       "Img": "teambadge/port-vale.png",
+       "NewsTag": "/team/port-vale-2022062716001253418-129/",
+       "Abr": "PVL",
+       "Fc": "FDFDFD",
+       "Sc": "f4a00f"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2787",
+       "Nm": "Accrington Stanley",
+       "Img": "enet/8671.png",
+       "NewsTag": "/team/accrington-2022062716001253418-3447/",
+       "Abr": "ACC",
+       "Fc": "c02e1f",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668501561,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803636",
+     "Pids": {
+      "8": "1803636",
+      "112": "SBTE_2_1028143672"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "3101",
+       "Nm": "Rochdale",
+       "Img": "enet/8493.png",
+       "NewsTag": "/team/rochdale-2022081113203185684-3427/",
+       "Abr": "RCH",
+       "Fc": "0055aa",
+       "Sc": "ffffff"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "3156",
+       "Nm": "York City",
+       "Img": "enet/9916.png",
+       "NewsTag": "/team/york-2022081113203185684-3482/",
+       "Abr": "YOR"
+      }
+     ],
+     "Eps": "2'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668501492,
+      "RTm": 60000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466087,
+     "EOX": 899466087,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803612",
+     "Pids": {
+      "8": "1803612",
+      "112": "SBTE_2_1028143618"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Paramount+",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "allowedCountries": [
+         "US",
+         "US"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "1",
+     "Tug1": "0",
+     "Tug2": "1",
+     "Trh1": "0",
+     "Trh2": "1",
+     "Tr1OR": "0",
+     "Tr2OR": "1",
+     "T1": [
+      {
+       "ID": "2997",
+       "Nm": "Salford City",
+       "Img": "enet/282326.png",
+       "NewsTag": "/team/salford-city-2022081113203185684-4384/",
+       "Abr": "SAL",
+       "Fc": "e22418",
+       "Sc": "000000"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2998",
+       "Nm": "Northampton Town",
+       "Img": "enet/8651.png",
+       "NewsTag": "/team/northampton-2022081113203185684-3443/",
+       "Abr": "NOR",
+       "Fc": "8a2140",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "Eps": "3'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668531400,
+      "RTm": 120000
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899466095,
+     "EOX": 899466095,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803609",
+     "Pids": {
+      "8": "1803609",
+      "112": "SBTE_2_1028143626"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2937",
+       "Nm": "Shrewsbury Town",
+       "Img": "enet/9896.png",
+       "NewsTag": "/team/shrewsbury-2022081113203185684-3478/",
+       "Abr": "SHR",
+       "Fc": "004a99",
+       "Sc": "f6a704"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2898",
+       "Nm": "Oldham Athletic",
+       "Img": "enet/9785.png",
+       "NewsTag": "/team/oldham-2022081113203185684-3467/",
+       "Abr": "OLD",
+       "Fc": "012093",
+       "Sc": "ffffff"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668441349,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899465831,
+     "EOX": 899465831,
+     "Spid": 1,
+     "Pid": 8
+    },
+    {
+     "Eid": "1803610",
+     "Pids": {
+      "8": "1803610",
+      "112": "SBTE_2_1028143623"
+     },
+     "Media": {
+      "112": [
+       {
+        "eventId": "NOW",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "now.png",
+        "allowedCountries": [
+         "IE"
+        ]
+       },
+       {
+        "eventId": "Sky Sports+ App",
+        "provider": "ABELSON",
+        "type": "TV_CHANNEL",
+        "thumbnail": "sky-sports-plus.png",
+        "allowedCountries": [
+         "IE",
+         "GB"
+        ]
+       }
+      ]
+     },
+     "Tr1": "0",
+     "Tr2": "0",
+     "Trh1": "0",
+     "Trh2": "0",
+     "T1": [
+      {
+       "ID": "2782",
+       "Nm": "Swindon Town",
+       "Img": "enet/9795.png",
+       "NewsTag": "/team/swindon-2022062716001253418-127/",
+       "Abr": "SWI",
+       "Fc": "dc161b",
+       "Sc": "FDFDFD"
+      }
+     ],
+     "T2": [
+      {
+       "ID": "2750",
+       "Nm": "Grimsby Town",
+       "Img": "enet/10005.png",
+       "NewsTag": "/team/grimsby-2022081113203185684-130/",
+       "Abr": "GRI",
+       "Fc": "FDFDFD",
+       "Sc": "000000"
+      }
+     ],
+     "Eps": "1'",
+     "Esid": 2,
+     "Etm": {
+      "ATm": 1794668441363,
+      "RTm": 0
+     },
+     "Epr": 1,
+     "Ecov": 0,
+     "ErnInf": "Regular Season",
+     "Et": 1,
+     "Esd": 20261115000000,
+     "EO": 899465831,
+     "EOX": 899465831,
+     "Spid": 1,
+     "Pid": 8
+    }
+   ]
+  }
+ ]
+}
