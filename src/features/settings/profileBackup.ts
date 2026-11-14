@@ -13,40 +13,48 @@ import {
   validOfflineQueueValue,
   offlineQueueError,
 } from '../offline/offlineQueue';
+/**
+ * Setting names (after `sportsdesk.`) that belong to the profile. The native
+ * side checks every key again (`EXACT_KEYS` and `KEY_PREFIXES` in
+ * `src-tauri/src/profile.rs`) and rejects the whole export if one is unknown,
+ * so both lists must stay identical; `profileKeys.test.ts` compares them.
+ */
+export const PROFILE_EXACT_KEYS = [
+  'scheme',
+  'design',
+  'sport',
+  'league',
+  'density',
+  'timezone',
+  'sidebar.collapsed',
+  'sidebar.competitionsOpen',
+  'sidebar.teamsOpen',
+  'tray.mode',
+  'whatsnew.seen',
+  'onboarding',
+  'planner.priorities',
+  'hero.compact',
+  'notifications',
+] as const;
+export const PROFILE_KEY_PREFIXES = [
+  'football.',
+  'f1.',
+  'view.',
+  'cup.',
+  'ucl.',
+  'notifications.',
+  'watch.favorites',
+  'watch.recent',
+  'watch.view',
+  'watch.preferred',
+] as const;
 export function allowedProfileKey(key: string) {
   if (!key.startsWith('sportsdesk.')) return false;
   const name = key.slice('sportsdesk.'.length);
   if (/token|secret|apikey|api_key|password|credential/i.test(name)) return false;
   return (
-    [
-      'scheme',
-      'design',
-      'sport',
-      'league',
-      'density',
-      'timezone',
-      'sidebar.collapsed',
-      'sidebar.competitionsOpen',
-      'sidebar.teamsOpen',
-      'tray.mode',
-      'whatsnew.seen',
-      'onboarding',
-      'planner.priorities',
-      'hero.compact',
-      'notifications',
-    ].includes(name) ||
-    [
-      'football.',
-      'f1.',
-      'view.',
-      'cup.',
-      'ucl.',
-      'notifications.',
-      'watch.favorites',
-      'watch.recent',
-      'watch.view',
-      'watch.preferred',
-    ].some((p) => name.startsWith(p))
+    (PROFILE_EXACT_KEYS as readonly string[]).includes(name) ||
+    PROFILE_KEY_PREFIXES.some((p) => name.startsWith(p))
   );
 }
 export function profileEntries(): Array<[string, string]> {

@@ -18,6 +18,43 @@ pub struct Profile {
     pub settings: std::collections::BTreeMap<String, String>,
 }
 
+/// Setting names (after `sportsdesk.`) that belong to the profile. Must match
+/// `PROFILE_EXACT_KEYS` in `src/features/settings/profileBackup.ts`: the app
+/// sends every key that list allows, and one key missing here makes the whole
+/// export fail. `profileKeys.test.ts` compares the two lists.
+pub const EXACT_KEYS: &[&str] = &[
+    "scheme",
+    "design",
+    "sport",
+    "league",
+    "density",
+    "timezone",
+    "sidebar.collapsed",
+    "sidebar.competitionsOpen",
+    "sidebar.teamsOpen",
+    "tray.mode",
+    "whatsnew.seen",
+    "onboarding",
+    "planner.priorities",
+    "hero.compact",
+    "notifications",
+];
+
+/// Name prefixes whose keys belong to the profile; must match
+/// `PROFILE_KEY_PREFIXES` in `src/features/settings/profileBackup.ts`.
+pub const KEY_PREFIXES: &[&str] = &[
+    "football.",
+    "f1.",
+    "view.",
+    "cup.",
+    "ucl.",
+    "notifications.",
+    "watch.favorites",
+    "watch.recent",
+    "watch.view",
+    "watch.preferred",
+];
+
 /// Only these key prefixes/values are exported; anything else (tokens,
 /// session ids) is rejected so a future key cannot leak by accident.
 pub fn is_allowed_key(key: &str) -> bool {
@@ -38,37 +75,7 @@ pub fn is_allowed_key(key: &str) -> bool {
     {
         return false;
     }
-    [
-        "scheme",
-        "design",
-        "sport",
-        "league",
-        "density",
-        "timezone",
-        "sidebar.collapsed",
-        "sidebar.competitionsOpen",
-        "sidebar.teamsOpen",
-        "tray.mode",
-        "whatsnew.seen",
-        "planner.priorities",
-        "hero.compact",
-        "notifications",
-    ]
-    .contains(&name)
-        || [
-            "football.",
-            "f1.",
-            "view.",
-            "cup.",
-            "ucl.",
-            "notifications.",
-            "watch.favorites",
-            "watch.recent",
-            "watch.view",
-            "watch.preferred",
-        ]
-        .iter()
-        .any(|p| name.starts_with(p))
+    EXACT_KEYS.contains(&name) || KEY_PREFIXES.iter().any(|p| name.starts_with(p))
 }
 
 pub fn build_profile(settings: &[(String, String)]) -> Result<Profile, String> {
@@ -200,5 +207,21 @@ mod tests {
         assert!(!is_allowed_key("evil"));
         assert!(is_allowed_key("sportsdesk.scheme"));
         assert!(is_allowed_key("sportsdesk.design"));
+    }
+
+    #[test]
+    fn the_setup_wizard_state_does_not_break_the_export() {
+        // The wizard writes this key on every install since 1.7.0; the app
+        // sends it with the rest of the profile.
+        assert!(is_allowed_key("sportsdesk.onboarding"));
+        let profile = build_profile(&[
+            ("sportsdesk.scheme".into(), "dark".into()),
+            (
+                "sportsdesk.onboarding".into(),
+                "{\"version\":1,\"status\":\"completed\",\"origin\":\"existing\"}".into(),
+            ),
+        ])
+        .unwrap();
+        assert_eq!(profile.settings.len(), 2);
     }
 }
