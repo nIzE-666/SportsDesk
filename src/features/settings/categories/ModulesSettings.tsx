@@ -11,9 +11,7 @@ export function ModulesSettings() {
   const modules = useModules();
   return (
     <section className="panel settings-section" aria-label="Модули">
-      <p className="muted small settings-category-hint">
-        Выключенное остаётся в профиле и возвращается обратно.
-      </p>
+      <p className="muted small settings-category-hint">Данные при выключении сохраняются.</p>
       <div className="module-switches">
         {CORE_MODULES.map((module) => (
           <ModuleSwitch

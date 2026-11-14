@@ -36,37 +36,37 @@ export const CORE_MODULES: readonly CoreModuleDefinition[] = [
   {
     id: 'watch',
     label: 'Просмотр',
-    description: 'Пропадут раздел «Смотреть» и его кнопки.',
+    description: 'Раздел «Смотреть» и кнопки',
   },
   {
     id: 'europe',
     label: 'Еврокубки и сборные',
-    description: 'Пропадут Лига чемпионов и кубки.',
+    description: '',
   },
   {
     id: 'predictions',
     label: 'Прогнозы',
-    description: 'Пропадут «Мой прогноз» и «Угадай счёт».',
+    description: '«Мой прогноз», «Угадай счёт»',
   },
   {
     id: 'games',
     label: 'Игры',
-    description: 'Пропадут «Стартовые огни» и другие игры.',
+    description: '«Стартовые огни» и мини-игры',
   },
   {
     id: 'atmosphere',
     label: 'Атмосфера',
-    description: 'Пропадут конфетти, радио и фоновый звук.',
+    description: 'Конфетти, радио, фоновый звук',
   },
   {
     id: 'diary',
     label: 'Дневник',
-    description: 'Пропадёт отметка «Просмотрено».',
+    description: 'Отметка «Просмотрено»',
   },
   {
     id: 'tactics',
     label: 'Тактическая доска',
-    description: 'Пропадут схемы и кнопка «На доску».',
+    description: 'Схемы, «На доску»',
   },
 ];
 
