@@ -2,67 +2,102 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getString, setString } from '../features/football/storage';
 import { viewState } from './viewState';
 import {
-  homeRoute,
-  isContentRoute,
-  isValidContentRoute,
+  competitionKind,
+  defaultRouteOf,
+  legacySportOfRoute,
+  locationForRoute,
+  migrateCupId,
+  migrateLeagueId,
+  migrateSport,
+  rememberedLegacySport,
+  rememberedLocation,
+  sectionOfRoute,
+  startLocation,
+  type Location,
+  type RememberedSources,
+  type Section,
   type ShellRoute,
   type Sport,
 } from './navigation';
-export interface Location {
-  sport: Sport;
-  leagueId: string;
-  cupId: string;
-  route: ShellRoute;
+export type { Location } from './navigation';
+
+interface State {
+  entries: Location[];
+  cursor: number;
 }
-function valid(value: unknown): value is Location {
-  if (!value || typeof value !== 'object') return false;
-  const l = value as Location;
-  if (
-    !['football', 'f1', 'ucl', 'cup'].includes(l.sport) ||
-    typeof l.leagueId !== 'string' ||
-    typeof l.cupId !== 'string' ||
-    !l.route
-  )
-    return false;
-  if (!isValidContentRoute(l.route)) return false;
-  return l.route.kind === 'football-match' ? l.sport === 'football' : l.route.kind === l.sport;
+export interface ShellNavigationOptions {
+  /** U2.2 uses this behind the temporary flag (decision 3 in section 9). */
+  startOnToday?: boolean;
 }
-function remembered(sport: Sport, leagueId: string, cupId: string): Location {
-  let route: ShellRoute = homeRoute(sport, cupId);
-  const legacy = viewState.read('navigation.' + sport, route, isValidContentRoute);
-  if (sport === 'football' && (legacy.kind === 'football' || legacy.kind === 'football-match'))
-    route = legacy;
-  else if (sport === 'f1') {
-    const tab = viewState.read('navigation.f1.tab', 'overview');
-    const candidate = { kind: 'f1' as const, tab };
-    if (isValidContentRoute(candidate)) route = candidate;
-  } else if (sport === 'ucl') {
-    const tab = viewState.read('navigation.ucl.tab', 'overview');
-    const candidate = { kind: 'ucl' as const, tab };
-    if (isValidContentRoute(candidate)) route = candidate;
-  } else if (sport === 'cup' && legacy.kind === 'cup') route = legacy;
-  return viewState.read<Location>('navigation2.' + sport, { sport, leagueId, cupId, route }, valid);
+
+function readRaw(key: string): unknown {
+  return viewState.read<unknown>(key, undefined, () => true);
 }
-function initial() {
-  const saved = getString('sportsdesk.sport');
-  const sport: Sport = saved === 'f1' || saved === 'ucl' || saved === 'cup' ? saved : 'football';
-  const location = remembered(
-    sport,
-    getString('sportsdesk.league') ?? 'l_4WFCIZ',
-    getString('sportsdesk.cup.current') ?? 'l_38d9HA',
+
+function sourcesForLegacySport(sport: Sport): RememberedSources {
+  if (sport === 'football')
+    return { location: readRaw('navigation2.football'), route: readRaw('navigation.football') };
+  if (sport === 'f1')
+    return {
+      location: readRaw('navigation2.f1'),
+      route: readRaw('navigation.f1'),
+      tab: readRaw('navigation.f1.tab'),
+    };
+  if (sport === 'ucl')
+    return {
+      location: readRaw('navigation2.ucl'),
+      route: readRaw('navigation.ucl'),
+      tab: readRaw('navigation.ucl.tab'),
+    };
+  return { location: readRaw('navigation2.cup'), route: readRaw('navigation.cup') };
+}
+
+function sourcesForSection(section: Section): RememberedSources {
+  if (section === 'football')
+    return { location: readRaw('navigation2.football'), route: readRaw('navigation.football') };
+  if (section === 'f1')
+    return {
+      location: readRaw('navigation2.f1'),
+      route: readRaw('navigation.f1'),
+      tab: readRaw('navigation.f1.tab'),
+    };
+  return { location: readRaw(`navigation2.${section}`) };
+}
+
+function initial(startOnToday = false): State {
+  const savedSport = migrateSport(getString('sportsdesk.sport'));
+  const leagueId = migrateLeagueId(getString('sportsdesk.league'));
+  const cupId = migrateCupId(getString('sportsdesk.cup.current'));
+  if (startOnToday) {
+    const start = startLocation(leagueId, cupId);
+    return { entries: [start], cursor: 0 };
+  }
+  const location = rememberedLegacySport(
+    savedSport,
+    sourcesForLegacySport(savedSport),
+    { sport: savedSport, leagueId, cupId },
+    cupId,
   );
   // A directly restored match still has a useful Back target.
   const entries =
     location.route.kind === 'football-match'
       ? [
-          { ...location, route: { kind: 'football' as const, section: 'matches' as const } },
+          locationForRoute(
+            {
+              kind: 'football',
+              competitionId: location.route.competitionId,
+              tab: 'matches',
+            },
+            location,
+          ),
           location,
         ]
       : [location];
   return { entries, cursor: entries.length - 1 };
 }
-export function useShellNavigation() {
-  const [state, setState] = useState(initial),
+
+export function useShellNavigation({ startOnToday = false }: ShellNavigationOptions = {}) {
+  const [state, setState] = useState(() => initial(startOnToday)),
     ref = useRef(state);
   ref.current = state;
   const location = state.entries[state.cursor]!;
@@ -70,13 +105,18 @@ export function useShellNavigation() {
     (route: ShellRoute, overrides: Partial<Omit<Location, 'route'>> = {}) => {
       setState((current) => {
         const previous = current.entries[current.cursor]!;
-        const sport: Sport = isContentRoute(route)
-          ? route.kind === 'football-match'
-            ? 'football'
-            : route.kind
-          : previous.sport;
-        const next: Location = { ...previous, ...overrides, sport, route };
-        if (route.kind === 'cup') next.cupId = route.cupId;
+        const next: Location = {
+          ...previous,
+          ...overrides,
+          section: sectionOfRoute(route) ?? overrides.section ?? previous.section,
+          sport: legacySportOfRoute(route) ?? overrides.sport ?? previous.sport,
+          route,
+        };
+        if (route.kind === 'football' || route.kind === 'football-match') {
+          const kind = competitionKind(route.competitionId);
+          if (kind === 'league') next.leagueId = route.competitionId;
+          else if (kind === 'cup') next.cupId = route.competitionId;
+        }
         if (JSON.stringify(next) === JSON.stringify(previous)) return current;
         const entries = [...current.entries.slice(0, current.cursor + 1), next].slice(-100);
         return { entries, cursor: entries.length - 1 };
@@ -95,10 +135,32 @@ export function useShellNavigation() {
     () => setState((s) => (s.cursor < s.entries.length - 1 ? { ...s, cursor: s.cursor + 1 } : s)),
     [],
   );
+  const rememberLegacy = useCallback((sport: Sport, current: Location) => {
+    const target = rememberedLegacySport(
+      sport,
+      sourcesForLegacySport(sport),
+      { sport, leagueId: current.leagueId, cupId: current.cupId },
+      current.cupId,
+    );
+    return target;
+  }, []);
   const changeSport = useCallback(
     (sport: Sport) => {
       const current = ref.current.entries[ref.current.cursor]!;
-      const target = remembered(sport, current.leagueId, current.cupId);
+      const target = rememberLegacy(sport, current);
+      navigate(target.route, target);
+    },
+    [navigate, rememberLegacy],
+  );
+  const changeSection = useCallback(
+    (section: Section) => {
+      const current = ref.current.entries[ref.current.cursor]!;
+      const target = rememberedLocation(
+        section,
+        sourcesForSection(section),
+        { sport: current.sport, leagueId: current.leagueId, cupId: current.cupId },
+        defaultRouteOf(section, current.leagueId),
+      );
       navigate(target.route, target);
     },
     [navigate],
@@ -106,20 +168,45 @@ export function useShellNavigation() {
   const auxiliary = useCallback(
     (kind: 'watch' | 'settings' | 'planner' | 'events' | 'games' | 'diary' | 'offline') => {
       const s = ref.current,
-        current = s.entries[s.cursor]!;
-      if (current.route.kind === kind) {
+        current = s.entries[s.cursor]!,
+        previous = s.entries[s.cursor - 1];
+      const route = current.route;
+      const active =
+        kind === 'watch'
+          ? route.kind === 'watch'
+          : kind === 'settings'
+            ? route.kind === 'settings'
+            : kind === 'events'
+              ? route.kind === 'events'
+              : kind === 'offline'
+                ? route.kind === 'offline'
+                : kind === 'planner'
+                  ? route.kind === 'today' && route.mode === 'plan'
+                  : kind === 'games'
+                    ? route.kind === 'my' && route.tab === 'games'
+                    : route.kind === 'my' && route.tab === 'diary';
+      if (active) {
         back();
         return;
       }
       if (
         kind === 'planner' &&
-        current.route.kind === 'football-match' &&
-        s.entries[s.cursor - 1]?.route.kind === 'planner'
+        route.kind === 'football-match' &&
+        previous?.route.kind === 'today' &&
+        previous.route.mode === 'plan'
       ) {
         back();
         return;
       }
-      navigate({ kind });
+      navigate(
+        kind === 'planner'
+          ? { kind: 'today', mode: 'plan' }
+          : kind === 'games'
+            ? { kind: 'my', tab: 'games' }
+            : kind === 'diary'
+              ? { kind: 'my', tab: 'diary' }
+              : { kind },
+      );
     },
     [navigate, back],
   );
@@ -127,9 +214,15 @@ export function useShellNavigation() {
     setString('sportsdesk.sport', location.sport);
     setString('sportsdesk.league', location.leagueId);
     setString('sportsdesk.cup.current', location.cupId);
-    if (isContentRoute(location.route)) {
-      viewState.write('navigation2.' + location.sport, location);
-      viewState.write('navigation.' + location.sport, location.route);
+    const section = sectionOfRoute(location.route);
+    if (section) viewState.write('navigation2.' + section, location);
+    const legacySport = legacySportOfRoute(location.route);
+    if (legacySport) {
+      viewState.write('navigation2.' + legacySport, location);
+      viewState.write('navigation.' + legacySport, location.route);
+    } else if (location.route.kind === 'today' && location.route.mode !== 'plan') {
+      // «Мой обзор» was the football home until U2.1; keep the legacy switch there.
+      viewState.write('navigation.football', location.route);
     }
   }, [location]);
   useEffect(() => {
@@ -165,6 +258,7 @@ export function useShellNavigation() {
     back,
     forward,
     changeSport,
+    changeSection,
     auxiliary,
     canBack: state.cursor > 0,
   };

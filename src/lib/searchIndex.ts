@@ -2,13 +2,32 @@ import type { FavoritePlayer } from '../features/football/types';
 import { getJson, getUserTimezone, setJson, STORAGE_KEYS } from '../features/football/storage';
 import { formatHumanDateTime } from './humanDate';
 
+/** «Раздел» targets of the five-section model. Competition stays a parameter. */
+export type SearchSectionId =
+  | 'today'
+  | 'today.week'
+  | 'today.plan'
+  | 'football.matches'
+  | 'football.standings'
+  | 'football.team'
+  | 'football.players'
+  | 'football.live'
+  | 'f1'
+  | 'watch'
+  | 'my.favorites'
+  | 'my.diary'
+  | 'my.games'
+  | 'my.schemes'
+  | 'events'
+  | 'offline'
+  | 'settings';
 export type SearchTarget =
   | { kind: 'team'; id: string; leagueId?: string }
   | { kind: 'match'; id: string; leagueId?: string }
   | { kind: 'player'; player: FavoritePlayer }
   | { kind: 'driver'; id: string; year: number }
   | { kind: 'channel'; id: number }
-  | { kind: 'section'; id: 'matches' | 'players' | 'f1' | 'watch' | 'planner' | 'events' };
+  | { kind: 'section'; id: SearchSectionId };
 export interface SearchItem {
   key: string;
   title: string;
@@ -19,6 +38,57 @@ export interface SearchItem {
 const INDEX_KEY = 'sportsdesk.search.index';
 const RECENT_KEY = 'sportsdesk.search.recent';
 export const SEARCH_CHANGED = 'sportsdesk-search-changed';
+const SEARCH_SECTION_IDS: readonly string[] = [
+  'today',
+  'today.week',
+  'today.plan',
+  'football.matches',
+  'football.standings',
+  'football.team',
+  'football.players',
+  'football.live',
+  'f1',
+  'watch',
+  'my.favorites',
+  'my.diary',
+  'my.games',
+  'my.schemes',
+  'events',
+  'offline',
+  'settings',
+];
+/** Old «раздел» ids of 1.7.0/1.8.0, mapped to the same screens. */
+const SEARCH_SECTION_ALIASES: Record<string, SearchSectionId> = {
+  matches: 'football.matches',
+  players: 'football.players',
+  f1: 'f1',
+  watch: 'watch',
+  planner: 'today.plan',
+  events: 'events',
+};
+function migrateSearchSectionId(value: unknown): SearchSectionId | undefined {
+  if (typeof value !== 'string') return undefined;
+  if (SEARCH_SECTION_IDS.includes(value)) return value as SearchSectionId;
+  return SEARCH_SECTION_ALIASES[value];
+}
+function migrateSearchKey(key: string): string {
+  if (!key.startsWith('section:')) return key;
+  const id = migrateSearchSectionId(key.slice('section:'.length));
+  return id ? `section:${id}` : key;
+}
+function migrateSearchItem(value: unknown): SearchItem | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const item = value as SearchItem;
+  const target = item.target as SearchTarget | undefined;
+  if (target?.kind !== 'section') return validSearchItem(value) ? value : undefined;
+  const id = migrateSearchSectionId(target.id);
+  if (!id) return undefined;
+  return {
+    ...item,
+    key: `section:${id}`,
+    target: { ...target, id },
+  };
+}
 function mergeItem(previous: SearchItem | undefined, next: SearchItem): SearchItem {
   const kind = next.target.kind;
   if ((kind === 'team' || kind === 'match') && previous?.target.kind === kind) {
@@ -66,27 +136,32 @@ export function validSearchItem(v: unknown): v is SearchItem {
       clean(t.player.teamId) &&
       typeof t.player.savedAt === 'string'
     );
-  return (
-    t.kind === 'section' &&
-    ['matches', 'players', 'f1', 'watch', 'planner', 'events'].includes(t.id)
-  );
+  return t.kind === 'section' && SEARCH_SECTION_IDS.includes(t.id);
 }
 export const searchSections: SearchItem[] = [
-  ['matches', 'Матчи', 'Футбол'],
-  ['players', 'Игроки', 'Профили и сравнение'],
+  ['football.matches', 'Матчи', 'Футбол'],
+  ['football.players', 'Игроки', 'Профили и сравнение'],
   ['f1', 'Формула 1', 'Гоночный уикенд'],
   ['watch', 'Каналы', 'Онлайн-просмотр'],
-  ['planner', 'Мой спортивный вечер', 'Личный план'],
+  ['today.plan', 'Мой спортивный вечер', 'Личный план'],
   ['events', 'Центр событий', 'Голы, результаты и напоминания'],
 ].map(([id, title, subtitle]) => ({
   key: `section:${id}`,
   title: title!,
   subtitle: subtitle!,
-  target: { kind: 'section', id: id as Extract<SearchTarget, { kind: 'section' }>['id'] },
+  target: { kind: 'section', id: id as SearchSectionId },
 }));
-export function readSearchIndex(): SearchItem[] {
+function storedSearchItems(): SearchItem[] {
   const raw = getJson<unknown>(INDEX_KEY, []);
-  const items = Array.isArray(raw) ? raw.filter(validSearchItem).slice(0, 4000) : [];
+  return Array.isArray(raw)
+    ? raw
+        .map(migrateSearchItem)
+        .filter((item): item is SearchItem => item !== undefined)
+        .slice(0, 4000)
+    : [];
+}
+export function readSearchIndex(): SearchItem[] {
+  const items = storedSearchItems();
   const catalogue = getJson<unknown>(STORAGE_KEYS.catalogue, []);
   if (Array.isArray(catalogue))
     for (const t of catalogue)
@@ -114,8 +189,7 @@ export function readSearchIndex(): SearchItem[] {
 }
 export function rememberSearchItems(items: SearchItem[]) {
   if (!items.length) return;
-  const raw = getJson<unknown>(INDEX_KEY, []);
-  const previous = Array.isArray(raw) ? raw.filter(validSearchItem) : [];
+  const previous = storedSearchItems();
   const map = new Map(previous.map((x) => [x.key, x]));
   for (const item of items.filter(validSearchItem)) {
     const merged = mergeItem(map.get(item.key), item);
@@ -136,11 +210,15 @@ export function rememberSearchItems(items: SearchItem[]) {
   window.dispatchEvent(new Event(SEARCH_CHANGED));
 }
 export function rememberSearchVisit(key: string) {
-  setJson(RECENT_KEY, [key, ...readSearchRecent().filter((x) => x !== key)].slice(0, 10));
+  const migrated = migrateSearchKey(key);
+  setJson(RECENT_KEY, [migrated, ...readSearchRecent().filter((x) => x !== migrated)].slice(0, 10));
 }
 export function readSearchRecent(): string[] {
   const v = getJson<unknown>(RECENT_KEY, []);
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 10) : [];
+  if (!Array.isArray(v)) return [];
+  return [
+    ...new Set(v.filter((x): x is string => typeof x === 'string').map(migrateSearchKey)),
+  ].slice(0, 10);
 }
 export function normalizeSearch(s: string) {
   return s

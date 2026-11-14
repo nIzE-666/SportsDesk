@@ -34,7 +34,17 @@ import { AppTopbar } from './components/AppTopbar';
 import { TodaySidebar } from './components/TodaySidebar';
 import { PageFrame } from './components/PageFrame';
 import { SectionBoundary } from './components/SectionBoundary';
-import { homeRoute } from './lib/navigation';
+import {
+  CHAMPIONS_LEAGUE_ID,
+  competitionKind,
+  homeRoute,
+  isChampionsTab,
+  isCupTab,
+  isF1Tab,
+  isLeagueId,
+  isLeagueTab,
+  isMyTab,
+} from './lib/navigation';
 import { isTauriRuntime, rpc } from './lib/bridge';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { LEAGUES, footballNav, f1Nav, uclNav, cupNav } from './lib/navigationMetadata';
@@ -44,6 +54,7 @@ import type { SearchTarget } from './lib/searchIndex';
 import { WatchActionContext } from './lib/watchIntent';
 import { LoadingBlock } from './components/StateViews';
 import { startOfflineRunner } from './features/offline/offlineQueue';
+import type { FootballSection } from './features/football/FootballView';
 const OfflineView = lazy(() =>
   import('./features/offline/OfflineView').then((m) => ({ default: m.OfflineView })),
 );
@@ -75,7 +86,8 @@ const GamesView = lazy(() =>
 const DiaryView = lazy(() =>
   import('./features/diary/DiaryView').then((m) => ({ default: m.DiaryView })),
 );
-export type { FootballSection, ShellRoute, Sport } from './lib/navigation';
+export type { ShellRoute, Sport } from './lib/navigation';
+export type { FootballSection } from './features/football/FootballView';
 /** Отслеживаемые команды для сайдбара: ids из localStorage + каталог имён. */
 function resolveSidebarFavorites(): Array<{ id: string; name: string }> {
   const stored = getJson<{ ids?: unknown }>(STORAGE_KEYS.favoritesTeams, {});
@@ -110,13 +122,32 @@ function MainApp() {
   const atmosphere = useAtmosphere();
   const navigation = useShellNavigation();
   const { sport, cupId, route, leagueId, navigate: setRoute, back, canBack } = navigation;
-  const f1Tab = route.kind === 'f1' ? (route.tab ?? 'overview') : 'overview';
-  const uclTab = route.kind === 'ucl' ? (route.tab ?? 'overview') : 'overview';
-  const cupTab = route.kind === 'cup' ? (route.tab ?? 'overview') : 'overview';
+  const competitionId =
+    route.kind === 'football' || route.kind === 'football-match' ? route.competitionId : leagueId;
+  const competition = competitionKind(competitionId);
+  const f1Tab = route.kind === 'f1' && isF1Tab(route.tab) ? route.tab : 'overview';
+  const uclTab =
+    route.kind === 'football' && competition === 'ucl' && isChampionsTab(route.tab)
+      ? route.tab
+      : 'overview';
+  const cupTab =
+    route.kind === 'football' && competition === 'cup' && isCupTab(route.tab)
+      ? route.tab
+      : 'overview';
+  const leagueTab: FootballSection =
+    route.kind === 'football' && competition === 'league' && isLeagueTab(route.tab)
+      ? route.tab
+      : 'matches';
   const setF1Tab = (tab: F1Tab) => setRoute({ kind: 'f1', tab });
-  const setUclTab = (tab: UclTab) => setRoute({ kind: 'ucl', tab });
-  const setCupTab = (tab: CupTab) => setRoute({ kind: 'cup', cupId, tab });
-  const setLeagueId = (id: string) => setRoute(route, { leagueId: id });
+  const setUclTab = (tab: UclTab) =>
+    setRoute({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab });
+  const setCupTab = (tab: CupTab) => setRoute({ kind: 'football', competitionId: cupId, tab });
+  const setLeagueId = (id: string) => {
+    const next = isLeagueId(id) ? id : leagueId;
+    if (route.kind === 'football' || route.kind === 'football-match')
+      setRoute({ ...route, competitionId: next }, { leagueId: next });
+    else setRoute(route, { leagueId: next });
+  };
   const [collapsed, setCollapsed] = useState(
     () => getString('sportsdesk.sidebar.collapsed') === '1',
   );
@@ -166,24 +197,37 @@ function MainApp() {
     window.addEventListener('sportsdesk-appearance-changed', onAppearance);
     return () => window.removeEventListener('sportsdesk-appearance-changed', onAppearance);
   }, []);
+  const matchCompetition =
+    route.kind === 'football' || route.kind === 'football-match' ? competition : undefined;
   const theme =
-    sport === 'football'
-      ? (LEAGUES.find((l) => l.id === leagueId)?.theme ?? 'epl')
-      : sport === 'cup'
-        ? 'ucl'
-        : sport;
+    matchCompetition === 'ucl' || matchCompetition === 'cup'
+      ? 'ucl'
+      : sport === 'football'
+        ? (LEAGUES.find((l) => l.id === leagueId)?.theme ?? 'epl')
+        : sport === 'cup'
+          ? 'ucl'
+          : sport;
   const auxiliary =
     route.kind === 'watch' ||
     route.kind === 'settings' ||
-    route.kind === 'planner' ||
     route.kind === 'events' ||
-    route.kind === 'games' ||
-    route.kind === 'diary' ||
-    route.kind === 'offline';
+    route.kind === 'my' ||
+    route.kind === 'offline' ||
+    (route.kind === 'today' && route.mode === 'plan');
   const reset = () => setRoute(homeRoute(sport, cupId));
   const changeMode = navigation.changeSport;
-  const openFootballMatch = (matchId: string, eventLeague?: string) =>
-    setRoute({ kind: 'football-match', matchId }, eventLeague ? { leagueId: eventLeague } : {});
+  const openFootballMatch = (matchId: string, eventLeague?: string) => {
+    const eventKind = competitionKind(eventLeague);
+    const contextId = eventKind ? eventLeague! : leagueId;
+    setRoute(
+      { kind: 'football-match', matchId, competitionId: contextId },
+      eventKind === 'league'
+        ? { leagueId: contextId }
+        : eventKind === 'cup'
+          ? { cupId: contextId }
+          : {},
+    );
+  };
   const backFromMatch = back,
     backFromAuxiliary = back;
   const togglePage = navigation.auxiliary;
@@ -196,19 +240,21 @@ function MainApp() {
   };
   const searchTarget = (target: SearchTarget) => {
     switch (target.kind) {
-      case 'team':
+      case 'team': {
+        const teamLeague = isLeagueId(target.leagueId) ? target.leagueId : leagueId;
         setRoute(
-          { kind: 'football', section: 'team', teamId: target.id },
-          target.leagueId ? { leagueId: target.leagueId } : {},
+          { kind: 'football', competitionId: teamLeague, tab: 'team', teamId: target.id },
+          { leagueId: teamLeague },
         );
         break;
+      }
       case 'match':
         openFootballMatch(target.id, target.leagueId);
         break;
       case 'player':
         viewState.write('players.requested', target.player);
         viewState.write('players.selected', target.player.id);
-        setRoute({ kind: 'football', section: 'players' });
+        setRoute({ kind: 'football', competitionId: leagueId, tab: 'players' });
         break;
       case 'driver':
         viewState.write('f1.year', target.year);
@@ -219,10 +265,20 @@ function MainApp() {
         setRoute({ kind: 'watch', channelId: target.id });
         break;
       case 'section':
-        if (target.id === 'matches' || target.id === 'players')
-          setRoute({ kind: 'football', section: target.id });
-        else if (target.id === 'f1') setRoute({ kind: 'f1', tab: 'overview' });
-        else setRoute({ kind: target.id });
+        if (target.id.startsWith('football.')) {
+          const tab = target.id.slice('football.'.length);
+          if (isLeagueTab(tab)) setRoute({ kind: 'football', competitionId: leagueId, tab });
+        } else if (target.id === 'f1') setRoute({ kind: 'f1', tab: 'overview' });
+        else if (target.id === 'today' || target.id === 'today.week')
+          setRoute({ kind: 'today', mode: target.id === 'today' ? 'today' : 'week' });
+        else if (target.id === 'today.plan') setRoute({ kind: 'today', mode: 'plan' });
+        else if (target.id === 'watch') setRoute({ kind: 'watch' });
+        else if (target.id.startsWith('my.')) {
+          const tab = target.id.slice('my.'.length);
+          if (isMyTab(tab)) setRoute({ kind: 'my', tab });
+        } else if (target.id === 'events') setRoute({ kind: 'events' });
+        else if (target.id === 'offline') setRoute({ kind: 'offline' });
+        else if (target.id === 'settings') setRoute({ kind: 'settings' });
     }
   };
   useEffect(() => {
@@ -235,7 +291,7 @@ function MainApp() {
         'sportsdesk://open-event',
         ({ payload: e }) => {
           if (e.kind === 'match' && e.matchId)
-            setRoute({ kind: 'football-match', matchId: e.matchId });
+            setRoute({ kind: 'football-match', matchId: e.matchId, competitionId: leagueId });
           if (e.kind === 'f1' && e.season && e.round) openWeekend(e.season, e.round);
         },
       );
@@ -316,18 +372,33 @@ function MainApp() {
             <div className="sidebar-scroll">
               <nav className="nav-group">
                 {sport === 'football' &&
-                  footballNav.map(({ id, label, icon: Icon }) => (
-                    <button
-                      className={`nav-item ${!auxiliary && route.kind === 'football' && route.section === id ? 'active' : ''}`}
-                      key={id}
-                      title={label}
-                      onClick={() => setRoute({ kind: 'football', section: id })}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                      {id === 'live' && <i className="live-dot" />}
-                    </button>
-                  ))}
+                  footballNav.map(({ id, label, icon: Icon }) => {
+                    const active =
+                      id === 'dashboard'
+                        ? !auxiliary &&
+                          route.kind === 'today' &&
+                          (route.mode === undefined || route.mode !== 'plan')
+                        : !auxiliary &&
+                          route.kind === 'football' &&
+                          competition === 'league' &&
+                          route.tab === id;
+                    return (
+                      <button
+                        className={`nav-item ${active ? 'active' : ''}`}
+                        key={id}
+                        title={label}
+                        onClick={() =>
+                          isLeagueTab(id)
+                            ? setRoute({ kind: 'football', competitionId: leagueId, tab: id })
+                            : setRoute({ kind: 'today', mode: 'today' })
+                        }
+                      >
+                        <Icon size={18} />
+                        <span>{label}</span>
+                        {id === 'live' && <i className="live-dot" />}
+                      </button>
+                    );
+                  })}
                 {sport === 'f1' &&
                   f1Nav.map(({ id, label, icon: Icon }) => (
                     <button
@@ -345,7 +416,7 @@ function MainApp() {
                 {sport === 'ucl' &&
                   uclNav.map(({ id, label, icon: Icon }) => (
                     <button
-                      className={`nav-item ${!auxiliary && uclTab === id ? 'active' : ''}`}
+                      className={`nav-item ${!auxiliary && competition === 'ucl' && uclTab === id ? 'active' : ''}`}
                       key={id}
                       title={label}
                       onClick={() => {
@@ -360,7 +431,7 @@ function MainApp() {
                   cupNav.map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
-                      className={`nav-item ${!auxiliary && cupTab === id ? 'active' : ''}`}
+                      className={`nav-item ${!auxiliary && competition === 'cup' && cupTab === id ? 'active' : ''}`}
                       title={label}
                       onClick={() => setCupTab(id)}
                     >
@@ -373,11 +444,15 @@ function MainApp() {
               {sport === 'cup' && (
                 <div className="competition-nav" aria-label="Кубковые турниры">
                   <span className="nav-caption">ТУРНИРЫ</span>
-                  {CUP_COMPETITIONS.filter((c) => c.id !== 'l_0bfbkO').map((c) => (
+                  {CUP_COMPETITIONS.filter((c) => c.id !== CHAMPIONS_LEAGUE_ID).map((c) => (
                     <button
                       key={c.id}
-                      className={c.id === cupId ? 'selected' : ''}
-                      onClick={() => setRoute({ kind: 'cup', cupId: c.id, tab: 'overview' })}
+                      className={
+                        route.kind === 'football' && route.competitionId === c.id ? 'selected' : ''
+                      }
+                      onClick={() =>
+                        setRoute({ kind: 'football', competitionId: c.id, tab: 'overview' })
+                      }
                     >
                       {c.title}
                       <ChevronRight size={12} />
@@ -429,14 +504,17 @@ function MainApp() {
                       <button
                         key={t.id}
                         className={
-                          route.kind === 'football' &&
-                          route.section === 'team' &&
-                          route.teamId === t.id
+                          route.kind === 'football' && route.tab === 'team' && route.teamId === t.id
                             ? 'selected'
                             : ''
                         }
                         onClick={() =>
-                          setRoute({ kind: 'football', section: 'team', teamId: t.id })
+                          setRoute({
+                            kind: 'football',
+                            competitionId: leagueId,
+                            tab: 'team',
+                            teamId: t.id,
+                          })
                         }
                         title={t.name}
                       >
@@ -465,7 +543,7 @@ function MainApp() {
                 <span>Офлайн-сезоны</span>
               </button>
               <button
-                className={`nav-item ${route.kind === 'diary' ? 'active' : ''}`}
+                className={`nav-item ${route.kind === 'my' && route.tab === 'diary' ? 'active' : ''}`}
                 title="Дневник просмотра"
                 onClick={() => togglePage('diary')}
               >
@@ -484,7 +562,7 @@ function MainApp() {
                 <span>Дневник просмотра</span>
               </button>
               <button
-                className={`nav-item ${route.kind === 'planner' ? 'active' : ''}`}
+                className={`nav-item ${route.kind === 'today' && route.mode === 'plan' ? 'active' : ''}`}
                 title="Мой спортивный вечер"
                 onClick={openPlanner}
               >
@@ -493,7 +571,7 @@ function MainApp() {
               </button>
               {atmosphere.enabled && (
                 <button
-                  className={`nav-item ${route.kind === 'games' ? 'active' : ''}`}
+                  className={`nav-item ${route.kind === 'my' && route.tab === 'games' ? 'active' : ''}`}
                   title="Игры"
                   onClick={() => togglePage('games')}
                 >
@@ -521,13 +599,12 @@ function MainApp() {
             <div className="content-inner">
               <ConnectivityBanner
                 sources={
-                  route.kind === 'planner'
+                  route.kind === 'today' && route.mode === 'plan'
                     ? ['pitch', 'jolpica']
                     : route.kind === 'settings' ||
                         route.kind === 'watch' ||
                         route.kind === 'events' ||
-                        route.kind === 'games' ||
-                        route.kind === 'diary' ||
+                        route.kind === 'my' ||
                         route.kind === 'offline'
                       ? []
                       : sport === 'f1'
@@ -538,13 +615,19 @@ function MainApp() {
               <UpdateNotice />
               <div className="page-breadcrumb" aria-label="Текущий раздел">
                 <span>
-                  {sport === 'football'
-                    ? LEAGUES.find((l) => l.id === leagueId)?.label
-                    : sport === 'f1'
-                      ? 'Формула 1'
-                      : sport === 'ucl'
-                        ? 'Лига чемпионов'
-                        : CUP_COMPETITIONS.find((c) => c.id === cupId)?.title}
+                  {matchCompetition === 'ucl'
+                    ? 'Лига чемпионов'
+                    : matchCompetition === 'cup'
+                      ? CUP_COMPETITIONS.find((c) => c.id === competitionId)?.title
+                      : matchCompetition === 'league'
+                        ? LEAGUES.find((l) => l.id === competitionId)?.label
+                        : sport === 'football'
+                          ? LEAGUES.find((l) => l.id === leagueId)?.label
+                          : sport === 'f1'
+                            ? 'Формула 1'
+                            : sport === 'ucl'
+                              ? 'Лига чемпионов'
+                              : CUP_COMPETITIONS.find((c) => c.id === cupId)?.title}
                 </span>
                 <span className="breadcrumb-line" />
                 <span>
@@ -552,68 +635,119 @@ function MainApp() {
                     ? 'Настройки'
                     : route.kind === 'offline'
                       ? 'Офлайн-сезоны'
-                      : route.kind === 'diary'
-                        ? 'Дневник просмотра'
-                        : route.kind === 'games'
+                      : route.kind === 'my'
+                        ? route.tab === 'games'
                           ? 'Игры'
-                          : route.kind === 'events'
-                            ? 'Центр событий'
-                            : route.kind === 'watch'
-                              ? 'Онлайн-просмотр'
-                              : route.kind === 'planner'
+                          : route.tab === 'schemes'
+                            ? 'Мои схемы'
+                            : route.tab === 'favorites'
+                              ? 'Избранное'
+                              : 'Дневник просмотра'
+                        : route.kind === 'events'
+                          ? 'Центр событий'
+                          : route.kind === 'watch'
+                            ? 'Онлайн-просмотр'
+                            : route.kind === 'today'
+                              ? route.mode === 'plan'
                                 ? 'Мой спортивный вечер'
-                                : route.kind === 'football-match'
-                                  ? 'Статистика матча'
-                                  : route.kind === 'football'
-                                    ? footballNav.find((n) => n.id === route.section)?.label
-                                    : route.kind === 'f1'
-                                      ? f1Nav.find((n) => n.id === f1Tab)?.label
-                                      : route.kind === 'ucl'
-                                        ? uclNav.find((n) => n.id === uclTab)?.label
-                                        : cupNav.find((n) => n.id === cupTab)?.label}
+                                : footballNav.find((n) => n.id === 'dashboard')?.label
+                              : route.kind === 'football-match'
+                                ? 'Статистика матча'
+                                : route.kind === 'football'
+                                  ? competition === 'ucl'
+                                    ? uclNav.find((n) => n.id === uclTab)?.label
+                                    : competition === 'cup'
+                                      ? cupNav.find((n) => n.id === cupTab)?.label
+                                      : footballNav.find((n) => n.id === leagueTab)?.label
+                                  : f1Nav.find((n) => n.id === f1Tab)?.label}
                 </span>
               </div>
               <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
-                {!auxiliary && sport === 'football' && (
-                  <SectionBoundary
-                    name="Футбол"
-                    resetKey={`football.${leagueId}.${JSON.stringify(route)}`}
-                  >
-                    <FootballView
-                      leagueId={leagueId}
-                      onLeagueChange={setLeagueId}
-                      section={route.kind === 'football' ? route.section : 'matches'}
-                      selectedTeamId={route.kind === 'football' ? route.teamId : undefined}
-                      matchId={route.kind === 'football-match' ? route.matchId : null}
-                      onOpenMatch={openFootballMatch}
-                      onBackFromMatch={backFromMatch}
-                      onOpenTeam={(id, _name, teamLeagueId) =>
-                        setRoute(
-                          { kind: 'football', section: 'team', teamId: id },
-                          teamLeagueId ? { leagueId: teamLeagueId } : {},
-                        )
-                      }
-                      onNavigate={(section) => setRoute({ kind: 'football', section })}
-                    />
-                  </SectionBoundary>
-                )}
-                {!auxiliary && sport === 'f1' && (
-                  <SectionBoundary name="Раздел" resetKey={`f1.${f1Tab}.${cupId}`}>
-                    <F1View tab={f1Tab} onTabChange={setF1Tab} />
-                  </SectionBoundary>
-                )}
-                {!auxiliary && sport === 'ucl' && (
+                {!auxiliary &&
+                  (route.kind === 'today' ||
+                    (route.kind === 'football' && competition === 'league') ||
+                    route.kind === 'football-match') && (
+                    <SectionBoundary
+                      name="Футбол"
+                      resetKey={`football.${competitionId}.${JSON.stringify(route)}`}
+                    >
+                      <FootballView
+                        leagueId={competitionId}
+                        onLeagueChange={setLeagueId}
+                        section={
+                          route.kind === 'today'
+                            ? 'dashboard'
+                            : route.kind === 'football-match'
+                              ? 'matches'
+                              : leagueTab
+                        }
+                        selectedTeamId={
+                          route.kind === 'football' && route.tab === 'team'
+                            ? route.teamId
+                            : undefined
+                        }
+                        matchId={route.kind === 'football-match' ? route.matchId : null}
+                        onOpenMatch={openFootballMatch}
+                        onBackFromMatch={backFromMatch}
+                        onOpenTeam={(id, _name, teamLeagueId) => {
+                          const teamLeague = isLeagueId(teamLeagueId)
+                            ? teamLeagueId
+                            : competitionId;
+                          setRoute(
+                            {
+                              kind: 'football',
+                              competitionId: teamLeague,
+                              tab: 'team',
+                              teamId: id,
+                            },
+                            { leagueId: teamLeague },
+                          );
+                        }}
+                        onNavigate={(section) => {
+                          if (section === 'dashboard') setRoute({ kind: 'today', mode: 'today' });
+                          else
+                            setRoute({
+                              kind: 'football',
+                              competitionId: competition === 'league' ? competitionId : leagueId,
+                              tab: section,
+                            });
+                        }}
+                      />
+                    </SectionBoundary>
+                  )}
+                {!auxiliary && route.kind === 'football' && competition === 'ucl' && (
                   <SectionBoundary name="Раздел" resetKey={`ucl.${uclTab}.${cupId}`}>
                     <ChampionsView tab={uclTab} onTabChange={setUclTab} />
                   </SectionBoundary>
                 )}
-                {!auxiliary && sport === 'cup' && (
+                {!auxiliary && route.kind === 'football' && competition === 'cup' && (
                   <SectionBoundary name="Раздел" resetKey={`cup.${cupTab}.${cupId}`}>
-                    <CupsView competitionId={cupId} tab={cupTab} onTabChange={setCupTab} />
+                    <CupsView
+                      competitionId={route.competitionId}
+                      tab={cupTab}
+                      onTabChange={setCupTab}
+                    />
+                  </SectionBoundary>
+                )}
+                {!auxiliary && route.kind === 'f1' && (
+                  <SectionBoundary name="Раздел" resetKey={`f1.${f1Tab}.${cupId}`}>
+                    <F1View tab={f1Tab} onTabChange={setF1Tab} />
                   </SectionBoundary>
                 )}
                 {auxiliary && (
-                  <PageFrame page={route.kind}>
+                  <PageFrame
+                    page={
+                      route.kind === 'my'
+                        ? route.tab === 'games'
+                          ? 'games'
+                          : route.tab === 'diary'
+                            ? 'diary'
+                            : `my.${route.tab ?? 'favorites'}`
+                        : route.kind === 'today'
+                          ? 'planner'
+                          : route.kind
+                    }
+                  >
                     <button className="ghost-btn auxiliary-back" onClick={backFromAuxiliary}>
                       <ChevronLeft size={15} /> Вернуться к спорту
                     </button>
@@ -621,7 +755,7 @@ function MainApp() {
                       <WatchView intent={route.intent} requestedChannelId={route.channelId} />
                     ) : route.kind === 'offline' ? (
                       <OfflineView />
-                    ) : route.kind === 'diary' ? (
+                    ) : route.kind === 'my' && route.tab === 'diary' ? (
                       <DiaryView
                         onOpen={(reference) =>
                           reference.kind === 'football'
@@ -629,9 +763,9 @@ function MainApp() {
                             : openWeekend(reference.season, reference.round)
                         }
                       />
-                    ) : route.kind === 'games' ? (
+                    ) : route.kind === 'my' && route.tab === 'games' ? (
                       <GamesView onOpenMatch={openFootballMatch} />
-                    ) : route.kind === 'events' ? (
+                    ) : route.kind === 'my' ? null : route.kind === 'events' ? (
                       <EventCenter
                         onOpen={(event) => {
                           if (event.sport === 'f1' && event.season && event.round)
@@ -639,14 +773,9 @@ function MainApp() {
                           else if (event.matchId) openFootballMatch(event.matchId, event.leagueId);
                         }}
                       />
-                    ) : route.kind === 'planner' ? (
+                    ) : route.kind === 'today' ? (
                       <ViewingPlanner
-                        onOpenMatch={(id, eventLeague) =>
-                          setRoute(
-                            { kind: 'football-match', matchId: id },
-                            eventLeague ? { leagueId: eventLeague } : {},
-                          )
-                        }
+                        onOpenMatch={openFootballMatch}
                         onOpenWeekend={(race) => openWeekend(race.season, race.round)}
                       />
                     ) : (

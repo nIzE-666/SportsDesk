@@ -284,6 +284,7 @@ it('opens the exact older fixture statistics from its team name, date, score and
     expect(viewState.read('navigation.football', {})).toEqual({
       kind: 'football-match',
       matchId: fixture.id,
+      competitionId: 'l_4WFCIZ',
     });
     expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
     expect(host.querySelector('.team-view')).toBeNull();
@@ -516,11 +517,13 @@ it('preserves the original match back target when another match is opened from i
   expect(viewState.read('navigation.football', {})).toEqual({
     kind: 'football-match',
     matchId: fixture.id,
+    competitionId: 'l_4WFCIZ',
   });
   await click(button('Назад'));
   expect(viewState.read('navigation.football', {})).toEqual({
     kind: 'football',
-    section: 'matches',
+    competitionId: 'l_4WFCIZ',
+    tab: 'matches',
   });
   expect(host.querySelector('.match-detail')).toBeNull();
 });
