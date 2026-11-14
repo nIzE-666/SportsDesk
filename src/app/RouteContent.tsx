@@ -69,6 +69,8 @@ interface RouteContentProps {
   auxiliaryBack?: ReactNode;
   /** The current frame has no tabs in its header, so «Моё» draws its own. */
   showMyTabs?: boolean;
+  /** The new frame has one competition switcher in the header, so screens hide their own. */
+  newFrame?: boolean;
 }
 
 /** One route-to-screen mapping shared by the current frame and the new shell. */
@@ -85,6 +87,7 @@ export function RouteContent({
   contentHeader,
   auxiliaryBack,
   showMyTabs = false,
+  newFrame,
 }: RouteContentProps) {
   const competitionId =
     route.kind === 'football' || route.kind === 'football-match' ? route.competitionId : leagueId;
@@ -154,6 +157,7 @@ export function RouteContent({
               <FootballView
                 leagueId={competitionId}
                 onLeagueChange={onLeagueChange}
+                showLeaguePicker={!newFrame}
                 section={
                   route.kind === 'today'
                     ? 'dashboard'

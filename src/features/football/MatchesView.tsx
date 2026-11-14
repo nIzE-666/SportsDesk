@@ -20,9 +20,11 @@ type StatusFilter = 'all' | 'upcoming' | 'finished';
 export interface MatchesViewProps {
   data: UseFootballResult;
   onOpenMatch: (id: string) => void;
+  /** The new frame chooses the competition in the page header. */
+  showLeaguePicker?: boolean;
 }
 
-export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
+export function MatchesView({ data, onOpenMatch, showLeaguePicker = true }: MatchesViewProps) {
   const timezone = getUserTimezone();
   const modules = useModules();
   const { isTeamFavorite, toggleTeam } = useFavorites();
@@ -83,29 +85,31 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
       </div>
 
       <div className="filters-bar panel">
-        <div className="filter-group">
-          <label htmlFor="league-select" className="muted small">
-            Лига
-          </label>
-          <select
-            id="league-select"
-            value={data.selectedLeagueId}
-            onChange={(e) => data.setSelectedLeague(e.target.value)}
-          >
-            {visibleLeagues.map((l) => {
-              const s =
-                seasons.length > 0 && l.id === data.selectedLeagueId
-                  ? (data.season ?? l.season)
-                  : l.season;
-              return (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                  {s ? ` · ${s}` : ''}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        {showLeaguePicker && (
+          <div className="filter-group">
+            <label htmlFor="league-select" className="muted small">
+              Лига
+            </label>
+            <select
+              id="league-select"
+              value={data.selectedLeagueId}
+              onChange={(e) => data.setSelectedLeague(e.target.value)}
+            >
+              {visibleLeagues.map((l) => {
+                const s =
+                  seasons.length > 0 && l.id === data.selectedLeagueId
+                    ? (data.season ?? l.season)
+                    : l.season;
+                return (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                    {s ? ` · ${s}` : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
         <div className="filter-group">
           <label htmlFor="football-season" className="muted small">
             Сезон

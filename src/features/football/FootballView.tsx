@@ -17,6 +17,8 @@ export type FootballSection = 'dashboard' | 'matches' | 'standings' | 'live' | '
 export interface FootballViewProps {
   leagueId?: string;
   onLeagueChange?: (id: string) => void;
+  /** The new frame chooses the competition in the page header. */
+  showLeaguePicker?: boolean;
   section: FootballSection;
   selectedTeamId?: string;
   matchId?: string | null;
@@ -29,6 +31,7 @@ export interface FootballViewProps {
 function FootballBody({
   leagueId,
   onLeagueChange,
+  showLeaguePicker,
   section,
   selectedTeamId,
   matchId,
@@ -114,7 +117,13 @@ function FootballBody({
                 data={data}
               />
             )}
-            {section === 'matches' && <MatchesView onOpenMatch={handleOpenMatch} data={data} />}
+            {section === 'matches' && (
+              <MatchesView
+                onOpenMatch={handleOpenMatch}
+                data={data}
+                showLeaguePicker={showLeaguePicker}
+              />
+            )}
             {section === 'standings' && <StandingsView data={data} onOpenTeam={handleOpenTeam} />}
             {section === 'live' && (
               <LivePanel pitchMatches={pitchMatches} onOpenMatch={handleOpenMatch} />

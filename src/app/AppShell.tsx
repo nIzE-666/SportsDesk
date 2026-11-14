@@ -5,6 +5,7 @@ import { useModules } from '../lib/modules';
 import type { SportsEvent } from '../features/events/EventCenter';
 import { useUnreadEvents } from '../features/events/unreadEvents';
 import { EventsDrawer } from './EventsDrawer';
+import { useHiddenCompetitionRedirect } from './competitionRouting';
 import { NavRail } from './NavRail';
 import { PageHeader } from './PageHeader';
 import { RouteContent } from './RouteContent';
@@ -73,20 +74,25 @@ export function AppShell(props: FrameProps) {
     pageRoute.kind === 'events' ||
     pageRoute.kind === 'offline' ||
     pageRoute.kind === 'watch';
-  const competition =
-    pageRoute.kind === 'football' || pageRoute.kind === 'football-match'
-      ? competitionKind(pageRoute.competitionId)
-      : competitionKind(leagueId);
-  const leagueTheme = LEAGUES.find((league) => league.id === leagueId)?.theme ?? 'epl';
+  const football = pageRoute.kind === 'football' || pageRoute.kind === 'football-match';
+  const competition = football ? competitionKind(pageRoute.competitionId) : undefined;
+  const leagueTheme = football
+    ? (LEAGUES.find((league) => league.id === pageRoute.competitionId)?.theme ?? 'neutral')
+    : 'neutral';
   const appSport = service ? 'neutral' : pageRoute.kind === 'f1' ? 'f1' : 'football';
+  // The competition accent belongs to «Футбол»; «Сегодня», «Моё» and service pages stay neutral.
   const appTheme = service
     ? 'neutral'
     : pageRoute.kind === 'f1'
       ? 'f1'
-      : competition === 'ucl' || competition === 'cup'
-        ? 'ucl'
-        : leagueTheme;
+      : football
+        ? competition === 'ucl' || competition === 'cup'
+          ? 'ucl'
+          : leagueTheme
+        : 'neutral';
   const contentSport = pageRoute.kind === 'f1' ? 'f1' : 'football';
+
+  useHiddenCompetitionRedirect(route, navigate);
 
   return (
     <div
@@ -140,6 +146,7 @@ export function AppShell(props: FrameProps) {
                 onOpenMatch={openFootballMatch}
                 onOpenWeekend={openWeekend}
                 onBack={onBack}
+                newFrame
               />
             </div>
           </main>

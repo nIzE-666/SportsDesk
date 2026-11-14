@@ -3,6 +3,7 @@ import { GlobalSearch } from '../components/GlobalSearch';
 import { AmbientToggle } from '../features/atmosphere/AmbientToggle';
 import type { ShellRoute } from '../lib/navigation';
 import type { SearchTarget } from '../lib/searchIndex';
+import { CompetitionSwitcher } from './CompetitionSwitcher';
 import { headerTabs, lastAnalysisMode, pageTitle } from './shellModel';
 
 interface PageHeaderProps {
@@ -28,6 +29,7 @@ export function PageHeader({
   onOpenMini,
 }: PageHeaderProps) {
   const tabs = headerTabs(route);
+  const football = route.kind === 'football' || route.kind === 'football-match';
   return (
     <header className="shell-header">
       <div className="shell-header-bar">
@@ -42,7 +44,18 @@ export function PageHeader({
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
         )}
-        <h1 className="shell-page-title">{pageTitle(route, leagueId)}</h1>
+        {football ? (
+          <h1 className="shell-page-title shell-page-title-switcher">
+            <CompetitionSwitcher
+              competitionId={route.competitionId}
+              tab={route.kind === 'football' ? route.tab : undefined}
+              suffix={route.kind === 'football-match' ? 'Матч' : undefined}
+              onNavigate={onNavigate}
+            />
+          </h1>
+        ) : (
+          <h1 className="shell-page-title">{pageTitle(route, leagueId)}</h1>
+        )}
         <div className="shell-header-actions">
           <GlobalSearch onNavigate={onSearchTarget} />
           <AmbientToggle sport={sport} />
