@@ -4,6 +4,14 @@ import { DesignChooser } from '../../components/DesignChooser';
 import { isTauriRuntime } from '../../lib/bridge';
 import { useModalFocus } from '../../lib/useModalFocus';
 import { LEAGUES } from '../../lib/navigationMetadata';
+import {
+  CORE_MODULES,
+  LEAGUE_MODULES,
+  readModules,
+  setModule,
+  type ModuleId,
+  type ModulesState,
+} from '../../lib/modules';
 import { useFavoriteDrivers, useFavoriteTeams } from '../f1/useFavorites';
 import { getString, isValidTimezone, setString, STORAGE_KEYS } from '../football/storage';
 import { readNotificationsEnabled, writeNotificationsEnabled } from '../football/usePoller';
@@ -24,6 +32,7 @@ const STEP_TITLES: Record<OnboardingStep, string> = {
   welcome: 'Добро пожаловать в SportsDesk',
   football: 'Футбол',
   f1: 'Формула 1',
+  modules: 'Модули',
   timezone: 'Часовой пояс',
   notifications: 'Уведомления',
   appearance: 'Внешний вид',
@@ -130,6 +139,11 @@ export function FirstRunWizard({
     return () => window.removeEventListener(OPEN_ONBOARDING_EVENT, reopen);
   }, []);
 
+  // Новый шаг начинается с заголовка, даже если предыдущий был выше.
+  useEffect(() => {
+    if (panel.current) panel.current.scrollTop = 0;
+  }, [step]);
+
   if (!open) return null;
 
   const index = ONBOARDING_STEPS.indexOf(step);
@@ -183,6 +197,7 @@ export function FirstRunWizard({
           {step === 'welcome' && <WelcomeStep />}
           {step === 'football' && <FootballStep onLeagueChange={onLeagueChange} />}
           {step === 'f1' && <F1Step />}
+          {step === 'modules' && <ModulesStep />}
           {step === 'timezone' && <TimezoneStep />}
           {step === 'notifications' && <NotificationsStep />}
           {step === 'appearance' && <AppearanceStep />}
@@ -304,6 +319,50 @@ function F1Step() {
       <p className="muted small">
         Остальных пилотов можно отметить звёздочкой в «Зачётах» Формулы 1.
       </p>
+    </>
+  );
+}
+
+function ModulesStep() {
+  const [modules, setModules] = useState<ModulesState>(() => readModules());
+  const toggle = (id: ModuleId, enabled: boolean) => {
+    setModules(setModule(id, enabled));
+  };
+  return (
+    <>
+      <p>Выключенное можно вернуть в «Настройках».</p>
+      <div className="onboarding-modules">
+        {CORE_MODULES.map((module) => (
+          <label key={module.id} className="onboarding-module">
+            <input
+              type="checkbox"
+              checked={modules[module.id]}
+              onChange={(e) => toggle(module.id, e.target.checked)}
+            />
+            <span>
+              <b>{module.label}</b>
+              {module.description && <small>{module.description}</small>}
+            </span>
+          </label>
+        ))}
+      </div>
+      <div className="onboarding-module-group" role="group" aria-label="Лиги">
+        <h3 className="onboarding-module-title">Лиги</h3>
+        <div className="onboarding-module-leagues">
+          {LEAGUE_MODULES.map((module) => (
+            <label key={module.id} className="onboarding-module">
+              <input
+                type="checkbox"
+                checked={modules[module.id]}
+                onChange={(e) => toggle(module.id, e.target.checked)}
+              />
+              <span>
+                <b>{module.label}</b>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
     </>
   );
 }

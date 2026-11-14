@@ -9,11 +9,28 @@ import {
   openFirstRunWizard,
   parseOnboarding,
   readOnboarding,
+  resetOnboardingBootDecision,
   resolveInitialOnboarding,
 } from './onboarding';
 import { FirstRunWizard } from './FirstRunWizard';
+import { WhatsNewDialog } from '../../components/WhatsNewDialog';
+import {
+  CORE_MODULES,
+  LEAGUE_MODULES,
+  MODULES_KEY,
+  parseModules,
+  readModules,
+} from '../../lib/modules';
 
-vi.mock('../../lib/bridge', () => ({ rpc: vi.fn(), notify: vi.fn(), isTauriRuntime: () => false }));
+const runtime = vi.hoisted(() => ({ tauri: false }));
+const appInfo = vi.hoisted(() => ({ version: '2.0.0' }));
+
+vi.mock('../../lib/bridge', () => ({
+  rpc: vi.fn(),
+  notify: vi.fn(),
+  isTauriRuntime: () => runtime.tauri,
+}));
+vi.mock('@tauri-apps/api/app', () => ({ getVersion: vi.fn(async () => appInfo.version) }));
 vi.mock('../../components/DesignChooser', () => ({ DesignChooser: () => null }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -71,6 +88,8 @@ describe('FirstRunWizard', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    runtime.tauri = false;
+    resetOnboardingBootDecision();
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
@@ -92,6 +111,15 @@ describe('FirstRunWizard', () => {
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     act(() => openFirstRunWizard());
     expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+  };
+  const moduleCheckbox = (label: string, scope: ParentNode = host) =>
+    Array.from(scope.querySelectorAll('label'))
+      .find((item) => item.textContent?.includes(label))
+      ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+  const toModules = () => {
+    click(button('Начать'));
+    click(button('Далее'));
+    click(button('Далее'));
   };
 
   it('opens from settings, saves the step and resumes after postponing', () => {
@@ -117,12 +145,70 @@ describe('FirstRunWizard', () => {
     expect(onLeagueChange).toHaveBeenCalledWith('l_0ErfuF');
     click(button('Далее'));
     click(button('Далее'));
+    click(button('Далее'));
     const select = host.querySelector('select') as HTMLSelectElement;
     act(() => {
       select.value = 'Europe/Moscow';
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     expect(localStorage.getItem('sportsdesk.timezone')).toBe('Europe/Moscow');
+  });
+
+  it('shows the module switches on by default and writes nothing', () => {
+    openWizard();
+    toModules();
+    expect(host.querySelector('.onboarding-card h2')?.textContent).toBe('Модули');
+    const core = host.querySelector('.onboarding-modules');
+    const leagues = host.querySelector('[role="group"][aria-label="Лиги"]');
+    expect(core).not.toBeNull();
+    expect(leagues).not.toBeNull();
+    expect(leagues?.querySelector('h3')?.textContent).toBe('Лиги');
+    for (const module of CORE_MODULES)
+      expect(moduleCheckbox(module.label, core!)?.checked, module.label).toBe(true);
+    for (const module of LEAGUE_MODULES)
+      expect(moduleCheckbox(module.label, leagues!)?.checked, module.label).toBe(true);
+    expect(localStorage.getItem(MODULES_KEY)).toBeNull();
+  });
+
+  it('writes the module switches only after a change', () => {
+    openWizard();
+    toModules();
+    click(moduleCheckbox('Просмотр', host.querySelector('.onboarding-modules')!));
+    const stored = parseModules(JSON.parse(localStorage.getItem(MODULES_KEY)!));
+    expect(stored).toMatchObject({ watch: false, europe: true });
+    click(button('Далее'));
+    expect(readModules().watch).toBe(false);
+  });
+
+  it('leaves the modules key alone when advanced or skipped unchanged', () => {
+    openWizard();
+    toModules();
+    click(button('Далее'));
+    expect(readOnboarding()?.step).toBe('timezone');
+    expect(localStorage.getItem(MODULES_KEY)).toBeNull();
+    click(button('Назад'));
+    click(button('Пропустить остальное'));
+    expect(readOnboarding()?.status).toBe('skipped');
+    expect(localStorage.getItem(MODULES_KEY)).toBeNull();
+  });
+
+  it('resumes on the module step with the chosen switches', () => {
+    openWizard();
+    toModules();
+    click(moduleCheckbox('Просмотр', host.querySelector('.onboarding-modules')!));
+    click(host.querySelector('[aria-label="Отложить настройку"]'));
+    expect(readOnboarding()).toMatchObject({ status: 'in_progress', step: 'modules' });
+
+    act(() => root.unmount());
+    runtime.tauri = true;
+    resetOnboardingBootDecision();
+    root = createRoot(host);
+    act(() => root.render(<FirstRunWizard />));
+    expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(host.querySelector('.onboarding-card h2')?.textContent).toBe('Модули');
+    expect(moduleCheckbox('Просмотр', host.querySelector('.onboarding-modules')!)?.checked).toBe(
+      false,
+    );
   });
 
   it('marks the wizard skipped without touching other settings', () => {
@@ -138,7 +224,7 @@ describe('FirstRunWizard', () => {
     vi.stubGlobal('Notification', { permission: 'default', requestPermission });
     localStorage.setItem('sportsdesk.notifications.enabled', '0');
     openWizard();
-    for (let i = 0; i < 4; i++) click(button(i === 0 ? 'Начать' : 'Далее'));
+    for (let i = 0; i < 5; i++) click(button(i === 0 ? 'Начать' : 'Далее'));
     expect(requestPermission).not.toHaveBeenCalled();
     const toggle = host.querySelector<HTMLInputElement>('.onboarding-toggle input');
     await act(async () => {
@@ -157,13 +243,13 @@ describe('FirstRunWizard', () => {
   it('speaks plainly on every step: no source names, no internals, one sentence to start and end', () => {
     openWizard();
     const steps: string[] = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
       steps.push(host.querySelector('.onboarding-card')?.textContent ?? '');
-      if (i === 0 || i === 6)
+      if (i === 0 || i === 7)
         expect(host.querySelectorAll('.onboarding-body > p'), `step ${i + 1}`).toHaveLength(1);
-      if (i < 6) click(button(i === 0 ? 'Начать' : 'Далее'));
+      if (i < 7) click(button(i === 0 ? 'Начать' : 'Далее'));
     }
-    expect(steps).toHaveLength(7);
+    expect(steps).toHaveLength(8);
     for (const text of steps)
       expect(text).not.toMatch(
         /PitchAPI|KinoPub|Jolpica|OpenF1|SportScore|Rust|SQLite|DPAPI|localStorage|бандл|кеш|токен|провайдер|мастер|отслеживаем/i,
@@ -173,9 +259,61 @@ describe('FirstRunWizard', () => {
   it('finishes on the last step', () => {
     const onOpenSettings = vi.fn();
     openWizard({ onOpenSettings });
-    for (let i = 0; i < 6; i++) click(button(i === 0 ? 'Начать' : 'Далее'));
+    for (let i = 0; i < 7; i++) click(button(i === 0 ? 'Начать' : 'Далее'));
     click(button('Открыть настройки источников'));
     expect(onOpenSettings).toHaveBeenCalled();
     expect(readOnboarding()?.status).toBe('completed');
+  });
+});
+
+describe('WhatsNewDialog', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem(
+      ONBOARDING_KEY,
+      JSON.stringify(makeOnboardingState('completed', 'welcome', 'existing', NOW)),
+    );
+    resetOnboardingBootDecision();
+    runtime.tauri = true;
+    appInfo.version = '2.0.0';
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    host.remove();
+    runtime.tauri = false;
+  });
+
+  // The version arrives through a dynamic import, so give the effect a few turns.
+  const renderDialog = async () => {
+    act(() => root.render(<WhatsNewDialog />));
+    for (let turn = 0; turn < 20 && !host.querySelector('[role="dialog"]'); turn++) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    return host.querySelector('[role="dialog"]');
+  };
+
+  it('does not show the 2.0.0 entry while the version is 1.8.0', async () => {
+    appInfo.version = '1.8.0';
+    const dialog = await renderDialog();
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('SportsDesk 1.8.0');
+    expect(dialog?.textContent).not.toContain('2.0.0');
+    expect(dialog?.textContent).not.toContain('Пять разделов');
+  });
+
+  it('shows the 2.0.0 entry on version 2.0.0', async () => {
+    const dialog = await renderDialog();
+    expect(dialog?.textContent).toContain('SportsDesk 2.0.0');
+    expect(dialog?.textContent).toContain('Пять разделов');
+    expect(dialog?.textContent).toContain('LiveScore');
   });
 });

@@ -64,7 +64,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
     localStorage.setItem('sportsdesk.football.catalogue', JSON.stringify(teams));
   });
   await page.goto('/');
-  await expect(page.locator('.football-dashboard')).toBeVisible();
+  await expect(page.locator('main.content')).toBeVisible();
   const out: string[] = [];
   const sections: Section[] = [];
   /** Тексты, уже показанные в группе (шапка и действия матча повторяются на каждой вкладке). */
@@ -177,10 +177,14 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
     }
   }
   async function openFinishedMatch() {
+    await page.addInitScript(() =>
+      sessionStorage.setItem(
+        'sportsdesk.view.navigation.football',
+        JSON.stringify({ kind: 'football-match', matchId: 'test-match' }),
+      ),
+    );
     await page.evaluate(() => sessionStorage.clear());
     await page.goto('/');
-    await expect(page.locator('.football-dashboard')).toBeVisible();
-    await page.locator('.recent-game').first().click();
     await expect(page.locator('.md-score')).toContainText('2 : 1');
   }
   await openFinishedMatch();
@@ -229,10 +233,10 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   await expect(page.locator('.md-score')).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event('sportsdesk-open-onboarding')));
   const wizard = '[role="dialog"][aria-label="Настройка SportsDesk"]';
-  for (let step = 1; step <= 7; step += 1) {
-    await expect(page.locator(wizard).locator('.eyebrow')).toContainText(`ШАГ ${step} ИЗ 7`);
+  for (let step = 1; step <= 8; step += 1) {
+    await expect(page.locator(wizard).locator('.eyebrow')).toContainText(`ШАГ ${step} ИЗ 8`);
     await dump(`Шаг ${step}`, { group: 'Мастер первого запуска', root: wizard });
-    if (step < 7)
+    if (step < 8)
       await page
         .locator(wizard)
         .getByRole('button', { name: step === 1 ? 'Начать' : 'Далее', exact: true })

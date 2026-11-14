@@ -90,6 +90,51 @@
   max-width: 320px;
 }
 
+.onboarding-modules,
+.onboarding-module-leagues {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-module {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.onboarding-module > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.onboarding-module small {
+  opacity: 0.75;
+}
+
+.onboarding-module:focus-within {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.onboarding-module-group {
+  padding-top: 12px;
+  border-top: 1px solid rgba(127, 127, 127, 0.28);
+}
+
+.onboarding-module-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.onboarding-module-leagues {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
 .onboarding-actions {
   display: flex;
   flex-wrap: wrap;

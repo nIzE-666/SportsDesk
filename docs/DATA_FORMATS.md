@@ -222,10 +222,10 @@
 ```
 
 - `status`: `in_progress` — мастер продолжится с `step` при следующем запуске; `completed` и `skipped` — больше не показывается сам.
-- `step`: `welcome`, `football`, `f1`, `timezone`, `notifications`, `appearance`, `sources`.
+- `step`: `welcome`, `football`, `f1`, `modules`, `timezone`, `notifications`, `appearance`, `sources`.
 - `origin`: `new` — новая установка, `existing` — обновление, `manual` — открыт из «Настроек».
 
-Решение принимается один раз при загрузке модуля, до того как экраны запишут свои значения по умолчанию. Если ключа нет, но есть любой другой ключ `sportsdesk.*`, это обновление: записывается `completed`/`existing`, мастер не показывается и ничего не меняет. Мастер пишет только существующие ключи (`sportsdesk.league`, `sportsdesk.f1.favTeams`, `sportsdesk.f1.favDrivers`, `sportsdesk.timezone`, `sportsdesk.notifications.enabled`, `sportsdesk.notifications.f1`, `sportsdesk.scheme`, `sportsdesk.design`) и только при явном выборе. Разрешение на уведомления запрашивается лишь при включении. Новой установке окно «Что нового» не показывается.
+Решение принимается один раз при загрузке модуля, до того как экраны запишут свои значения по умолчанию. Если ключа нет, но есть любой другой ключ `sportsdesk.*`, это обновление: записывается `completed`/`existing`, мастер не показывается и ничего не меняет. Мастер пишет только существующие ключи (`sportsdesk.league`, `sportsdesk.f1.favTeams`, `sportsdesk.f1.favDrivers`, `sportsdesk.modules`, `sportsdesk.timezone`, `sportsdesk.notifications.enabled`, `sportsdesk.notifications.f1`, `sportsdesk.scheme`, `sportsdesk.design`) и только при явном выборе. Разрешение на уведомления запрашивается лишь при включении. Новой установке окно «Что нового» не показывается.
 
 ## Избранные клубы и игроки (редактор)
 

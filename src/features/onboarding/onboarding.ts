@@ -13,6 +13,7 @@ export const ONBOARDING_STEPS = [
   'welcome',
   'football',
   'f1',
+  'modules',
   'timezone',
   'notifications',
   'appearance',
