@@ -97,6 +97,27 @@
   flex-shrink: 0;
 }
 
+.nav-rail-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.nav-rail-badge {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--shell-rail-text);
+  color: var(--shell-rail-bg);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
 .nav-rail-item:hover {
   background: var(--shell-rail-hover);
   color: var(--shell-rail-text);
@@ -113,6 +134,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  position: relative;
 }
 
 .shell-header {
@@ -209,6 +231,97 @@ main.shell-content {
 .shell-frame [role='tab']:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 2px;
+}
+
+.events-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+  animation: events-backdrop-in 160ms ease-out;
+}
+
+.events-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  height: 100%;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  box-shadow: -24px 0 64px #0000004d;
+  animation: events-drawer-in 180ms ease-out;
+}
+
+.events-drawer-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.events-drawer-head h2 {
+  margin: 0;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 750;
+  letter-spacing: -0.4px;
+}
+
+.events-drawer-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+}
+
+.events-drawer-close:hover {
+  color: var(--text);
+}
+
+.events-drawer-body {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 22px 32px;
+  overflow-y: auto;
+}
+
+.events-drawer .event-center {
+  gap: 18px;
+}
+
+.events-drawer .event-center > .section-heading {
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
+.events-drawer .event-center > .section-heading h1 {
+  display: none;
+}
+
+@keyframes events-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes events-drawer-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .events-drawer-backdrop,
+  .events-drawer {
+    animation: none;
+  }
 }
 
 @media (max-width: 1180px) {

@@ -7,6 +7,7 @@ import { getUserTimezone } from '../football/storage';
 import { CatchUpPanel } from './CatchUpPanel';
 import { spoilerSafeBody, useSpoilerSet } from '../spoilers/spoilerStore';
 import { eventFilterChoices, filterEvents, type EventFilter } from './eventFilters';
+import { notifyEventsChanged } from './unreadEvents';
 const FILTER_LABELS: Record<Exclude<EventFilter, 'unread'>, string> = {
   all: 'Все',
   football: 'Футбол',
@@ -91,6 +92,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
     try {
       await rpc('event_center_mark_read', { ids });
       setEvents((prev) => prev.map((e) => (ids.includes(e.id) ? { ...e, read: true } : e)));
+      notifyEventsChanged();
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось отметить прочитанное.');

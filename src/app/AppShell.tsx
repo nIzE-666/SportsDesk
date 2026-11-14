@@ -1,10 +1,17 @@
+import { useEffect, useRef, useState } from 'react';
 import { LEAGUES } from '../lib/navigationMetadata';
 import { competitionKind, type ShellRoute } from '../lib/navigation';
+import { useModules } from '../lib/modules';
+import type { SportsEvent } from '../features/events/EventCenter';
+import { useUnreadEvents } from '../features/events/unreadEvents';
+import { EventsDrawer } from './EventsDrawer';
 import { NavRail } from './NavRail';
 import { PageHeader } from './PageHeader';
 import { RouteContent } from './RouteContent';
 import type { FrameProps } from './frame';
 import './shell.css';
+
+const TODAY: ShellRoute = { kind: 'today', mode: 'today' };
 
 /** The new five-section frame: permanent rail, thin header and page content. */
 export function AppShell(props: FrameProps) {
@@ -26,27 +33,62 @@ export function AppShell(props: FrameProps) {
     openMini,
     children,
   } = props;
+  const modules = useModules();
+  const unread = useUnreadEvents();
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  // «Смотреть» is gone with its module off, so a direct link lands on «Сегодня».
+  const normalizedRoute: ShellRoute = route.kind === 'watch' && !modules.watch ? TODAY : route;
+  const previousRoute = useRef<ShellRoute>(
+    normalizedRoute.kind === 'events' ? TODAY : normalizedRoute,
+  );
+  useEffect(() => {
+    if (normalizedRoute.kind !== 'events') previousRoute.current = normalizedRoute;
+  }, [normalizedRoute]);
+  useEffect(() => {
+    if (route.kind === 'watch' && !modules.watch) navigate(TODAY);
+  }, [route.kind, modules.watch, navigate]);
+  useEffect(() => setEventsOpen(false), [route]);
+  // The events route of search and old links is a drawer over the last page.
+  const pageRoute = route.kind === 'events' ? previousRoute.current : normalizedRoute;
+  const drawerOpen = eventsOpen || route.kind === 'events';
+  const closeEvents = () => {
+    setEventsOpen(false);
+    if (route.kind === 'events') navigate(pageRoute);
+  };
+  const openEvent = (event: SportsEvent) => {
+    setEventsOpen(false);
+    if (event.sport === 'f1' && event.season && event.round) {
+      openWeekend(event.season, event.round);
+      return;
+    }
+    if (event.matchId) {
+      openFootballMatch(event.matchId, event.leagueId);
+      return;
+    }
+    if (route.kind === 'events') navigate(pageRoute);
+  };
   const service =
-    route.kind === 'settings' ||
-    route.kind === 'events' ||
-    route.kind === 'offline' ||
-    route.kind === 'watch';
+    pageRoute.kind === 'settings' ||
+    pageRoute.kind === 'events' ||
+    pageRoute.kind === 'offline' ||
+    pageRoute.kind === 'watch';
   const competition =
-    route.kind === 'football' || route.kind === 'football-match'
-      ? competitionKind(route.competitionId)
+    pageRoute.kind === 'football' || pageRoute.kind === 'football-match'
+      ? competitionKind(pageRoute.competitionId)
       : competitionKind(leagueId);
   const leagueTheme = LEAGUES.find((league) => league.id === leagueId)?.theme ?? 'epl';
-  const appSport = service ? 'neutral' : route.kind === 'f1' ? 'f1' : 'football';
+  const appSport = service ? 'neutral' : pageRoute.kind === 'f1' ? 'f1' : 'football';
   const appTheme = service
     ? 'neutral'
-    : route.kind === 'f1'
+    : pageRoute.kind === 'f1'
       ? 'f1'
       : competition === 'ucl' || competition === 'cup'
         ? 'ucl'
         : leagueTheme;
-  const contentSport = route.kind === 'f1' ? 'f1' : 'football';
+  const contentSport = pageRoute.kind === 'f1' ? 'f1' : 'football';
   const contentRoute: ShellRoute =
-    route.kind === 'my' && route.tab !== 'games' ? { kind: 'my', tab: 'diary' } : route;
+    pageRoute.kind === 'my' && pageRoute.tab !== 'games' ? { kind: 'my', tab: 'diary' } : pageRoute;
 
   return (
     <div
@@ -60,14 +102,26 @@ export function AppShell(props: FrameProps) {
       {children}
       <div className="shell-frame">
         <NavRail
-          route={route}
-          onChangeSection={changeSection}
-          onOpenEvents={() => navigate({ kind: 'events' })}
-          onOpenSettings={() => navigate({ kind: 'settings' })}
+          route={pageRoute}
+          eventsOpen={drawerOpen}
+          unreadCount={unread}
+          eventsButtonRef={bellRef}
+          onChangeSection={(section) => {
+            setEventsOpen(false);
+            changeSection(section);
+          }}
+          onOpenEvents={() => {
+            if (drawerOpen) closeEvents();
+            else setEventsOpen(true);
+          }}
+          onOpenSettings={() => {
+            setEventsOpen(false);
+            navigate({ kind: 'settings' });
+          }}
         />
         <div className="shell-main">
           <PageHeader
-            route={route}
+            route={pageRoute}
             leagueId={leagueId}
             sport={contentSport}
             canBack={canBack}
@@ -91,6 +145,12 @@ export function AppShell(props: FrameProps) {
               />
             </div>
           </main>
+          <EventsDrawer
+            open={drawerOpen}
+            onClose={closeEvents}
+            onOpenEvent={openEvent}
+            returnFocusRef={bellRef}
+          />
         </div>
       </div>
     </div>
