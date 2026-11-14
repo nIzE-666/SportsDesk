@@ -274,3 +274,20 @@ it('requires two session drivers before offering a comparison', async () => {
   expect(button('Сравнить темп').disabled).toBe(true);
   expect(host.textContent).toContain('хотя бы двух пилотов');
 });
+
+it('shows the Russian session name and joins a known place with one separator', async () => {
+  await act(async () => root.render(<RacePacePanel session={session} drivers={drivers} />));
+  expect(host.querySelector('.analysis-subtitle')?.textContent).toBe('Гонка · Test Circuit');
+});
+
+it('omits the separator when the session has no place', async () => {
+  await act(async () =>
+    root.render(
+      <RacePacePanel
+        session={{ ...session, circuit_short_name: undefined, location: undefined }}
+        drivers={drivers}
+      />,
+    ),
+  );
+  expect(host.querySelector('.analysis-subtitle')?.textContent).toBe('Гонка');
+});

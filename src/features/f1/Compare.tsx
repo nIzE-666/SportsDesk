@@ -263,11 +263,11 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
             <thead>
               <tr>
                 <th>Этап</th>
-                <th>{driverA?.code} · К</th>
+                <th>{driverA?.code || '—'} · К</th>
                 <th>Г</th>
                 <th>Гонка / спринт</th>
                 <th>Всего</th>
-                <th>{driverB?.code} · К</th>
+                <th>{driverB?.code || '—'} · К</th>
                 <th>Г</th>
                 <th>Гонка / спринт</th>
                 <th>Всего</th>

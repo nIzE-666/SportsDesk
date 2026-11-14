@@ -137,8 +137,11 @@ it('names the OpenF1 meetings of the session centre in Russian', async () => {
     'Весь сезон 2025',
   );
   expect(host.querySelector('select[aria-label="Сессия"] option:checked')?.textContent).toContain(
-    'Race',
+    'Гонка',
   );
+  expect(
+    host.querySelector('select[aria-label="Сессия"] option:checked')?.textContent,
+  ).not.toContain('Race');
   expect(host.querySelector('.f1-analysis-note')?.textContent).toBe(
     'Для этого режима нужен один этап — показан последний завершённый.',
   );

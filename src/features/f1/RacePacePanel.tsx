@@ -15,6 +15,7 @@ import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useNow } from '../../lib/useNow';
 import { countRu, LAP_PAIRS, LAPS, pluralRu } from '../../lib/plural';
+import { sessionNameLabel } from './analysisLabels';
 import { SourceBar } from './shared';
 import { useSourceSummaryAvailable } from './SourceSummary';
 import {
@@ -137,6 +138,8 @@ export function RacePacePanel({
   );
   const nameA = driverName(a),
     nameB = driverName(b);
+  const sessionName = sessionNameLabel(session.session_name) ?? 'Сессия';
+  const sessionPlace = session.circuit_short_name || session.location;
   const pits =
     comparison?.rows.filter((r) => r.a.pitIn || r.a.pitOut || r.b.pitIn || r.b.pitOut) ?? [];
   return (
@@ -147,8 +150,7 @@ export function RacePacePanel({
             <Gauge size={19} /> Сравнение темпа по кругам
           </h2>
           <p className="analysis-subtitle">
-            {session.session_name ?? 'Сессия'} ·{' '}
-            {session.circuit_short_name ?? session.location ?? ''}
+            {sessionPlace ? `${sessionName} · ${sessionPlace}` : sessionName}
           </p>
         </div>
         <span className="chip">{available ? 'Исторические данные' : 'Данные ещё недоступны'}</span>
@@ -181,7 +183,7 @@ export function RacePacePanel({
               >
                 {drivers.map((d) => (
                   <option value={d.driver_number} key={d.driver_number}>
-                    {driverName(d)} · {d.team_name ?? `№ ${d.driver_number}`}
+                    {driverName(d)} · {d.team_name || `№ ${d.driver_number}`}
                   </option>
                 ))}
               </select>

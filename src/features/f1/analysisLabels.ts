@@ -18,8 +18,26 @@ export function sessionShortDate(session: OpenF1Session): string | null {
   return formatShort(parseUtc(session.date_start.slice(0, 10), session.date_start.slice(11)));
 }
 
+const SESSION_NAMES: Record<string, string> = {
+  race: 'Гонка',
+  qualifying: 'Квалификация',
+  sprint: 'Спринт',
+  'sprint qualifying': 'Квалификация спринта',
+  'sprint shootout': 'Квалификация спринта',
+  'practice 1': 'Практика 1',
+  'practice 2': 'Практика 2',
+  'practice 3': 'Практика 3',
+};
+
+/** OpenF1 sends session names in English; show the Russian names the app uses. */
+export function sessionNameLabel(name: string | null | undefined): string | null {
+  const value = name?.trim();
+  if (!value) return null;
+  return SESSION_NAMES[value.toLowerCase()] ?? value;
+}
+
 export function sessionLabel(session: OpenF1Session): string {
-  const name = session.session_name ?? `Сессия ${session.session_key}`;
+  const name = sessionNameLabel(session.session_name) ?? `Сессия ${session.session_key}`;
   const date = sessionShortDate(session);
   return date ? `${name} · ${date}` : name;
 }

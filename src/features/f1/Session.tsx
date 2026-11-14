@@ -5,7 +5,7 @@ import { useViewState } from '../../lib/useViewState';
 import { useSeason } from './SeasonContext';
 import { RacePacePanel } from './RacePacePanel';
 import { isCompleted, isMeetingCompleted, pickDefaultSession } from './analysisChoice';
-import { meetingTitle, sessionShortDate } from './analysisLabels';
+import { meetingTitle, sessionNameLabel, sessionShortDate } from './analysisLabels';
 import { useApiResource } from './api';
 import { SourceBar, State } from './shared';
 import { openF1Color } from './teamColors';
@@ -288,7 +288,9 @@ export function Session({
           <div className="f1-card">
             <div className="f1-card-head">
               <div>
-                <div className="f1-eyebrow">{selectedSession.session_name ?? 'Сессия'}</div>
+                <div className="f1-eyebrow">
+                  {sessionNameLabel(selectedSession.session_name) ?? 'Сессия'}
+                </div>
                 <div className="f1-title f1-session-card-title">
                   {(selectedMeeting && meetingTitle(selectedMeeting)) ?? 'Гран-при'}
                 </div>

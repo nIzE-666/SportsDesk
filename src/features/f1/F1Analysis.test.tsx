@@ -209,6 +209,7 @@ it('switches modes and keeps one shared Grand Prix and session choice', async ()
   await choose('Гран-при', '2');
   expect(select('Гран-при').value).toBe('2');
   expect(select('Сессия').value).toBe('5102');
+  expect(select('Сессия').selectedOptions[0]?.textContent).toContain('Гонка');
 
   await choose('Сессия', '5101');
   expect(select('Сессия').value).toBe('5101');
