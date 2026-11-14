@@ -7,17 +7,17 @@
 
 ## Сводка
 
-| Формат                   | Где живёт                              | Текущая версия            | Читается              | Код                        |
-| ------------------------ | -------------------------------------- | ------------------------- | --------------------- | -------------------------- |
-| Профиль настроек         | `profile-mirror.json`, экспорт `.json` | `version: 1`              | 1                     | `src-tauri/src/profile.rs` |
-| Полная резервная копия   | `*.sdbackup.json`                      | `version: 2`              | 1 (только профиль), 2 | `src-tauri/src/backup.rs`  |
-| База истории матчей      | `history.sqlite3`                      | `PRAGMA user_version = 2` | 0, 1, 2                  | `src-tauri/src/history.rs` |
-| Журнал восстановления    | `restore-journal.json`                 | `version: 1`              | 1                     | `src-tauri/src/backup.rs`  |
-| Тактические схемы        | `sportsdesk.football.tactics` в профиле | `version: 1`              | 1                     | `src/features/tactics/tacticsModel.ts` |
-| Дневник просмотра       | `sportsdesk.view.diary` в профиле, экспорт `.json` | `version: 1` | 1 | `src/features/diary/diaryModel.ts` |
-| Офлайн-пакет сезона | `offline_seasons` в `history.sqlite3` | `version: 1` | 1 | `src-tauri/src/offline.rs` |
-| Очередь офлайн-сезонов | `sportsdesk.view.offline` в профиле | `version: 1` | 1 | `src/features/offline/offlineQueue.ts` |
-| Секреты (PitchAPI, Kino) | `secrets\\*.dpapi`                     | —                         | —                     | `src-tauri/src/secrets.rs` |
+| Формат                   | Где живёт                                          | Текущая версия            | Читается              | Код                                    |
+| ------------------------ | -------------------------------------------------- | ------------------------- | --------------------- | -------------------------------------- |
+| Профиль настроек         | `profile-mirror.json`, экспорт `.json`             | `version: 1`              | 1                     | `src-tauri/src/profile.rs`             |
+| Полная резервная копия   | `*.sdbackup.json`                                  | `version: 2`              | 1 (только профиль), 2 | `src-tauri/src/backup.rs`              |
+| База истории матчей      | `history.sqlite3`                                  | `PRAGMA user_version = 2` | 0, 1, 2               | `src-tauri/src/history.rs`             |
+| Журнал восстановления    | `restore-journal.json`                             | `version: 1`              | 1                     | `src-tauri/src/backup.rs`              |
+| Тактические схемы        | `sportsdesk.football.tactics` в профиле            | `version: 1`              | 1                     | `src/features/tactics/tacticsModel.ts` |
+| Дневник просмотра        | `sportsdesk.view.diary` в профиле, экспорт `.json` | `version: 1`              | 1                     | `src/features/diary/diaryModel.ts`     |
+| Офлайн-пакет сезона      | `offline_seasons` в `history.sqlite3`              | `version: 1`              | 1                     | `src-tauri/src/offline.rs`             |
+| Очередь офлайн-сезонов   | `sportsdesk.view.offline` в профиле                | `version: 1`              | 1                     | `src/features/offline/offlineQueue.ts` |
+| Секреты (PitchAPI, Kino) | `secrets\\*.dpapi`                                 | —                         | —                     | `src-tauri/src/secrets.rs`             |
 
 ## Профиль настроек (v1)
 
@@ -50,6 +50,14 @@
 - Ключ хранит только выбор источника. Загруженные матчи и время обновления не сохраняются:
   после запуска приложение снова спрашивает источник. Выбор появится в «Настройки → Источники»
   в следующей части U2.3.
+
+## Временный флаг новой рамки
+
+- Ключ `sportsdesk.preview.shell`: значение `1` включает новую структуру окна, любое
+  другое значение оставляет текущую. Ключ временный: он не входит в профиль и
+  резервные копии и удаляется в U2.11 вместе со старой рамкой.
+- Флаг меняет только рамку: разделы, вкладки и сохранённое место в них работают
+  одинаково при включённом и выключенном значении.
 
 ## Тактические схемы (v1)
 

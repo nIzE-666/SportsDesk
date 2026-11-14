@@ -1,0 +1,235 @@
+/* The five-section frame of U2.2, shown behind the temporary preview flag. */
+.app-root-shell {
+  overflow: hidden;
+}
+
+.shell-frame {
+  --shell-rail-bg: #111111;
+  --shell-rail-line: #ffffff14;
+  --shell-rail-hover: #ffffff0b;
+  --shell-rail-active: #ffffff12;
+  --shell-rail-text: #f3f3f3;
+  --shell-rail-muted: #9a9a9a;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.app-root[data-scheme='light'] .shell-frame {
+  --shell-rail-bg: #f7f7f7;
+  --shell-rail-line: #d8d8d8;
+  --shell-rail-hover: #0000000a;
+  --shell-rail-active: #00000010;
+  --shell-rail-text: #171717;
+  --shell-rail-muted: #5c5c5c;
+}
+
+.nav-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 8px 12px;
+  background: var(--shell-rail-bg);
+  border-right: 1px solid var(--shell-rail-line);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.nav-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-rail-brand {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--shell-rail-line);
+  color: var(--shell-rail-text);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.nav-rail-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.nav-rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-rail-bottom {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--shell-rail-line);
+}
+
+.nav-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 56px;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--shell-rail-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.nav-rail-item svg {
+  flex-shrink: 0;
+}
+
+.nav-rail-item:hover {
+  background: var(--shell-rail-hover);
+  color: var(--shell-rail-text);
+}
+
+.nav-rail-item[aria-current='page'] {
+  background: var(--shell-rail-active);
+  color: var(--shell-rail-text);
+  box-shadow: inset 2px 0 0 var(--shell-rail-text);
+}
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.shell-header {
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.shell-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 22px 4px;
+}
+
+.shell-back {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+}
+
+.shell-back:hover {
+  color: var(--text);
+}
+
+.shell-page-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: clamp(17px, 1.5vw, 21px);
+  font-weight: 750;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.shell-header-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.shell-header-actions .watch-shortcut {
+  white-space: nowrap;
+}
+
+.shell-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.shell-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.shell-tab {
+  padding: 8px 12px 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shell-tab:hover {
+  color: var(--text);
+}
+
+.shell-tab[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+
+main.shell-content {
+  padding: 20px 24px 32px;
+  overflow-x: hidden;
+}
+
+.shell-frame button:focus-visible,
+.shell-frame [role='tab']:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1180px) {
+  .shell-frame {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .nav-rail-item {
+    min-height: 52px;
+    font-size: 10px;
+  }
+
+  .shell-header-bar {
+    padding-inline: 16px;
+  }
+
+  .shell-tabs {
+    padding-inline: 12px;
+  }
+
+  main.shell-content {
+    padding: 16px 18px 28px;
+  }
+}
