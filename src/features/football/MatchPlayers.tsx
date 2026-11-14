@@ -1,4 +1,5 @@
 import { PersonAvatar } from '../../components/PersonAvatar';
+import { SearchSelect } from '../../components/SearchSelect';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useMemo } from 'react';
 import { EmptyBlock } from '../../components/StateViews';
@@ -380,6 +381,19 @@ export function MatchPlayersComparison({
     return result;
   }, [left, right]);
 
+  const playerOptions = useMemo(
+    () =>
+      entries.map((entry) => {
+        const teamName = playerTeamName(entry, detail);
+        return {
+          value: entry.player.id,
+          label: `${entry.player.name} (${teamName})`,
+          group: teamName,
+        };
+      }),
+    [detail, entries],
+  );
+
   if (entries.length === 0) return null;
 
   return (
@@ -388,30 +402,20 @@ export function MatchPlayersComparison({
         <h2>Сравнение двух игроков матча</h2>
       </div>
       <div className="compare-selects">
-        <select
+        <SearchSelect
+          ariaLabel="Первый игрок"
           value={slots[0] ?? ''}
-          onChange={(e) => setSlot(0, e.target.value)}
-          aria-label="Первый игрок"
-        >
-          <option value="">Выберите игрока A</option>
-          {entries.map((e) => (
-            <option key={e.player.id} value={e.player.id}>
-              {e.player.name} ({playerTeamName(e, detail)})
-            </option>
-          ))}
-        </select>
-        <select
+          options={playerOptions}
+          onChange={(id) => setSlot(0, id)}
+          placeholder="Выберите игрока A"
+        />
+        <SearchSelect
+          ariaLabel="Второй игрок"
           value={slots[1] ?? ''}
-          onChange={(e) => setSlot(1, e.target.value)}
-          aria-label="Второй игрок"
-        >
-          <option value="">Выберите игрока B</option>
-          {entries.map((e) => (
-            <option key={e.player.id} value={e.player.id}>
-              {e.player.name} ({playerTeamName(e, detail)})
-            </option>
-          ))}
-        </select>
+          options={playerOptions}
+          onChange={(id) => setSlot(1, id)}
+          placeholder="Выберите игрока B"
+        />
       </div>
       {left && right ? (
         <div className="compare-grid">

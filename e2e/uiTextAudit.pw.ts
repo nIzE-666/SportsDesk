@@ -180,8 +180,11 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   await page.locator('.player-card').first().click();
   await dump('Игроки: профиль игрока', { group: 'Матч (с подробностями)', dedupe: true });
   await page.getByRole('button', { name: 'К игрокам' }).click();
-  await page.getByLabel('Первый игрок').selectOption('a');
-  await page.getByLabel('Второй игрок').selectOption('c');
+  const compare = page.locator('.compare-selects');
+  await compare.getByLabel('Первый игрок').fill('Alex');
+  await compare.getByRole('option', { name: /Alex Morgan/ }).click();
+  await compare.getByLabel('Второй игрок').fill('Jamie');
+  await compare.getByRole('option', { name: /Jamie Wilson/ }).click();
   await dump('Сравнение двух игроков', { group: 'Матч (с подробностями)', dedupe: true });
   await matchTabs('Матч (с подробностями)');
   await page.getByRole('tab', { name: 'Мои схемы', exact: true }).click();

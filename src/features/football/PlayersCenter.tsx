@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, Star, X } from 'lucide-react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
+import { SearchSelect } from '../../components/SearchSelect';
 import { fetchTeamHistory, type HistoryMatch } from './history';
 import { fetchPlayerSeasonStats, type PlayerSeasonStats } from './playerAnalytics';
 import { statLabel } from './statLabels';
@@ -448,6 +449,16 @@ export function PlayersCenter({
   const profilePlayer = selected ?? (requestedPlayer?.id === selectedId ? requestedPlayer : null);
   const club = data.teams.find((t) => t.id === clubId);
 
+  const clubOptions = useMemo(
+    () =>
+      data.leagues.flatMap((league) =>
+        data.teams
+          .filter((team) => team.leagueId === league.id)
+          .map((team) => ({ value: team.id, label: team.name, group: league.name })),
+      ),
+    [data.leagues, data.teams],
+  );
+
   const shown = favoritePlayers;
 
   const setSlot = (p: FavoritePlayer) => {
@@ -550,30 +561,19 @@ export function PlayersCenter({
             onRetry={data.reload}
           />
         )}
-        <label>
-          Клуб{' '}
-          <select
-            aria-label="Клуб для выбора игроков"
+        <div className="player-directory-field">
+          <span className="player-directory-label">Клуб</span>
+          <SearchSelect
+            ariaLabel="Клуб для выбора игроков"
             value={clubId}
-            onChange={(e) => {
-              setClubId(e.target.value);
+            options={clubOptions}
+            onChange={(id) => {
+              setClubId(id);
               setSelectedId(null);
             }}
-          >
-            <option value="">Выберите клуб</option>
-            {data.leagues.map((l) => (
-              <optgroup key={l.id} label={l.name}>
-                {data.teams
-                  .filter((t) => t.leagueId === l.id)
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+            placeholder="Выберите клуб"
+          />
+        </div>
       </section>
       {club && (
         <ClubPlayers

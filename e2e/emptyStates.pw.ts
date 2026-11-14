@@ -575,7 +575,9 @@ for (const design of ['classic', 'broadcast'])
       await shoot(page, testInfo, `${design}-${width}-players-ten`);
 
       await openPlayers(favoritePlayers(2));
-      await players.getByLabel('Клуб для выбора игроков').selectOption('club-3');
+      const directory = players.locator('.player-directory');
+      await directory.getByLabel('Клуб для выбора игроков').fill('Cobalt');
+      await directory.getByRole('option', { name: 'Cobalt Rovers' }).click();
       const squad = players.locator('.club-players');
       await expect(squad.locator('.squad-player')).toHaveCount(18);
       await expect(squad.locator('.section-title .muted')).toHaveText('18 игроков');

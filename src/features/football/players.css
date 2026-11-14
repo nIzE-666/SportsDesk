@@ -217,13 +217,17 @@
   display: grid;
   gap: 12px;
 }
-.player-directory label {
+.player-directory-field {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
-.player-directory select {
+.player-directory-label {
+  color: var(--text);
+}
+.player-directory .search-select {
+  flex: 0 1 340px;
   min-width: 220px;
   max-width: 100%;
 }
