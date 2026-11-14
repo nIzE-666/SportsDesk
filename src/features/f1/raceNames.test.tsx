@@ -3,8 +3,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { api } from '../../lib/bridge';
+import { viewState } from '../../lib/viewState';
 import { Compare } from './Compare';
-import { Session } from './Session';
+import { F1Analysis } from './F1Analysis';
 import type { JolpicaRaceResultRow } from './types';
 import type { WeekendSeason } from './weekendData';
 
@@ -27,6 +28,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-01-10T12:00:00Z'));
   sessionStorage.clear();
   localStorage.clear();
+  viewState.reset();
   host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -92,12 +94,9 @@ it('names the races of the driver comparison in Russian', async () => {
     fetchedAt: '2026-01-10T11:00:00Z',
     stale: false,
   });
-  await act(async () => root.render(<Compare />));
-  const options = [...host.querySelectorAll('select[aria-label="Период сравнения"] option')].map(
-    (option) => option.textContent,
-  );
-  expect(options).toEqual(['Весь сезон 2025', '1. Гран-при Австралии', '2. Гран-при Лас-Вегаса']);
-  expect(host.querySelector('tbody td')?.textContent).toBe('1. Гран-при Австралии');
+  await act(async () => root.render(<Compare round={2} />));
+  expect(host.querySelector('select[aria-label="Период сравнения"]')).toBeNull();
+  expect(host.querySelector('tbody td')?.textContent).toBe('2. Гран-при Лас-Вегаса');
   expect(host.textContent).not.toContain('Grand Prix');
 });
 
@@ -133,9 +132,15 @@ it('names the OpenF1 meetings of the session centre in Russian', async () => {
     fetchedAt: '2026-01-10T11:00:00Z',
     stale: false,
   }));
-  await act(async () => root.render(<Session />));
+  await act(async () => root.render(<F1Analysis mode="session" onModeChange={() => {}} />));
   expect(host.querySelector('select[aria-label="Гран-при"] option:checked')?.textContent).toBe(
-    'Гран-при Лас-Вегаса — Las Vegas',
+    'Весь сезон 2025',
+  );
+  expect(host.querySelector('select[aria-label="Сессия"] option:checked')?.textContent).toContain(
+    'Race',
+  );
+  expect(host.querySelector('.f1-analysis-note')?.textContent).toBe(
+    'Для этого режима нужен один этап — показан последний завершённый.',
   );
   expect(host.querySelector('.f1-meta-row span')?.textContent).toBe('Гран-при Лас-Вегаса');
   expect(host.querySelector('.session-details .f1-title')?.textContent).toBe('Гран-при Лас-Вегаса');

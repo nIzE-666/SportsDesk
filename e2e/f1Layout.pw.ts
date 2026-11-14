@@ -39,7 +39,16 @@ for (const design of ['classic', 'broadcast']) {
     await page.screenshot({ path: testInfo.outputPath('f1-overview.png') });
     for (const title of ['Зачёты', 'Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {
       await page.locator('aside').getByTitle(title, { exact: true }).click();
-      await expect(page.locator('.f1-root h1')).toHaveText(title);
+      const analysis = title !== 'Зачёты';
+      await expect(page.locator('.f1-root h1')).toHaveText(analysis ? 'Анализ' : title);
+      if (analysis) {
+        await expect(page.getByRole('tab', { name: title, exact: true })).toHaveAttribute(
+          'aria-selected',
+          'true',
+        );
+        await expect(page.getByRole('tablist', { name: 'Режим анализа' })).toBeVisible();
+        await expect(page.getByLabel('Гран-при')).toBeVisible();
+      }
       await expect(page.locator('.f1-root select[aria-label*="Сезон"]')).toHaveCount(1);
       await expect(page.getByRole('tablist', { name: 'Разделы Формулы-1' })).toHaveCount(0);
     }

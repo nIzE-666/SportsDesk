@@ -25,12 +25,11 @@ const number = (value: number | null | undefined) =>
   value === null || value === undefined
     ? '—'
     : value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
-export function Compare() {
+export function Compare({ round = 'season' }: { round?: 'season' | number }) {
   const { year } = useSeason();
   const { data, busy, error, reload } = useWeekendSeason(year);
   const [a, setA] = useViewState(`f1.${year}.compare.a`, 'max_verstappen');
   const [b, setB] = useViewState(`f1.${year}.compare.b`, '');
-  const [round, setRound] = useViewState(`f1.${year}.compare.round`, 'season');
   const standing = useApiResource(
     `${year}-comparison-standing`,
     `${year}/driverStandings.json`,
@@ -74,8 +73,12 @@ export function Compare() {
       );
   }, [drivers, a, b]);
   const all = useMemo(() => buildWeekendComparison(data ?? EMPTY, a, b), [data, a, b]);
+  const requestedRound = round === 'season' ? 'season' : String(round);
   const selectedRound =
-    round === 'season' || all.series.some((row) => String(row.round) === round) ? round : 'season';
+    requestedRound === 'season' || all.series.some((row) => String(row.round) === requestedRound)
+      ? requestedRound
+      : 'season';
+  const roundUnavailable = requestedRound !== 'season' && selectedRound === 'season';
   const comparison = useMemo(
     () => buildWeekendComparison(data ?? EMPTY, a, b, selectedRound),
     [data, a, b, selectedRound],
@@ -137,19 +140,10 @@ export function Compare() {
             </option>
           ))}
         </select>
-        <select
-          aria-label="Период сравнения"
-          value={selectedRound}
-          onChange={(event) => setRound(event.target.value)}
-        >
-          <option value="season">Весь сезон {year}</option>
-          {all.series.map((row) => (
-            <option key={row.round} value={row.round}>
-              {row.round}. {grandPrixTitle(row.name).title}
-            </option>
-          ))}
-        </select>
       </div>
+      {roundUnavailable && all.series.length > 0 ? (
+        <p className="f1-analysis-note">Для этого этапа нет данных — показан весь сезон.</p>
+      ) : null}
       {error && (
         <p className="settings-note" role="alert">
           {error} Показана предыдущая загрузка.{' '}
@@ -168,16 +162,17 @@ export function Compare() {
       ))}
       <div className="versus-grid">
         {[
-          { driver: driverA, total: comparison.a, color: '#ff6763' },
-          { driver: driverB, total: comparison.b, color: '#71b9ff' },
-        ].map(({ driver, total, color }, index) => {
+          { driver: driverA, total: comparison.a },
+          { driver: driverB, total: comparison.b },
+        ].map(({ driver, total }, index) => {
+          const side = index === 0 ? 'a' : 'b';
           const official = standing.data?.standings.find(
             (row) => row.Driver.driverId === driver?.id,
           )?.points;
           const officialPoints =
             official !== undefined && Number.isFinite(Number(official)) ? Number(official) : null;
           return (
-            <section key={index} className="panel versus-driver" style={{ borderTopColor: color }}>
+            <section key={side} className={`panel versus-driver ${side}`}>
               <DriverPortrait name={driver?.name ?? 'Пилот'} size={76} />
               <div>
                 <span className="eyebrow">ПИЛОТ {index === 0 ? 'A' : 'B'}</span>
@@ -201,7 +196,7 @@ export function Compare() {
                 )}
               </div>
               <div className="versus-points">
-                <strong style={{ color }}>{number(total.points)}</strong>
+                <strong className={`versus-points-value ${side}`}>{number(total.points)}</strong>
                 <small>гонки + спринты</small>
               </div>
             </section>

@@ -4,191 +4,15 @@ import { useEffect, useMemo } from 'react';
 import { useViewState } from '../../lib/useViewState';
 import { useSeason } from './SeasonContext';
 import { RacePacePanel } from './RacePacePanel';
-import { asArray, useApiResource } from './api';
-import { grandPrixTitle } from './calendarModel';
+import { isCompleted, isMeetingCompleted, pickDefaultSession } from './analysisChoice';
+import { meetingTitle, sessionShortDate } from './analysisLabels';
+import { useApiResource } from './api';
 import { SourceBar, State } from './shared';
 import { openF1Color } from './teamColors';
-import { formatDate, formatShort, parseUtc } from './time';
-import type {
-  OpenF1Driver,
-  OpenF1Lap,
-  OpenF1Meeting,
-  OpenF1Pit,
-  OpenF1Session,
-  OpenF1Stint,
-} from './types';
-
-function obj(v: unknown): Record<string, unknown> | null {
-  return v && typeof v === 'object' ? (v as Record<string, unknown>) : null;
-}
-
-function num(v: unknown): number | null {
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
-  return null;
-}
-
-function str(v: unknown): string | undefined {
-  return typeof v === 'string' ? v : undefined;
-}
-
-/** OpenF1 names meetings in English; show the Russian name the calendar uses. */
-function meetingTitle(meeting: OpenF1Meeting): string | null {
-  const name = meeting.meeting_name ?? meeting.meeting_official_name;
-  return name ? grandPrixTitle(name).title : null;
-}
-
-function parseMeetings(payload: unknown): OpenF1Meeting[] {
-  const out: OpenF1Meeting[] = [];
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const key = num(o.meeting_key);
-    if (key === null) continue;
-    out.push({
-      meeting_key: key,
-      meeting_name: str(o.meeting_name),
-      meeting_official_name: str(o.meeting_official_name),
-      location: str(o.location),
-      country_name: str(o.country_name),
-      country_code: str(o.country_code),
-      circuit_short_name: str(o.circuit_short_name),
-      date_start: str(o.date_start),
-      date_end: str(o.date_end),
-      year: num(o.year) ?? undefined,
-    });
-  }
-  return out.sort((a, b) => (b.date_start ?? '').localeCompare(a.date_start ?? ''));
-}
-
-function parseSessions(payload: unknown): OpenF1Session[] {
-  const out: OpenF1Session[] = [];
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const sk = num(o.session_key);
-    const mk = num(o.meeting_key);
-    if (sk === null || mk === null) continue;
-    out.push({
-      session_key: sk,
-      meeting_key: mk,
-      session_name: str(o.session_name),
-      session_type: str(o.session_type),
-      date_start: str(o.date_start),
-      date_end: str(o.date_end),
-      status: str(o.status),
-      year: num(o.year) ?? undefined,
-      circuit_short_name: str(o.circuit_short_name),
-      location: str(o.location),
-      country_name: str(o.country_name),
-    });
-  }
-  return out.sort((a, b) => (a.date_start ?? '').localeCompare(b.date_start ?? ''));
-}
-
-function parseDrivers(payload: unknown): OpenF1Driver[] {
-  const out: OpenF1Driver[] = [];
-  const seen = new Set<number>();
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const dn = num(o.driver_number);
-    if (dn === null || seen.has(dn)) continue;
-    seen.add(dn);
-    out.push({
-      driver_number: dn,
-      full_name: str(o.full_name),
-      first_name: str(o.first_name),
-      last_name: str(o.last_name),
-      name_acronym: str(o.name_acronym),
-      team_name: str(o.team_name),
-      team_colour: str(o.team_colour),
-      headshot_url: typeof o.headshot_url === 'string' ? o.headshot_url : null,
-      session_key: num(o.session_key) ?? undefined,
-      meeting_key: num(o.meeting_key) ?? undefined,
-    });
-  }
-  return out.sort((a, b) => a.driver_number - b.driver_number);
-}
-
-function parseLaps(payload: unknown): OpenF1Lap[] {
-  const out: OpenF1Lap[] = [];
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const dn = num(o.driver_number);
-    if (dn === null) continue;
-    out.push({
-      driver_number: dn,
-      lap_number: num(o.lap_number) ?? undefined,
-      lap_duration: num(o.lap_duration),
-      duration_sector_1: num(o.duration_sector_1),
-      duration_sector_2: num(o.duration_sector_2),
-      duration_sector_3: num(o.duration_sector_3),
-      st_speed: num(o.st_speed),
-      is_pit_out_lap: o.is_pit_out_lap === true,
-      date_start: str(o.date_start),
-      session_key: num(o.session_key) ?? undefined,
-    });
-  }
-  return out;
-}
-
-function parseStints(payload: unknown): OpenF1Stint[] {
-  const out: OpenF1Stint[] = [];
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const dn = num(o.driver_number);
-    if (dn === null) continue;
-    out.push({
-      driver_number: dn,
-      stint_number: num(o.stint_number) ?? undefined,
-      lap_start: num(o.lap_start) ?? undefined,
-      lap_end: num(o.lap_end) ?? undefined,
-      compound: str(o.compound) ?? null,
-      tyre_age_at_start: num(o.tyre_age_at_start),
-      session_key: num(o.session_key) ?? undefined,
-    });
-  }
-  return out.sort((a, b) => (a.stint_number ?? 0) - (b.stint_number ?? 0));
-}
-
-function parsePits(payload: unknown): OpenF1Pit[] {
-  const out: OpenF1Pit[] = [];
-  for (const raw of asArray(payload)) {
-    const o = obj(raw);
-    if (!o) continue;
-    const dn = num(o.driver_number);
-    if (dn === null) continue;
-    out.push({
-      driver_number: dn,
-      lap_number: num(o.lap_number) ?? undefined,
-      pit_duration: num(o.pit_duration),
-      session_key: num(o.session_key) ?? undefined,
-    });
-  }
-  return out.sort((a, b) => (a.lap_number ?? 0) - (b.lap_number ?? 0));
-}
-
-export function parseOpenF1Meetings(payload: unknown): OpenF1Meeting[] {
-  return parseMeetings(payload);
-}
-export function parseOpenF1Sessions(payload: unknown): OpenF1Session[] {
-  return parseSessions(payload);
-}
-export function parseOpenF1Drivers(payload: unknown): OpenF1Driver[] {
-  return parseDrivers(payload);
-}
-export function parseOpenF1Laps(payload: unknown): OpenF1Lap[] {
-  return parseLaps(payload);
-}
-export function parseOpenF1Stints(payload: unknown): OpenF1Stint[] {
-  return parseStints(payload);
-}
-export function parseOpenF1Pits(payload: unknown): OpenF1Pit[] {
-  return parsePits(payload);
-}
+import { formatDate, parseUtc } from './time';
+import { parseOpenF1Drivers, parseOpenF1Laps, parseOpenF1Pits, parseOpenF1Stints } from './openf1';
+import type { AnalysisSelection } from './useAnalysisSelection';
+import type { OpenF1Driver } from './types';
 
 function compoundColor(compound: string | null | undefined): string {
   const c = (compound ?? '').toLowerCase();
@@ -224,121 +48,25 @@ function driverName(d: OpenF1Driver): string {
   return parts.length ? parts.join(' ') : `№${d.driver_number}`;
 }
 
-function sessionShortDate(s: OpenF1Session): string | null {
-  if (!s.date_start) return null;
-  return formatShort(parseUtc(s.date_start.slice(0, 10), s.date_start.slice(11)));
-}
-
-/**
- * A session is "completed" when its date_end is strictly before now.
- */
-function isCompleted(s: OpenF1Session, now: number): boolean {
-  if (!s.date_end) return false;
-  const dt = parseUtc(s.date_end.slice(0, 10), s.date_end.slice(11));
-  return !!dt && dt.getTime() < now;
-}
-
-/**
- * A meeting is "completed" when its date_end is strictly before now.
- */
-function isMeetingCompleted(m: OpenF1Meeting, now: number): boolean {
-  if (!m.date_end) return false;
-  const dt = parseUtc(m.date_end.slice(0, 10), m.date_end.slice(11));
-  return !!dt && dt.getTime() < now;
-}
-
-/**
- * Default session selection order for a completed meeting:
- *   1) Race, if completed;
- *   2) otherwise the latest completed previous session.
- * Only sessions with `date_end < now` qualify for the default auto-selection.
- * Future sessions remain manually selectable from the dropdown.
- */
-function pickDefaultSession(sessions: OpenF1Session[], now: number): OpenF1Session | null {
-  const completed = sessions.filter((s) => isCompleted(s, now));
-  if (completed.length === 0) return null;
-  const races = completed.filter(
-    (s) =>
-      (s.session_type ?? '').toLowerCase() === 'race' ||
-      (s.session_name ?? '').toLowerCase() === 'race',
-  );
-  if (races.length > 0) {
-    // The race is unique; if multiple, use the one with the latest date_end.
-    return races.reduce((best, cur) => ((cur.date_end ?? '') > (best.date_end ?? '') ? cur : best));
-  }
-  return completed.reduce((best, cur) =>
-    (cur.date_end ?? '') > (best.date_end ?? '') ? cur : best,
-  );
-}
-
-/**
- * Default meeting selection: the most recent COMPLETED meeting.
- * In-progress/upcoming meetings are excluded from the default but remain
- * selectable in the list.
- */
-function pickDefaultMeeting(meetings: OpenF1Meeting[], now: number): OpenF1Meeting | null {
-  const completed = meetings.filter((m) => isMeetingCompleted(m, now));
-  if (completed.length === 0) return null;
-  return completed.reduce((best, cur) =>
-    (cur.date_end ?? '') > (best.date_end ?? '') ? cur : best,
-  );
-}
-
-export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
+export function Session({
+  mode = 'all',
+  analysis,
+}: {
+  mode?: 'all' | 'pace';
+  analysis: AnalysisSelection;
+}) {
   const { year: selectedYear } = useSeason();
-  const [meetingKey, setMeetingKey] = useViewState<number | null>(
-    `f1.openf1.${selectedYear}.meeting`,
-    null,
-    (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0),
-  );
-  const [sessionKey, setSessionKey] = useViewState<number | null>(
-    `f1.openf1.${selectedYear}.${meetingKey}.session`,
-    null,
-    (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0),
-  );
+  const { meeting: selectedMeeting, session: selectedSession } = analysis;
+  const meetingList = analysis.meetingList;
+  const sessionList = analysis.sessionList;
+  const meetings = analysis.meetings;
+  const sessions = analysis.sessions;
+  const sessionKey = selectedSession?.session_key ?? null;
   const [driverNumber, setDriverNumber] = useViewState<number | null>(
     `f1.openf1.${selectedYear}.${sessionKey}.driver`,
     null,
     (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0),
   );
-
-  const meetings = useApiResource(
-    `openf1-meetings-${selectedYear}`,
-    `meetings?year=${selectedYear}`,
-    parseOpenF1Meetings,
-    { source: 'openf1', enabled: selectedYear >= 2023 },
-  );
-
-  const meetingList = useMemo(() => meetings.data ?? [], [meetings.data]);
-
-  // Auto-select the most recent COMPLETED meeting once the list is loaded.
-  // Only run when there is no explicit selection already made.
-  useEffect(() => {
-    if (meetingKey !== null) return;
-    if (meetingList.length === 0) return;
-    const now = Date.now();
-    const def = pickDefaultMeeting(meetingList, now);
-    if (def) setMeetingKey(def.meeting_key);
-  }, [meetingList, meetingKey]);
-
-  const sessions = useApiResource(
-    `openf1-sessions-${meetingKey ?? 'none'}`,
-    meetingKey !== null ? `sessions?meeting_key=${meetingKey}` : null,
-    parseOpenF1Sessions,
-    { source: 'openf1' },
-  );
-
-  const sessionList = useMemo(() => sessions.data ?? [], [sessions.data]);
-
-  // Auto-select the default COMPLETED session for the meeting:
-  // Race if completed, otherwise the latest completed earlier session.
-  useEffect(() => {
-    if (sessionKey !== null) return;
-    if (sessionList.length === 0) return;
-    const now = Date.now();
-    const def = pickDefaultSession(sessionList, now);
-    if (def) setSessionKey(def.session_key);
-  }, [sessionList, sessionKey]);
 
   const drivers = useApiResource(
     `openf1-drivers-${sessionKey ?? 'none'}`,
@@ -354,15 +82,6 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
     const first = driverList[0];
     if (first) setDriverNumber(first.driver_number);
   }, [driverList, driverNumber]);
-
-  const selectedMeeting = useMemo(
-    () => meetingList.find((m) => m.meeting_key === meetingKey) ?? null,
-    [meetingList, meetingKey],
-  );
-  const selectedSession = useMemo(
-    () => sessionList.find((s) => s.session_key === sessionKey) ?? null,
-    [sessionList, sessionKey],
-  );
 
   const driverParam = driverNumber !== null ? `&driver_number=${driverNumber}` : '';
 
@@ -445,66 +164,24 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="f1-session">
       <div className="f1-card">
         <div className="f1-card-head">
           <div>
             <div className="f1-eyebrow">Сессии · исторические данные</div>
-            <div className="f1-title" style={{ marginTop: 4, fontSize: 20 }}>
+            <div className="f1-title f1-session-title">
               {mode === 'pace' ? 'Темп пилотов внутри гонки' : 'Обзор гоночных сессий'}
             </div>
           </div>
           {liveNote}
         </div>
-        <div className="f1-muted" style={{ fontSize: 12 }}>
+        <div className="f1-muted f1-session-note">
           Данные с 2023 года, через 30 минут после сессии.
         </div>
-        <div className="f1-toolbar">
-          <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Гран-при
-            <select
-              className="f1-select"
-              value={meetingKey ?? ''}
-              onChange={(e) => setMeetingKey(e.target.value ? Number(e.target.value) : null)}
-              aria-label="Гран-при"
-              disabled={meetingList.length === 0}
-            >
-              {meetingList.length === 0 ? <option value="">Нет данных</option> : null}
-              {meetingList.map((m) => (
-                <option key={m.meeting_key} value={m.meeting_key}>
-                  {meetingTitle(m) ?? `Митап ${m.meeting_key}`}
-                  {m.location ? ` — ${m.location}` : ''}
-                  {isMeetingCompleted(m, Date.now()) ? '' : ' (не завершён)'}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Сессия
-            <select
-              className="f1-select"
-              value={sessionKey ?? ''}
-              onChange={(e) => setSessionKey(e.target.value ? Number(e.target.value) : null)}
-              aria-label="Сессия"
-              disabled={sessionList.length === 0}
-            >
-              {sessionList.length === 0 ? <option value="">Нет данных</option> : null}
-              {sessionList.map((s) => {
-                const date = sessionShortDate(s);
-                const done = isCompleted(s, Date.now());
-                return (
-                  <option key={s.session_key} value={s.session_key}>
-                    {s.session_name ?? `Сессия ${s.session_key}`}
-                    {date ? ` · ${date}` : ''}
-                    {done ? '' : ' (предстоит)'}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          {mode !== 'pace' && (
-            <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              Пилот
+        {mode !== 'pace' ? (
+          <div className="f1-toolbar">
+            <div className="f1-muted f1-analysis-field">
+              <span>Пилот</span>
               <select
                 className="f1-select"
                 value={driverNumber ?? ''}
@@ -520,9 +197,9 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                   </option>
                 ))}
               </select>
-            </label>
-          )}
-        </div>
+            </div>
+          </div>
+        ) : null}
 
         {meetings.loading && !meetings.data ? (
           <State kind="loading" title="Загрузка календаря…" />
@@ -564,7 +241,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           onRefresh={meetings.reload}
           refreshing={meetings.loading}
         />
-        {meetingKey !== null && (
+        {selectedMeeting !== null && (
           <SourceBar
             source={sessions.source}
             fetchedAt={sessions.fetchedAt}
@@ -612,7 +289,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
             <div className="f1-card-head">
               <div>
                 <div className="f1-eyebrow">{selectedSession.session_name ?? 'Сессия'}</div>
-                <div className="f1-title" style={{ fontSize: 17, marginTop: 4 }}>
+                <div className="f1-title f1-session-card-title">
                   {(selectedMeeting && meetingTitle(selectedMeeting)) ?? 'Гран-при'}
                 </div>
                 <div className="f1-muted">
@@ -642,12 +319,9 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                   src={selectedDriver.headshot_url}
                   size={64}
                 />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15 }}>{driverName(selectedDriver)}</div>
-                  <div
-                    className="f1-muted"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
+                <div className="f1-session-driver">
+                  <div className="f1-session-driver-name">{driverName(selectedDriver)}</div>
+                  <div className="f1-muted f1-session-driver-team">
                     <span
                       className="f1-team-dot"
                       style={{ background: openF1Color(selectedDriver.team_colour) ?? '#6b7280' }}
@@ -657,13 +331,13 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                     <span className="f1-pill">№{selectedDriver.driver_number}</span>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }} className="f1-kv">
+                <div className="f1-kv f1-session-stats">
                   {lapStats ? (
                     <>
                       <span className="f1-muted">Лучший круг</span>
-                      <b style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtLap(lapStats.best)}</b>
+                      <b className="f1-num">{fmtLap(lapStats.best)}</b>
                       <span className="f1-muted">Средний</span>
-                      <b style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtLap(lapStats.avg)}</b>
+                      <b className="f1-num">{fmtLap(lapStats.avg)}</b>
                     </>
                   ) : null}
                 </div>
@@ -698,22 +372,12 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                   <tbody>
                     {fastestLaps.map((l, i) => (
                       <tr key={`${l.driver_number}-${l.lap_number ?? i}`}>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {l.lap_number ?? '—'}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                          {fmtLap(l.lap_duration)}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {fmtLap(l.duration_sector_1)}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {fmtLap(l.duration_sector_2)}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {fmtLap(l.duration_sector_3)}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>{l.st_speed ?? '—'}</td>
+                        <td className="f1-num">{l.lap_number ?? '—'}</td>
+                        <td className="f1-num-strong">{fmtLap(l.lap_duration)}</td>
+                        <td className="f1-num">{fmtLap(l.duration_sector_1)}</td>
+                        <td className="f1-num">{fmtLap(l.duration_sector_2)}</td>
+                        <td className="f1-num">{fmtLap(l.duration_sector_3)}</td>
+                        <td className="f1-num">{l.st_speed ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -721,7 +385,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
               </div>
             ) : null}
             {lapRows.length > 8 ? (
-              <div className="f1-muted" style={{ fontSize: 11.5 }}>
+              <div className="f1-muted f1-note-small">
                 Показаны 8 самых быстрых кругов из {lapRows.length}.
               </div>
             ) : null}
@@ -774,23 +438,23 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                 </div>
                 <div className="f1-legend">
                   <span>
-                    <i style={{ background: '#ff4d4d' }} />
+                    <i className="f1-legend-soft" />
                     Soft
                   </span>
                   <span>
-                    <i style={{ background: '#ffd24d' }} />
+                    <i className="f1-legend-medium" />
                     Medium
                   </span>
                   <span>
-                    <i style={{ background: '#e6e6e6' }} />
+                    <i className="f1-legend-hard" />
                     Hard
                   </span>
                   <span>
-                    <i style={{ background: '#4ddd78' }} />
+                    <i className="f1-legend-intermediate" />
                     Intermediate
                   </span>
                   <span>
-                    <i style={{ background: '#3d9bff' }} />
+                    <i className="f1-legend-wet" />
                     Wet
                   </span>
                   {stintTotal > 0 ? <span className="f1-muted">до {stintTotal} круга</span> : null}
@@ -807,9 +471,7 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
               </State>
             ) : null}
             {pits.data && pitRows.length === 0 ? (
-              <div className="f1-muted" style={{ fontSize: 12 }}>
-                Пит-стопы не зафиксированы.
-              </div>
+              <div className="f1-muted f1-note-small">Пит-стопы не зафиксированы.</div>
             ) : null}
             {pitRows.length > 0 ? (
               <div className="f1-scroll">
@@ -823,10 +485,8 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
                   <tbody>
                     {pitRows.map((p, i) => (
                       <tr key={`${p.lap_number ?? i}-${i}`}>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {p.lap_number ?? '—'}
-                        </td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <td className="f1-num">{p.lap_number ?? '—'}</td>
+                        <td className="f1-num">
                           {p.pit_duration !== null && p.pit_duration !== undefined
                             ? `${p.pit_duration.toFixed(1)} с`
                             : '—'}
@@ -855,10 +515,13 @@ export function Session({ mode = 'all' }: { mode?: 'all' | 'pace' }) {
           </div>
         ) : null}
       </div>
-      {!selectedSession && !meetings.loading && meetingList.length > 0 && !noCompletedSession ? (
-        <State kind="empty" title="Выберите сессию">
-          Выберите пилота и сессию.
-        </State>
+      {!selectedSession &&
+      !meetings.loading &&
+      !sessions.loading &&
+      !sessions.error &&
+      meetingList.length > 0 &&
+      !noCompletedSession ? (
+        <State kind="empty" title="Выберите сессию" />
       ) : null}
     </div>
   );

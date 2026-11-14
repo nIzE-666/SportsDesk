@@ -1,18 +1,17 @@
-import { f1Nav as TABS } from '../../lib/navigationMetadata';
 import { useState } from 'react';
 import { viewState } from '../../lib/viewState';
 import { PageFrame } from '../../components/PageFrame';
 import { Calendar } from './Calendar';
-import { Compare } from './Compare';
 import './f1.css';
 import { DriverPortraitsProvider } from './DriverPortraits';
+import { F1_TABS, f1TabFor, type TabId } from './f1Tabs';
+import { F1Analysis } from './F1Analysis';
 import { Overview } from './Overview';
 import { SeasonProvider, useSeason } from './SeasonContext';
-import { Session } from './Session';
 import { Standings } from './Standings';
 import { SourceRefresh, SourceSummary, SourceSummaryProvider } from './SourceSummary';
 
-export type TabId = 'overview' | 'calendar' | 'standings' | 'compare' | 'pace' | 'session';
+export type { TabId } from './f1Tabs';
 
 function F1Shell({
   tab: controlled,
@@ -28,44 +27,37 @@ function F1Shell({
     onTabChange?.(next);
   };
   const { year, setYear, years } = useSeason();
+  const activeTab = f1TabFor(tab);
 
   return (
-    <PageFrame page={`f1.${year}.${tab}`}>
+    <PageFrame page={`f1.${year}.${activeTab.id}`}>
       <div className="f1-root">
         <div className="f1-toolbar">
           <div className="broadcast-f1-heading">
-            <h1>
-              {tab === 'overview' ? 'Ваш гоночный уикенд' : TABS.find((t) => t.id === tab)?.label}
-            </h1>
+            <h1>{tab === 'overview' ? 'Ваш гоночный уикенд' : activeTab.label}</h1>
           </div>
           {!onTabChange && (
-            <div
-              className="f1-tabs"
-              style={{ flex: '1 1 auto', borderBottom: 'none', paddingBottom: 0 }}
-              role="tablist"
-              aria-label="Разделы Формулы-1"
-            >
-              {TABS.map((t) => {
-                const Icon = t.icon;
-                const active = tab === t.id;
+            <div className="f1-tabs f1-tabs-inline" role="tablist" aria-label="Разделы Формулы-1">
+              {F1_TABS.map((entry) => {
+                const Icon = entry.icon;
+                const active = activeTab.id === entry.id;
                 return (
                   <button
-                    key={t.id}
+                    key={entry.id}
                     type="button"
                     role="tab"
                     aria-selected={active}
                     className="f1-tab"
-                    onClick={() => setTab(t.id)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => setTab(entry.tabs[0] ?? 'overview')}
                   >
                     <Icon size={14} aria-hidden="true" />
-                    {t.label}
+                    {entry.label}
                   </button>
                 );
               })}
             </div>
           )}
-          <label className="f1-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label className="f1-muted f1-season">
             Сезон
             <select
               className="f1-select"
@@ -94,9 +86,9 @@ function F1Shell({
         ) : null}
         {tab === 'calendar' ? <Calendar /> : null}
         {tab === 'standings' ? <Standings /> : null}
-        {tab === 'compare' ? <Compare /> : null}
-        {tab === 'pace' ? <Session mode="pace" /> : null}
-        {tab === 'session' ? <Session /> : null}
+        {tab === 'compare' || tab === 'pace' || tab === 'session' ? (
+          <F1Analysis mode={tab} onModeChange={setTab} />
+        ) : null}
 
         <SourceSummary />
       </div>
