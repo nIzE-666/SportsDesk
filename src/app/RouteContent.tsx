@@ -13,6 +13,7 @@ import {
   isF1Tab,
   isLeagueId,
   isLeagueTab,
+  type MyTab,
   type ShellRoute,
   type Sport,
 } from '../lib/navigation';
@@ -22,6 +23,8 @@ import type { UclTab } from '../features/ucl/ChampionsView';
 import type { CupTab } from '../features/ucl/CupsView';
 import { rememberAnalysisMode } from './shellModel';
 import type { Navigate } from './frame';
+import { viewState } from '../lib/viewState';
+import { resolveMyTab } from '../features/my/myTabs';
 
 const OfflineView = lazy(() =>
   import('../features/offline/OfflineView').then((m) => ({ default: m.OfflineView })),
@@ -48,12 +51,7 @@ const ViewingPlanner = lazy(() =>
 const EventCenter = lazy(() =>
   import('../features/events/EventCenter').then((m) => ({ default: m.EventCenter })),
 );
-const GamesView = lazy(() =>
-  import('../features/games/GamesView').then((m) => ({ default: m.GamesView })),
-);
-const DiaryView = lazy(() =>
-  import('../features/diary/DiaryView').then((m) => ({ default: m.DiaryView })),
-);
+const MyView = lazy(() => import('../features/my/MyView').then((m) => ({ default: m.MyView })));
 
 interface RouteContentProps {
   route: ShellRoute;
@@ -69,6 +67,8 @@ interface RouteContentProps {
   contentHeader?: ReactNode;
   /** The legacy frame keeps its «Вернуться к спорту» button on service pages. */
   auxiliaryBack?: ReactNode;
+  /** The current frame has no tabs in its header, so «Моё» draws its own. */
+  showMyTabs?: boolean;
 }
 
 /** One route-to-screen mapping shared by the current frame and the new shell. */
@@ -84,6 +84,7 @@ export function RouteContent({
   onBack,
   contentHeader,
   auxiliaryBack,
+  showMyTabs = false,
 }: RouteContentProps) {
   const competitionId =
     route.kind === 'football' || route.kind === 'football-match' ? route.competitionId : leagueId;
@@ -101,6 +102,8 @@ export function RouteContent({
     route.kind === 'football' && competition === 'league' && isLeagueTab(route.tab)
       ? route.tab
       : 'matches';
+  const myTab: MyTab = route.kind === 'my' ? (route.tab ?? 'favorites') : 'favorites';
+  const shownMyTab = resolveMyTab(myTab);
   const auxiliary =
     route.kind === 'watch' ||
     route.kind === 'settings' ||
@@ -202,11 +205,11 @@ export function RouteContent({
           <PageFrame
             page={
               route.kind === 'my'
-                ? route.tab === 'games'
+                ? shownMyTab === 'games'
                   ? 'games'
-                  : route.tab === 'diary'
+                  : shownMyTab === 'diary'
                     ? 'diary'
-                    : `my.${route.tab ?? 'favorites'}`
+                    : `my.${shownMyTab}`
                 : route.kind === 'today'
                   ? 'planner'
                   : route.kind
@@ -217,17 +220,29 @@ export function RouteContent({
               <WatchView intent={route.intent} requestedChannelId={route.channelId} />
             ) : route.kind === 'offline' ? (
               <OfflineView />
-            ) : route.kind === 'my' && route.tab === 'diary' ? (
-              <DiaryView
-                onOpen={(reference) =>
-                  reference.kind === 'football'
-                    ? onOpenMatch(reference.matchId, reference.leagueId ?? undefined)
-                    : onOpenWeekend(reference.season, reference.round)
-                }
+            ) : route.kind === 'my' ? (
+              <MyView
+                tab={myTab}
+                showTabs={showMyTabs}
+                onTabChange={(tab) => onNavigate({ kind: 'my', tab })}
+                onOpenMatch={onOpenMatch}
+                onOpenWeekend={onOpenWeekend}
+                onOpenClub={(teamId, teamLeagueId) => {
+                  const teamLeague = isLeagueId(teamLeagueId) ? teamLeagueId : leagueId;
+                  onNavigate(
+                    { kind: 'football', competitionId: teamLeague, tab: 'team', teamId },
+                    { leagueId: teamLeague },
+                  );
+                }}
+                onOpenPlayer={(player) => {
+                  viewState.write('players.requested', player);
+                  viewState.write('players.selected', player.id);
+                  onNavigate({ kind: 'football', competitionId: leagueId, tab: 'players' });
+                }}
+                onOpenF1={() => onNavigate({ kind: 'f1', tab: 'overview' })}
+                onOpenSettings={(category) => onNavigate({ kind: 'settings', category })}
               />
-            ) : route.kind === 'my' && route.tab === 'games' ? (
-              <GamesView onOpenMatch={onOpenMatch} />
-            ) : route.kind === 'my' ? null : route.kind === 'events' ? (
+            ) : route.kind === 'events' ? (
               <EventCenter
                 onOpen={(event) => {
                   if (event.sport === 'f1' && event.season && event.round)
@@ -241,7 +256,10 @@ export function RouteContent({
                 onOpenWeekend={(race) => onOpenWeekend(race.season, race.round)}
               />
             ) : (
-              <SettingsView />
+              <SettingsView
+                category={route.kind === 'settings' ? route.category : undefined}
+                onCategoryChange={(category) => onNavigate({ kind: 'settings', category })}
+              />
             )}
           </PageFrame>
         )}

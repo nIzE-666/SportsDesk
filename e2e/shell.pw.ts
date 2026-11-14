@@ -64,10 +64,12 @@ for (const design of ['classic', 'broadcast']) {
 
     await rail.getByRole('button', { name: 'Моё', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Моё', exact: true })).toBeVisible();
-    await expect(page.locator('.diary-view')).toBeVisible();
+    await expect(page.locator('.my-view')).toBeVisible();
     await expect(
-      page.locator('.shell-tabs').getByRole('tab', { name: 'Дневник', exact: true }),
+      page.locator('.shell-tabs').getByRole('tab', { name: 'Избранное', exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
+    await page.locator('.shell-tabs').getByRole('tab', { name: 'Дневник', exact: true }).click();
+    await expect(page.locator('.diary-view')).toBeVisible();
   });
 
   test(`${design}: goes back through the header and keeps service pages neutral`, async ({

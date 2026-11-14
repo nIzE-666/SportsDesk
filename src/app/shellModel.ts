@@ -15,6 +15,7 @@ import {
 } from '../lib/navigation';
 import { LEAGUES } from '../lib/navigationMetadata';
 import { viewState } from '../lib/viewState';
+import { MY_TAB_LABELS, resolveMyTab, visibleMyTabs } from '../features/my/myTabs';
 
 const F1_ANALYSIS_KEY = 'f1.analysis.mode';
 const DEFAULT_ANALYSIS_MODE: F1AnalysisMode = 'compare';
@@ -165,11 +166,13 @@ export function headerTabs(route: ShellRoute): HeaderTab[] {
     case 'f1':
       return f1Tabs(route);
     case 'my': {
-      const games = route.tab === 'games';
-      return [
-        { key: 'diary', label: 'Дневник', active: !games, route: { kind: 'my', tab: 'diary' } },
-        { key: 'games', label: 'Игры', active: games, route: { kind: 'my', tab: 'games' } },
-      ];
+      const active = resolveMyTab(route.tab);
+      return visibleMyTabs().map((tab) => ({
+        key: tab,
+        label: MY_TAB_LABELS[tab],
+        active: tab === active,
+        route: { kind: 'my', tab },
+      }));
     }
     default:
       return [];

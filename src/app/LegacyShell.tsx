@@ -415,6 +415,7 @@ export function LegacyShell(props: FrameProps) {
               onOpenMatch={openFootballMatch}
               onOpenWeekend={openWeekend}
               onBack={onBack}
+              showMyTabs
               auxiliaryBack={
                 <button className="ghost-btn auxiliary-back" onClick={backFromAuxiliary}>
                   <ChevronLeft size={15} /> Вернуться к спорту

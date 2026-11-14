@@ -1,0 +1,210 @@
+/* «Моё»: избранное, дневник, игры и схемы (U2.6). */
+.my-view {
+  display: block;
+  min-width: 0;
+}
+
+.my-title {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.my-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.my-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.my-tab {
+  padding: 8px 12px 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.my-tab:hover {
+  color: var(--text);
+}
+
+.my-tab[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+
+.my-tab:focus-visible,
+.my-tile:focus-visible,
+.my-row:focus-visible,
+.my-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.my-tab-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.my-tab-head,
+.my-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.my-tab-head {
+  justify-content: space-between;
+}
+
+.my-tab-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.my-group {
+  display: grid;
+  gap: 10px;
+}
+
+.my-group h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.my-empty {
+  margin: 0;
+}
+
+.my-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.my-tile {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.my-tile:hover,
+.my-row:hover,
+.my-chip:hover {
+  border-color: var(--accent);
+}
+
+.my-tile strong,
+.my-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-row-list {
+  display: grid;
+  gap: 8px;
+}
+
+.my-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.my-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.my-chip {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.my-scheme-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-scheme {
+  display: grid;
+  gap: 10px;
+}
+
+.my-scheme-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.my-scheme-main strong {
+  overflow-wrap: anywhere;
+}
+
+.my-notice {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--panel2);
+  color: var(--text);
+}
+
+.my-notice p {
+  margin: 0;
+}
+
+@media (max-width: 1180px) {
+  .my-title {
+    font-size: 21px;
+    line-height: 28px;
+  }
+}

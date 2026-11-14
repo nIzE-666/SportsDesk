@@ -36,6 +36,7 @@ async function renderHeader(route: ShellRoute, onNavigate = vi.fn()) {
 
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  localStorage.clear();
   viewState.reset();
   host = document.createElement('div');
   document.body.append(host);
@@ -111,11 +112,29 @@ it('keeps «Анализ» active on pace and reopens the last analysis mode', a
   expect(navigate).toHaveBeenCalledWith({ kind: 'f1', tab: 'session' });
 });
 
-it('opens «Моё» on the diary and switches to games', async () => {
+it('opens «Моё» on favorites and switches to the other tabs', async () => {
   const navigate = await renderHeader({ kind: 'my' });
-  expect(tab('Дневник').getAttribute('aria-selected')).toBe('true');
-  await act(async () => tab('Игры').click());
+  expect(host.querySelectorAll('[role="tab"]')).toHaveLength(4);
+  expect(tab('Избранное').getAttribute('aria-selected')).toBe('true');
+  await act(async () => tab('Игры и прогнозы').click());
   expect(navigate).toHaveBeenCalledWith({ kind: 'my', tab: 'games' });
+  await act(async () => tab('Схемы').click());
+  expect(navigate).toHaveBeenLastCalledWith({ kind: 'my', tab: 'schemes' });
+});
+
+it('hides the «Моё» tabs whose modules are off and marks the first visible one', async () => {
+  localStorage.setItem(
+    'sportsdesk.modules',
+    JSON.stringify({
+      version: 1,
+      modules: { diary: false, games: false, predictions: false, tactics: false },
+    }),
+  );
+  await renderHeader({ kind: 'my', tab: 'schemes' });
+  expect(
+    [...host.querySelectorAll('[role="tab"]')].map((button) => button.textContent?.trim()),
+  ).toEqual(['Избранное']);
+  expect(tab('Избранное').getAttribute('aria-selected')).toBe('true');
 });
 
 it('shows no frame tabs on service pages and matches, and titles a match by competition', async () => {

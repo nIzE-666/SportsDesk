@@ -87,8 +87,6 @@ export function AppShell(props: FrameProps) {
         ? 'ucl'
         : leagueTheme;
   const contentSport = pageRoute.kind === 'f1' ? 'f1' : 'football';
-  const contentRoute: ShellRoute =
-    pageRoute.kind === 'my' && pageRoute.tab !== 'games' ? { kind: 'my', tab: 'diary' } : pageRoute;
 
   return (
     <div
@@ -133,7 +131,7 @@ export function AppShell(props: FrameProps) {
           <main className="content shell-content" tabIndex={-1}>
             <div className="content-inner">
               <RouteContent
-                route={contentRoute}
+                route={pageRoute}
                 sport={contentSport}
                 leagueId={leagueId}
                 cupId={cupId}
