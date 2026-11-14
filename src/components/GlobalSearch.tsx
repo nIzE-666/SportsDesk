@@ -1,10 +1,11 @@
 import { Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { isCompetitionVisible, useModules } from '../lib/modules';
+import { useModules } from '../lib/modules';
 import { useModalFocus } from '../lib/useModalFocus';
 import {
   findSearchItems,
+  isSearchItemVisible,
   readSearchIndex,
   rememberSearchVisit,
   SEARCH_CHANGED,
@@ -18,6 +19,8 @@ const labels: Record<SearchTarget['kind'], string> = {
   driver: 'Пилот',
   channel: 'Канал',
   section: 'Раздел',
+  competition: 'Турнир',
+  settings: 'Настройка',
 };
 export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget) => void }) {
   const [open, setOpen] = useState(false),
@@ -52,14 +55,9 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
       window.removeEventListener('storage', update);
     };
   }, [open]);
-  const results = findSearchItems(items, query).filter((item) => {
-    const target = item.target;
-    if (target.kind === 'channel' || (target.kind === 'section' && target.id === 'watch'))
-      return modules.watch;
-    if ((target.kind === 'team' || target.kind === 'match') && target.leagueId)
-      return isCompetitionVisible(target.leagueId);
-    return true;
-  });
+  const results = findSearchItems(items, query).filter((item) =>
+    isSearchItemVisible(item, modules),
+  );
   const selected = Math.min(active, Math.max(0, results.length - 1));
   useEffect(() => {
     panel.current
@@ -102,8 +100,8 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
               <div className="command-input">
                 <Search size={20} />
                 <input
-                  aria-label="Поиск команд, игроков, пилотов, матчей и каналов"
-                  placeholder="Команда, игрок, пилот, матч или канал"
+                  aria-label="Поиск команд, игроков, матчей, разделов и настроек"
+                  placeholder="Команда, игрок, матч, раздел или настройка"
                   value={query}
                   role="combobox"
                   aria-expanded="true"

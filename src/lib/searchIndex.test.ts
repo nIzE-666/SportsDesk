@@ -3,11 +3,14 @@ import { beforeEach, expect, it } from 'vitest';
 import {
   findSearchItems,
   indexSportsPayload,
+  isSearchItemVisible,
   normalizeSearch,
   readSearchIndex,
   rememberSearchItems,
   rememberSearchVisit,
 } from './searchIndex';
+import { DEFAULT_MODULES, leagueModuleId } from './modules';
+import { CHAMPIONS_LEAGUE_ID, DEFAULT_CUP_ID } from './navigation';
 beforeEach(() => localStorage.clear());
 it('keeps match results across preloaded leagues instead of replacing them with the last league', () => {
   for (let league = 0; league < 6; league++)
@@ -123,4 +126,93 @@ it('indexes the actual driver season and rejects invalid cached targets', () => 
     ]),
   );
   expect(findSearchItems(readSearchIndex(), 'Invalid')).toEqual([]);
+});
+it('offers the five sections, «Моё» tabs, settings, competitions and F1 tabs with aliases', () => {
+  const items = readSearchIndex();
+  const target = (query: string) => findSearchItems(items, query)[0]?.target;
+
+  expect(target('Футбол')).toEqual({ kind: 'section', id: 'football' });
+  expect(target('Моё')).toEqual({ kind: 'section', id: 'my' });
+  expect(target('Дневник')).toEqual({ kind: 'section', id: 'my.diary' });
+  expect(target('Схемы')).toEqual({ kind: 'section', id: 'my.schemes' });
+  expect(target('Внешний вид')).toEqual({ kind: 'settings', category: 'appearance' });
+  expect(target('тема')).toEqual({ kind: 'settings', category: 'appearance' });
+  expect(target('Источники')).toEqual({ kind: 'settings', category: 'sources' });
+  expect(target('Лига Европы')).toEqual({ kind: 'competition', id: DEFAULT_CUP_ID });
+  expect(target('ЛЧ')).toEqual({ kind: 'competition', id: CHAMPIONS_LEAGUE_ID });
+  expect(target('Зачёты')).toEqual({ kind: 'section', id: 'f1.standings' });
+  expect(target('Анализ')).toEqual({ kind: 'section', id: 'f1.analysis' });
+});
+it('hides search results of modules and competitions that are switched off', () => {
+  const items = readSearchIndex();
+  const modules = {
+    ...DEFAULT_MODULES,
+    watch: false,
+    diary: false,
+    games: false,
+    predictions: false,
+    tactics: false,
+    europe: false,
+    [leagueModuleId('l_0ErfuF')]: false,
+  };
+  const visible = (query: string) =>
+    findSearchItems(items, query).filter((item) => isSearchItemVisible(item, modules));
+
+  expect(visible('Смотреть')).toEqual([]);
+  expect(
+    visible('Дневник').some(
+      (item) => item.target.kind === 'section' && item.target.id === 'my.diary',
+    ),
+  ).toBe(false);
+  expect(
+    visible('Игры и прогнозы').some(
+      (item) => item.target.kind === 'section' && item.target.id === 'my.games',
+    ),
+  ).toBe(false);
+  expect(
+    visible('Схемы').some(
+      (item) => item.target.kind === 'section' && item.target.id === 'my.schemes',
+    ),
+  ).toBe(false);
+  expect(visible('Лига Европы')).toEqual([]);
+  expect(visible('Чемпионат мира')).toEqual([]);
+  expect(visible('Ла Лига')).toEqual([]);
+  expect(visible('Основное')).toHaveLength(1);
+  expect(visible('Премьер-лига').some((item) => item.target.kind === 'competition')).toBe(true);
+});
+it('keeps old saved search items and recent keys after the catalogue grows', () => {
+  localStorage.setItem(
+    'sportsdesk.search.index',
+    JSON.stringify([
+      {
+        key: 'section:matches',
+        title: 'Матчи',
+        subtitle: 'Раздел',
+        target: { kind: 'section', id: 'matches' },
+      },
+      {
+        key: 'team:old',
+        title: 'Old club',
+        subtitle: 'Старая лига',
+        target: { kind: 'team', id: 'old' },
+      },
+    ]),
+  );
+  localStorage.setItem(
+    'sportsdesk.search.recent',
+    JSON.stringify(['section:planner', 'section:matches']),
+  );
+
+  const items = readSearchIndex();
+  expect(items.find((item) => item.key === 'section:football.matches')?.target).toEqual({
+    kind: 'section',
+    id: 'football.matches',
+  });
+  expect(items.find((item) => item.key === 'team:old')?.title).toBe('Old club');
+  expect(findSearchItems(items, 'Old club')[0]?.target).toEqual({ kind: 'team', id: 'old' });
+  expect(
+    findSearchItems(items, 'Мой спортивный вечер').some(
+      (item) => item.target.kind === 'section' && item.target.id === 'today.plan',
+    ),
+  ).toBe(true);
 });

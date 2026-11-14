@@ -34,6 +34,40 @@ vi.mock('../features/events/EventCenter', () => ({
       >
         Открыть матч
       </button>
+      <button
+        onClick={() =>
+          onOpen({
+            id: 'event-2',
+            sport: 'f1',
+            kind: 'reminder',
+            title: 'Гран-при',
+            body: 'Начало сессии',
+            occurredAt: 0,
+            read: false,
+            season: '2026',
+            round: '3',
+          })
+        }
+      >
+        Открыть уикенд
+      </button>
+      <button
+        onClick={() =>
+          onOpen({
+            id: 'event-3',
+            sport: 'football',
+            kind: 'goal',
+            title: 'Пока вас не было',
+            body: 'Arsenal — Chelsea',
+            occurredAt: 0,
+            read: false,
+            matchId: 'catchup-match',
+            leagueId: 'l_4WFCIZ',
+          })
+        }
+      >
+        Пока вас не было: открыть матч
+      </button>
     </div>
   ),
 }));
@@ -138,6 +172,39 @@ it('opens the drawer from the bell, closes it and opens an event', async () => {
   expect(openFootballMatch).toHaveBeenCalledWith('match-1', 'l_4WFCIZ');
   expect(dialog()).toBeNull();
   expect(document.activeElement).toBe(railButton('События'));
+});
+
+it('opens a Formula 1 weekend and a «Пока вас не было» match from the drawer', async () => {
+  const openFootballMatch = vi.fn(),
+    openWeekend = vi.fn();
+  await mount(
+    <Harness
+      {...base}
+      openFootballMatch={openFootballMatch}
+      openWeekend={openWeekend}
+      initial={TODAY}
+      navigate={vi.fn()}
+    />,
+  );
+  await act(async () => railButton('События').click());
+
+  const buttons = () => [...dialog()!.querySelectorAll<HTMLButtonElement>('.event-center button')];
+  await act(async () =>
+    buttons()
+      .find((b) => b.textContent === 'Открыть уикенд')!
+      .click(),
+  );
+  expect(openWeekend).toHaveBeenCalledWith('2026', '3');
+  expect(dialog()).toBeNull();
+
+  await act(async () => railButton('События').click());
+  await act(async () =>
+    buttons()
+      .find((b) => b.textContent === 'Пока вас не было: открыть матч')!
+      .click(),
+  );
+  expect(openFootballMatch).toHaveBeenCalledWith('catchup-match', 'l_4WFCIZ');
+  expect(dialog()).toBeNull();
 });
 
 it('opens the events route as a drawer over the last page and closes back to it', async () => {

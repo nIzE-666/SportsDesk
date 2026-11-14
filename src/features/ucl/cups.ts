@@ -1,5 +1,8 @@
 import { api } from '../../lib/bridge';
+import { CUP_COMPETITIONS, type CupCompetition } from './cupMetadata';
 import type { MatchSummary, TeamRef } from '../football/types';
+
+export { CUP_COMPETITIONS, type CupCompetition } from './cupMetadata';
 
 /**
  * Generic cup-competition data layer, parameterized by PitchAPI league id.
@@ -10,51 +13,6 @@ import type { MatchSummary, TeamRef } from '../football/types';
 const CATALOG_TTL_MS = 10 * 60 * 1000;
 const PITCH = 'pitch' as const;
 const SPORTSCORE = 'sportscore' as const;
-
-/** Supported cup competitions (PitchAPI id + SportScore slug where available). */
-export interface CupCompetition {
-  id: string;
-  /** UI title. */
-  title: string;
-  /** Hero eyebrow. */
-  eyebrow: string;
-  /** SportScore standings slug (current season only); undefined = no table. */
-  sportscoreSlug?: string;
-  /** Theme accent used by the app-root data-theme. */
-  theme: string;
-  bracketFormat?: 'two-leg' | 'single-leg';
-}
-
-export const CUP_COMPETITIONS: CupCompetition[] = [
-  {
-    id: 'l_0bfbkO',
-    title: 'Лига чемпионов',
-    eyebrow: 'CHAMPIONS LEAGUE / EUROPE',
-    sportscoreSlug: 'uefa-champions-league',
-    theme: 'ucl',
-  },
-  {
-    id: 'l_38d9HA',
-    title: 'Лига Европы',
-    eyebrow: 'EUROPA LEAGUE / EUROPE',
-    sportscoreSlug: 'uefa-europa-league',
-    theme: 'ucl',
-  },
-  {
-    id: 'l_2WZ2tt',
-    title: 'Лига конференций',
-    eyebrow: 'CONFERENCE LEAGUE / EUROPE',
-    sportscoreSlug: 'uefa-europa-conference-league',
-    theme: 'ucl',
-  },
-  {
-    id: 'l_1XLtP0',
-    title: 'Чемпионат мира',
-    eyebrow: 'WORLD CUP / INTERNATIONAL',
-    theme: 'ucl',
-    bracketFormat: 'single-leg',
-  },
-];
 
 export function findCup(id: string): CupCompetition | undefined {
   return CUP_COMPETITIONS.find((c) => c.id === id);

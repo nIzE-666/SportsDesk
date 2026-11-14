@@ -1,6 +1,6 @@
 import type { WatchIntent } from './watchIntent';
 import { LEAGUES } from './navigationMetadata';
-import { CUP_COMPETITIONS } from '../features/ucl/cups';
+import { CUP_COMPETITIONS } from '../features/ucl/cupMetadata';
 
 /**
  * Navigation model of the five-section shell (U2.1).

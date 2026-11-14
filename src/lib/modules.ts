@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { getString, setJson } from '../features/football/storage';
-import { CUP_COMPETITIONS } from '../features/ucl/cups';
+import { CUP_COMPETITIONS } from '../features/ucl/cupMetadata';
 import { LEAGUES } from './navigationMetadata';
 
 /**
@@ -216,8 +216,13 @@ export function useModules(): ModulesState {
  * лига — своим. Неизвестный id не скрывается: чужие данные не прячем.
  */
 export function isCompetitionVisible(competitionId: string): boolean {
+  return isCompetitionVisibleWith(competitionId, readModules());
+}
+
+/** Same rule against a snapshot, for lists that already subscribe to modules. */
+export function isCompetitionVisibleWith(competitionId: string, modules: ModulesState): boolean {
   const league = LEAGUES.find((item) => item.id === competitionId);
-  if (league) return isModuleOn(leagueModuleId(league.id));
-  if (CUP_COMPETITIONS.some((item) => item.id === competitionId)) return isModuleOn('europe');
+  if (league) return modules[leagueModuleId(league.id)];
+  if (CUP_COMPETITIONS.some((item) => item.id === competitionId)) return modules.europe;
   return true;
 }

@@ -1,19 +1,29 @@
 import type { FavoritePlayer } from '../features/football/types';
+import { SETTINGS_CATEGORIES } from '../features/settings/categories';
+import { CUP_COMPETITIONS } from '../features/ucl/cupMetadata';
 import { getJson, getUserTimezone, setJson, STORAGE_KEYS } from '../features/football/storage';
 import { formatHumanDateTime } from './humanDate';
+import { isCompetitionVisibleWith, type ModulesState } from './modules';
+import type { SettingsCategory } from './navigation';
+import { LEAGUES } from './navigationMetadata';
 
 /** «Раздел» targets of the five-section model. Competition stays a parameter. */
 export type SearchSectionId =
   | 'today'
   | 'today.week'
   | 'today.plan'
+  | 'football'
   | 'football.matches'
   | 'football.standings'
   | 'football.team'
   | 'football.players'
   | 'football.live'
   | 'f1'
+  | 'f1.calendar'
+  | 'f1.standings'
+  | 'f1.analysis'
   | 'watch'
+  | 'my'
   | 'my.favorites'
   | 'my.diary'
   | 'my.games'
@@ -27,7 +37,9 @@ export type SearchTarget =
   | { kind: 'player'; player: FavoritePlayer }
   | { kind: 'driver'; id: string; year: number }
   | { kind: 'channel'; id: number }
-  | { kind: 'section'; id: SearchSectionId };
+  | { kind: 'section'; id: SearchSectionId }
+  | { kind: 'competition'; id: string }
+  | { kind: 'settings'; category: SettingsCategory };
 export interface SearchItem {
   key: string;
   title: string;
@@ -42,13 +54,18 @@ const SEARCH_SECTION_IDS: readonly string[] = [
   'today',
   'today.week',
   'today.plan',
+  'football',
   'football.matches',
   'football.standings',
   'football.team',
   'football.players',
   'football.live',
   'f1',
+  'f1.calendar',
+  'f1.standings',
+  'f1.analysis',
   'watch',
+  'my',
   'my.favorites',
   'my.diary',
   'my.games',
@@ -103,9 +120,14 @@ const limits: Record<SearchTarget['kind'], number> = {
   player: 300,
   driver: 80,
   channel: 200,
-  section: 20,
+  section: 40,
+  competition: 40,
+  settings: 20,
 };
 const clean = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 300;
+const SETTINGS_CATEGORY_IDS: ReadonlySet<string> = new Set(
+  SETTINGS_CATEGORIES.map((category) => category.id),
+);
 export function validSearchItem(v: unknown): v is SearchItem {
   if (!v || typeof v !== 'object') return false;
   const x = v as SearchItem,
@@ -128,6 +150,8 @@ export function validSearchItem(v: unknown): v is SearchItem {
       t.year <= new Date().getFullYear()
     );
   if (t.kind === 'channel') return Number.isSafeInteger(t.id) && t.id > 0;
+  if (t.kind === 'competition') return clean(t.id) && competitionTitles.has(t.id);
+  if (t.kind === 'settings') return SETTINGS_CATEGORY_IDS.has(t.category);
   if (t.kind === 'player')
     return (
       !!t.player &&
@@ -138,19 +162,105 @@ export function validSearchItem(v: unknown): v is SearchItem {
     );
   return t.kind === 'section' && SEARCH_SECTION_IDS.includes(t.id);
 }
+function sectionItem(
+  id: SearchSectionId,
+  title: string,
+  subtitle: string,
+  aliases?: string,
+): SearchItem {
+  return { key: `section:${id}`, title, subtitle, aliases, target: { kind: 'section', id } };
+}
+
+/** Sections, «Моё» tabs and F1 tabs: everything that is a fixed screen. */
 export const searchSections: SearchItem[] = [
-  ['football.matches', 'Матчи', 'Футбол'],
-  ['football.players', 'Игроки', 'Профили и сравнение'],
-  ['f1', 'Формула 1', 'Гоночный уикенд'],
-  ['watch', 'Каналы', 'Онлайн-просмотр'],
-  ['today.plan', 'Мой спортивный вечер', 'Личный план'],
-  ['events', 'Центр событий', 'Голы, результаты и напоминания'],
-].map(([id, title, subtitle]) => ({
-  key: `section:${id}`,
-  title: title!,
-  subtitle: subtitle!,
-  target: { kind: 'section', id: id as SearchSectionId },
+  sectionItem('today', 'Сегодня', 'Главная', 'матчи дня сейчас'),
+  sectionItem('football', 'Футбол', 'Матчи, таблицы и клубы', 'турниры лиги'),
+  sectionItem('f1', 'Формула 1', 'Гонки и зачёты', 'f1 паддок'),
+  sectionItem('watch', 'Смотреть', 'Онлайн-просмотр', 'каналы трансляции'),
+  sectionItem('my', 'Моё', 'Избранное, дневник и игры', 'профиль'),
+  sectionItem('football.matches', 'Матчи', 'Футбол', 'календарь'),
+  sectionItem('football.players', 'Игроки', 'Футбол · профили и сравнение', 'футболисты'),
+  sectionItem('today.plan', 'Мой спортивный вечер', 'Личный план', 'планировщик'),
+  sectionItem('events', 'Центр событий', 'Голы, результаты и напоминания', 'события'),
+  sectionItem('my.favorites', 'Избранное', 'Моё', 'клубы команды игроки пилоты'),
+  sectionItem('my.diary', 'Дневник', 'Моё', 'просмотрено отметки'),
+  sectionItem('my.games', 'Игры и прогнозы', 'Моё', 'стартовые огни угадай счёт'),
+  sectionItem('my.schemes', 'Схемы', 'Моё', 'тактическая доска'),
+  sectionItem('f1.calendar', 'Календарь', 'Формула 1', 'расписание гонок этапы'),
+  sectionItem('f1.standings', 'Зачёты', 'Формула 1', 'пилоты кубок конструкторов таблица'),
+  sectionItem('f1.analysis', 'Анализ', 'Формула 1', 'сравнение пилотов темп по кругам сессия'),
+];
+
+const SETTINGS_ALIASES: Record<string, string> = {
+  general: 'часовой пояс трей сочетание клавиш стартовый экран',
+  favorites: 'клубы команды игроки пилоты',
+  notifications: 'оповещения тихие часы',
+  appearance: 'тема оформление плотность',
+  modules: 'выключатели разделы',
+  watch: 'каналы kino',
+  data: 'резервная копия восстановление офлайн-сезоны',
+  sources: 'поставщики данных',
+  about: 'версия обновления',
+};
+const searchSettings: SearchItem[] = SETTINGS_CATEGORIES.map((category) => ({
+  key: `settings:${category.id}`,
+  title: category.label,
+  subtitle: 'Настройки',
+  aliases: SETTINGS_ALIASES[category.id],
+  target: { kind: 'settings', category: category.id },
 }));
+
+const COMPETITION_ALIASES: Record<string, string> = {
+  l_4WFCIZ: 'Англия АПЛ Премьер-лига Premier League',
+  l_0ErfuF: 'Испания ЛаЛига La Liga',
+  l_0ALvwF: 'Италия Serie A',
+  l_1Isor4: 'Германия Bundesliga',
+  l_3FJFUl: 'Франция Ligue 1',
+  l_0eg6C9: 'США Major League Soccer',
+  l_0bfbkO: 'ЛЧ Лига чемпионов Champions League УЕФА',
+  l_38d9HA: 'ЛЕ Лига Европы Europa League',
+  l_2WZ2tt: 'ЛК Лига конференций Conference League',
+  l_1XLtP0: 'ЧМ Чемпионат мира World Cup',
+};
+const competitionTitles = new Map<string, string>([
+  ...LEAGUES.map((league) => [league.id, league.label] as const),
+  ...CUP_COMPETITIONS.map((cup) => [cup.id, cup.title] as const),
+]);
+const searchCompetitions: SearchItem[] = [...competitionTitles].map(([id, title]) => ({
+  key: `competition:${id}`,
+  title,
+  subtitle: 'Футбол',
+  aliases: COMPETITION_ALIASES[id],
+  target: { kind: 'competition', id },
+}));
+
+/** Every built-in target merged into the stored index on read. */
+export const searchCatalogue: SearchItem[] = [
+  ...searchSections,
+  ...searchSettings,
+  ...searchCompetitions,
+];
+
+/**
+ * A result is hidden when its screen, channel or competition is switched off.
+ * Stored team and match targets keep their league so this check also works for
+ * results saved before the modules existed.
+ */
+export function isSearchItemVisible(item: SearchItem, modules: ModulesState): boolean {
+  const target = item.target;
+  if (target.kind === 'channel') return modules.watch;
+  if (target.kind === 'competition') return isCompetitionVisibleWith(target.id, modules);
+  if (target.kind === 'section') {
+    if (target.id === 'watch') return modules.watch;
+    if (target.id === 'my.diary') return modules.diary;
+    if (target.id === 'my.games') return modules.games || modules.predictions;
+    if (target.id === 'my.schemes') return modules.tactics;
+    return true;
+  }
+  if ((target.kind === 'team' || target.kind === 'match') && target.leagueId)
+    return isCompetitionVisibleWith(target.leagueId, modules);
+  return true;
+}
 function storedSearchItems(): SearchItem[] {
   const raw = getJson<unknown>(INDEX_KEY, []);
   return Array.isArray(raw)
@@ -183,7 +293,7 @@ export function readSearchIndex(): SearchItem[] {
           target: { kind: 'player', player: p },
         });
   const merged = new Map<string, SearchItem>();
-  for (const item of [...items.filter(validSearchItem), ...searchSections])
+  for (const item of [...items.filter(validSearchItem), ...searchCatalogue])
     merged.set(item.key, mergeItem(merged.get(item.key), item));
   return [...merged.values()];
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import WhatsNewDialog from './components/WhatsNewDialog';
 import { SectionBoundary } from './components/SectionBoundary';
 import { FirstRunWizard } from './features/onboarding/FirstRunWizard';
@@ -9,7 +9,16 @@ import { GoalCelebration } from './features/atmosphere/GoalCelebration';
 import { TeamRadioSignal } from './features/atmosphere/TeamRadioSignal';
 import { getString, setString } from './features/football/storage';
 import { UpdateProvider } from './features/settings/Updates';
-import { competitionKind, isLeagueId, isLeagueTab, isMyTab } from './lib/navigation';
+import {
+  competitionKind,
+  defaultFootballTab,
+  isCompetitionId,
+  isLeagueId,
+  isLeagueTab,
+  isMyTab,
+  isValidSettingsCategory,
+} from './lib/navigation';
+import { isCompetitionVisible } from './lib/modules';
 import { isTauriRuntime, rpc } from './lib/bridge';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { viewState } from './lib/viewState';
@@ -20,6 +29,7 @@ import { startOfflineRunner } from './features/offline/offlineQueue';
 import { AppShell } from './app/AppShell';
 import { LegacyShell } from './app/LegacyShell';
 import { useShellPreview } from './app/shellFlag';
+import { lastAnalysisMode } from './app/shellModel';
 import type { FrameProps } from './app/frame';
 
 export type { ShellRoute, Sport } from './lib/navigation';
@@ -75,24 +85,36 @@ function MainApp() {
       navigate({ ...route, competitionId: next }, { leagueId: next });
     else navigate(route, { leagueId: next });
   };
-  const openFootballMatch = (matchId: string, eventLeague?: string) => {
-    const eventKind = competitionKind(eventLeague);
-    const contextId = eventKind ? eventLeague! : leagueId;
-    navigate(
-      { kind: 'football-match', matchId, competitionId: contextId },
-      eventKind === 'league'
-        ? { leagueId: contextId }
-        : eventKind === 'cup'
-          ? { cupId: contextId }
-          : {},
-    );
-  };
-  const openWeekend = (season: string | number, round: string | number) => {
-    viewState.write('f1.year', Number(season));
-    viewState.write(`f1.${season}.calendar.filter`, 'all');
-    viewState.write(`f1.${season}.calendar.round`, Number(round));
-    navigate({ kind: 'f1', tab: 'calendar' });
-  };
+  const openFootballMatch = useCallback(
+    (matchId: string, eventLeague?: string) => {
+      const eventKind = competitionKind(eventLeague);
+      const contextId = eventKind ? eventLeague! : leagueId;
+      // An external link to a hidden competition lands on «Сегодня», not on
+      // another league the user did not ask for.
+      if (preview && !isCompetitionVisible(contextId)) {
+        navigate({ kind: 'today', mode: 'today' });
+        return;
+      }
+      navigate(
+        { kind: 'football-match', matchId, competitionId: contextId },
+        eventKind === 'league'
+          ? { leagueId: contextId }
+          : eventKind === 'cup'
+            ? { cupId: contextId }
+            : {},
+      );
+    },
+    [leagueId, navigate, preview],
+  );
+  const openWeekend = useCallback(
+    (season: string | number, round: string | number) => {
+      viewState.write('f1.year', Number(season));
+      viewState.write(`f1.${season}.calendar.filter`, 'all');
+      viewState.write(`f1.${season}.calendar.round`, Number(round));
+      navigate({ kind: 'f1', tab: 'calendar' });
+    },
+    [navigate],
+  );
   const searchTarget = (target: SearchTarget) => {
     switch (target.kind) {
       case 'team': {
@@ -119,15 +141,38 @@ function MainApp() {
       case 'channel':
         navigate({ kind: 'watch', channelId: target.id });
         break;
+      case 'competition':
+        if (isCompetitionId(target.id) && isCompetitionVisible(target.id))
+          navigate({
+            kind: 'football',
+            competitionId: target.id,
+            tab: defaultFootballTab(target.id),
+          });
+        else navigate({ kind: 'today', mode: 'today' });
+        break;
+      case 'settings':
+        if (isValidSettingsCategory(target.category))
+          navigate({ kind: 'settings', category: target.category });
+        break;
       case 'section':
         if (target.id.startsWith('football.')) {
           const tab = target.id.slice('football.'.length);
           if (isLeagueTab(tab)) navigate({ kind: 'football', competitionId: leagueId, tab });
-        } else if (target.id === 'f1') navigate({ kind: 'f1', tab: 'overview' });
+        } else if (target.id === 'football')
+          navigate({
+            kind: 'football',
+            competitionId: leagueId,
+            tab: defaultFootballTab(leagueId),
+          });
+        else if (target.id === 'f1') navigate({ kind: 'f1', tab: 'overview' });
+        else if (target.id === 'f1.calendar') navigate({ kind: 'f1', tab: 'calendar' });
+        else if (target.id === 'f1.standings') navigate({ kind: 'f1', tab: 'standings' });
+        else if (target.id === 'f1.analysis') navigate({ kind: 'f1', tab: lastAnalysisMode() });
         else if (target.id === 'today' || target.id === 'today.week')
           navigate({ kind: 'today', mode: target.id === 'today' ? 'today' : 'week' });
         else if (target.id === 'today.plan') navigate({ kind: 'today', mode: 'plan' });
         else if (target.id === 'watch') navigate({ kind: 'watch' });
+        else if (target.id === 'my') navigate({ kind: 'my', tab: 'favorites' });
         else if (target.id.startsWith('my.')) {
           const tab = target.id.slice('my.'.length);
           if (isMyTab(tab)) navigate({ kind: 'my', tab });
@@ -142,14 +187,18 @@ function MainApp() {
     void (async () => {
       if (!isTauriRuntime()) return;
       const { listen } = await import('@tauri-apps/api/event');
-      const off = await listen<{ kind: string; matchId?: string; season?: string; round?: string }>(
-        'sportsdesk://open-event',
-        ({ payload: e }) => {
-          if (e.kind === 'match' && e.matchId)
-            navigate({ kind: 'football-match', matchId: e.matchId, competitionId: leagueId });
-          if (e.kind === 'f1' && e.season && e.round) openWeekend(e.season, e.round);
-        },
-      );
+      const off = await listen<{
+        kind: string;
+        matchId?: string;
+        season?: string | number;
+        round?: string | number;
+      }>('sportsdesk://open-event', ({ payload: e }) => {
+        if (e.kind === 'match' && e.matchId) openFootballMatch(e.matchId);
+        if (e.kind === 'f1' && e.season !== undefined && e.round !== undefined)
+          openWeekend(e.season, e.round);
+        // Notification and legacy links without a place open the event list.
+        if (e.kind === 'events') navigate({ kind: 'events' });
+      });
       if (active) stop = off;
       else off();
     })().catch(() => {});
@@ -157,7 +206,7 @@ function MainApp() {
       active = false;
       stop?.();
     };
-  }, [navigate]);
+  }, [navigate, openFootballMatch, openWeekend]);
   const openMini = async () => {
     try {
       await rpc('open_mini_window');
