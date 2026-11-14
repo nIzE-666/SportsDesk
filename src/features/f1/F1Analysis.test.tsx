@@ -148,10 +148,6 @@ const select = (label: string) =>
 const modeTabs = () => [
   ...host.querySelectorAll<HTMLButtonElement>('[aria-label="Режим анализа"] [role="tab"]'),
 ];
-const tabStrip = () => [
-  ...host.querySelectorAll<HTMLButtonElement>('[aria-label="Разделы Формулы-1"] [role="tab"]'),
-];
-
 async function choose(label: string, value: string) {
   await act(async () => {
     const element = select(label);
@@ -175,17 +171,12 @@ function AnalysisHarness({ initial = 'compare' }: { initial?: F1AnalysisMode }) 
   );
 }
 
-it('shows four section tabs and the analysis heading', async () => {
-  await act(async () => root.render(<F1View />));
+it('shows the overview and three analysis modes', async () => {
+  await act(async () => root.render(<F1View tab="overview" onTabChange={vi.fn()} />));
   await settle();
   expect(host.querySelector('h1')?.textContent).toBe('Ваш гоночный уикенд');
-  expect(tabStrip().map((tab) => tab.textContent?.trim())).toEqual([
-    'Обзор',
-    'Календарь',
-    'Зачёты',
-    'Анализ',
-  ]);
-  await click(tabStrip()[3]!);
+  await act(async () => root.render(<F1View tab="compare" onTabChange={vi.fn()} />));
+  await settle();
   expect(host.querySelector('h1')?.textContent).toBe('Анализ');
   expect(modeTabs().map((tab) => tab.textContent?.trim())).toEqual([
     'Сравнение пилотов',

@@ -6,7 +6,6 @@ const SECTIONS = ['Сегодня', 'Футбол', 'Формула 1', 'Смо�
 async function openShell(page: import('@playwright/test').Page, design = 'classic') {
   await page.setViewportSize({ width: 1100, height: 720 });
   await setupVisualFixture(page, design, 'dark', true);
-  await page.addInitScript(() => localStorage.setItem('sportsdesk.preview.shell', '1'));
   await page.goto('/');
   return page.getByRole('navigation', { name: 'Разделы' });
 }
@@ -101,5 +100,15 @@ for (const design of ['classic', 'broadcast']) {
       'aria-current',
       'page',
     );
+  });
+
+  test(`${design}: the rail stays in view while a long page scrolls`, async ({ page }) => {
+    const rail = await openShell(page, design);
+    await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
+    await page.locator('.shell-tabs').getByRole('tab', { name: 'Игроки', exact: true }).click();
+    await expect(page.locator('.players-view')).toBeVisible();
+    await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeInViewport();
+    await expect(rail.getByRole('button', { name: 'Настройки', exact: true })).toBeInViewport();
+    await expect(rail.getByRole('button', { name: 'Сегодня', exact: true })).toBeInViewport();
   });
 }

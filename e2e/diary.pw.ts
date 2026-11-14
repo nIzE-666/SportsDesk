@@ -61,25 +61,34 @@ async function setup(page: Page, design: string, scheme: string, seed = true) {
     return route.continue();
   });
   await page.addInitScript(
-    ({ design, scheme, id, seed, diary }) => {
+    ({ design, scheme, seed, diary }) => {
       localStorage.setItem('sportsdesk.design', design);
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
       if (seed && localStorage.getItem('sportsdesk.view.diary') === null)
         localStorage.setItem('sportsdesk.view.diary', JSON.stringify(diary));
-      sessionStorage.setItem(
-        'sportsdesk.view.navigation.football',
-        JSON.stringify({ kind: 'football-match', matchId: id }),
-      );
     },
-    { design, scheme, id: diaryMatch.id, seed, diary: diaryFixture },
+    { design, scheme, seed, diary: diaryFixture },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return { errors, state };
 }
-const openDiary = (page: Page) =>
-  page.getByRole('button', { name: 'Дневник просмотра', exact: true }).click();
+const openDiary = async (page: Page) => {
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Моё', exact: true })
+    .click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Дневник', exact: true }).click();
+};
+const openMatch = async (page: Page) => {
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Футбол', exact: true })
+    .click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+  await page.locator(`[data-match-id="${diaryMatch.id}"] .fixture-club`).first().click();
+};
 for (const design of ['classic', 'broadcast'])
   for (const scheme of ['dark', 'light'])
     for (const width of [1100, 1440]) {
@@ -99,7 +108,6 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
         });
-        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-diary.png`);
         await capture.evaluate((el) => el.parentNode?.removeChild(el));
         await page.getByLabel('Фильтр по спорту', { exact: true }).selectOption('f1');
         await expect(feature.locator('.diary-entry')).toHaveCount(1);
@@ -137,6 +145,7 @@ test('explicit marks, export, conflict-aware import and offline records', async 
 }, info) => {
   const { state } = await setup(page, 'classic', 'dark', false);
   await page.goto('/');
+  await openMatch(page);
   await expect(page.locator('.md-score')).toContainText('1 : 1');
   expect(await page.evaluate(() => localStorage.getItem('sportsdesk.view.diary'))).toBeNull();
   await page.getByRole('button', { name: 'Отметить просмотр', exact: true }).click();

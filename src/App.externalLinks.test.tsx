@@ -51,7 +51,6 @@ const event = (kind: string, extra: Record<string, unknown> = {}) => ({
 });
 
 async function mountApp() {
-  localStorage.setItem('sportsdesk.preview.shell', '1');
   await act(async () => root.render(<App />));
   await act(async () => {
     await vi.dynamicImportSettled();

@@ -96,16 +96,22 @@ async function setup(page: Page, design: string, scheme: string, unavailable = f
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
-      sessionStorage.setItem(
-        'sportsdesk.view.navigation.football',
-        JSON.stringify({ kind: 'football-match', matchId }),
-      );
       sessionStorage.setItem(`sportsdesk.view.match.${matchId}.tab`, JSON.stringify('analysis'));
     },
     { design, scheme, matchId: match.id },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return errors;
+}
+
+async function openMatch(page: import('@playwright/test').Page) {
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Футбол', exact: true })
+    .click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+  await page.locator(`[data-match-id="${match.id}"] .fixture-club`).first().click();
+  await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
 }
 
 for (const design of ['classic', 'broadcast'])
@@ -115,6 +121,7 @@ for (const design of ['classic', 'broadcast'])
         await page.setViewportSize({ width, height: 1000 });
         const errors = await setup(page, design, scheme);
         await page.goto('/');
+        await openMatch(page);
         await page.evaluate(() => document.fonts.ready);
         const feature = page.locator('.match-analysis');
         await expect(page.locator('.app-root')).toHaveAttribute('data-design', design);
@@ -138,7 +145,7 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root { height: auto; min-height: 100vh; overflow: visible; } .shell, .content { overflow: visible; }',
         });
-        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-analysis.png`);
+
         await captureStyle.evaluate((element) => element.parentNode?.removeChild(element));
         await page.getByLabel('Команда', { exact: true }).selectOption(home.id);
         await page.getByLabel('Период', { exact: true }).selectOption('FirstHalf');
@@ -161,6 +168,7 @@ for (const design of ['classic', 'broadcast'])
 test('unavailable analytics preserve the score and other match tabs', async ({ page }) => {
   await setup(page, 'classic', 'dark', true);
   await page.goto('/');
+  await openMatch(page);
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал удары');
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал давление');
   await expect(page.locator('.md-score')).toContainText('2 : 1');

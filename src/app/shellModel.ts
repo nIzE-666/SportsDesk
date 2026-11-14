@@ -60,8 +60,6 @@ export function pageTitle(route: ShellRoute, leagueId: string): string {
       return 'Настройки';
     case 'events':
       return 'События';
-    case 'offline':
-      return 'Офлайн-сезоны';
     default:
       return competitionName(leagueId);
   }

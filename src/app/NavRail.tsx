@@ -41,7 +41,7 @@ export function NavRail({
   const sections = SECTIONS.filter(({ id }) => id !== 'watch' || modules.watch);
   const service = (name: 'events' | 'settings') => {
     if (name === 'events') return eventsOpen || route.kind === 'events';
-    return !eventsOpen && (route.kind === 'settings' || route.kind === 'offline');
+    return !eventsOpen && route.kind === 'settings';
   };
   return (
     <aside className="nav-rail">

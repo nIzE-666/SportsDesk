@@ -8,64 +8,206 @@ type Screen = {
   noSource?: boolean;
 };
 
-const aside = (page: Page, title: string) =>
-  page.locator('aside.sidebar').getByTitle(title, { exact: true }).click();
-const sportTab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true }).click();
+const rail = (page: Page) => page.getByRole('navigation', { name: 'Разделы' });
+const section = (page: Page, name: string) =>
+  rail(page).getByRole('button', { name, exact: true }).click();
+const tab = (page: Page, name: string) =>
+  page.locator('.shell-tabs').getByRole('tab', { name, exact: true }).click();
+const competition = async (page: Page, name: string) => {
+  await section(page, 'Футбол');
+  await page.locator('.competition-switcher-trigger').click();
+  await page.getByRole('menuitemradio', { name }).click();
+};
 
 const screens: Screen[] = [
-  { name: 'Мой обзор', open: async () => {} },
-  { name: 'Матчи', open: (page) => aside(page, 'Матчи') },
-  { name: 'Таблицы', open: (page) => aside(page, 'Таблицы') },
-  { name: 'Счёт и события', open: (page) => aside(page, 'Счёт и события') },
-  { name: 'Игроки', open: (page) => aside(page, 'Игроки') },
-  { name: 'Клубы', open: (page) => aside(page, 'Клубы'), noSource: true },
+  { name: 'Сегодня', open: async (page) => section(page, 'Сегодня') },
   {
-    name: 'Паддок',
+    name: 'Матчи',
     open: async (page) => {
-      await sportTab(page, 'Формула 1');
-      await aside(page, 'Паддок');
+      await section(page, 'Футбол');
+      await tab(page, 'Матчи');
     },
   },
-  { name: 'Календарь F1', open: (page) => aside(page, 'Календарь') },
-  { name: 'Зачёты', open: (page) => aside(page, 'Зачёты') },
+  {
+    name: 'Таблица',
+    open: async (page) => {
+      await section(page, 'Футбол');
+      await tab(page, 'Таблица');
+    },
+  },
+  {
+    name: 'Сейчас идут',
+    open: async (page) => {
+      await section(page, 'Футбол');
+      await tab(page, 'Сейчас идут');
+    },
+  },
+  {
+    name: 'Игроки',
+    open: async (page) => {
+      await section(page, 'Футбол');
+      await tab(page, 'Игроки');
+    },
+  },
+  {
+    name: 'Клубы',
+    open: async (page) => {
+      await section(page, 'Футбол');
+      await tab(page, 'Клубы');
+    },
+    noSource: true,
+  },
+  {
+    name: 'Обзор Формулы 1',
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Обзор');
+    },
+  },
+  {
+    name: 'Календарь F1',
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Календарь');
+    },
+  },
+  {
+    name: 'Зачёты',
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Зачёты');
+    },
+  },
   {
     // В тестовых данных нет результатов гонок: экран показывает пустое состояние без источника.
     name: 'Сравнение пилотов',
-    open: (page) => aside(page, 'Сравнение пилотов'),
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Анализ');
+      await page
+        .getByRole('tablist', { name: 'Режим анализа' })
+        .getByRole('tab', { name: 'Сравнение пилотов', exact: true })
+        .click();
+    },
     noSource: true,
   },
-  { name: 'Темп по кругам', open: (page) => aside(page, 'Темп по кругам') },
-  { name: 'Центр сессии', open: (page) => aside(page, 'Центр сессии') },
+  {
+    name: 'Темп по кругам',
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Анализ');
+      await page
+        .getByRole('tablist', { name: 'Режим анализа' })
+        .getByRole('tab', { name: 'Темп по кругам', exact: true })
+        .click();
+    },
+  },
+  {
+    name: 'Центр сессии',
+    open: async (page) => {
+      await section(page, 'Формула 1');
+      await tab(page, 'Анализ');
+      await page
+        .getByRole('tablist', { name: 'Режим анализа' })
+        .getByRole('tab', { name: 'Центр сессии', exact: true })
+        .click();
+    },
+  },
   {
     name: 'ЛЧ: европейский вечер',
     open: async (page) => {
-      await sportTab(page, 'Лига чемпионов');
-      await aside(page, 'Европейский вечер');
+      await competition(page, 'Лига чемпионов');
+      await tab(page, 'Обзор');
     },
   },
-  { name: 'ЛЧ: общая таблица', open: (page) => aside(page, 'Общая таблица') },
-  { name: 'ЛЧ: сетка', open: (page) => aside(page, 'Сетка плей-офф') },
-  { name: 'ЛЧ: все матчи', open: (page) => aside(page, 'Все матчи') },
-  { name: 'ЛЧ: игроки', open: (page) => aside(page, 'Игроки и статистика') },
+  {
+    name: 'ЛЧ: общая таблица',
+    open: async (page) => {
+      await competition(page, 'Лига чемпионов');
+      await tab(page, 'Таблица');
+    },
+  },
+  {
+    name: 'ЛЧ: сетка',
+    open: async (page) => {
+      await competition(page, 'Лига чемпионов');
+      await tab(page, 'Сетка');
+    },
+  },
+  {
+    name: 'ЛЧ: все матчи',
+    open: async (page) => {
+      await competition(page, 'Лига чемпионов');
+      await tab(page, 'Матчи');
+    },
+  },
+  {
+    name: 'ЛЧ: игроки',
+    open: async (page) => {
+      await competition(page, 'Лига чемпионов');
+      await tab(page, 'Игроки');
+    },
+  },
   {
     name: 'Кубки: обзор',
     open: async (page) => {
-      await sportTab(page, 'Кубки');
-      await aside(page, 'Обзор');
+      await competition(page, 'Лига Европы');
+      await tab(page, 'Обзор');
     },
   },
-  { name: 'Кубки: таблица', open: (page) => aside(page, 'Таблица') },
-  { name: 'Кубки: сетка', open: (page) => aside(page, 'Сетка плей-офф') },
-  { name: 'Кубки: все матчи', open: (page) => aside(page, 'Все матчи') },
-  { name: 'Планировщик', open: (page) => aside(page, 'Мой спортивный вечер') },
-  { name: 'Дневник', open: (page) => aside(page, 'Дневник просмотра'), noSource: true },
-  { name: 'Офлайн-сезоны', open: (page) => aside(page, 'Офлайн-сезоны'), noSource: true },
+  {
+    name: 'Кубки: таблица',
+    open: async (page) => {
+      await competition(page, 'Лига Европы');
+      await tab(page, 'Таблица');
+    },
+  },
+  {
+    name: 'Кубки: сетка',
+    open: async (page) => {
+      await competition(page, 'Лига Европы');
+      await tab(page, 'Сетка');
+    },
+  },
+  {
+    name: 'Кубки: все матчи',
+    open: async (page) => {
+      await competition(page, 'Лига Европы');
+      await tab(page, 'Матчи');
+    },
+  },
+  {
+    name: 'Планировщик',
+    open: async (page) => {
+      await section(page, 'Сегодня');
+      await tab(page, 'Мой план');
+    },
+  },
+  {
+    name: 'Дневник',
+    open: async (page) => {
+      await section(page, 'Моё');
+      await tab(page, 'Дневник');
+    },
+    noSource: true,
+  },
+  {
+    name: 'Офлайн-сезоны',
+    open: async (page) => {
+      await section(page, 'Настройки');
+      await page
+        .getByRole('navigation', { name: 'Категории настроек' })
+        .getByRole('button', { name: 'Данные', exact: true })
+        .click();
+    },
+    noSource: true,
+  },
 ];
 
 // Повторный запуск с выводом таблицы: SPORTSDESK_AUDIT_VERBOSE=1 npx playwright test e2e/sourceLines.pw.ts
 test('every screen shows at most one data-source line and one refresh button', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  const pageErrors = await setupVisualFixture(page, 'broadcast', 'dark', true);
+  await setupVisualFixture(page, 'broadcast', 'dark', true);
   await page.goto('/');
   await expect(page.locator('.today-view')).toBeVisible();
 
@@ -126,10 +268,9 @@ test('every screen shows at most one data-source line and one refresh button', a
   }
 
   // Матч: каждая вкладка отдельно.
-  await sportTab(page, 'Футбол');
-  await aside(page, 'Мой обзор');
-  await page.locator('.today-team-tile:not(.today-team-f1)').first().click();
-  await page.getByRole('button', { name: /Последний матч/u }).click();
+  await competition(page, 'Premier League');
+  await tab(page, 'Матчи');
+  await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
   await expect(page.locator('.md-tabs')).toBeVisible();
   const tabs = page.locator('.md-tabs button');
   const count = await tabs.count();

@@ -43,16 +43,15 @@ export type ShellRoute =
   | { kind: 'watch'; channelId?: number; intent?: WatchIntent }
   | { kind: 'my'; tab?: MyTab }
   | { kind: 'settings'; category?: SettingsCategory }
-  | { kind: 'events' }
-  | { kind: 'offline' };
+  | { kind: 'events' };
 
 export type ContentRoute = Extract<
   ShellRoute,
   { kind: 'today' | 'football' | 'football-match' | 'f1' | 'watch' | 'my' }
 >;
-export type AuxiliaryRoute = Extract<ShellRoute, { kind: 'settings' | 'events' | 'offline' }>;
+export type AuxiliaryRoute = Extract<ShellRoute, { kind: 'settings' | 'events' }>;
 
-/** The current frame still uses the legacy sport switch until U2.2. */
+/** The remembered place and the legacy context of old saved values. */
 export interface Location {
   section: Section;
   route: ShellRoute;
@@ -190,7 +189,6 @@ export function isValidShellRoute(value: unknown): value is ShellRoute {
     case 'settings':
       return value.category === undefined || isValidSettingsCategory(value.category);
     case 'events':
-    case 'offline':
       return true;
     default:
       return false;
@@ -222,8 +220,8 @@ export function sectionOfRoute(route: ShellRoute): Section | undefined {
   }
 }
 
-/** Legacy sport switch context; the new shell uses sectionOfRoute instead. */
-export function legacySportOfRoute(route: ShellRoute): Sport | undefined {
+/** The legacy sport of a route, kept for the saved `sportsdesk.sport` key. */
+export function sportOfRoute(route: ShellRoute): Sport | undefined {
   if (route.kind === 'football') {
     const kind = competitionKind(route.competitionId);
     return kind === 'league'
@@ -253,17 +251,7 @@ export function migrateCupId(value: unknown): string {
     : DEFAULT_CUP_ID;
 }
 
-/** Home of a legacy sport, used by the start and by the brand button until U2.2. */
-export function homeRoute(sport: Sport, cupId: string): ShellRoute {
-  if (sport === 'f1') return { kind: 'f1', tab: 'overview' };
-  if (sport === 'ucl')
-    return { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'overview' };
-  if (sport === 'cup')
-    return { kind: 'football', competitionId: migrateCupId(cupId), tab: 'overview' };
-  return { kind: 'today', mode: 'today' };
-}
-
-/** Default route of a section for the new shell. */
+/** Default route of a section. */
 export function defaultRouteOf(
   section: Section,
   competitionId: string = DEFAULT_LEAGUE_ID,
@@ -286,11 +274,12 @@ export function startRoute(): ShellRoute {
 export function startLocation(
   leagueId: unknown = DEFAULT_LEAGUE_ID,
   cupId: unknown = DEFAULT_CUP_ID,
+  sport: unknown = 'football',
 ): Location {
   return {
     section: START_SECTION,
     route: startRoute(),
-    sport: 'football',
+    sport: migrateSport(sport),
     leagueId: migrateLeagueId(leagueId),
     cupId: migrateCupId(cupId),
   };
@@ -320,8 +309,9 @@ function fallbackForSection(
   if (fallback) return fallback;
   const sport = migrateSport(context.sport);
   const cupId = migrateCupId(context.cupId);
-  if (section === 'football' && sport === 'ucl') return homeRoute('ucl', cupId);
-  if (section === 'football' && sport === 'cup') return homeRoute('cup', cupId);
+  if (section === 'football' && sport === 'ucl')
+    return defaultRouteOf(section, CHAMPIONS_LEAGUE_ID);
+  if (section === 'football' && sport === 'cup') return defaultRouteOf(section, cupId);
   return defaultRouteOf(
     section,
     sport === 'ucl'
@@ -413,7 +403,8 @@ export function migrateRoute(value: unknown, context: LegacyContext = {}): Shell
     case 'diary':
       return { kind: 'my', tab: 'diary' };
     case 'offline':
-      return { kind: 'offline' };
+      // Offline seasons live in «Настройки → Данные» since U2.8.
+      return { kind: 'settings', category: 'data' };
     default:
       return undefined;
   }
@@ -427,7 +418,7 @@ export function locationForRoute(route: ShellRoute, context: LegacyContext = {})
   return {
     section,
     route,
-    sport: legacySportOfRoute(route) ?? sport,
+    sport: sportOfRoute(route) ?? sport,
     leagueId: migrateLeagueId(context.leagueId),
     cupId: migrateCupId(context.cupId),
   };
@@ -446,7 +437,7 @@ export function migrateLocation(value: unknown, context: LegacyContext = {}): Lo
       sectionOfRoute(route) ??
       (isSection(value.section) ? value.section : sport === 'f1' ? 'f1' : 'football'),
     route,
-    sport: legacySportOfRoute(route) ?? sport,
+    sport: sportOfRoute(route) ?? sport,
     leagueId,
     cupId,
   };
@@ -475,41 +466,4 @@ export function rememberedLocation(
     return locationForRoute(fromRoute, context);
 
   return locationForRoute(fallbackForSection(section, context, fallback), context);
-}
-
-/**
- * Old per-sport memory, kept for the current frame. Football prefers the
- * route key because the section key may now hold a Champions League or cup
- * place after U2.1; the legacy sport switch still restores its own place.
- */
-export function rememberedLegacySport(
-  sport: Sport,
-  sources: RememberedSources,
-  context: LegacyContext = {},
-  cupId = DEFAULT_CUP_ID,
-): Location {
-  const fallback = homeRoute(sport, cupId);
-  const section: Section = sport === 'f1' ? 'f1' : 'football';
-  if (sport === 'football') {
-    const fromLocation = migrateLocation(sources.location, { ...context, sport });
-    const locationSport = fromLocation ? legacySportOfRoute(fromLocation.route) : undefined;
-    // navigation2.football may now hold a Champions League or cup place (the
-    // section key), so the legacy switch keeps preferring its own route key in
-    // that case. Ordinary football places keep the old location-first order.
-    const footballLocation =
-      fromLocation?.section === 'football' || fromLocation?.section === 'today';
-    if (footballLocation && locationSport !== 'ucl' && locationSport !== 'cup') return fromLocation;
-    const fromRoute = migrateRoute(sources.route, { ...context, sport });
-    if (fromRoute) return locationForRoute(fromRoute, { ...context, sport });
-    if (footballLocation) return fromLocation;
-  }
-  return rememberedLocation(section, sources, { ...context, sport }, fallback);
-}
-
-export function toggleAuxiliary(
-  route: ShellRoute,
-  kind: 'watch' | 'settings',
-  previous: ShellRoute,
-): ShellRoute {
-  return route.kind === kind ? previous : { kind };
 }

@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
-import { isCompetitionVisible, useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
@@ -20,13 +19,10 @@ type StatusFilter = 'all' | 'upcoming' | 'finished';
 export interface MatchesViewProps {
   data: UseFootballResult;
   onOpenMatch: (id: string) => void;
-  /** The new frame chooses the competition in the page header. */
-  showLeaguePicker?: boolean;
 }
 
-export function MatchesView({ data, onOpenMatch, showLeaguePicker = true }: MatchesViewProps) {
+export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
   const timezone = getUserTimezone();
-  const modules = useModules();
   const { isTeamFavorite, toggleTeam } = useFavorites();
   const scope = `football.matches.${data.selectedLeagueId}.${data.season ?? 'current'}`;
   const [status, setStatus] = useViewState<StatusFilter>(`${scope}.status`, 'all', (v) =>
@@ -61,10 +57,6 @@ export function MatchesView({ data, onOpenMatch, showLeaguePicker = true }: Matc
       });
   }, [data.matches, status, teamFilter, query]);
 
-  const visibleLeagues = useMemo(
-    () => data.leagues.filter((league) => isCompetitionVisible(league.id)),
-    [data.leagues, modules],
-  );
   const seasons = data.seasonsForLeague(data.selectedLeagueId);
 
   return (
@@ -85,31 +77,6 @@ export function MatchesView({ data, onOpenMatch, showLeaguePicker = true }: Matc
       </div>
 
       <div className="filters-bar panel">
-        {showLeaguePicker && (
-          <div className="filter-group">
-            <label htmlFor="league-select" className="muted small">
-              Лига
-            </label>
-            <select
-              id="league-select"
-              value={data.selectedLeagueId}
-              onChange={(e) => data.setSelectedLeague(e.target.value)}
-            >
-              {visibleLeagues.map((l) => {
-                const s =
-                  seasons.length > 0 && l.id === data.selectedLeagueId
-                    ? (data.season ?? l.season)
-                    : l.season;
-                return (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                    {s ? ` · ${s}` : ''}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        )}
         <div className="filter-group">
           <label htmlFor="football-season" className="muted small">
             Сезон

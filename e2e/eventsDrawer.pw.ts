@@ -43,7 +43,6 @@ async function openShell(page: Page, design: string) {
     }
     return route.fallback();
   });
-  await page.addInitScript(() => localStorage.setItem('sportsdesk.preview.shell', '1'));
   await page.goto('/');
   return { rail: page.getByRole('navigation', { name: 'Разделы' }), errors };
 }

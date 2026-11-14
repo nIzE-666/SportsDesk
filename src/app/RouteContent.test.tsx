@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, type ReactNode } from 'react';
+import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { UpdateProvider } from '../features/settings/Updates';
@@ -8,9 +8,7 @@ import { viewState } from '../lib/viewState';
 import { RouteContent } from './RouteContent';
 
 vi.mock('../features/football/FootballView', () => ({
-  FootballView: ({ showLeaguePicker }: { showLeaguePicker?: boolean }) => (
-    <div data-testid="football-view" data-picker={String(showLeaguePicker)} />
-  ),
+  FootballView: () => <div data-testid="football-view" />,
 }));
 
 let host: HTMLDivElement, root: Root;
@@ -24,16 +22,7 @@ const props = {
   onLeagueChange: () => {},
   onOpenMatch: () => {},
   onOpenWeekend: () => {},
-  onBack: () => {},
 };
-
-async function renderContent(newFrame: boolean) {
-  const content: ReactNode = <RouteContent {...props} newFrame={newFrame} />;
-  await act(async () => root.render(<UpdateProvider>{content}</UpdateProvider>));
-  await act(async () => {
-    await vi.dynamicImportSettled();
-  });
-}
 
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -50,16 +39,16 @@ afterEach(async () => {
   host.remove();
 });
 
-it('lets the old frame keep the football screen pickers', async () => {
-  await renderContent(false);
-  expect(host.querySelector('[data-testid="football-view"]')?.getAttribute('data-picker')).toBe(
-    'true',
+it('opens the football screen without its own competition picker', async () => {
+  await act(async () =>
+    root.render(
+      <UpdateProvider>
+        <RouteContent {...props} />
+      </UpdateProvider>,
+    ),
   );
-});
-
-it('hides the football screen pickers in the new frame', async () => {
-  await renderContent(true);
-  expect(host.querySelector('[data-testid="football-view"]')?.getAttribute('data-picker')).toBe(
-    'false',
-  );
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
+  expect(host.querySelector('[data-testid="football-view"]')).not.toBeNull();
 });

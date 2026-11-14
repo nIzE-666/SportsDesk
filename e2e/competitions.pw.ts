@@ -11,7 +11,6 @@ async function openFootball(
   await setupVisualFixture(page, 'classic', 'dark');
   await page.addInitScript(
     ({ modules, saved }) => {
-      localStorage.setItem('sportsdesk.preview.shell', '1');
       if (modules)
         localStorage.setItem('sportsdesk.modules', JSON.stringify({ version: 1, modules }));
       if (saved)
@@ -107,15 +106,4 @@ test('the competition accent belongs to football pages and the rail stays neutra
 
   await rail.getByRole('button', { name: 'Сегодня', exact: true }).click();
   await expect(root).toHaveAttribute('data-theme', 'neutral');
-});
-
-test('the old frame keeps the league select on «Матчи»', async ({ page }) => {
-  await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'classic', 'dark');
-  await page.addInitScript(() => localStorage.setItem('sportsdesk.preview.shell', '0'));
-  await page.goto('/');
-  await page.locator('aside.sidebar').getByTitle('Матчи', { exact: true }).click();
-  await expect(page.locator('.matches-view')).toBeVisible();
-  await expect(page.locator('#league-select')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Premier League', exact: true })).toHaveCount(0);
 });

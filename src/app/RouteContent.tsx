@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import ConnectivityBanner from '../components/ConnectivityBanner';
 import { PageFrame } from '../components/PageFrame';
 import { SectionBoundary } from '../components/SectionBoundary';
@@ -26,9 +26,6 @@ import type { Navigate } from './frame';
 import { viewState } from '../lib/viewState';
 import { resolveMyTab } from '../features/my/myTabs';
 
-const OfflineView = lazy(() =>
-  import('../features/offline/OfflineView').then((m) => ({ default: m.OfflineView })),
-);
 const FootballView = lazy(() =>
   import('../features/football/FootballView').then((m) => ({ default: m.FootballView })),
 );
@@ -62,20 +59,9 @@ interface RouteContentProps {
   onLeagueChange: (id: string) => void;
   onOpenMatch: (matchId: string, eventLeague?: string) => void;
   onOpenWeekend: (season: string | number, round: string | number) => void;
-  onBack: () => void;
-  /** The legacy frame shows its breadcrumb between the update banner and the screen. */
-  contentHeader?: ReactNode;
-  /** The legacy frame keeps its «Вернуться к спорту» button on service pages. */
-  auxiliaryBack?: ReactNode;
-  /** The current frame has no tabs in its header, so «Моё» draws its own. */
-  showMyTabs?: boolean;
-  /** The new frame has one competition switcher in the header, so screens hide their own. */
-  newFrame?: boolean;
-  /** The legacy frame has no header tabs, so «Сегодня» shows its own mode switch. */
-  showTodayModeSwitch?: boolean;
 }
 
-/** One route-to-screen mapping shared by the current frame and the new shell. */
+/** One route-to-screen mapping of the five-section frame. */
 export function RouteContent({
   route,
   sport,
@@ -85,12 +71,6 @@ export function RouteContent({
   onLeagueChange,
   onOpenMatch,
   onOpenWeekend,
-  onBack,
-  contentHeader,
-  auxiliaryBack,
-  showMyTabs = false,
-  newFrame,
-  showTodayModeSwitch = false,
 }: RouteContentProps) {
   const competitionId =
     route.kind === 'football' || route.kind === 'football-match' ? route.competitionId : leagueId;
@@ -114,8 +94,7 @@ export function RouteContent({
     route.kind === 'watch' ||
     route.kind === 'settings' ||
     route.kind === 'events' ||
-    route.kind === 'my' ||
-    route.kind === 'offline';
+    route.kind === 'my';
 
   const setF1Tab = (tab: F1Tab) => {
     rememberAnalysisMode(tab);
@@ -137,8 +116,7 @@ export function RouteContent({
             : route.kind === 'settings' ||
                 route.kind === 'watch' ||
                 route.kind === 'events' ||
-                route.kind === 'my' ||
-                route.kind === 'offline'
+                route.kind === 'my'
               ? []
               : sport === 'f1'
                 ? ['jolpica', 'openf1']
@@ -146,14 +124,12 @@ export function RouteContent({
         }
       />
       <UpdateNotice />
-      {contentHeader}
       <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
         {!auxiliary && route.kind === 'today' && (
           <SectionBoundary name="Сегодня" resetKey={`today.${route.mode ?? 'today'}`}>
             <TodayView
               mode={route.mode ?? 'today'}
               onModeChange={(mode) => onNavigate({ kind: 'today', mode })}
-              showModeSwitch={showTodayModeSwitch}
               onOpenMatch={onOpenMatch}
               onOpenWeekend={(race) => onOpenWeekend(race.season, race.round)}
               onOpenTeam={(id, _name, teamLeagueId) => {
@@ -177,29 +153,18 @@ export function RouteContent({
               <FootballView
                 leagueId={competitionId}
                 onLeagueChange={onLeagueChange}
-                showLeaguePicker={!newFrame}
                 section={route.kind === 'football-match' ? 'matches' : leagueTab}
                 selectedTeamId={
                   route.kind === 'football' && route.tab === 'team' ? route.teamId : undefined
                 }
                 matchId={route.kind === 'football-match' ? route.matchId : null}
                 onOpenMatch={onOpenMatch}
-                onBackFromMatch={onBack}
                 onOpenTeam={(id, _name, teamLeagueId) => {
                   const teamLeague = isLeagueId(teamLeagueId) ? teamLeagueId : competitionId;
                   onNavigate(
                     { kind: 'football', competitionId: teamLeague, tab: 'team', teamId: id },
                     { leagueId: teamLeague },
                   );
-                }}
-                onNavigate={(section) => {
-                  if (section === 'dashboard') onNavigate({ kind: 'today', mode: 'today' });
-                  else
-                    onNavigate({
-                      kind: 'football',
-                      competitionId: competition === 'league' ? competitionId : leagueId,
-                      tab: section,
-                    });
                 }}
               />
             </SectionBoundary>
@@ -231,15 +196,11 @@ export function RouteContent({
                 : route.kind
             }
           >
-            {auxiliaryBack}
             {route.kind === 'watch' ? (
               <WatchView intent={route.intent} requestedChannelId={route.channelId} />
-            ) : route.kind === 'offline' ? (
-              <OfflineView />
             ) : route.kind === 'my' ? (
               <MyView
                 tab={myTab}
-                showTabs={showMyTabs}
                 onTabChange={(tab) => onNavigate({ kind: 'my', tab })}
                 onOpenMatch={onOpenMatch}
                 onOpenWeekend={onOpenWeekend}

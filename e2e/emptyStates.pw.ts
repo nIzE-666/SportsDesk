@@ -17,6 +17,27 @@ async function shoot(page: Page, testInfo: TestInfo, name: string) {
 }
 const noOverflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+const rail = (page: Page) => page.getByRole('navigation', { name: 'Разделы' });
+const section = (page: Page, name: string) =>
+  rail(page).getByRole('button', { name, exact: true }).click();
+const headerTab = (page: Page, name: string) =>
+  page.locator('.shell-tabs').getByRole('tab', { name, exact: true }).click();
+const openDiaryPage = async (page: Page) => {
+  await section(page, 'Моё');
+  await headerTab(page, 'Дневник');
+  await expect(page.locator('.diary-view')).toBeVisible();
+};
+const openPlannerPage = async (page: Page) => {
+  await section(page, 'Сегодня');
+  await headerTab(page, 'Мой план');
+};
+const openSettingsData = async (page: Page) => {
+  await section(page, 'Настройки');
+  await page
+    .getByRole('navigation', { name: 'Категории настроек' })
+    .getByRole('button', { name: 'Данные', exact: true })
+    .click();
+};
 
 test('empty diary and event center keep useful actions without empty filters', async ({
   page,
@@ -28,14 +49,14 @@ test('empty diary and event center keep useful actions without empty filters', a
     await route.fulfill({ json: body.command === 'event_center_list' ? [] : {} });
   });
   await page.goto('/');
-  await page.locator('aside').getByTitle('Дневник просмотра').click();
+  await openDiaryPage(page);
   await expect(page.getByText('Сохраните первый просмотр')).toBeVisible();
   await expect(page.locator('.diary-filter-panel')).toHaveCount(0);
   await expect(page.locator('.diary-summary')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Добавить просмотр вручную' })).toBeVisible();
   await expect(page.locator('.diary-import')).toHaveCount(1);
   await page.screenshot({ path: testInfo.outputPath('empty-diary.png') });
-  await page.getByRole('button', { name: 'Центр событий' }).click();
+  await rail(page).getByRole('button', { name: 'События', exact: true }).click();
   await expect(page.getByText('Пока нет событий')).toBeVisible();
   await expect(page.locator('.event-toolbar')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Обновить', exact: true }).first()).toBeVisible();
@@ -64,7 +85,7 @@ test('empty planner hides filters while retaining a way to refresh', async ({ pa
     });
   });
   await page.goto('/');
-  await page.locator('aside').getByTitle('Мой спортивный вечер').click();
+  await openPlannerPage(page);
   await expect(
     page.getByText('Когда расписание появится, события будут показаны здесь.'),
   ).toBeVisible();
@@ -100,8 +121,7 @@ for (const design of ['classic', 'broadcast'])
           entries,
         );
         await page.reload();
-        await page.locator('aside').getByTitle('Дневник просмотра').click();
-        await expect(page.locator('.diary-view')).toBeVisible();
+        await openDiaryPage(page);
       };
       const diary = page.locator('.diary-view');
 
@@ -218,7 +238,7 @@ for (const design of ['classic', 'broadcast'])
         plan.matches = matches;
         plan.races = races;
         await page.reload();
-        await page.locator('aside').getByTitle('Мой спортивный вечер').click();
+        await openPlannerPage(page);
         await expect(planner).toBeVisible();
       };
       const period = planner.getByRole('group', { name: 'Период плана' });
@@ -330,7 +350,7 @@ for (const design of ['classic', 'broadcast'])
         state.events = events;
         state.catchUp = catchUp;
         await page.reload();
-        await page.getByRole('button', { name: 'Центр событий' }).click();
+        await rail(page).getByRole('button', { name: 'События', exact: true }).click();
         await expect(center).toBeVisible();
       };
       const filters = center.getByRole('group', { name: 'Фильтр событий' });
@@ -545,7 +565,8 @@ for (const design of ['classic', 'broadcast'])
       const openPlayers = async (saved: unknown[]) => {
         await seedFavorites(page, [], saved);
         await page.reload();
-        await page.locator('aside').getByTitle('Игроки', { exact: true }).click();
+        await section(page, 'Футбол');
+        await headerTab(page, 'Игроки');
         await expect(players).toBeVisible();
       };
 
@@ -605,7 +626,8 @@ for (const design of ['classic', 'broadcast'])
       const openClubs = async (ids: string[]) => {
         await seedFavorites(page, ids, []);
         await page.reload();
-        await page.locator('aside').getByTitle('Клубы', { exact: true }).click();
+        await section(page, 'Футбол');
+        await headerTab(page, 'Клубы');
         await expect(view.locator('h1')).toHaveText('Клубы');
       };
       const picker = view.locator('#team-picker-select');
@@ -660,53 +682,82 @@ for (const design of ['classic', 'broadcast'])
       await page.setViewportSize({ width, height: 900 });
       const state = { upcoming: false };
       const errors = await clubFixture(page, design, nextMatches, state);
+      await page.route('**/bridge/api**', async (route) => {
+        const url = new URL(route.request().url());
+        const source = url.searchParams.get('source');
+        if (source === 'livescore')
+          return route.fulfill({
+            json: {
+              payload: { Stages: [] },
+              source,
+              stale: false,
+              fetchedAt: '2026-10-25T00:00:00Z',
+            },
+          });
+        if (source === 'jolpica')
+          return route.fulfill({
+            json: {
+              payload: { MRData: { RaceTable: { Races: [] } } },
+              source,
+              stale: false,
+              fetchedAt: '2026-10-25T00:00:00Z',
+            },
+          });
+        return route.fallback();
+      });
       await page.goto('/');
-      const home = page.locator('.football-dashboard');
+      const home = page.locator('.today-view');
       const openHome = async (teamIds: string[], upcomingToo: boolean) => {
         state.upcoming = upcomingToo;
         await page.evaluate(
-          ([ids, dismissed]) =>
+          ([ids, dismissed]) => {
             localStorage.setItem(
               'sportsdesk.football.favorites.teams',
               JSON.stringify({ ids, seeded: [], seededDefault: true, dismissed }),
-            ),
+            );
+            localStorage.setItem('sportsdesk.f1.favTeams', '[]');
+            localStorage.setItem('sportsdesk.f1.favDrivers', '[]');
+          },
           [teamIds, defaultClubNames] as const,
         );
         await page.reload();
         await expect(home).toBeVisible();
-        await expect(home.locator('.state-block, .game-list button').first()).toBeVisible();
       };
 
-      // Nothing ahead and no tracked club: no tiles, no clubs block, each column says why once.
+      // Nothing ahead and no tracked club: empty blocks are not rendered at all.
       await openHome([], false);
-      await expect(home.locator('.insights-row')).toHaveCount(0);
-      await expect(home.locator('.favorite-section')).toHaveCount(0);
-      await expect(home.locator('.state-block')).toHaveCount(2);
+      await expect(home.locator('[data-block]')).toHaveCount(0);
+      await expect(home.locator('.state-block')).toHaveCount(0);
       await shoot(page, testInfo, `${design}-${width}-home-nothing`);
 
-      // A tracked club and matches ahead: all three tiles, one club tile.
+      // A tracked club and matches ahead: the blocks with values, one club tile.
       await openHome(['club-2'], true);
-      await expect(home.locator('.insights-row > div')).toHaveCount(3);
-      await expect(home.locator('.insights-row')).toContainText('1клуб под присмотром');
-      await expect(home.locator('.insights-row')).toContainText('2матча Premier League впереди');
-      await expect(home.locator('.insights-row')).toContainText('Birchwood United — Cobalt Rovers');
-      await expect(home.locator('.favorite-section .club-tile')).toHaveCount(1);
+      const withClub = home.locator('[data-block]');
+      await expect(withClub).toHaveCount(2);
+      await expect(home.locator('[data-block="teams"] .today-team-tile')).toHaveCount(1);
+      await expect(home.locator('[data-block="teams"]')).toContainText('Birchwood United');
+      await expect(home.locator('[data-block="upcoming"]')).toContainText(
+        'Birchwood United — Cobalt Rovers',
+      );
       await expect(home.locator('.state-block')).toHaveCount(0);
       await shoot(page, testInfo, `${design}-${width}-home-tracked`);
 
-      // Matches ahead but no tracked club: the schedule tile only.
+      // Matches ahead but no tracked club: no empty schedule block either.
       await openHome([], true);
-      await expect(home.locator('.insights-row > div')).toHaveCount(1);
-      await expect(home.locator('.insights-row')).toContainText('2матча Premier League впереди');
-      await expect(home.locator('.favorite-section')).toHaveCount(0);
+      await expect(home.locator('[data-block]')).toHaveCount(0);
       await shoot(page, testInfo, `${design}-${width}-home-schedule-only`);
 
       await openHome(
         clubs.slice(0, 10).map((club) => club.id),
         true,
       );
-      await expect(home.locator('.favorite-section .club-tile')).toHaveCount(10);
-      await expect(home.locator('.insights-row > div')).toHaveCount(3);
+      await expect(home.locator('[data-block="teams"] .today-team-tile')).toHaveCount(10);
+      await expect(home.locator('[data-block]')).toHaveCount(2);
+      await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
+      await expect(home.getByRole('heading', { name: 'Мои команды', exact: true })).toBeVisible();
+      await expect(home.getByRole('heading', { name: 'Ближайшее', exact: true })).toBeVisible();
+      await expect(page.locator('.mode-hero')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /баннер/ })).toHaveCount(0);
       await shoot(page, testInfo, `${design}-${width}-home-ten`);
       expect(await noOverflow(page)).toBe(true);
       expect(errors).toEqual([]);
@@ -751,8 +802,9 @@ for (const design of ['classic', 'broadcast'])
           { version: 1, paused: false, jobs },
         );
         await page.reload();
-        await page.locator('aside').getByTitle('Офлайн-сезоны', { exact: true }).click();
-        await expect(view.locator('h1')).toHaveText('Офлайн-сезоны');
+        await openSettingsData(page);
+        await expect(view).toBeVisible();
+        await expect(page.locator('.settings-offline')).toContainText('Офлайн-сезоны');
       };
       const queue = view.getByRole('region', { name: 'Очередь загрузки' });
 
@@ -859,11 +911,10 @@ for (const design of ['classic', 'broadcast'])
       const openChampions = async (matches: unknown[]) => {
         season.matches = matches;
         await page.reload();
-        await page.getByRole('tab', { name: 'Лига чемпионов', exact: true }).click();
-        await page
-          .locator('aside.sidebar')
-          .getByTitle('Европейский вечер', { exact: true })
-          .click();
+        await section(page, 'Футбол');
+        await page.locator('.competition-switcher-trigger').click();
+        await page.getByRole('menuitemradio', { name: 'Лига чемпионов' }).click();
+        await headerTab(page, 'Обзор');
         await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
       };
       const tiles = page.locator('.ucl-insights > div');

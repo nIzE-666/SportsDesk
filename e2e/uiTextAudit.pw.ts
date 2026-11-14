@@ -8,9 +8,22 @@ import { setupVisualFixture } from './uiFixture';
 // с шестью словами и больше: итоговая строка файла нужна для цели плана «не больше 80».
 // Области: 29 состояний экранов; вкладки матча (завершённый матч без подробностей, с подробностями и ещё не
 // начавшийся); мастер первого запуска; мини-окно. Последняя строка файла — общий итог по всем областям.
-const aside = (page: Page, title: string) =>
-  page.locator('aside.sidebar').getByTitle(title, { exact: true }).click();
-const sportTab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true }).click();
+const rail = (page: Page) => page.getByRole('navigation', { name: 'Разделы' });
+const section = (page: Page, name: string) =>
+  rail(page).getByRole('button', { name, exact: true }).click();
+const tab = (page: Page, name: string) =>
+  page.locator('.shell-tabs').getByRole('tab', { name, exact: true }).click();
+const competition = async (page: Page, name: string) => {
+  await section(page, 'Футбол');
+  await page.locator('.competition-switcher-trigger').click();
+  await page.getByRole('menuitemradio', { name }).click();
+};
+const openMatch = async (page: Page, id: string) => {
+  await section(page, 'Футбол');
+  await tab(page, 'Матчи');
+  await page.locator(`[data-match-id="${id}"] .fixture-club`).first().click();
+  await expect(page.locator('.md-score')).toBeVisible();
+};
 
 type Row = { tag: string; text: string; words: number };
 type Section = { group: string; name: string; count: number; words: number };
@@ -64,7 +77,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
     localStorage.setItem('sportsdesk.football.catalogue', JSON.stringify(teams));
   });
   await page.goto('/');
-  await expect(page.locator('main.content')).toBeVisible();
+  await expect(page.locator('.today-view')).toBeVisible();
   const out: string[] = [];
   const sections: Section[] = [];
   /** Тексты, уже показанные в группе (шапка и действия матча повторяются на каждой вкладке). */
@@ -96,59 +109,58 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
     out.push(`\n=== ${group}: ${name} ===`, ...lines);
   }
 
-  await dump('Мой обзор');
-  const football = ['Матчи', 'Таблицы', 'Счёт и события', 'Игроки', 'Клубы'];
+  await dump('Сегодня');
+  const football = ['Матчи', 'Таблица', 'Сейчас идут', 'Игроки', 'Клубы'];
   for (const title of football) {
-    await aside(page, title);
+    await section(page, 'Футбол');
+    await tab(page, title);
     await dump(title);
   }
-  await aside(page, 'Arsenal');
+  await section(page, 'Футбол');
+  await tab(page, 'Клубы');
+  await page.locator('.team-favorites').getByRole('button', { name: 'Arsenal' }).click();
   await dump('Клуб: Arsenal');
-  await sportTab(page, 'Формула 1');
-  for (const title of [
-    'Паддок',
-    'Календарь',
-    'Зачёты',
-    'Сравнение пилотов',
-    'Темп по кругам',
-    'Центр сессии',
-  ]) {
-    await aside(page, title);
+  await section(page, 'Формула 1');
+  for (const title of ['Обзор', 'Календарь', 'Зачёты']) {
+    await tab(page, title);
     await dump(`F1: ${title}`);
   }
-  await sportTab(page, 'Лига чемпионов');
-  for (const title of [
-    'Европейский вечер',
-    'Общая таблица',
-    'Сетка плей-офф',
-    'Все матчи',
-    'Игроки и статистика',
-  ]) {
-    await aside(page, title);
+  await tab(page, 'Анализ');
+  const modes = page.getByRole('tablist', { name: 'Режим анализа' });
+  for (const title of ['Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {
+    await modes.getByRole('tab', { name: title, exact: true }).click();
+    await dump(`F1: ${title}`);
+  }
+  await competition(page, 'Лига чемпионов');
+  for (const title of ['Обзор', 'Таблица', 'Сетка', 'Матчи', 'Игроки']) {
+    await tab(page, title);
     await dump(`ЛЧ: ${title}`);
   }
-  await sportTab(page, 'Кубки');
-  for (const title of ['Обзор', 'Таблица', 'Сетка плей-офф', 'Все матчи']) {
-    await aside(page, title);
+  await competition(page, 'Лига Европы');
+  for (const title of ['Обзор', 'Таблица', 'Сетка', 'Матчи']) {
+    await tab(page, title);
     await dump(`Кубки: ${title}`);
   }
-  await aside(page, 'Мой спортивный вечер');
+  await section(page, 'Сегодня');
+  await tab(page, 'Мой план');
   await dump('Планировщик');
-  await aside(page, 'Дневник просмотра');
+  await section(page, 'Моё');
+  await tab(page, 'Дневник');
   await dump('Дневник');
-  await aside(page, 'Офлайн-сезоны');
-  await dump('Офлайн-сезоны');
+  await section(page, 'Настройки');
   await page
-    .getByRole('button', { name: 'Игры', exact: true })
-    .first()
-    .click()
-    .catch(() => {});
+    .getByRole('navigation', { name: 'Категории настроек' })
+    .getByRole('button', { name: 'Данные', exact: true })
+    .click();
+  await dump('Офлайн-сезоны');
+  await section(page, 'Моё');
+  await tab(page, 'Игры и прогнозы');
   await dump('Игры');
-  await page.getByRole('button', { name: 'Смотреть', exact: true }).first().click();
+  await section(page, 'Смотреть');
   await dump('Смотреть');
-  await page.getByRole('button', { name: 'Центр событий', exact: true }).first().click();
-  await dump('Центр событий');
-  await page.getByRole('button', { name: 'Настройки', exact: true }).first().click();
+  await rail(page).getByRole('button', { name: 'События', exact: true }).click();
+  await dump('Центр событий', { root: '.events-drawer' });
+  await rail(page).getByRole('button', { name: 'Настройки', exact: true }).click();
   const settingsNav = page.getByRole('navigation', { name: 'Категории настроек' });
   for (const category of [
     'Основное',
@@ -185,6 +197,8 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
     );
     await page.evaluate(() => sessionStorage.clear());
     await page.goto('/');
+    await expect(page.locator('.today-view')).toBeVisible();
+    await openMatch(page, 'test-match');
     await expect(page.locator('.md-score')).toContainText('2 : 1');
   }
   await openFinishedMatch();
@@ -213,16 +227,9 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   await dump('Форма записи о просмотре', { group: 'Матч (с подробностями)', dedupe: true });
 
   enabled.upcoming = true;
-  await page.addInitScript(
-    ({ matchId }) =>
-      sessionStorage.setItem(
-        'sportsdesk.view.navigation.football',
-        JSON.stringify({ kind: 'football-match', matchId }),
-      ),
-    { matchId: upcoming.id },
-  );
   await page.evaluate(() => sessionStorage.clear());
   await page.goto('/');
+  await openMatch(page, upcoming.id);
   await expect(page.locator('.md-score')).toBeVisible();
   const prediction = page.getByRole('button', { name: /Мой прогноз/u });
   if (await prediction.count()) await prediction.click();
@@ -230,7 +237,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
 
   // Мастер первого запуска открывается вручную, как из настроек.
   await page.goto('/');
-  await expect(page.locator('.md-score')).toBeVisible();
+  await expect(page.locator('.today-view')).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event('sportsdesk-open-onboarding')));
   const wizard = '[role="dialog"][aria-label="Настройка SportsDesk"]';
   for (let step = 1; step <= 8; step += 1) {

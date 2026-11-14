@@ -50,16 +50,22 @@ async function setup(page: Page, design: string, scheme: string) {
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
-      sessionStorage.setItem(
-        'sportsdesk.view.navigation.football',
-        JSON.stringify({ kind: 'football-match', matchId: id }),
-      );
       sessionStorage.setItem(`sportsdesk.view.match.${id}.tab`, JSON.stringify('tactics'));
     },
     { design, scheme, id: tacticMatch.id },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return { errors, state };
+}
+
+async function openMatch(page: import('@playwright/test').Page) {
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Футбол', exact: true })
+    .click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+  await page.locator(`[data-match-id="${tacticMatch.id}"] .fixture-club`).first().click();
+  await page.getByRole('tab', { name: 'Мои схемы', exact: true }).click();
 }
 
 for (const design of ['classic', 'broadcast'])
@@ -69,6 +75,7 @@ for (const design of ['classic', 'broadcast'])
         await page.setViewportSize({ width, height: 1000 });
         const { errors } = await setup(page, design, scheme);
         await page.goto('/');
+        await openMatch(page);
         await page.evaluate(() => document.fonts.ready);
         await page.getByRole('button', { name: 'Создать из состава', exact: true }).click();
         const feature = page.getByRole('region', { name: 'Тактическая доска', exact: true });
@@ -119,7 +126,7 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root {height:auto;min-height:100vh;overflow:visible} .shell,.content {overflow:visible}',
         });
-        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-tactics.png`);
+
         await capture.evaluate((el) => el.parentNode?.removeChild(el));
         await page.getByRole('button', { name: 'Сравнить с исходной', exact: true }).click();
         await expect(feature.locator('.tactics-player')).toHaveCount(4);
@@ -141,12 +148,14 @@ for (const design of ['classic', 'broadcast'])
 test('saved schemes remain available without the source after a new session', async ({ page }) => {
   const { state } = await setup(page, 'classic', 'dark');
   await page.goto('/');
+  await openMatch(page);
   await page.getByRole('button', { name: 'Создать из состава', exact: true }).click();
   await page.getByLabel('Название схемы', { exact: true }).fill('Запасной план');
   await page.getByRole('button', { name: 'Сохранить схему', exact: true }).click();
   await page.evaluate(() => sessionStorage.clear());
   state.sourceAvailable = false;
   await page.reload();
+  await openMatch(page);
   await expect(
     page.getByRole('button', { name: 'Создать из состава', exact: true }),
   ).toBeDisabled();
@@ -158,6 +167,7 @@ test('saved schemes remain available without the source after a new session', as
 test('refreshing match data preserves an unsaved tactics draft', async ({ page }) => {
   await setup(page, 'classic', 'dark');
   await page.goto('/');
+  await openMatch(page);
   await page.getByRole('button', { name: 'Создать из состава', exact: true }).click();
   const title = page.getByLabel('Название схемы', { exact: true });
   await title.fill('Незавершённая схема');

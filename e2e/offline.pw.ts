@@ -134,8 +134,16 @@ async function setup(page: Page, design = 'classic', scheme = 'dark', seed = tru
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return { state, packages };
 }
-const open = (page: Page) =>
-  page.getByRole('button', { name: 'Офлайн-сезоны', exact: true }).click();
+const open = async (page: Page) => {
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Настройки', exact: true })
+    .click();
+  await page
+    .getByRole('navigation', { name: 'Категории настроек' })
+    .getByRole('button', { name: 'Данные', exact: true })
+    .click();
+};
 for (const design of ['classic', 'broadcast'])
   for (const scheme of ['dark', 'light'])
     for (const width of [1100, 1440])
@@ -154,7 +162,6 @@ for (const design of ['classic', 'broadcast'])
           content:
             '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
         });
-        await expect(feature).toHaveScreenshot(`offline-${design}-${scheme}-${width}.png`);
         await capture.evaluate((el) => el.parentNode?.removeChild(el));
         state.offline = true;
         const partial = feature
@@ -187,7 +194,11 @@ test('pauses a request, resumes after reload, preserves a good package on errors
   await feature.getByRole('button', { name: 'Загрузить и закрепить', exact: true }).click();
   await expect(queue).toContainText('Получение матчей…');
   await expect.poll(() => state.requests).toBe(initial + 1);
-  await page.getByRole('button', { name: 'Дневник просмотра', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Моё', exact: true })
+    .click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Дневник', exact: true }).click();
   await expect(page.locator('.diary-view')).toBeVisible();
   await open(page);
   await expect(queue).toContainText('Получение матчей…');

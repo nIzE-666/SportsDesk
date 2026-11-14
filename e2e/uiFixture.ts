@@ -214,8 +214,14 @@ export async function setupVisualFixture(
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
       sessionStorage.setItem(
-        'sportsdesk.view.navigation.football',
-        JSON.stringify({ kind: 'football', section: 'dashboard' }),
+        'sportsdesk.view.navigation2.football',
+        JSON.stringify({
+          section: 'football',
+          route: { kind: 'football', competitionId: 'l_4WFCIZ', tab: 'matches' },
+          sport: 'football',
+          leagueId: 'l_4WFCIZ',
+          cupId: 'l_38d9HA',
+        }),
       );
       sessionStorage.setItem('sportsdesk.view.navigation.f1.tab', JSON.stringify('calendar'));
       sessionStorage.setItem('sportsdesk.view.f1.year', JSON.stringify(2026));

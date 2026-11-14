@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { viewState } from '../../lib/viewState';
 import { PageFrame } from '../../components/PageFrame';
 import { Calendar } from './Calendar';
 import './f1.css';
 import { DriverPortraitsProvider } from './DriverPortraits';
-import { F1_TABS, f1TabFor, type TabId } from './f1Tabs';
+import { f1TabFor, type TabId } from './f1Tabs';
 import { F1Analysis } from './F1Analysis';
 import { Overview } from './Overview';
 import { SeasonProvider, useSeason } from './SeasonContext';
@@ -13,19 +12,8 @@ import { SourceRefresh, SourceSummary, SourceSummaryProvider } from './SourceSum
 
 export type { TabId } from './f1Tabs';
 
-function F1Shell({
-  tab: controlled,
-  onTabChange,
-}: {
-  tab?: TabId;
-  onTabChange?: (tab: TabId) => void;
-}) {
-  const [localTab, setLocalTab] = useState<TabId>('overview');
-  const tab = controlled ?? localTab;
-  const setTab = (next: TabId) => {
-    setLocalTab(next);
-    onTabChange?.(next);
-  };
+function F1Shell({ tab, onTabChange }: { tab: TabId; onTabChange: (tab: TabId) => void }) {
+  const setTab = (next: TabId) => onTabChange(next);
   const { year, setYear, years } = useSeason();
   const activeTab = f1TabFor(tab);
 
@@ -36,27 +24,6 @@ function F1Shell({
           <div className="broadcast-f1-heading">
             <h1>{tab === 'overview' ? 'Ваш гоночный уикенд' : activeTab.label}</h1>
           </div>
-          {!onTabChange && (
-            <div className="f1-tabs f1-tabs-inline" role="tablist" aria-label="Разделы Формулы-1">
-              {F1_TABS.map((entry) => {
-                const Icon = entry.icon;
-                const active = activeTab.id === entry.id;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    className="f1-tab"
-                    onClick={() => setTab(entry.tabs[0] ?? 'overview')}
-                  >
-                    <Icon size={14} aria-hidden="true" />
-                    {entry.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
           <label className="f1-muted f1-season">
             Сезон
             <select
@@ -96,7 +63,7 @@ function F1Shell({
   );
 }
 
-export function F1View(props: { tab?: TabId; onTabChange?: (tab: TabId) => void } = {}) {
+export function F1View(props: { tab: TabId; onTabChange: (tab: TabId) => void }) {
   return (
     <SeasonProvider>
       <DriverPortraitsProvider>

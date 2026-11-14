@@ -70,7 +70,7 @@ const catchUp = {
   ],
 };
 
-async function openToday(page: Page, preview: boolean) {
+async function openToday(page: Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
   const errors = await setupVisualFixture(page, 'classic', 'dark', true);
   await page.route('**/bridge/command', async (route) => {
@@ -108,22 +108,18 @@ async function openToday(page: Page, preview: boolean) {
       });
     return route.fallback();
   });
-  if (preview)
-    await page.addInitScript(() => localStorage.setItem('sportsdesk.preview.shell', '1'));
   await page.goto('/');
   return errors;
 }
 
-test('new frame: four content blocks, mode tabs, a club tile and the live source choice', async ({
-  page,
-}) => {
+test('four content blocks, mode tabs, a club tile and the live source choice', async ({ page }) => {
   const sportScoreRequests: string[] = [];
   page.on('request', (request) => {
     const url = request.url();
     if (url.includes('/bridge/api') && url.includes('source=sportscore'))
       sportScoreRequests.push(url);
   });
-  const errors = await openToday(page, true);
+  const errors = await openToday(page);
 
   await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
   await expect(page.locator('.today-view')).toBeVisible();
@@ -184,15 +180,4 @@ test('new frame: four content blocks, mode tabs, a club tile and the live source
 
   expect(sportScoreRequests).toEqual([]);
   expect(errors).toEqual([]);
-});
-
-test('old frame: «Сегодня» shows its own mode switch', async ({ page }) => {
-  await openToday(page, false);
-  const switcher = page.locator('.today-mode-switch');
-  await expect(switcher).toBeVisible();
-  await expect(switcher.getByRole('tab')).toHaveCount(3);
-  await switcher.getByRole('tab', { name: 'Неделя', exact: true }).click();
-  await expect(page.locator('.today-week')).toBeVisible();
-  await switcher.getByRole('tab', { name: 'Мой план', exact: true }).click();
-  await expect(page.locator('.viewing-planner')).toBeVisible();
 });

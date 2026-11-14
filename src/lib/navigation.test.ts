@@ -14,7 +14,6 @@ import {
   competitionKind,
   defaultFootballTab,
   defaultRouteOf,
-  homeRoute,
   isSectionRoute,
   isValidFootballTab,
   isValidShellRoute,
@@ -24,7 +23,6 @@ import {
   migrateLocation,
   migrateRoute,
   migrateSport,
-  rememberedLegacySport,
   rememberedLocation,
   sectionOfRoute,
   startLocation,
@@ -58,7 +56,6 @@ const validRoutes: ShellRoute[] = [
   { kind: 'settings' },
   { kind: 'settings', category: 'data' },
   { kind: 'events' },
-  { kind: 'offline' },
 ];
 
 it('validates every route kind and keeps tabs tied to the competition kind', () => {
@@ -155,7 +152,7 @@ it('migrates every old route shape to the new union idempotently', () => {
   expect(migrateRoute({ kind: 'events' })).toEqual({ kind: 'events' });
   expect(migrateRoute({ kind: 'games' })).toEqual({ kind: 'my', tab: 'games' });
   expect(migrateRoute({ kind: 'diary' })).toEqual({ kind: 'my', tab: 'diary' });
-  expect(migrateRoute({ kind: 'offline' })).toEqual({ kind: 'offline' });
+  expect(migrateRoute({ kind: 'offline' })).toEqual({ kind: 'settings', category: 'data' });
 
   const old = [
     { kind: 'football', section: 'dashboard' },
@@ -168,6 +165,7 @@ it('migrates every old route shape to the new union idempotently', () => {
     { kind: 'planner' },
     { kind: 'games' },
     { kind: 'diary' },
+    { kind: 'offline' },
   ];
   for (const route of old) {
     const migrated = migrateRoute(route)!;
@@ -250,24 +248,10 @@ it('exposes section, home and start helpers for the new shell', () => {
 
   for (const route of validRoutes) {
     const section = sectionOfRoute(route);
-    if (route.kind === 'settings' || route.kind === 'events' || route.kind === 'offline')
-      expect(section).toBeUndefined();
+    if (route.kind === 'settings' || route.kind === 'events') expect(section).toBeUndefined();
     else expect(section).toBeDefined();
     expect(isSectionRoute(route)).toBe(section !== undefined);
   }
-
-  expect(homeRoute('football', DEFAULT_CUP_ID)).toEqual({ kind: 'today', mode: 'today' });
-  expect(homeRoute('f1', DEFAULT_CUP_ID)).toEqual({ kind: 'f1', tab: 'overview' });
-  expect(homeRoute('ucl', DEFAULT_CUP_ID)).toEqual({
-    kind: 'football',
-    competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'overview',
-  });
-  expect(homeRoute('cup', DEFAULT_CUP_ID)).toEqual({
-    kind: 'football',
-    competitionId: DEFAULT_CUP_ID,
-    tab: 'overview',
-  });
 
   expect(defaultRouteOf('today')).toEqual({ kind: 'today', mode: 'today' });
   expect(defaultRouteOf('football')).toEqual({
@@ -319,39 +303,20 @@ it('remembers the last place per section and migrates old per-sport memories', (
     route: { kind: 'my', tab: 'favorites' },
   });
 
+  // Old per-sport memory is still read when the football section first opens.
   expect(
-    rememberedLegacySport('football', {
-      route: { kind: 'football', section: 'dashboard' },
-    }),
-  ).toMatchObject({ section: 'today', route: { kind: 'today', mode: 'today' } });
-  expect(rememberedLegacySport('ucl', { tab: 'bracket' }, { cupId: DEFAULT_CUP_ID })).toMatchObject(
-    {
-      section: 'football',
-      route: { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'bracket' },
-    },
-  );
-  // The football section key may now hold a cup place; the legacy switch still
-  // returns its own last football place.
-  expect(
-    rememberedLegacySport(
+    rememberedLocation(
       'football',
-      {
-        location: locationForRoute({
-          kind: 'football',
-          competitionId: CHAMPIONS_LEAGUE_ID,
-          tab: 'bracket',
-        }),
-        route: { kind: 'football', section: 'matches' },
-      },
+      { location: { sport: 'ucl', route: { kind: 'ucl', tab: 'bracket' } } },
       { cupId: DEFAULT_CUP_ID },
     ),
   ).toMatchObject({
     section: 'football',
-    route: { kind: 'football', competitionId: DEFAULT_LEAGUE_ID, tab: 'matches' },
+    route: { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'bracket' },
   });
   expect(
-    rememberedLegacySport(
-      'cup',
+    rememberedLocation(
+      'football',
       { location: { sport: 'cup', route: { kind: 'cup', cupId: DEFAULT_CUP_ID, tab: 'table' } } },
       { cupId: DEFAULT_CUP_ID },
     ),

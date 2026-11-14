@@ -9,8 +9,6 @@ import type { JolpicaRace } from './f1/types';
 import { RaceWeekend } from './f1/RaceWeekend';
 import { LivePanel } from './football/LivePanel';
 import { MatchDetailView } from './football/MatchDetailView';
-import { MatchesView } from './football/MatchesView';
-import type { UseFootballResult } from './football/useFootballData';
 import { GamesView } from './games/GamesView';
 
 const transport = vi.hoisted(() => ({ api: vi.fn(), rpc: vi.fn(), isTauriRuntime: () => false }));
@@ -189,47 +187,6 @@ describe('games page modules', () => {
     await flush();
     expect(button('Угадай счёт')).toBeUndefined();
     expect(host?.querySelector('.predictions-game')).toBeNull();
-  });
-});
-
-describe('competition lists inside screens', () => {
-  const data: UseFootballResult = {
-    leagues: [
-      { id: 'l_4WFCIZ', name: 'Premier League', season: '2026/2027', seasons: ['2026/2027'] },
-      { id: 'l_0ALvwF', name: 'Серия A', season: '2026/2027', seasons: ['2026/2027'] },
-    ],
-    leaguesLoading: false,
-    leaguesError: null,
-    selectedLeagueId: 'l_4WFCIZ',
-    setSelectedLeague: vi.fn(),
-    season: '2026/2027',
-    matches: [],
-    matchesLoading: false,
-    matchesError: null,
-    stale: false,
-    fetchedAt: null,
-    reload: vi.fn(),
-    allMatches: [],
-    teams: [],
-    leagueTeams: [],
-    matchesForLeague: () => [],
-    leagueName: (id: string) => (id === 'l_4WFCIZ' ? 'Premier League' : 'Серия A'),
-    seasonsForLeague: () => ['2026/2027'],
-    setSelectedSeason: vi.fn(),
-  };
-
-  it('lists only leagues whose switches are on', async () => {
-    await act(async () => root?.render(<MatchesView data={data} onOpenMatch={() => undefined} />));
-    const leagueSelect = host!.querySelector<HTMLSelectElement>('#league-select')!;
-    expect([...leagueSelect.options].map((option) => option.textContent)).toEqual([
-      'Premier League · 2026/2027',
-      'Серия A · 2026/2027',
-    ]);
-
-    await act(async () => writeModules({ 'league.l_4WFCIZ': false }));
-    expect([...leagueSelect.options].map((option) => option.textContent)).toEqual([
-      'Серия A · 2026/2027',
-    ]);
   });
 });
 

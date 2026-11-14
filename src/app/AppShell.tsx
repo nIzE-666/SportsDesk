@@ -70,10 +70,7 @@ export function AppShell(props: FrameProps) {
     if (route.kind === 'events') navigate(pageRoute);
   };
   const service =
-    pageRoute.kind === 'settings' ||
-    pageRoute.kind === 'events' ||
-    pageRoute.kind === 'offline' ||
-    pageRoute.kind === 'watch';
+    pageRoute.kind === 'settings' || pageRoute.kind === 'events' || pageRoute.kind === 'watch';
   const football = pageRoute.kind === 'football' || pageRoute.kind === 'football-match';
   const competition = football ? competitionKind(pageRoute.competitionId) : undefined;
   const leagueTheme = football
@@ -145,8 +142,6 @@ export function AppShell(props: FrameProps) {
                 onLeagueChange={setLeagueId}
                 onOpenMatch={openFootballMatch}
                 onOpenWeekend={openWeekend}
-                onBack={onBack}
-                newFrame
               />
             </div>
           </main>

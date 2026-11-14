@@ -2,7 +2,6 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { Dashboard } from './Dashboard';
 import { FavoritesProvider } from './FavoritesProvider';
 import { MatchDetailView } from './MatchDetailView';
 import { MatchesView } from './MatchesView';
@@ -282,41 +281,6 @@ it('shows only scheduled and live fixtures and plots the chosen league season', 
     season: '2099',
   });
   expect(host.querySelector('.sa-chart')?.textContent).toContain('6 очков после 2 матчей');
-});
-
-it('reports the calendar events written and fixtures with no date', async () => {
-  localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['home'] }));
-  const fixtures = [
-    makeMatch('timed', 'scheduled', '2099-01-02T12:00:00Z'),
-    { ...makeMatch('day', 'scheduled'), date: '2099-01-03' },
-    makeMatch('unknown', 'scheduled'),
-    makeMatch('cancelled', 'cancelled', '2099-01-05T12:00:00Z'),
-  ];
-  Object.defineProperty(URL, 'createObjectURL', {
-    configurable: true,
-    value: vi.fn(() => 'blob:test'),
-  });
-  Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-  await render(
-    <FavoritesProvider>
-      <Dashboard
-        data={makeData(fixtures)}
-        onOpenMatch={vi.fn()}
-        onOpenTeam={vi.fn()}
-        onSeeAllMatches={vi.fn()}
-      />
-    </FavoritesProvider>,
-  );
-  const button = [...host.querySelectorAll('button')].find((item) =>
-    item.textContent?.includes('Матчи в календарь'),
-  )!;
-  await act(async () => button.click());
-  expect(host.querySelector('.calendar-export-bar')?.textContent).toContain('2 матча');
-  expect(host.querySelector('.calendar-export-bar')?.textContent).toContain('без времени: 1');
-  expect(host.querySelector('.calendar-export-bar')?.textContent).toContain(
-    'без даты, пропущено: 1',
-  );
 });
 
 it('retries the failed match request without navigating back', async () => {

@@ -76,7 +76,6 @@ vi.mock('../lib/bridge', () => ({ rpc: vi.fn(), isTauriRuntime: () => false }));
 
 const TODAY: ShellRoute = { kind: 'today', mode: 'today' };
 const base: Omit<FrameProps, 'route' | 'navigate'> = {
-  sport: 'football',
   leagueId: 'l_4WFCIZ',
   cupId: 'l_38d9HA',
   design: 'classic',
@@ -85,8 +84,6 @@ const base: Omit<FrameProps, 'route' | 'navigate'> = {
   canBack: false,
   onBack: vi.fn(),
   changeSection: vi.fn(),
-  changeSport: vi.fn(),
-  auxiliary: vi.fn(),
   setLeagueId: vi.fn(),
   searchTarget: vi.fn(),
   openFootballMatch: vi.fn(),

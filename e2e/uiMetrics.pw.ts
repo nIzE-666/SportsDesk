@@ -7,7 +7,7 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
   const output = process.env.SPORTSDESK_METRICS_OUTPUT;
   test.skip(!output, 'Set SPORTSDESK_METRICS_OUTPUT to write the measurements.');
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'classic', 'dark');
+  await setupVisualFixture(page, 'classic', 'dark', true);
   await page.addInitScript(() => {
     const teams = Array.from({ length: 10 }, (_, index) => ({
       id: index === 0 ? 'arsenal' : `team-${index}`,
@@ -58,40 +58,48 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
       }, name),
     );
   }
-  async function sidebar(title: string) {
-    await page.locator('aside.sidebar').getByTitle(title, { exact: true }).click();
-  }
-  await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
-  await capture('Футбол: обзор', '.football-dashboard');
+  const section = (name: string) =>
+    page
+      .getByRole('navigation', { name: 'Разделы' })
+      .getByRole('button', { name, exact: true })
+      .click();
+  const tab = (name: string) =>
+    page.locator('.shell-tabs').getByRole('tab', { name, exact: true }).click();
+  await expect(page.locator('.today-view')).toContainText('Arsenal');
+  await capture('Сегодня', '.today-view');
   const shell = await page.evaluate(() => ({
-    topbarButtons: document.querySelectorAll('.topbar button').length,
-    sidebarButtons: document.querySelectorAll('.sidebar button').length,
+    railButtons: document.querySelectorAll('.nav-rail button').length,
+    headerButtons: document.querySelectorAll('.shell-header button').length,
   }));
-  await page.locator('.recent-game').first().click();
+  await section('Футбол');
+  await tab('Матчи');
+  await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
   await expect(page.locator('.md-score')).toContainText('2 : 1');
   await capture('Матч', '.match-detail');
   const matchTabs = await page.locator('.md-tabs button').count();
   const matchTabsTop = Math.round((await page.locator('.md-tabs').boundingBox())!.y);
-  await sidebar('Матчи');
+  await page.locator('.shell-header-bar').getByRole('button', { name: 'Назад' }).click();
   await capture('Матчи', '.matches-view');
-  await sidebar('Таблицы');
+  await tab('Таблица');
   await capture('Таблица', '.standings-view');
-  await sidebar('Счёт и события');
-  await capture('Счёт и события', '.live-view');
-  await sidebar('Игроки');
+  await tab('Сейчас идут');
+  await capture('Сейчас идут', '.live-view');
+  await tab('Игроки');
   await capture('Игроки', '.players-view');
-  await sidebar('Клубы');
+  await tab('Клубы');
   await capture('Клубы', '.team-view');
-  await page.getByRole('tab', { name: 'Формула 1' }).click();
-  await sidebar('Паддок');
+  await section('Формула 1');
+  await tab('Обзор');
   await capture('Формула 1', '.f1-root');
-  await sidebar('Календарь');
+  await tab('Календарь');
   await capture('Календарь F1', '.f1-root');
-  await sidebar('Мой спортивный вечер');
+  await section('Сегодня');
+  await tab('Мой план');
   await capture('Планировщик', '.viewing-planner');
-  await sidebar('Дневник просмотра');
+  await section('Моё');
+  await tab('Дневник');
   await capture('Дневник', '.diary-view');
-  await page.getByRole('button', { name: 'Настройки', exact: true }).first().click();
+  await section('Настройки');
   await page
     .getByRole('navigation', { name: 'Категории настроек' })
     .getByRole('button', { name: 'Основное', exact: true })

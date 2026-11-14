@@ -11,7 +11,7 @@ for (const design of ['classic', 'broadcast'])
         await page.evaluate(() => document.fonts.ready);
         await expect(page.locator('.app-root')).toHaveAttribute('data-design', design);
         await expect(page.locator('.app-root')).toHaveAttribute('data-scheme', scheme);
-        await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
+        await expect(page.locator('.today-view')).toBeVisible();
         const shot = async (name: string) => {
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -21,7 +21,10 @@ for (const design of ['classic', 'broadcast'])
           });
         };
         await shot('dashboard');
-        await page.locator('.recent-game').first().click();
+        const rail = page.getByRole('navigation', { name: 'Разделы' });
+        await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
+        await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+        await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
         await expect(page.locator('.md-score')).toContainText('2 : 1');
         await page.getByRole('tab', { name: 'Статистика' }).click();
         await expect(page.locator('.match-statistics')).toContainText('62');
@@ -30,7 +33,11 @@ for (const design of ['classic', 'broadcast'])
         await expect(page.locator('.match-lineups')).toContainText('Alex Morgan');
         await page.locator('.lineup-pitch').scrollIntoViewIfNeeded();
         await shot('lineups');
-        await page.getByRole('tab', { name: 'Формула 1' }).click();
+        await rail.getByRole('button', { name: 'Формула 1', exact: true }).click();
+        await page
+          .locator('.shell-tabs')
+          .getByRole('tab', { name: 'Календарь', exact: true })
+          .click();
         await expect(page.locator('.calendar-board')).toContainText('Circuit');
         await shot('calendar');
         expect(errors).toEqual([]);
@@ -42,8 +49,12 @@ for (const design of ['classic', 'broadcast'])
     await page.setViewportSize({ width: 1100, height: 720 });
     await setupVisualFixture(page, design, 'dark');
     await page.goto('/');
-    await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
-    await page.locator('.recent-game').first().click();
+    await page
+      .getByRole('navigation', { name: 'Разделы' })
+      .getByRole('button', { name: 'Футбол', exact: true })
+      .click();
+    await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+    await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
     await expect(page.locator('.md-score')).toContainText('2 : 1');
     await expect(
       page.locator('.md-actions').getByRole('button', { name: 'Смотреть' }),
@@ -64,7 +75,7 @@ for (const design of ['classic', 'broadcast'])
     await page.setViewportSize({ width: 1100, height: 900 });
     const errors = await setupVisualFixture(page, design, 'dark');
     await page.goto('/');
-    await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
+    await expect(page.locator('.today-view')).toBeVisible();
     await page.keyboard.press('Control+k');
     const dialog = page.getByRole('dialog', { name: 'Глобальный поиск' });
     await expect(dialog).toBeVisible();
@@ -83,9 +94,15 @@ for (const design of ['classic', 'broadcast'])
       'Arsenal — Chelsea',
     );
     await expect(page.locator('.watch-root-signed-out')).toBeVisible();
-    await page.getByRole('button', { name: 'Назад по истории', exact: true }).click();
+    await page
+      .locator('.shell-header-bar')
+      .getByRole('button', { name: 'Назад', exact: true })
+      .click();
     await expect(page.locator('.md-score')).toContainText('2 : 1');
-    await page.getByRole('button', { name: 'Центр событий', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'Разделы' })
+      .getByRole('button', { name: 'События', exact: true })
+      .click();
     await expect(page.locator('.event-entry.unread')).toHaveCount(1);
     await expect(page.locator('.event-center')).toHaveScreenshot(`${design}-events.png`);
     await page.getByRole('button', { name: 'Прочитать все', exact: true }).click();

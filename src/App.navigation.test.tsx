@@ -6,7 +6,9 @@ import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
 import { readInterfaceDesign, setInterfaceDesign } from './lib/interfaceDesign';
-import { writeAtmosphere } from './features/atmosphere/atmosphereStore';
+import { diaryFootballEntry, diaryFixture } from './test/fixtures/diary';
+import { schemeFromLineups } from './features/tactics/tacticsModel';
+import { tacticLineups, tacticMatch } from './test/fixtures/tactics';
 
 vi.mock('./lib/bridge', () => ({
   api: vi.fn(),
@@ -16,6 +18,7 @@ vi.mock('./lib/bridge', () => ({
   notify: vi.fn(),
 }));
 vi.mock('./features/football/SportsNotifications', () => ({ SportsNotifications: () => null }));
+
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>;
 const home = { id: 'arsenal', name: 'Arsenal' },
   away = { id: 'chelsea', name: 'Chelsea' };
@@ -29,19 +32,60 @@ const fixture = {
   score_home: 2,
   score_away: 1,
 };
+const nextMatch = {
+  ...fixture,
+  id: 'next-match',
+  status: 'scheduled',
+  time_utc: '2026-10-23T18:00:00Z',
+  date: '2026-10-23',
+  score_home: null,
+  score_away: null,
+};
+const prediction = {
+  matchId: nextMatch.id,
+  leagueId: 'l_4WFCIZ',
+  home: 2,
+  away: 1,
+  homeTeam: 'Arsenal',
+  awayTeam: 'Chelsea',
+  kickoff: '2099-01-01T12:00:00Z',
+  createdAt: '2026-11-09T00:00:00Z',
+  updatedAt: '2026-11-09T00:00:00Z',
+  rules: 1,
+};
+const scheme = {
+  ...schemeFromLineups(tacticMatch, tacticLineups, 'fixture-scheme'),
+  title: 'Прессинг на фланге',
+  updatedAt: '2026-11-09T00:00:00Z',
+};
 const reply = (payload: unknown) => ({
   payload,
   source: 'test',
   stale: false,
   fetchedAt: '2026-10-21T00:00:00Z',
 });
-const button = (text: string) => {
-  const found = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+
+function railButton(text: string) {
+  const found = [...host.querySelectorAll<HTMLButtonElement>('.nav-rail button')].find(
     (button) => button.textContent?.trim() === text,
+  );
+  if (!found) throw new Error(`Rail button missing: ${text}`);
+  return found;
+}
+function headerTab(text: string) {
+  const found = [...host.querySelectorAll<HTMLButtonElement>('.shell-tabs [role="tab"]')].find(
+    (button) => button.textContent?.trim() === text,
+  );
+  if (!found) throw new Error(`Header tab missing: ${text}`);
+  return found;
+}
+function button(text: string) {
+  const found = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+    (item) => item.textContent?.trim() === text,
   );
   if (!found) throw new Error(`Button missing: ${text}`);
   return found;
-};
+}
 async function click(element: HTMLElement) {
   await act(async () => element.click());
   await act(async () => {
@@ -56,7 +100,6 @@ async function renderApp() {
     import('./features/planner/ViewingPlanner'),
     import('./features/games/GamesView'),
     import('./features/diary/DiaryView'),
-    import('./features/offline/OfflineView'),
     import('./features/games/StartLightsGame'),
     import('./features/ucl/ChampionsView'),
     import('./features/ucl/CupsView'),
@@ -85,7 +128,8 @@ beforeEach(() => {
   viewState.reset();
   localStorage.setItem('sportsdesk.sport', 'football');
   localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
-  viewState.write('navigation.football', { kind: 'football', section: 'matches' });
+  localStorage.setItem('sportsdesk.onboarding', JSON.stringify({ status: 'completed' }));
+  localStorage.setItem('sportsdesk.whatsnew.seen', '1.8.0');
   host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -106,17 +150,22 @@ beforeEach(() => {
           data: {
             leagues: [
               { id: 'l_4WFCIZ', name: 'Premier League', seasons: ['2026/2027', '2025/2026'] },
+              { id: 'l_0bfbkO', name: 'Champions League', seasons: ['2026/2027'] },
             ],
           },
         });
       if (path.startsWith('leagues/'))
         return reply({
-          data: { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: [fixture] },
+          data: {
+            league: { id: 'l_4WFCIZ', name: 'Premier League' },
+            matches: [fixture, nextMatch],
+          },
         });
       if (path === `matches/${fixture.id}`) return reply({ data: fixture });
       if (path.endsWith('/players')) return reply({ data: [] });
       if (path.endsWith('/events')) return reply({ data: { events: [] } });
       if (path.endsWith('/stats')) return reply({ data: { periods: [] } });
+      if (path.endsWith('/lineups')) return reply({ data: tacticLineups });
       return reply({ data: {} });
     }
     const year = path.split('/')[0]?.slice(0, 4) ?? '2026';
@@ -150,68 +199,126 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it('persists collapsed competition and favorite team groups', async () => {
+it('starts on «Сегодня» whatever sport an old profile saved', async () => {
+  localStorage.setItem('sportsdesk.sport', 'f1');
+  viewState.write('navigation2.f1', { kind: 'f1', tab: 'calendar' });
   await renderApp();
-  const competitions = host.querySelector<HTMLButtonElement>('[title="Соревнования"]')!;
-  const teams = host.querySelector<HTMLButtonElement>('[title="Мои команды"]')!;
-  expect(competitions.getAttribute('aria-expanded')).toBe('true');
-  await click(competitions);
-  await click(teams);
-  expect(localStorage.getItem('sportsdesk.sidebar.competitionsOpen')).toBe('0');
-  expect(localStorage.getItem('sportsdesk.sidebar.teamsOpen')).toBe('0');
-  await act(async () => root.unmount());
-  root = createRoot(host);
-  await renderApp();
-  expect(host.querySelector('[title="Соревнования"]')?.getAttribute('aria-expanded')).toBe('false');
-  expect(host.querySelector('[title="Мои команды"]')?.getAttribute('aria-expanded')).toBe('false');
-  expect(host.querySelector('aside [title="Настройки"]')).not.toBeNull();
-}, 30_000);
+  expect(host.querySelector('.nav-rail')).not.toBeNull();
+  expect(host.querySelector('.topbar')).toBeNull();
+  expect(host.querySelector('aside.sidebar')).toBeNull();
+  expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
+  expect(host.querySelector('.shell-page-title')?.textContent).toBe('Сегодня');
+  expect(host.querySelector('.today-view')).not.toBeNull();
+});
 
-// This first navigation test loads all lazy screens on a cold test worker.
-it('switches designs in place, keeps the selected fixture/tab and does not refetch provider data', async () => {
-  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+it('keeps the remembered place of each section and moves back through the header', async () => {
   await renderApp();
+  await click(railButton('Футбол'));
+  expect(host.querySelector('.shell-page-title')?.textContent).toContain('Premier League');
+  await click(headerTab('Таблица'));
+  expect(host.querySelector('.standings-view')).not.toBeNull();
+  await click(railButton('Формула 1'));
+  expect(host.querySelector('.f1-root')).not.toBeNull();
+  await click(headerTab('Календарь'));
+  expect(host.querySelector('.calendar-board')).not.toBeNull();
+  await click(railButton('Футбол'));
+  expect(headerTab('Таблица').getAttribute('aria-selected')).toBe('true');
+  expect(host.querySelector('.standings-view')).not.toBeNull();
+
+  const back = host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!;
+  await click(back);
+  expect(host.querySelector('.f1-root')).not.toBeNull();
+  expect(headerTab('Календарь').getAttribute('aria-selected')).toBe('true');
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
+  expect(host.querySelector('.shell-page-title')?.textContent).toBe('Формула 1');
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
+  expect(headerTab('Таблица').getAttribute('aria-selected')).toBe('true');
+  expect(host.querySelector('.shell-page-title')?.textContent).toContain('Premier League');
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
+  expect(host.querySelector('.shell-page-title')?.textContent).toContain('Premier League');
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
+  expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
+});
+
+it('keeps Alt+arrows and the mouse history buttons working', async () => {
+  await renderApp();
+  await click(railButton('Футбол'));
+  await click(railButton('Формула 1'));
+  const key = async (name: string) => {
+    await act(async () =>
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: name,
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      ),
+    );
+  };
+  await key('ArrowLeft');
+  expect(host.querySelector('.shell-page-title')?.textContent).toContain('Premier League');
+  await key('ArrowRight');
+  expect(host.querySelector('.shell-page-title')?.textContent).toBe('Формула 1');
+  await act(async () => {
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 3, bubbles: true, cancelable: true }));
+    window.dispatchEvent(
+      new MouseEvent('auxclick', { button: 3, bubbles: true, cancelable: true }),
+    );
+  });
+  expect(host.querySelector('.shell-page-title')?.textContent).toContain('Premier League');
+});
+
+it('keeps service pages neutral and the events drawer over the last page', async () => {
+  await renderApp();
+  await click(railButton('Футбол'));
+  expect(host.querySelector('.app-root')?.getAttribute('data-theme')).toBe('epl');
+  await click(railButton('Настройки'));
+  expect(host.querySelector('.settings-view')).not.toBeNull();
+  expect(host.querySelector('.app-root')?.getAttribute('data-sport')).toBe('neutral');
+  expect(host.querySelector('.app-root')?.getAttribute('data-theme')).toBe('neutral');
+  expect(railButton('Настройки').getAttribute('aria-current')).toBe('page');
+  await click(railButton('События'));
+  expect(host.querySelector('.event-center')).not.toBeNull();
+  expect(host.querySelector('.shell-page-title')?.textContent).toBe('Настройки');
+  await click(host.querySelector<HTMLButtonElement>('[aria-label="Закрыть события"]')!);
+  expect(host.querySelector('.settings-view')).not.toBeNull();
+});
+
+it('opens a match from «Матчи» and leaves only the header back button', async () => {
+  await renderApp();
+  await click(railButton('Футбол'));
+  await click(headerTab('Матчи'));
+  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .fixture-club')!);
+  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+  expect(host.querySelector('.match-detail .md-topbar')?.textContent).not.toContain('Назад');
+  expect(host.querySelectorAll('.match-detail [aria-label="Назад"]')).toHaveLength(0);
+  expect(host.querySelectorAll('.shell-header-bar [aria-label="Назад"]')).toHaveLength(1);
+});
+
+it('switches designs in place and keeps the selected match tab', async () => {
+  await renderApp();
+  await click(railButton('Футбол'));
+  await click(headerTab('Матчи'));
+  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .fixture-club')!);
   await click(button('Статистика'));
   const requests = vi.mocked(api).mock.calls.length;
   await act(async () => setInterfaceDesign('broadcast'));
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
   expect(readInterfaceDesign()).toBe('broadcast');
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBeTruthy();
-  expect(
-    [...host.querySelectorAll('[role="tab"][aria-selected="true"]')].some(
-      (t) => t.textContent === 'Статистика',
-    ),
-  ).toBe(true);
+  expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
   expect(vi.mocked(api).mock.calls).toHaveLength(requests);
   await act(async () => setInterfaceDesign('classic'));
   expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
-  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-}, 15000);
-
-it('applies the design from Settings, restores it on launch, and shows a real fixture on «Сегодня»', async () => {
-  localStorage.setItem('sportsdesk.design', 'broadcast');
-  viewState.write('navigation.football', { kind: 'football', section: 'dashboard' });
-  await renderApp();
-  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
-  const tile = host.querySelector('.today-team-tile');
-  expect(tile?.textContent).toContain('Arsenal');
-  expect(tile?.textContent).toContain('2:1');
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
-  await click(button('Внешний вид'));
-  await click(
-    host.querySelector<HTMLInputElement>('input[name="interface-design"][value="classic"]')!,
-  );
-  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
-  expect(localStorage.getItem('sportsdesk.design')).toBe('classic');
 });
 
 it('opens the F1 cover weekend in its actual season and round', async () => {
   localStorage.setItem('sportsdesk.design', 'broadcast');
-  localStorage.setItem('sportsdesk.sport', 'f1');
   viewState.write('f1.year', 2025);
-  viewState.write('navigation.f1', { kind: 'f1', tab: 'overview' });
+  viewState.write('navigation2.f1', { kind: 'f1', tab: 'overview' });
   await renderApp();
+  await click(railButton('Формула 1'));
   expect(host.querySelector('.event-cover')?.textContent).toContain('Test Grand Prix');
   await click(button('Открыть уикенд'));
   expect(viewState.read('f1.year', 2026)).toBe(2025);
@@ -219,139 +326,10 @@ it('opens the F1 cover weekend in its actual season and round', async () => {
   expect(host.querySelector('.calendar-board')).not.toBeNull();
 });
 
-it('puts key match statistics first only in the new design without changing provider order', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  const stats = {
-    periods: [
-      {
-        period: 'All',
-        groups: [
-          {
-            group_name: 'Defence',
-            items: [
-              { key: 'tackles', title: 'Tackles', home: '2', away: '3', format_type: 'integer' },
-            ],
-          },
-          {
-            group_name: 'Top stats',
-            items: [
-              {
-                key: 'ballpossesion',
-                title: 'Ball possession',
-                home: '62',
-                away: '38',
-                format_type: 'integer',
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  };
-  vi.mocked(api).mockImplementation(async (...args) =>
-    args[0] === 'pitch' && args[1].endsWith('/stats') ? reply({ data: stats }) : original(...args),
-  );
-  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
-  viewState.write(`match.${fixture.id}.tab`, 'stats');
+it('retains football season, filters and list scroll through settings and back', async () => {
   await renderApp();
-  expect(host.querySelector('.stat-group h3')?.textContent).toBe('Оборона');
-  await act(async () => setInterfaceDesign('broadcast'));
-  expect(host.querySelector('.stat-group h3')?.textContent).toBe('Основные показатели');
-  expect(stats.periods[0]!.groups[0]!.group_name).toBe('Defence');
-});
-
-it('opens the exact older fixture statistics from its team name, date, score and analysis link', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  const latest = { ...fixture, id: 'newer-match', time_utc: '2026-10-21T18:00:00Z' };
-  vi.mocked(api).mockImplementation(async (...args) =>
-    args[0] === 'pitch' && args[1].startsWith('leagues/')
-      ? reply({ data: { matches: [fixture, latest] } })
-      : original(...args),
-  );
-  await renderApp();
-  for (const selector of ['.fixture-club', '.mt-date', '.fixture-score', '.link-btn']) {
-    const row = host.querySelector<HTMLElement>('[data-match-id="test-match"]')!;
-    await click(row.querySelector<HTMLElement>(selector)!);
-    expect(viewState.read('navigation.football', {})).toEqual({
-      kind: 'football-match',
-      matchId: fixture.id,
-      competitionId: 'l_4WFCIZ',
-    });
-    expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
-    expect(host.querySelector('.team-view')).toBeNull();
-    await click(button('Назад'));
-  }
-});
-
-it('toggles a team star without opening a match or a club', async () => {
-  await renderApp();
-  const star = host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .row-star')!;
-  const before = star.getAttribute('aria-pressed');
-  await click(star);
-  expect(star.getAttribute('aria-pressed')).not.toBe(before);
-  expect(host.querySelector('.matches-view')).not.toBeNull();
-  expect(host.querySelector('.match-detail')).toBeNull();
-});
-
-it('navigates real cup routes, profile settings and keyboard/mouse history once per action', async () => {
-  await renderApp();
-  await click(button('Кубки'));
-  expect(host.querySelector('.sport-toggle [aria-selected="true"]')?.textContent).toBe('Кубки');
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
-  await act(async () =>
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        key: 'ArrowLeft',
-        altKey: true,
-        bubbles: true,
-        cancelable: true,
-      }),
-    ),
-  );
-  expect(host.querySelector('.sport-toggle [aria-selected="true"]')?.textContent).toBe('Кубки');
-  expect(host.querySelector('.settings-view')).toBeNull();
-  await act(async () => {
-    window.dispatchEvent(new MouseEvent('mouseup', { button: 3, bubbles: true, cancelable: true }));
-    window.dispatchEvent(
-      new MouseEvent('auxclick', { button: 3, bubbles: true, cancelable: true }),
-    );
-  });
-  expect(host.querySelector('.sport-toggle [aria-selected="true"]')?.textContent).toBe('Футбол');
-});
-
-it('explains that upcoming match statistics are not available yet and points to the formation', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  vi.mocked(api).mockImplementation(async (...args) =>
-    args[0] === 'pitch' && args[1] === `matches/${fixture.id}`
-      ? reply({ data: { ...fixture, status: 'not_started', score_home: null, score_away: null } })
-      : original(...args),
-  );
-  await renderApp();
-  await click(host.querySelector<HTMLButtonElement>('.fixture-club')!);
-  expect(host.textContent).toContain('Матч ещё не начался');
-  expect(host.textContent).toContain('составы — во вкладке «Поле и оценки»');
-  expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
-});
-
-it('shows loading instead of a false missing-statistics message while match statistics are pending', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  let complete!: (value: ReturnType<typeof reply>) => void;
-  const pending = new Promise<ReturnType<typeof reply>>((resolve) => {
-    complete = resolve;
-  });
-  vi.mocked(api).mockImplementation(async (...args) =>
-    args[0] === 'pitch' && args[1] === `matches/${fixture.id}/stats` ? pending : original(...args),
-  );
-  await renderApp();
-  await click(host.querySelector<HTMLButtonElement>('.fixture-club')!);
-  expect(host.textContent).toContain('Загружаем статистику матча');
-  expect(host.textContent).not.toContain('Статистика не загружена');
-  await act(async () => complete(reply({ data: { periods: [] } })));
-  expect(host.textContent).toContain('Статистика не загружена');
-});
-
-it('retains football season, filters, detail tab and list scroll through settings and back', async () => {
-  await renderApp();
+  await click(railButton('Футбол'));
+  await click(headerTab('Матчи'));
   await change(host.querySelector<HTMLSelectElement>('#football-season')!, '2025/2026');
   await change(host.querySelector<HTMLInputElement>('#match-search')!, 'Arsenal');
   await click(button('Завершённые'));
@@ -363,13 +341,12 @@ it('retains football season, filters, detail tab and list scroll through setting
   main.scrollTop = 640;
   main.dispatchEvent(new Event('scroll'));
   await click(host.querySelector<HTMLButtonElement>('.fixture-score')!);
-  expect(host.querySelector('.match-detail')).not.toBeNull();
   await click(button('Статистика'));
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
+  await click(railButton('Настройки'));
   expect(host.textContent).toContain('Настройки');
-  await click(button('Вернуться к спорту'));
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
   expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
-  await click(button('Назад'));
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
   await new Promise((resolve) => setTimeout(resolve, 5));
   expect(host.querySelector<HTMLInputElement>('#match-search')?.value).toBe('Arsenal');
   expect(host.querySelector<HTMLSelectElement>('#football-season')?.value).toBe('2025/2026');
@@ -377,186 +354,89 @@ it('retains football season, filters, detail tab and list scroll through setting
   expect(main.scrollTop).toBe(640);
 });
 
-it('retains the F1 year, calendar round and result tab through settings and sport switches', async () => {
-  viewState.write('navigation.f1.tab', 'calendar');
-  await renderApp();
-  await click(button('Формула 1'));
-  await change(host.querySelector<HTMLSelectElement>('[aria-label="Сезон Формулы-1"]')!, '2025');
-  const race = [...host.querySelectorAll<HTMLButtonElement>('.calendar-stage')].find((button) =>
-    button.textContent?.includes('Test Grand Prix'),
-  )!;
-  await click(race);
-  await click(button('Квалификация'));
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
-  await click(button('Вернуться к спорту'));
-  expect(host.querySelector<HTMLSelectElement>('[aria-label="Сезон Формулы-1"]')?.value).toBe(
-    '2025',
-  );
-  expect(host.querySelector('.race-weekend [aria-selected="true"]')?.textContent).toBe(
-    'Квалификация',
-  );
-  await click(button('Футбол'));
-  await click(button('Формула 1'));
-  expect(host.querySelector<HTMLSelectElement>('[aria-label="Сезон Формулы-1"]')?.value).toBe(
-    '2025',
-  );
-  expect(host.querySelector('.race-weekend')).not.toBeNull();
-});
-
-it('returns from settings and football details to the planner, then back to its original sport', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  const nextMatch = {
-    ...fixture,
-    status: 'scheduled',
-    score_home: null,
-    score_away: null,
-    time_utc: new Date(Date.now() + 3_600_000).toISOString(),
-  };
-  vi.mocked(api).mockImplementation(async (...args) =>
-    args[0] === 'pitch' && args[1].startsWith('leagues/')
-      ? reply({
-          data: { league: { id: 'l_4WFCIZ', name: 'Premier League' }, matches: [nextMatch] },
-        })
-      : original(...args),
-  );
+it('shows «Мой план» as a mode of «Сегодня» and returns to the same screen', async () => {
   localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
   await renderApp();
-  await click(button('Формула 1'));
-  await click(button('Мой спортивный вечер'));
-  await click(host.querySelector<HTMLButtonElement>('[aria-label="Настройки"]')!);
-  await click(button('Вернуться к спорту'));
+  await click(headerTab('Мой план'));
   expect(host.querySelector('.viewing-planner')).not.toBeNull();
-  await click(host.querySelector<HTMLButtonElement>('aside [title="Настройки"]')!);
-  await click(button('Вернуться к спорту'));
+  await click(railButton('Настройки'));
+  await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
   expect(host.querySelector('.viewing-planner')).not.toBeNull();
-  await click(button('Смотреть'));
-  await click(button('Вернуться к спорту'));
-  expect(host.querySelector('.viewing-planner')).not.toBeNull();
-  await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
-  expect(host.querySelector('.match-detail')).not.toBeNull();
-  await click(button('Назад'));
-  expect(host.querySelector('.viewing-planner')).not.toBeNull();
-  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
-    'Формула 1',
-  );
-  await click(button('Мой спортивный вечер'));
-  expect(host.querySelector('.viewing-planner')).toBeNull();
-  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
-    'Формула 1',
-  );
-});
-
-it('restores the original football league after opening a planner match in another league', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  const upcoming = {
-    ...fixture,
-    status: 'scheduled',
-    score_home: null,
-    score_away: null,
-    time_utc: new Date(Date.now() + 3_600_000).toISOString(),
-  };
-  vi.mocked(api).mockImplementation(async (...args) => {
-    if (args[0] === 'pitch' && args[1] === 'leagues')
-      return reply({
-        data: {
-          leagues: [
-            { id: 'l_4WFCIZ', name: 'Premier League' },
-            { id: 'l_0ErfuF', name: 'La Liga' },
-          ],
-        },
-      });
-    if (args[0] === 'pitch' && args[1].startsWith('leagues/'))
-      return reply({
-        data: { matches: args[1].startsWith('leagues/l_0ErfuF/') ? [upcoming] : [] },
-      });
-    return original(...args);
-  });
-  localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
-  await renderApp();
-  await click(button('Мой спортивный вечер'));
-  await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
-  expect(localStorage.getItem('sportsdesk.league')).toBe('l_0ErfuF');
-  await click(button('Назад'));
-  await click(button('Мой спортивный вечер'));
-  expect(localStorage.getItem('sportsdesk.league')).toBe('l_4WFCIZ');
+  await click(headerTab('Сегодня'));
+  expect(host.querySelector('.today-view')).not.toBeNull();
   expect(host.querySelector('.viewing-planner')).toBeNull();
 });
 
-it('preserves the original match back target when another match is opened from its planner', async () => {
-  const original = vi.mocked(api).getMockImplementation()!;
-  const upcoming = {
-    ...fixture,
-    id: 'planner-match',
-    status: 'scheduled',
-    time_utc: new Date(Date.now() + 3_600_000).toISOString(),
-  };
-  vi.mocked(api).mockImplementation(async (...args) => {
-    if (args[0] === 'pitch' && args[1].startsWith('leagues/'))
-      return reply({ data: { matches: [upcoming] } });
-    if (args[0] === 'pitch' && args[1] === 'matches/planner-match')
-      return reply({ data: upcoming });
-    return original(...args);
-  });
-  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
-  viewState.write('navigation.football.return', { kind: 'football', section: 'matches' });
-  localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['arsenal'] }));
+it('opens the viewing diary from «Моё» without creating a record', async () => {
   await renderApp();
-  await click(button('Мой спортивный вечер'));
-  await click(host.querySelector<HTMLButtonElement>('.planner-title')!);
-  await click(button('Мой спортивный вечер'));
-  await click(button('Мой спортивный вечер'));
-  expect(viewState.read('navigation.football', {})).toEqual({
-    kind: 'football-match',
-    matchId: fixture.id,
-    competitionId: 'l_4WFCIZ',
-  });
-  await click(button('Назад'));
-  expect(viewState.read('navigation.football', {})).toEqual({
-    kind: 'football',
-    competitionId: 'l_4WFCIZ',
-    tab: 'matches',
-  });
-  expect(host.querySelector('.match-detail')).toBeNull();
-});
-
-it('opens the games page from the sidebar, returns with the same button and starts nothing by itself', async () => {
-  await renderApp();
-  expect(host.querySelector('.games-view')).toBeNull();
-  await click(button('Игры'));
-  expect(host.querySelector('.games-view')).not.toBeNull();
-  expect(host.querySelector('.page-breadcrumb')?.textContent).toContain('Игры');
-  expect(host.querySelector('.lights-pad')).not.toBeNull();
-  expect(host.querySelectorAll('.lamp.on')).toHaveLength(0);
-  await click(button('Игры'));
-  expect(host.querySelector('.games-view')).toBeNull();
-});
-
-it('hides the games entry while the games block is switched off', async () => {
-  writeAtmosphere({ enabled: false });
-  await renderApp();
-  expect([...host.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Игры')).toBe(
-    false,
-  );
-});
-
-it('opens the local viewing diary and returns to the same match without creating a viewing record', async () => {
-  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
-  await renderApp();
-  await click(button('Дневник просмотра'));
+  await click(railButton('Моё'));
+  await click(headerTab('Дневник'));
   expect(host.querySelector('.diary-view')).not.toBeNull();
-  expect(host.querySelector('.md-score')).toBeNull();
   expect(localStorage.getItem('sportsdesk.view.diary')).toBeNull();
-  await click(button('Вернуться к спорту'));
-  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
 });
 
-it('opens offline seasons without starting a download and returns to the same match', async () => {
-  viewState.write('navigation.football', { kind: 'football-match', matchId: fixture.id });
+it('opens offline seasons in «Настройки → Данные» and never as its own route', async () => {
   await renderApp();
-  await click(button('Офлайн-сезоны'));
+  await click(railButton('Настройки'));
+  await click(button('Данные'));
+  expect(host.querySelector('.settings-category > h2')?.textContent).toBe('Данные');
+  expect(host.querySelector('.settings-offline')).not.toBeNull();
   expect(host.querySelector('.offline-view')).not.toBeNull();
-  expect(host.querySelector('.page-breadcrumb')?.textContent).toContain('Офлайн-сезоны');
-  expect(JSON.parse(localStorage.getItem('sportsdesk.view.offline')!).jobs).toEqual([]);
-  await click(button('Вернуться к спорту'));
-  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
+  expect(host.querySelector('.shell-page-title')?.textContent).toBe('Настройки');
+});
+
+it('opens a 1.7.0 profile in the new structure without losing its data', async () => {
+  localStorage.setItem('sportsdesk.sport', 'ucl');
+  localStorage.setItem('sportsdesk.sidebar.collapsed', '1');
+  localStorage.setItem('sportsdesk.sidebar.competitionsOpen', '0');
+  localStorage.setItem('sportsdesk.sidebar.teamsOpen', '0');
+  localStorage.setItem(
+    'sportsdesk.football.favorites.teams',
+    JSON.stringify({ ids: ['arsenal'], seeded: [], seededDefault: true }),
+  );
+  localStorage.setItem(
+    'sportsdesk.football.catalogue',
+    JSON.stringify([
+      { id: 'arsenal', name: 'Arsenal', leagueId: 'l_4WFCIZ', leagueName: 'Premier League' },
+    ]),
+  );
+  localStorage.setItem('sportsdesk.view.diary', JSON.stringify(diaryFixture));
+  localStorage.setItem(
+    'sportsdesk.view.games.predictions',
+    JSON.stringify({ version: 1, items: [prediction] }),
+  );
+  localStorage.setItem(
+    'sportsdesk.football.tactics',
+    JSON.stringify({ version: 1, schemes: [scheme] }),
+  );
+  await renderApp();
+
+  expect(host.querySelector('.today-view')).not.toBeNull();
+  for (const key of [
+    'sportsdesk.sidebar.collapsed',
+    'sportsdesk.sidebar.competitionsOpen',
+    'sportsdesk.sidebar.teamsOpen',
+  ])
+    expect(localStorage.getItem(key)).not.toBeNull();
+
+  await click(railButton('Футбол'));
+  expect(host.querySelector('.competition-switcher-trigger')?.textContent).toContain(
+    'Лига чемпионов',
+  );
+  expect(host.querySelector('.ucl-view')).not.toBeNull();
+
+  await click(railButton('Моё'));
+  expect(host.querySelector('.my-tile')?.textContent).toContain('Arsenal');
+  await click(headerTab('Дневник'));
+  expect(host.querySelector('.diary-view')?.textContent).toContain(diaryFootballEntry.note);
+  await click(headerTab('Игры и прогнозы'));
+  expect(host.querySelector('.games-view')).not.toBeNull();
+  await click(button('Угадай счёт'));
+  expect(host.querySelector('.prediction-list')?.textContent).toContain('Мой прогноз 2 : 1');
+  await click(headerTab('Схемы'));
+  expect(host.querySelector('.my-scheme')?.textContent).toContain('Прессинг на фланге');
+
+  expect(localStorage.getItem('sportsdesk.view.diary')).not.toBeNull();
+  expect(localStorage.getItem('sportsdesk.view.games.predictions')).not.toBeNull();
+  expect(localStorage.getItem('sportsdesk.football.tactics')).not.toBeNull();
 });

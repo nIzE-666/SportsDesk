@@ -35,7 +35,6 @@ async function openMy(page: Page, modules?: Record<string, boolean>) {
   await setupVisualFixture(page, 'classic', 'dark', true);
   await page.addInitScript(
     ({ player, prediction, tactics, modules, diary }) => {
-      localStorage.setItem('sportsdesk.preview.shell', '1');
       localStorage.setItem(
         'sportsdesk.football.favorites.teams',
         JSON.stringify({ ids: ['arsenal'], seededDefault: true }),
@@ -74,7 +73,7 @@ test('shows fixture data in all four «Моё» tabs', async ({ page }) => {
     'aria-selected',
     'true',
   );
-  await expect(page.locator('.my-tile')).toContainText('Arsenal');
+  await expect(page.locator('.my-tile').filter({ hasText: 'Arsenal' })).toBeVisible();
   await expect(page.locator('.my-row')).toContainText('Alex Morgan');
   await expect(page.locator('.my-chip').filter({ hasText: 'Mercedes' })).toBeVisible();
   await expect(page.locator('.my-chip').filter({ hasText: 'Макс Ферстаппен' })).toBeVisible();

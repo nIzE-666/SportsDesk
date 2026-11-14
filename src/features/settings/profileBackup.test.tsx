@@ -6,6 +6,9 @@ import { rpc } from '../../lib/bridge';
 import { saveFavDrivers } from '../f1/prefs';
 import { setString } from '../football/storage';
 import { writeFavorites, writeRecent } from '../watch/watchShared';
+import { diaryFixture } from '../../test/fixtures/diary';
+import { schemeFromLineups } from '../tactics/tacticsModel';
+import { tacticLineups, tacticMatch } from '../../test/fixtures/tactics';
 import {
   applyProfile,
   profileEntries,
@@ -52,6 +55,52 @@ it('round-trips the module switches and rejects a damaged value', () => {
     }),
   ).toThrow('модулей');
   expect(localStorage.getItem('sportsdesk.modules')).toBe(modules);
+});
+
+it('restores a 1.7.0 profile with the old sport and sidebar keys', () => {
+  const scheme = {
+    ...schemeFromLineups(tacticMatch, tacticLineups, 'old-scheme'),
+    title: 'Старая схема',
+    updatedAt: '2026-11-09T00:00:00Z',
+  };
+  const prediction = {
+    matchId: 'old-match',
+    leagueId: 'l_4WFCIZ',
+    home: 2,
+    away: 1,
+    homeTeam: 'Arsenal',
+    awayTeam: 'Chelsea',
+    kickoff: '2099-01-01T12:00:00Z',
+    createdAt: '2026-11-09T00:00:00Z',
+    updatedAt: '2026-11-09T00:00:00Z',
+    rules: 1,
+  };
+  const settings = {
+    'sportsdesk.sport': 'ucl',
+    'sportsdesk.league': 'l_4WFCIZ',
+    'sportsdesk.cup.current': 'l_38d9HA',
+    'sportsdesk.sidebar.collapsed': '1',
+    'sportsdesk.sidebar.competitionsOpen': '0',
+    'sportsdesk.sidebar.teamsOpen': '0',
+    'sportsdesk.football.favorites.teams': JSON.stringify({ ids: ['arsenal'] }),
+    'sportsdesk.view.navigation.football': JSON.stringify({
+      kind: 'football',
+      section: 'dashboard',
+    }),
+    'sportsdesk.view.navigation2.football': JSON.stringify({ kind: 'ucl', tab: 'bracket' }),
+    'sportsdesk.view.diary': JSON.stringify(diaryFixture),
+    'sportsdesk.view.games.predictions': JSON.stringify({ version: 1, items: [prediction] }),
+    'sportsdesk.football.tactics': JSON.stringify({ version: 1, schemes: [scheme] }),
+  };
+
+  expect(() => replaceProfile(settings)).not.toThrow();
+  for (const [key, value] of Object.entries(settings))
+    expect(localStorage.getItem(key)).toBe(value);
+  expect(
+    profileEntries()
+      .map(([key]) => key)
+      .sort(),
+  ).toEqual(Object.keys(settings).sort());
 });
 
 it('validates all keys before changing the existing profile', () => {

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { formatHumanDate } from '../../lib/humanDate';
 import type { MyTab, SettingsCategory } from '../../lib/navigation';
-import { useModules } from '../../lib/modules';
 import { viewState } from '../../lib/viewState';
 import { DiaryView } from '../diary/DiaryView';
 import { getUserTimezone } from '../football/storage';
@@ -13,15 +12,14 @@ import { useFavoriteDrivers, useFavoriteTeams } from '../f1/useFavorites';
 import { GamesView } from '../games/GamesView';
 import { deleteScheme, useTactics } from '../tactics/tacticsStore';
 import type { TacticScheme } from '../tactics/tacticsModel';
-import { MY_TAB_LABELS, resolveMyTab, visibleMyTabs } from './myTabs';
+import { resolveMyTab } from './myTabs';
 import './my.css';
 
 /**
  * «Моё»: избранное, дневник, игры и схемы под одной крышей.
  *
  * Модули прячут вкладки, но ничего не удаляют: записи и схемы остаются в
- * профиле. В старом оформлении у шапки нет вкладок, поэтому MyView рисует
- * свою полосу; в новой её показывает шапка страницы.
+ * профиле. Полосу вкладок показывает шапка страницы.
  */
 export interface MyViewProps {
   tab: MyTab;
@@ -32,8 +30,6 @@ export interface MyViewProps {
   onOpenF1: () => void;
   onOpenSettings: (category: SettingsCategory) => void;
   onOpenWeekend: (season: string | number, round: string | number) => void;
-  /** The current frame has no tabs in its header, so the view draws its own. */
-  showTabs?: boolean;
 }
 
 const F1_TEAM_NAMES: Record<string, string> = {
@@ -263,11 +259,8 @@ export function MyView({
   onOpenF1,
   onOpenSettings,
   onOpenWeekend,
-  showTabs = false,
 }: MyViewProps) {
-  const modules = useModules();
-  const visible = visibleMyTabs(modules);
-  const active = resolveMyTab(tab, modules);
+  const active = resolveMyTab(tab);
 
   useEffect(() => {
     if (active !== tab) onTabChange(active);
@@ -275,25 +268,6 @@ export function MyView({
 
   return (
     <section className="my-view" aria-label="Моё">
-      {showTabs && (
-        <>
-          <h1 className="my-title">Моё</h1>
-          <div className="my-tabs" role="tablist" aria-label="Разделы «Моё»">
-            {visible.map((id) => (
-              <button
-                key={id}
-                className="my-tab"
-                type="button"
-                role="tab"
-                aria-selected={id === active}
-                onClick={() => onTabChange(id)}
-              >
-                {MY_TAB_LABELS[id]}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
       {active === 'favorites' && (
         <FavoritesTab
           onOpenClub={onOpenClub}

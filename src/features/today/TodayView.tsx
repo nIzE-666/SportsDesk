@@ -53,12 +53,6 @@ const LIVE_LEAGUE_IDS = [
   'l_1XLtP0',
 ] as const;
 
-const TODAY_MODES: ReadonlyArray<{ id: TodayMode; label: string }> = [
-  { id: 'today', label: 'Сегодня' },
-  { id: 'week', label: 'Неделя' },
-  { id: 'plan', label: 'Мой план' },
-];
-
 function shiftDay(day: string, days: number): string {
   const value = new Date(`${day}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -425,14 +419,12 @@ function MyTeamsBlock({
 
 function TodayOverview({
   data,
-  showModeSwitch,
   onOpenMatch,
   onOpenTeam,
   onOpenWeekend,
   onOpenF1,
 }: {
   data: TodayPlanData;
-  showModeSwitch: boolean;
   onOpenMatch: (matchId: string, leagueId?: string) => void;
   onOpenTeam: (teamId: string, teamName?: string, leagueId?: string) => void;
   onOpenWeekend: (race: JolpicaRace) => void;
@@ -492,29 +484,15 @@ function TodayOverview({
   ];
   return (
     <div className="today-overview">
-      {(showModeSwitch || layout.custom) && (
-        <div className="today-toolbar">
-          {showModeSwitch ? <h1 className="today-title">Сегодня</h1> : <span />}
-          <button
-            className="ghost-btn"
-            aria-expanded={editing}
-            onClick={() => setEditing((value) => !value)}
-          >
-            <LayoutGrid size={14} /> Настроить
-          </button>
-        </div>
-      )}
-      {!showModeSwitch && !layout.custom && (
-        <div className="today-toolbar today-toolbar-end">
-          <button
-            className="ghost-btn"
-            aria-expanded={editing}
-            onClick={() => setEditing((value) => !value)}
-          >
-            <LayoutGrid size={14} /> Настроить
-          </button>
-        </div>
-      )}
+      <div className="today-toolbar today-toolbar-end">
+        <button
+          className="ghost-btn"
+          aria-expanded={editing}
+          onClick={() => setEditing((value) => !value)}
+        >
+          <LayoutGrid size={14} /> Настроить
+        </button>
+      </div>
       {editing && (
         <HomeLayoutEditor design="classic" scope="today" onClose={() => setEditing(false)} />
       )}
@@ -553,56 +531,21 @@ function TodayOverview({
 export interface TodayViewProps {
   mode: TodayMode;
   onModeChange: (mode: TodayMode) => void;
-  /** The old frame has no header tabs, so the screen shows its own switch there. */
-  showModeSwitch?: boolean;
   onOpenMatch: (matchId: string, leagueId?: string) => void;
   onOpenTeam: (teamId: string, teamName?: string, leagueId?: string) => void;
   onOpenWeekend: (race: JolpicaRace) => void;
   onOpenF1: () => void;
 }
 
-function ModeSwitch({ mode, onModeChange }: Pick<TodayViewProps, 'mode' | 'onModeChange'>) {
-  return (
-    <div className="segmented today-mode-switch" role="tablist" aria-label="Режим «Сегодня»">
-      {TODAY_MODES.map((item) => (
-        <button
-          key={item.id}
-          role="tab"
-          aria-selected={mode === item.id}
-          className={mode === item.id ? 'active' : ''}
-          onClick={() => onModeChange(item.id)}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function TodayBoard({
-  mode,
-  onModeChange,
-  showModeSwitch = false,
-  onOpenMatch,
-  onOpenTeam,
-  onOpenWeekend,
-  onOpenF1,
-}: TodayViewProps) {
+function TodayBoard({ mode, onOpenMatch, onOpenTeam, onOpenWeekend, onOpenF1 }: TodayViewProps) {
   const data = useTodayPlanData();
   return (
     <div className="today-view">
-      {showModeSwitch && (
-        <div className="today-toolbar">
-          <h1 className="today-title">Сегодня</h1>
-        </div>
-      )}
-      {showModeSwitch && <ModeSwitch mode={mode} onModeChange={onModeChange} />}
       {mode === 'week' ? (
         <WeekView data={data} onOpenMatch={onOpenMatch} onOpenWeekend={onOpenWeekend} />
       ) : (
         <TodayOverview
           data={data}
-          showModeSwitch={showModeSwitch}
           onOpenMatch={onOpenMatch}
           onOpenTeam={onOpenTeam}
           onOpenWeekend={onOpenWeekend}
@@ -618,7 +561,6 @@ export function TodayView(props: TodayViewProps) {
   if (props.mode === 'plan')
     return (
       <div className="today-view">
-        {props.showModeSwitch && <ModeSwitch mode={props.mode} onModeChange={props.onModeChange} />}
         <ViewingPlanner
           onOpenMatch={props.onOpenMatch}
           onOpenWeekend={(race) => props.onOpenWeekend(race)}

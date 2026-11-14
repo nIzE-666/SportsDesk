@@ -27,8 +27,6 @@ import type { SearchTarget } from './lib/searchIndex';
 import { WatchActionContext } from './lib/watchIntent';
 import { startOfflineRunner } from './features/offline/offlineQueue';
 import { AppShell } from './app/AppShell';
-import { LegacyShell } from './app/LegacyShell';
-import { useShellPreview } from './app/shellFlag';
 import { lastAnalysisMode } from './app/shellModel';
 import type { FrameProps } from './app/frame';
 
@@ -50,10 +48,9 @@ export default function App() {
 
 function MainApp() {
   useEffect(startOfflineRunner, []);
-  const preview = useShellPreview();
   const design = useInterfaceDesign();
-  const navigation = useShellNavigation({ startOnToday: preview });
-  const { sport, cupId, route, leagueId, navigate, back, canBack } = navigation;
+  const navigation = useShellNavigation();
+  const { cupId, route, leagueId, navigate, back, canBack } = navigation;
   const [scheme, setScheme] = useState<'dark' | 'light'>(() =>
     getString('sportsdesk.scheme') === 'light' ? 'light' : 'dark',
   );
@@ -91,7 +88,7 @@ function MainApp() {
       const contextId = eventKind ? eventLeague! : leagueId;
       // An external link to a hidden competition lands on «Сегодня», not on
       // another league the user did not ask for.
-      if (preview && !isCompetitionVisible(contextId)) {
+      if (!isCompetitionVisible(contextId)) {
         navigate({ kind: 'today', mode: 'today' });
         return;
       }
@@ -104,7 +101,7 @@ function MainApp() {
             : {},
       );
     },
-    [leagueId, navigate, preview],
+    [leagueId, navigate],
   );
   const openWeekend = useCallback(
     (season: string | number, round: string | number) => {
@@ -177,7 +174,7 @@ function MainApp() {
           const tab = target.id.slice('my.'.length);
           if (isMyTab(tab)) navigate({ kind: 'my', tab });
         } else if (target.id === 'events') navigate({ kind: 'events' });
-        else if (target.id === 'offline') navigate({ kind: 'offline' });
+        else if (target.id === 'offline') navigate({ kind: 'settings', category: 'data' });
         else if (target.id === 'settings') navigate({ kind: 'settings' });
     }
   };
@@ -214,10 +211,8 @@ function MainApp() {
       /* non-Tauri: ignore */
     }
   };
-  const togglePage = navigation.auxiliary;
   const frame: FrameProps = {
     route,
-    sport,
     leagueId,
     cupId,
     design,
@@ -227,8 +222,6 @@ function MainApp() {
     onBack: back,
     navigate,
     changeSection: navigation.changeSection,
-    changeSport: navigation.changeSport,
-    auxiliary: navigation.auxiliary,
     setLeagueId,
     searchTarget,
     openFootballMatch,
@@ -244,18 +237,14 @@ function MainApp() {
       <WhatsNewDialog />
       <FirstRunWizard
         onLeagueChange={setLeagueId}
-        onOpenSettings={() => togglePage('settings')}
-        onOpenWatch={() => togglePage('watch')}
+        onOpenSettings={() => navigate({ kind: 'settings' })}
+        onOpenWatch={() => navigate({ kind: 'watch' })}
       />
     </>
   );
   return (
     <WatchActionContext.Provider value={(intent) => navigate({ kind: 'watch', intent })}>
-      {preview ? (
-        <AppShell {...frame}>{overlays}</AppShell>
-      ) : (
-        <LegacyShell {...frame}>{overlays}</LegacyShell>
-      )}
+      <AppShell {...frame}>{overlays}</AppShell>
     </WatchActionContext.Provider>
   );
 }

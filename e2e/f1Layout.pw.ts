@@ -11,8 +11,11 @@ for (const design of ['classic', 'broadcast']) {
       if (url.pathname === '/bridge/api') requests.push(url.searchParams.get('path') ?? '');
     });
     await page.goto('/');
-    await page.getByRole('tab', { name: 'Формула 1' }).click();
-    await page.locator('aside').getByTitle('Паддок', { exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'Разделы' })
+      .getByRole('button', { name: 'Формула 1', exact: true })
+      .click();
+    await page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }).click();
     await expect(page.locator('.f1-overview-grid')).toBeVisible();
     const overview = page.locator('.f1-overview-grid');
     const favoriteGrid = page.locator('.f1-overview-favorites');
@@ -37,18 +40,21 @@ for (const design of ['classic', 'broadcast']) {
       .poll(() => requests.filter((path) => path.includes('driverStandings')).length)
       .toBeGreaterThan(standingsRequests);
     await page.screenshot({ path: testInfo.outputPath('f1-overview.png') });
-    for (const title of ['Зачёты', 'Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {
-      await page.locator('aside').getByTitle(title, { exact: true }).click();
-      const analysis = title !== 'Зачёты';
-      await expect(page.locator('.f1-root h1')).toHaveText(analysis ? 'Анализ' : title);
-      if (analysis) {
-        await expect(page.getByRole('tab', { name: title, exact: true })).toHaveAttribute(
-          'aria-selected',
-          'true',
-        );
-        await expect(page.getByRole('tablist', { name: 'Режим анализа' })).toBeVisible();
-        await expect(page.getByLabel('Гран-при')).toBeVisible();
-      }
+    const tabs = page.locator('.shell-tabs');
+    await tabs.getByRole('tab', { name: 'Зачёты', exact: true }).click();
+    await expect(page.locator('.f1-root h1')).toHaveText('Зачёты');
+    await expect(page.locator('.f1-root select[aria-label*="Сезон"]')).toHaveCount(1);
+    await tabs.getByRole('tab', { name: 'Анализ', exact: true }).click();
+    await expect(page.locator('.f1-root h1')).toHaveText('Анализ');
+    const modes = page.getByRole('tablist', { name: 'Режим анализа' });
+    await expect(modes).toBeVisible();
+    for (const title of ['Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {
+      await modes.getByRole('tab', { name: title, exact: true }).click();
+      await expect(modes.getByRole('tab', { name: title, exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      await expect(page.getByLabel('Гран-при')).toBeVisible();
       await expect(page.locator('.f1-root select[aria-label*="Сезон"]')).toHaveCount(1);
       await expect(page.getByRole('tablist', { name: 'Разделы Формулы-1' })).toHaveCount(0);
     }

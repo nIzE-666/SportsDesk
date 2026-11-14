@@ -84,124 +84,9 @@
 html.mica .app-root[data-design='broadcast'] {
   background: var(--bg);
 }
-.app-root[data-design='broadcast'] .topbar {
-  height: 72px;
-  gap: 12px;
-  padding-inline: 24px;
-  background: var(--panel);
-  border-color: var(--line);
-  backdrop-filter: none;
-}
-.app-root[data-design='broadcast'] .brand {
-  min-width: 150px;
-  width: 150px;
-  gap: 8px;
-}
-.app-root[data-design='broadcast'] .brand-text strong {
-  font: 700 24px/32px var(--font);
-  color: var(--text);
-  letter-spacing: -0.04em;
-}
-.app-root[data-design='broadcast'] .brand-text strong span {
-  color: var(--text);
-}
-.app-root[data-design='broadcast'] .brand-text small {
-  display: none;
-}
-.app-root[data-design='broadcast'] .brand-mark {
-  transform: none;
-  box-shadow: none;
-  border-radius: 8px;
-  height: 32px;
-  width: 32px;
-}
-.app-root[data-design='broadcast'] .brand-mark svg {
-  transform: none;
-}
-.app-root[data-design='broadcast'] .sport-toggle {
-  background: var(--bg);
-  border-color: var(--line);
-  padding: 4px;
-  border-radius: 12px;
-}
-.app-root[data-design='broadcast'] .sport-toggle button {
-  padding: 8px 12px;
-  font-size: 12px;
-  line-height: 20px;
-  font-weight: 600;
-}
-.app-root[data-design='broadcast'] .sport-toggle button.active {
-  box-shadow: none;
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-}
-.app-root[data-design='broadcast'] .topbar-actions {
-  gap: 8px;
-}
 .app-root[data-design='broadcast'] .watch-shortcut {
   background: var(--panel2);
   color: var(--text);
-  border-color: var(--line);
-}
-.app-root[data-design='broadcast'] .profile-monogram {
-  background: var(--panel2);
-  border-color: var(--line);
-  color: var(--text);
-}
-.app-root[data-design='broadcast'] .shell {
-  grid-template-columns: 200px minmax(0, 1fr);
-}
-.app-root[data-design='broadcast'] .shell.collapsed {
-  grid-template-columns: 72px minmax(0, 1fr);
-}
-.app-root[data-design='broadcast'] .sidebar {
-  padding: 24px 12px 16px;
-  background: var(--panel);
-  border-color: var(--line);
-  gap: 16px;
-}
-.app-root[data-design='broadcast'] .sidebar-heading {
-  padding-inline: 8px;
-}
-.app-root[data-design='broadcast'] .sidebar-heading > span {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-}
-.app-root[data-design='broadcast'] .nav-item {
-  padding: 12px;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
-  border-radius: 8px;
-}
-.app-root[data-design='broadcast'] .nav-item > span {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  text-align: left;
-  min-width: 0;
-}
-.app-root[data-design='broadcast'] .nav-item.active {
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-  border-color: transparent;
-}
-.app-root[data-design='broadcast'] .nav-item:hover,
-.app-root[data-design='broadcast'] .competition-nav button:hover,
-.app-root[data-design='broadcast'] .competition-nav button.selected {
-  background: var(--panel2);
-}
-.app-root[data-design='broadcast'] .competition-nav,
-.app-root[data-design='broadcast'] .sidebar-bottom {
-  border-color: var(--line);
-}
-.app-root[data-design='broadcast'] .nav-caption {
-  text-transform: none;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  font-weight: 500;
-  padding-inline: 12px;
-}
-.app-root[data-design='broadcast'] .sidebar-today {
   border-color: var(--line);
 }
 .app-root[data-design='broadcast'] .content {
@@ -209,15 +94,6 @@ html.mica .app-root[data-design='broadcast'] {
 }
 .app-root[data-design='broadcast'] .content-inner {
   max-width: 1440px;
-}
-.app-root[data-design='broadcast'] .page-breadcrumb {
-  margin-bottom: 16px;
-  font-size: 12px;
-  gap: 8px;
-  letter-spacing: 0;
-}
-.app-root[data-design='broadcast'] .page-breadcrumb > span:last-child {
-  opacity: 1;
 }
 .app-root[data-design='broadcast'] :is(h1, h2, h3) {
   font-family: var(--font);
@@ -286,7 +162,7 @@ html.mica .app-root[data-design='broadcast'] {
   color: var(--text);
   padding: 8px 12px;
 }
-.app-root[data-design='broadcast'] :is(.primary-btn, .ghost-btn, .nav-item, .icon-button) {
+.app-root[data-design='broadcast'] :is(.primary-btn, .ghost-btn, .icon-button) {
   transition:
     background-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
     color 300ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -592,52 +468,19 @@ html.mica .app-root[data-design='broadcast'] {
   border-color: var(--line);
 }
 @media (max-width: 1260px) {
-  .app-root[data-design='broadcast'] .topbar {
-    padding-inline: 16px;
-    gap: 8px;
-  }
-  .app-root[data-design='broadcast'] .brand {
-    min-width: 140px;
-    width: 140px;
-  }
-  .app-root[data-design='broadcast'] .sport-toggle button {
-    padding-inline: 8px;
-  }
-  .app-root[data-design='broadcast'] .shell {
-    grid-template-columns: 184px minmax(0, 1fr);
-  }
-  .app-root[data-design='broadcast'] .shell.collapsed {
-    grid-template-columns: 72px minmax(0, 1fr);
-  }
   .app-root[data-design='broadcast'] .content {
     padding: 24px 16px;
-  }
-  .app-root[data-design='broadcast'] .nav-item {
-    padding-inline: 8px;
-    gap: 8px;
   }
   .app-root[data-design='broadcast'] .event-cover-content {
     padding: 16px;
   }
 }
 @media (max-width: 1050px) {
-  .app-root[data-design='broadcast'] .brand {
-    min-width: 40px;
-    width: 40px;
-  }
-  .app-root[data-design='broadcast'] .shell {
-    grid-template-columns: 72px minmax(0, 1fr);
-  }
   .app-root[data-design='broadcast'] .editorial-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 720px) {
-  .app-root[data-design='broadcast'] .topbar {
-    height: auto;
-    min-height: 72px;
-    padding: 12px;
-  }
   .app-root[data-design='broadcast'] .content {
     padding: 16px 12px;
   }
@@ -656,7 +499,7 @@ html.mica .app-root[data-design='broadcast'] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-root[data-design='broadcast'] :is(.primary-btn, .ghost-btn, .nav-item, .icon-button) {
+  .app-root[data-design='broadcast'] :is(.primary-btn, .ghost-btn, .icon-button) {
     transition: none;
   }
 }

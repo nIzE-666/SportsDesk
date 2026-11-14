@@ -16,16 +16,6 @@
   justify-content: flex-end;
 }
 
-.today-title {
-  margin: 0;
-  font-size: clamp(22px, 2vw, 30px);
-  letter-spacing: -0.02em;
-}
-
-.today-mode-switch {
-  justify-self: start;
-}
-
 .today-blocks,
 .today-week {
   display: grid;

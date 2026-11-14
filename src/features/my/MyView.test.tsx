@@ -89,8 +89,8 @@ async function click(element: HTMLElement) {
   });
 }
 
-async function render(tab: MyViewProps['tab'], showTabs = false) {
-  await act(async () => root.render(<MyView {...baseProps} tab={tab} showTabs={showTabs} />));
+async function render(tab: MyViewProps['tab']) {
+  await act(async () => root.render(<MyView {...baseProps} tab={tab} />));
   await act(async () => {
     await vi.dynamicImportSettled();
   });
@@ -227,47 +227,25 @@ describe('schemes tab', () => {
 });
 
 describe('tabs and modules', () => {
-  it('draws its own tab strip in the old frame and switches tabs', async () => {
-    await render('favorites', true);
-    expect(host.querySelectorAll('.my-tabs [role="tab"]')).toHaveLength(4);
-    await click(button('Дневник'));
-    expect(calls.tab).toHaveBeenCalledWith('diary');
-  });
-
-  it('draws no tab strip in the new frame', async () => {
+  it('draws no tab strip — the page header owns the tabs', async () => {
     await render('favorites');
     expect(host.querySelector('.my-tabs')).toBeNull();
   });
 
-  it('hides tabs by modules but always keeps favorites', async () => {
-    await render('favorites', true);
-    expect(host.querySelectorAll('.my-tabs [role="tab"]')).toHaveLength(4);
-
-    await act(async () => writeModules({ diary: false }));
-    expect(host.textContent).not.toContain('Дневник');
-    expect(host.textContent).toContain('Избранное');
-
-    await act(async () => writeModules({ games: false, predictions: false }));
-    expect(host.textContent).not.toContain('Игры и прогнозы');
-
-    await act(async () => writeModules({ tactics: false }));
-    expect(host.textContent).not.toContain('Схемы');
-  });
-
   it('opens the first visible tab when the current one is hidden', async () => {
     await act(async () => writeModules({ diary: false }));
-    await render('diary', true);
+    await render('diary');
     expect(calls.tab).toHaveBeenCalledWith('favorites');
     expect(host.textContent).toContain('Избранное');
 
     calls.tab.mockReset();
     await act(async () => writeModules({ games: false, predictions: false }));
-    await render('games', true);
+    await render('games');
     expect(calls.tab).toHaveBeenCalledWith('favorites');
 
     calls.tab.mockReset();
     await act(async () => writeModules({ tactics: false }));
-    await render('schemes', true);
+    await render('schemes');
     expect(calls.tab).toHaveBeenCalledWith('favorites');
   });
 });

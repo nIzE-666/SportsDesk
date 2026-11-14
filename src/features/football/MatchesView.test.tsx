@@ -31,11 +31,11 @@ const data: UseFootballResult = {
 
 let host: HTMLDivElement, root: Root;
 
-async function renderMatches(showLeaguePicker?: boolean) {
+async function renderMatches() {
   await act(async () =>
     root.render(
       <FavoritesProvider>
-        <MatchesView data={data} onOpenMatch={() => {}} showLeaguePicker={showLeaguePicker} />
+        <MatchesView data={data} onOpenMatch={() => {}} />
       </FavoritesProvider>,
     ),
   );
@@ -56,14 +56,8 @@ afterEach(async () => {
   host.remove();
 });
 
-it('shows the league picker in the old frame', async () => {
+it('hides the league picker — the header owns the competition', async () => {
   await renderMatches();
-  expect(host.querySelector('#league-select')).not.toBeNull();
-  expect(host.textContent).toContain('Лига');
-});
-
-it('hides the league picker in the new frame', async () => {
-  await renderMatches(false);
   expect(host.querySelector('#league-select')).toBeNull();
   expect(host.querySelector('label[for="league-select"]')).toBeNull();
 });

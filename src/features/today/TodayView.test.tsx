@@ -438,14 +438,3 @@ it('opens the block editor and hides a block through the same storage key', asyn
   expect(blockIds()).not.toContain('live');
   expect(localStorage.getItem('sportsdesk.view.home.layout')).toContain('"live"');
 });
-
-it('shows its own mode switch in the old frame and reports the choice', async () => {
-  follow([], []);
-  vi.mocked(rpc).mockResolvedValue(null);
-  await render({ mode: 'today', showModeSwitch: true });
-  const tabs = [...host.querySelectorAll('[role="tab"]')];
-  expect(tabs.map((tab) => tab.textContent)).toEqual(['Сегодня', 'Неделя', 'Мой план']);
-  expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
-  await act(async () => (tabs[1] as HTMLButtonElement).click());
-  expect(onModeChange).toHaveBeenCalledWith('week');
-});

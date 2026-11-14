@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import { expect, test, type Locator } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { setupVisualFixture } from './uiFixture';
 
 test('measure user journeys from launch', async ({ page }) => {
@@ -25,47 +25,58 @@ test('measure user journeys from launch', async ({ page }) => {
     await locator.click();
     clicks += 1;
   };
+  const rail = (name: string) =>
+    page.getByRole('navigation', { name: 'Разделы' }).getByRole('button', { name, exact: true });
+  const tab = (name: string) => page.locator('.shell-tabs').getByRole('tab', { name, exact: true });
+  const openFootballMatches = async () => {
+    await click(rail('Футбол'));
+    await click(tab('Матчи'));
+  };
+  const openMatch = async () => {
+    await openFootballMatches();
+    await click(page.locator('[data-match-id="test-match"] .fixture-club').first());
+  };
   async function start() {
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
     });
     await page.reload();
-    await expect(page.locator('.football-dashboard')).toContainText('Arsenal');
+    await expect(page.locator('.today-view')).toBeVisible();
     clicks = 0;
   }
-  const match = () =>
-    page.getByRole('button', { name: /вчера 03:00.*Arsenal 2 Chelsea 1/ }).first();
   const save = (scenario: string, note: string) => results.push({ scenario, clicks, note });
   await start();
-  await expect(match()).toBeVisible();
+  await expect(page.locator('.today-team-tile').first()).toContainText('2:1');
   save('Вчерашний счёт любимого клуба', 'Счёт 2 : 1 показан на главной.');
 
   await start();
-  await expect(page.locator('.football-dashboard')).toContainText('24 окт.');
-  await click(page.getByRole('tab', { name: 'Формула 1' }));
+  await expect(page.locator('[data-block="upcoming"]')).toContainText('Arsenal');
+  await click(rail('Формула 1'));
+  await click(tab('Календарь'));
   await expect(page.locator('.calendar-board')).toContainText('Circuit 2');
   save('Следующие матч клуба и гонка', 'Матч на главной, ближайшая гонка в календаре F1.');
 
   await start();
-  await click(match());
+  await openMatch();
   await click(page.getByRole('tab', { name: 'Статистика' }));
   await expect(page.locator('.match-statistics')).toContainText('62');
   save('Статистика матча', 'Открыты показатели конкретного матча.');
 
   await start();
-  await click(page.locator('aside').getByTitle('Таблицы', { exact: true }));
+  await click(rail('Футбол'));
+  await click(tab('Таблица'));
   await expect(page.locator('.standings-view')).toContainText('Arsenal');
   save('Таблица лиги', 'Проверена строка клуба в таблице.');
 
   await start();
-  await click(page.getByRole('tab', { name: 'Формула 1' }));
-  await click(page.locator('aside').getByTitle('Зачёты', { exact: true }));
+  await click(rail('Формула 1'));
+  await click(tab('Зачёты'));
   await expect(page.locator('.f1-root')).toContainText('Norris');
   save('Зачёт пилотов', 'Проверена строка пилота.');
 
   await start();
-  await click(match());
+  await openMatch();
   await click(page.locator('.match-detail').getByRole('button', { name: 'Смотреть', exact: true }));
   await expect(page.getByRole('region', { name: 'Просмотр события' })).toContainText('Arsenal');
   await expect(page.locator('.watch-root-signed-out')).toBeVisible();
@@ -76,7 +87,7 @@ test('measure user journeys from launch', async ({ page }) => {
   });
 
   await start();
-  await click(page.getByRole('button', { name: 'Настройки', exact: true }).first());
+  await click(rail('Настройки'));
   await click(
     page
       .getByRole('navigation', { name: 'Категории настроек' })
@@ -92,7 +103,7 @@ test('measure user journeys from launch', async ({ page }) => {
   save('Изменить уведомления клуба', 'Отключены уведомления Arsenal и проверено сохранение.');
 
   await start();
-  await click(match());
+  await openMatch();
   await click(page.getByRole('button', { name: 'Отметить просмотр', exact: true }));
   await click(page.getByRole('button', { name: 'Сохранить отметку', exact: true }));
   await expect(page.locator('.diary-mark')).toContainText('Просмотр сохранён');

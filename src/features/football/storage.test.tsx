@@ -1,8 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { TodaySidebar } from '../../components/TodaySidebar';
+import { beforeEach, expect, it } from 'vitest';
 import {
   formatDate,
   formatDateTime,
@@ -12,32 +9,13 @@ import {
   STORAGE_KEYS,
 } from './storage';
 
-vi.mock('./liveFeed', () => ({
-  loadLiveFeed: vi.fn(async () => ({ matches: [], stale: false, failure: null })),
-}));
-vi.mock('../f1/api', () => ({ useApiResource: () => ({ data: null, loading: false }) }));
-vi.mock('../../lib/bridge', () => ({ isTauriRuntime: () => false }));
-
 beforeEach(() => {
-  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   localStorage.clear();
 });
-afterEach(() => localStorage.clear());
 
-it('uses a safe timezone for corrupt storage and starts the today sidebar', async () => {
+it('uses a safe timezone for corrupt storage', () => {
   localStorage.setItem(STORAGE_KEYS.timezone, 'Not/A_Zone');
   expect(getUserTimezone()).toBe('Asia/Yakutsk');
-  const host = document.createElement('div');
-  document.body.append(host);
-  const root = createRoot(host);
-  try {
-    await act(async () => root.render(<TodaySidebar onMatch={vi.fn()} onWeekend={vi.fn()} />));
-    expect(host.textContent).toContain('Сегодня и дальше');
-    expect(localStorage.getItem(STORAGE_KEYS.timezone)).toBe('Not/A_Zone');
-  } finally {
-    await act(async () => root.unmount());
-    host.remove();
-  }
   localStorage.setItem(STORAGE_KEYS.timezone, 'Pacific/Kiritimati');
   expect(getUserTimezone()).toBe('Pacific/Kiritimati');
 });

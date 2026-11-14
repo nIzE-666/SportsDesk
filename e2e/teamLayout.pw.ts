@@ -44,8 +44,14 @@ async function openArsenalWithLongNames(page: Page, design: string, width: numbe
   await setupVisualFixture(page, design, 'dark', true);
   await page.addInitScript(() => {
     sessionStorage.setItem(
-      'sportsdesk.view.navigation.football',
-      JSON.stringify({ kind: 'football', section: 'team', teamId: 'arsenal' }),
+      'sportsdesk.view.navigation2.football',
+      JSON.stringify({
+        section: 'football',
+        route: { kind: 'football', competitionId: 'l_4WFCIZ', tab: 'team', teamId: 'arsenal' },
+        sport: 'football',
+        leagueId: 'l_4WFCIZ',
+        cupId: 'l_38d9HA',
+      }),
     );
   });
   await page.route('**/bridge/api**', async (route) => {
@@ -68,6 +74,10 @@ async function openArsenalWithLongNames(page: Page, design: string, width: numbe
     });
   });
   await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Футбол', exact: true })
+    .click();
   await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
   await expect(page.locator('.team-schedule .team-match-row')).toHaveCount(longNames.length * 4);
 }
@@ -162,17 +172,15 @@ test('long away team names start inside the schedule cell', async ({ page }, tes
     });
   });
   await page.goto('/');
-  await expect(page.locator('.football-dashboard')).toContainText('Newcastle United Football Club');
-  await page.locator('aside').getByTitle('Клубы', { exact: true }).click();
   await page
-    .locator('.team-favorites')
-    .getByRole('button', { name: 'Arsenal', exact: true })
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('button', { name: 'Футбол', exact: true })
     .click();
-  await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
-  await page.getByRole('button', { name: 'Назад по истории' }).click();
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Клубы', exact: true }).click();
   await expect(page.locator('.team-view h1')).toHaveText('Клубы');
   await page.screenshot({ path: testInfo.outputPath('favorite-teams.png') });
   await page.locator('#team-picker-select').selectOption('arsenal');
+  await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
   const away = page.locator('.team-schedule .team-match-away').first();
   const name = away.locator('.team-match-name');
   await expect(name).toHaveText('Newcastle United Football Club');

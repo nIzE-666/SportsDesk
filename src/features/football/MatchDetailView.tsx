@@ -75,14 +75,15 @@ function normalizePlayersPayload(payload: any): PlayerMatchEntry[] {
 
 export function MatchDetailView({
   matchId,
-  onBack,
   seasonMatches = [],
   onOpenMatch,
+  onBack,
 }: {
   matchId: string;
-  onBack: () => void;
   seasonMatches?: MatchSummary[];
   onOpenMatch?: (id: string) => void;
+  /** Local competition screens keep their own way back; the route match uses the header. */
+  onBack?: () => void;
 }) {
   const broadcast = useInterfaceDesign() === 'broadcast';
   const modules = useModules();
@@ -311,9 +312,11 @@ export function MatchDetailView({
   if (loading) {
     return (
       <div className="match-detail">
-        <button className="ghost-btn" onClick={onBack}>
-          <ArrowLeft size={14} /> Назад
-        </button>
+        {onBack && (
+          <button className="ghost-btn" onClick={onBack}>
+            <ArrowLeft size={14} /> Назад
+          </button>
+        )}
         <LoadingBlock label="Загрузка матча и составов…" rows={5} />
       </div>
     );
@@ -322,9 +325,11 @@ export function MatchDetailView({
   if (error || !detail) {
     return (
       <div className="match-detail">
-        <button className="ghost-btn" onClick={onBack}>
-          <ArrowLeft size={14} /> Назад
-        </button>
+        {onBack && (
+          <button className="ghost-btn" onClick={onBack}>
+            <ArrowLeft size={14} /> Назад
+          </button>
+        )}
         <ErrorBlock
           title="Матч недоступен"
           message={error ?? 'Пустой ответ'}
@@ -337,9 +342,11 @@ export function MatchDetailView({
   return (
     <div className="match-detail">
       <div className="md-topbar">
-        <button className="ghost-btn" onClick={onBack}>
-          <ArrowLeft size={14} /> Назад
-        </button>
+        {onBack && (
+          <button className="ghost-btn" onClick={onBack}>
+            <ArrowLeft size={14} /> Назад
+          </button>
+        )}
         <div className="muted small">
           {[detail.league?.name, detail.season].filter(Boolean).join(' · ')}
         </div>

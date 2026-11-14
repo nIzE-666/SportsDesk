@@ -4,7 +4,6 @@ import { setupVisualFixture } from './uiFixture';
 async function openShell(page: Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
   await setupVisualFixture(page, 'classic', 'dark', true);
-  await page.addInitScript(() => localStorage.setItem('sportsdesk.preview.shell', '1'));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
 }
@@ -16,6 +15,31 @@ async function search(page: Page, query: string) {
   await dialog.getByRole('combobox').fill(query);
   return dialog;
 }
+
+test('an old offline link opens «Настройки → Данные»', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 720 });
+  await setupVisualFixture(page, 'classic', 'dark', true);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'sportsdesk.search.index',
+      JSON.stringify([
+        {
+          key: 'section:offline',
+          title: 'Офлайн-сезоны',
+          subtitle: 'Раздел',
+          target: { kind: 'section', id: 'offline' },
+        },
+      ]),
+    ),
+  );
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
+  const dialog = await search(page, 'Офлайн-сезоны');
+  await dialog.locator('[role="option"]').filter({ hasText: 'Офлайн-сезоны' }).first().click();
+  await expect(page.locator('.settings-view')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Данные', exact: true })).toBeVisible();
+  await expect(page.locator('.settings-offline')).toBeVisible();
+});
 
 test('search targets open «Моё», settings, a cup and Formula 1 analysis', async ({ page }) => {
   await openShell(page);
