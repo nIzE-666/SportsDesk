@@ -361,6 +361,21 @@
   padding: 10px 4px;
 }
 
+.live-flat-button {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.live-flat-button:hover,
+.live-flat-button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
 .live-flat.favorite {
   box-shadow: inset 3px 0 0 var(--accent);
   padding-left: 10px;

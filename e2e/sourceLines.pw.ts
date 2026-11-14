@@ -114,7 +114,7 @@ test('every screen shows at most one data-source line and one refresh button', a
       failures.push(`${name}: строк об источнике ${result.lines.length}`);
     if (!noSource && result.lines.length === 0) failures.push(`${name}: нет строки об источнике`);
     for (const line of result.lines)
-      if (!/^Данные: (PitchAPI|Powered by SportScore|Jolpica|OpenF1)/u.test(line))
+      if (!/^Данные: (PitchAPI|Powered by SportScore|LiveScore|ESPN|Jolpica|OpenF1)/u.test(line))
         failures.push(`${name}: строка источника в другом виде: «${line}»`);
     if (result.refresh.length > 1)
       failures.push(`${name}: кнопок обновления ${result.refresh.length} (${result.refresh})`);

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { footballNav as TABS } from '../../lib/navigationMetadata';
 import { PageFrame } from '../../components/PageFrame';
 import { Dashboard } from './Dashboard';
@@ -68,6 +68,15 @@ function FootballBody({
     handleOpenTeam(teamId);
   };
 
+  // The live screen may open a match only when PitchAPI already knows the same fixture.
+  const pitchMatches = useMemo(
+    () =>
+      data.leagues.flatMap((league) =>
+        data.matchesForLeague(league.id).map((match) => ({ leagueId: league.id, match })),
+      ),
+    [data.leagues, data.matchesForLeague],
+  );
+
   return (
     <PageFrame
       page={`football.${data.selectedLeagueId}.${data.season}.${matchId ? `match.${matchId}` : `${section}.${activeTeamId ?? ''}`}`}
@@ -107,7 +116,9 @@ function FootballBody({
             )}
             {section === 'matches' && <MatchesView onOpenMatch={handleOpenMatch} data={data} />}
             {section === 'standings' && <StandingsView data={data} onOpenTeam={handleOpenTeam} />}
-            {section === 'live' && <LivePanel />}
+            {section === 'live' && (
+              <LivePanel pitchMatches={pitchMatches} onOpenMatch={handleOpenMatch} />
+            )}
             {section === 'players' && <PlayersCenter data={data} onOpenMatch={handleOpenMatch} />}
             {section === 'team' && (
               <TeamView

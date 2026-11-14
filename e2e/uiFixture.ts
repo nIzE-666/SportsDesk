@@ -1,5 +1,14 @@
+import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { E2E_ORIGIN } from './origin';
+
+function liveFixture(name: string): unknown {
+  return JSON.parse(readFileSync(`src/test/fixtures/liveSources/${name}`, 'utf8')) as unknown;
+}
+
+const LIVESCORE_DAY_0 = liveFixture('livescore-date-20261108-offset0.json');
+const LIVESCORE_DAY_9 = liveFixture('livescore-date-20261108-offset9.json');
+const LIVESCORE_LIVE_9 = liveFixture('livescore-live-offset9.json');
 
 const home = { id: 'arsenal', name: 'Arsenal' };
 const away = { id: 'chelsea', name: 'Chelsea' };
@@ -114,6 +123,12 @@ export async function setupVisualFixture(
         else if (path.endsWith('/players')) payload = { data: [] };
         else if (path.endsWith('/events')) payload = { data: { events: [] } };
         else payload = { data: {} };
+      } else if (source === 'livescore') {
+        if (path.startsWith('live/')) payload = LIVESCORE_LIVE_9;
+        else {
+          const offset = /^date\/soccer\/\d{8}\/(-?\d+)\?MD=1$/.exec(path)?.[1];
+          payload = offset === '0' ? LIVESCORE_DAY_0 : LIVESCORE_DAY_9;
+        }
       } else if (source === 'jolpica')
         payload =
           scenarioData && path.includes('driverStandings')

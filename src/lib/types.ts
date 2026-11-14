@@ -1,4 +1,4 @@
-export type Source = 'pitch' | 'sportscore' | 'espn' | 'jolpica' | 'openf1';
+export type Source = 'pitch' | 'sportscore' | 'livescore' | 'espn' | 'jolpica' | 'openf1';
 
 export interface ApiReply {
   payload: any;

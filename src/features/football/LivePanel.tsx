@@ -1,144 +1,117 @@
-import { ExternalLink, Radio, RefreshCw, Star } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Radio, RefreshCw, Star } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
-import { api, openExternal } from '../../lib/bridge';
 import { useViewState } from '../../lib/useViewState';
-import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import { matchInvolvesFavorite, useFavorites } from './FavoritesProvider';
-import { isPersonalLiveMatch } from './liveCompetitions';
-import { formatHumanDateTime } from '../../lib/humanDate';
+import { clubKey } from './clubNames';
+import { useFavorites } from './FavoritesProvider';
+import { isFollowedCompetition } from './liveCompetitions';
+import { findPitchMatchId, useLiveMatches, type PitchMatchReference } from './liveData';
+import type { LiveMatch, LiveState } from './liveSources';
 import { getUserTimezone } from './storage';
-
-interface FlatSportScoreMatch {
-  home?: string;
-  away?: string;
-  home_logo?: string;
-  away_logo?: string;
-  home_score?: string | number | null;
-  away_score?: string | number | null;
-  status?: string;
-  status_text?: string;
-  time?: string;
-  competition?: string;
-  url?: string;
-}
 
 type LiveFilter = 'all' | 'live' | 'finished' | 'favorites';
 
-const REFRESH_MS = 60_000;
+/** The same ten followed competitions the panel has always shown. */
+const LEAGUE_IDS = [
+  'l_4WFCIZ',
+  'l_0ErfuF',
+  'l_0ALvwF',
+  'l_1Isor4',
+  'l_3FJFUl',
+  'l_0eg6C9',
+  'l_0bfbkO',
+  'l_38d9HA',
+  'l_2WZ2tt',
+  'l_1XLtP0',
+] as const;
+const LEAGUE_ID_SET = new Set<string>(LEAGUE_IDS);
 
-function normalizeScore(v: string | number | null | undefined): string {
-  if (v === null || v === undefined) return '—';
-  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '—';
-  const trimmed = v.trim();
-  return trimmed.length > 0 ? trimmed : '—';
+const STATE_LABELS: Record<LiveState, string> = {
+  scheduled: 'Запланирован',
+  live: 'В игре',
+  finished: 'Завершён',
+  postponed: 'Перенесён / приостановлен',
+  cancelled: 'Отменён',
+  unknown: 'Статус уточняется',
+};
+
+const timeFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function kickoffTime(iso: string | null, timezone: string): string | null {
+  if (!iso) return null;
+  let formatter = timeFormatterCache.get(timezone);
+  if (!formatter) {
+    try {
+      formatter = new Intl.DateTimeFormat('ru-RU', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return null;
+    }
+    timeFormatterCache.set(timezone, formatter);
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return formatter.format(date);
 }
 
-function isLiveMatch(m: FlatSportScoreMatch) {
-  return classifyMatchStatus(m.status, m.status_text) === 'live';
-}
-function isFinishedMatch(m: FlatSportScoreMatch) {
-  return classifyMatchStatus(m.status, m.status_text) === 'finished';
+function scoreValue(value: number | null): string {
+  return value === null ? '—' : String(value);
 }
 
-function extractMatches(payload: any): FlatSportScoreMatch[] {
-  if (!payload || typeof payload !== 'object') return [];
-  const list = Array.isArray(payload.matches)
-    ? payload.matches
-    : Array.isArray(payload)
-      ? payload
-      : [];
-  return list.filter((m: unknown): m is FlatSportScoreMatch => {
-    if (!m || typeof m !== 'object') return false;
-    const obj = m as Record<string, unknown>;
-    return typeof obj.home === 'string' || typeof obj.away === 'string';
-  });
+export interface LivePanelProps {
+  /** PitchAPI matches already loaded by the football view, for row links. */
+  pitchMatches?: readonly PitchMatchReference[];
+  onOpenMatch?: (matchId: string) => void;
 }
 
-function validateExternalUrl(url: string | undefined): string | null {
-  if (!url) return null;
-  if (!url.startsWith('/football/match/')) return null;
-  return `https://sportscore.com${url}`;
-}
-
-function statusLabel(m: FlatSportScoreMatch) {
-  return matchStateLabel(m.status, m.status_text);
-}
-function statusClass(m: FlatSportScoreMatch) {
-  return isLiveMatch(m) ? 'chip live-chip' : 'chip';
-}
-
-export function LivePanel() {
+export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
   const timezone = getUserTimezone();
   const { favoriteTeamNames } = useFavorites();
-  const [matches, setMatches] = useState<FlatSportScoreMatch[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-  const [stale, setStale] = useState(false);
+  const { matches, source, fetchedAt, stale, loading, refreshing, error, refresh } = useLiveMatches(
+    { leagueIds: LEAGUE_IDS },
+  );
   const [filter, setFilter] = useViewState<LiveFilter>('football.live.filter', 'all', (v) =>
     ['all', 'live', 'finished', 'favorites'].includes(String(v)),
   );
-  const mountedRef = useRef(true);
-  const visibleRef = useRef(true);
-  const timerRef = useRef<number | null>(null);
 
-  const load = useCallback(async (automatic = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const reply = await api('sportscore', 'matches/?sport=football&limit=50', { automatic });
-      if (!mountedRef.current) return;
-      setMatches(extractMatches(reply.payload));
-      setFetchedAt(reply.fetchedAt ?? null);
-      setStale(reply.stale);
-    } catch (e) {
-      if (!mountedRef.current) return;
-      setError(e instanceof Error ? e.message : 'Лента недоступна');
-      setStale(true);
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    const onVis = () => {
-      visibleRef.current = document.visibilityState === 'visible';
-    };
-    document.addEventListener('visibilitychange', onVis);
-    // The Rust background poller nudges open live views after fresh data.
-    const onBackgroundRefresh = () => {
-      if (mountedRef.current) void load(true);
-    };
-    window.addEventListener('sportsdesk-live-refresh', onBackgroundRefresh);
-    onVis();
-    void load();
-    timerRef.current = window.setInterval(() => {
-      if (visibleRef.current) void load(true);
-    }, REFRESH_MS);
-    return () => {
-      mountedRef.current = false;
-      document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('sportsdesk-live-refresh', onBackgroundRefresh);
-      if (timerRef.current !== null) window.clearInterval(timerRef.current);
-    };
-  }, [load]);
-
-  const personalMatches = matches.filter((m) => isPersonalLiveMatch(m, favoriteTeamNames));
-  const favoriteList = personalMatches.filter((m) =>
-    matchInvolvesFavorite(m.home, m.away, favoriteTeamNames),
+  const favoriteKeys = useMemo(
+    () => new Set(favoriteTeamNames.map((name) => clubKey(name))),
+    [favoriteTeamNames],
   );
-  const liveCount = personalMatches.filter((m) => isLiveMatch(m)).length;
+  const isFavorite = useCallback(
+    (match: LiveMatch) =>
+      favoriteKeys.has(match.home.clubKey) || favoriteKeys.has(match.away.clubKey),
+    [favoriteKeys],
+  );
+  const isLive = useCallback((match: LiveMatch) => match.state === 'live', []);
 
-  const visible = (() => {
-    if (filter === 'live') return personalMatches.filter((m) => isLiveMatch(m));
-    if (filter === 'finished') return personalMatches.filter((m) => isFinishedMatch(m));
+  const personalMatches = useMemo(
+    () =>
+      matches.filter(
+        (match) =>
+          (match.leagueId !== null && LEAGUE_ID_SET.has(match.leagueId)) ||
+          isFollowedCompetition(match.competition) ||
+          isFavorite(match),
+      ),
+    [matches, isFavorite],
+  );
+  const favoriteList = useMemo(
+    () => personalMatches.filter(isFavorite),
+    [personalMatches, isFavorite],
+  );
+  const liveCount = personalMatches.filter(isLive).length;
+
+  const visible = useMemo(() => {
+    if (filter === 'live') return personalMatches.filter(isLive);
+    if (filter === 'finished') return personalMatches.filter((match) => match.state === 'finished');
     if (filter === 'favorites') return favoriteList;
     return personalMatches;
-  })();
+  }, [filter, personalMatches, favoriteList, isLive]);
 
   return (
     <div className="live-view">
@@ -150,8 +123,8 @@ export function LivePanel() {
           <p className="muted small">Ваши клубы и турниры.</p>
         </div>
         <div className="dashboard-head-actions">
-          <button className="ghost-btn" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={14} /> {loading ? 'Обновление…' : 'Обновить'}
+          <button className="ghost-btn" onClick={refresh} disabled={refreshing || loading}>
+            <RefreshCw size={14} /> {refreshing ? 'Обновление…' : 'Обновить'}
           </button>
         </div>
       </div>
@@ -175,13 +148,12 @@ export function LivePanel() {
         </div>
       </div>
 
-      {loading && matches.length === 0 && <LoadingBlock label="Загрузка ленты…" rows={4} />}
-      {error && <ErrorBlock title="Лента недоступна" message={error} onRetry={() => void load()} />}
+      {loading && matches.length === 0 && <LoadingBlock label="Загрузка матчей…" rows={4} />}
+      {error && matches.length === 0 && (
+        <ErrorBlock title="Матчи недоступны" message={error} onRetry={refresh} />
+      )}
       {!loading && !error && visible.length === 0 && personalMatches.length === 0 && (
-        <EmptyBlock
-          title="В ленте нет матчей ваших клубов и турниров"
-          message="В ленте только 50 первых матчей дня, поэтому вечерние игры могут не попасть."
-        />
+        <EmptyBlock title="Нет матчей ваших клубов и турниров" message="На сегодня матчей нет." />
       )}
       {!loading && !error && visible.length === 0 && personalMatches.length > 0 && (
         <EmptyBlock title="Нет матчей в выбранном фильтре" message="Попробуйте другой фильтр." />
@@ -190,52 +162,57 @@ export function LivePanel() {
       {visible.length > 0 && (
         <section className="panel">
           <ul className="live-flat-list">
-            {visible.map((m, i) => {
-              const url = validateExternalUrl(m.url);
-              const favorite = matchInvolvesFavorite(m.home, m.away, favoriteTeamNames);
-              const live = isLiveMatch(m);
-              return (
-                <li
-                  key={m.url ?? `${m.home}-${m.away}-${i}`}
-                  className={favorite ? 'live-flat favorite' : 'live-flat'}
-                >
-                  <div className="live-flat-comp muted small">{m.competition ?? 'Футбол'}</div>
+            {visible.map((m) => {
+              const favorite = isFavorite(m);
+              const live = isLive(m);
+              const clickableId =
+                onOpenMatch && pitchMatches.length > 0 ? findPitchMatchId(m, pitchMatches) : null;
+              const kickoff = m.state === 'scheduled' ? kickoffTime(m.kickoffUtc, timezone) : null;
+              const row = (
+                <>
+                  <div className="live-flat-comp muted small">{m.competition || 'Футбол'}</div>
                   <div className="live-flat-teams">
                     <span className="live-team">
-                      <TeamBadge name={m.home ?? 'Команда'} imageUrl={m.home_logo} size={20} />
-                      <span className="truncate">{m.home ?? '—'}</span>
+                      <TeamBadge name={m.home.name} size={20} />
+                      <span className="truncate">{m.home.name}</span>
                     </span>
                     <strong className="live-score">
-                      {normalizeScore(m.home_score)} : {normalizeScore(m.away_score)}
+                      {scoreValue(m.score.home)} : {scoreValue(m.score.away)}
                     </strong>
                     <span className="live-team right">
-                      <span className="truncate">{m.away ?? '—'}</span>
-                      <TeamBadge name={m.away ?? 'Команда'} imageUrl={m.away_logo} size={20} />
+                      <span className="truncate">{m.away.name}</span>
+                      <TeamBadge name={m.away.name} size={20} />
                     </span>
                   </div>
                   <div className="live-meta">
-                    <span className={statusClass(m)}>{statusLabel(m)}</span>
-                    {live && <span className="chip live-chip">LIVE</span>}
+                    <span className={live ? 'chip live-chip' : 'chip'}>
+                      {STATE_LABELS[m.state]}
+                    </span>
+                    {live && m.minute && <span className="chip live-chip">{m.minute}</span>}
                     {favorite && (
                       <span className="chip fav-chip">
                         <Star size={10} /> Избранное
                       </span>
                     )}
-                    {m.time && (
-                      <span className="muted small">{formatHumanDateTime(m.time, timezone)}</span>
-                    )}
-                    {url ? (
-                      <button
-                        className="link-btn"
-                        onClick={() => void openExternal(url).catch(() => undefined)}
-                        title="Открыть на сайте источника"
-                      >
-                        Открыть <ExternalLink size={11} />
-                      </button>
-                    ) : (
-                      <span className="muted tiny">нет ссылки на детали</span>
-                    )}
+                    {kickoff && <span className="muted small">{kickoff}</span>}
                   </div>
+                </>
+              );
+              const className = favorite ? 'live-flat favorite' : 'live-flat';
+              return (
+                <li key={m.id}>
+                  {clickableId && onOpenMatch ? (
+                    <button
+                      type="button"
+                      className={`${className} live-flat-button`}
+                      onClick={() => onOpenMatch(clickableId)}
+                      title="Открыть разбор матча"
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    <div className={className}>{row}</div>
+                  )}
                 </li>
               );
             })}
@@ -244,7 +221,7 @@ export function LivePanel() {
       )}
 
       <SourceLine
-        sources={['sportscore']}
+        sources={source ? [source] : []}
         fetchedAt={fetchedAt}
         stale={stale && matches.length > 0}
         timezone={timezone}

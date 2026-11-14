@@ -3,6 +3,7 @@ const LABELS: Record<string, string> = {
   pitch: 'PitchAPI',
   pitchapi: 'PitchAPI',
   sportscore: 'SportScore',
+  livescore: 'LiveScore',
   espn: 'ESPN',
   jolpica: 'Jolpica',
   openf1: 'OpenF1',

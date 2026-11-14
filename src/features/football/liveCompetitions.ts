@@ -33,15 +33,19 @@ const COMPETITIONS = new Set([
   'world cup',
 ]);
 
-export function isPersonalLiveMatch(
-  match: { home?: string; away?: string; competition?: string },
-  favoriteNames: string[],
-) {
-  if (matchInvolvesFavorite(match.home, match.away, favoriteNames)) return true;
-  const name = match.competition
+export function isFollowedCompetition(competition: string | null | undefined): boolean {
+  const name = competition
     ?.normalize('NFKC')
     .toLocaleLowerCase('en-US')
     .trim()
     .replace(/\s+/g, ' ');
   return !!name && COMPETITIONS.has(name);
+}
+
+export function isPersonalLiveMatch(
+  match: { home?: string; away?: string; competition?: string },
+  favoriteNames: string[],
+) {
+  if (matchInvolvesFavorite(match.home, match.away, favoriteNames)) return true;
+  return isFollowedCompetition(match.competition);
 }

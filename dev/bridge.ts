@@ -22,6 +22,7 @@ const eventStore = new EventStore();
 const BASES: Record<string, string> = {
   pitch: 'https://api.pitchapi.dev/v1/',
   sportscore: 'https://sportscore.com/api/widget/',
+  livescore: 'https://prod-public-api.livescore.com/v1/api/app/',
   espn: 'https://site.api.espn.com/apis/site/v2/sports/soccer/',
   jolpica: 'https://api.jolpi.ca/ergast/f1/',
   openf1: 'https://api.openf1.org/v1/',
@@ -146,7 +147,8 @@ function reserveOpenF1(): Promise<void> {
   });
 }
 
-function ttlFor(source: string, path: string, payload: unknown): number {
+export function ttlFor(source: string, path: string, payload: unknown): number {
+  if (source === 'livescore') return path.startsWith('live/') ? 30_000 : 10 * 60 * 1000;
   const p = path.toLowerCase();
   if (source === 'pitch' && p.startsWith('date/')) return pitchDateCacheTtl(path, payload);
   if (source === 'pitch' && p.startsWith('matches/')) return 60_000;
@@ -214,13 +216,38 @@ function isCrossOrigin(req: IncomingMessage): boolean {
   }
 }
 
+function validCompactDate(value: string): boolean {
+  if (!/^\d{8}$/.test(value)) return false;
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(4, 6));
+  const day = Number(value.slice(6, 8));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+function validLiveScoreOffset(value: string): boolean {
+  if (!/^-?\d+$/.test(value)) return false;
+  const offset = Number(value);
+  return Number.isInteger(offset) && offset >= -12 && offset <= 14;
+}
+
+/** Mirrors `valid_livescore_path` in `src-tauri/src/bridge.rs`. */
+function validLiveScorePath(path: string): boolean {
+  const match = /^(?:date\/soccer\/(\d{8})\/(-?\d+)|live\/soccer\/(-?\d+))\?MD=1$/.exec(path);
+  if (!match) return false;
+  const date = match[1];
+  return (!date || validCompactDate(date)) && validLiveScoreOffset((match[3] ?? match[2])!);
+}
+
 /**
  * Path security: encoded traversal is rejected on the lowercased path portion
  * BEFORE the query string, so real query values like season=2026%2F2027 (the
  * encoded slash) remain valid. Encoded dots/backslash/percent outside the
  * query are still rejected.
  */
-function validPath(source: string, path: string): boolean {
+export function validPath(source: string, path: string): boolean {
   if (!path || path.length > 2048) return false;
   if (path.startsWith('/') || /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(path)) return false;
   if (path.includes('..') || path.includes('\\') || path.includes('//')) return false;
@@ -236,7 +263,8 @@ function validPath(source: string, path: string): boolean {
   }
   // eslint-disable-next-line no-control-regex -- reject all ASCII control bytes in request paths
   if (/[\u0000-\u001f\u007f]/.test(path) || /\s/.test(path)) return false;
-  return Boolean(BASES[source]);
+  if (!BASES[source]) return false;
+  return source === 'livescore' ? validLiveScorePath(path) : true;
 }
 
 async function fetchUpstream(

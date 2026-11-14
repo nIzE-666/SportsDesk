@@ -6,6 +6,7 @@ it('turns provider keys into readable names and keeps unknown values', () => {
   expect(sourceLabel('jolpica')).toBe('Jolpica');
   expect(sourceLabel('OpenF1')).toBe('OpenF1');
   expect(sourceLabel(' sportscore ')).toBe('SportScore');
+  expect(sourceLabel('livescore')).toBe('LiveScore');
   expect(sourceLabel('Другой источник')).toBe('Другой источник');
 });
 

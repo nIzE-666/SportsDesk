@@ -40,6 +40,12 @@ const ESPN_LEAGUES = new Map<string, string>([
   ['fifa.world', 'l_1XLtP0'],
 ]);
 
+/** ESPN league slug for an app league id, or null when the app does not follow it. */
+export function espnSlugForLeague(leagueId: string): string | null {
+  for (const [slug, id] of ESPN_LEAGUES) if (id === leagueId) return slug;
+  return null;
+}
+
 /**
  * LiveScore names the competition group (country, or "UEFA") and the competition separately.
  * Both are required: "Premier League" alone also names competitions in other countries. Keys are

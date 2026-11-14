@@ -135,6 +135,7 @@ fn base_for(source: &str) -> Option<&'static str> {
     match source {
         "pitch" => Some("https://api.pitchapi.dev/v1/"),
         "sportscore" => Some("https://sportscore.com/api/widget/"),
+        "livescore" => Some("https://prod-public-api.livescore.com/v1/api/app/"),
         "espn" => Some("https://site.api.espn.com/apis/site/v2/sports/soccer/"),
         "jolpica" => Some("https://api.jolpi.ca/ergast/f1/"),
         "openf1" => Some("https://api.openf1.org/v1/"),
@@ -178,9 +179,53 @@ fn valid_relative_path(path: &str) -> bool {
     path.chars().all(|c| !c.is_control() && !c.is_whitespace())
 }
 
+fn valid_compact_date(value: &str) -> bool {
+    value.len() == 8
+        && value.bytes().all(|byte| byte.is_ascii_digit())
+        && chrono::NaiveDate::parse_from_str(value, "%Y%m%d").is_ok()
+}
+
+fn valid_livescore_offset(value: &str) -> bool {
+    if value.is_empty() || value.starts_with('+') {
+        return false;
+    }
+    let digits = value.strip_prefix('-').unwrap_or(value);
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return false;
+    }
+    value
+        .parse::<i32>()
+        .is_ok_and(|offset| (-12..=14).contains(&offset))
+}
+
+/// LiveScore's public app API is only consumed through these two fixed endpoints.
+fn valid_livescore_path(path: &str) -> bool {
+    let Some(rest) = path.strip_suffix("?MD=1") else {
+        return false;
+    };
+    let parts: Vec<&str> = rest.split('/').collect();
+    match parts.as_slice() {
+        ["date", "soccer", date, offset] => {
+            valid_compact_date(date) && valid_livescore_offset(offset)
+        }
+        ["live", "soccer", offset] => valid_livescore_offset(offset),
+        _ => false,
+    }
+}
+
+fn source_path_allowed(source: &str, path: &str) -> bool {
+    if !valid_relative_path(path) {
+        return false;
+    }
+    if source == "livescore" {
+        return valid_livescore_path(path);
+    }
+    true
+}
+
 fn build_url(source: &str, path: &str) -> Result<url::Url, BridgeError> {
     let base = base_for(source).ok_or(BridgeError::UnknownSource)?;
-    if !valid_relative_path(path) {
+    if !source_path_allowed(source, path) {
         return Err(BridgeError::InvalidPath);
     }
     let base_url = url::Url::parse(base).map_err(|_| BridgeError::Config)?;
@@ -376,6 +421,13 @@ fn pitch_date_ttl(path: &str, payload: &Value, now: i64) -> i64 {
 }
 
 fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
+    if source == "livescore" {
+        return if path.starts_with("live/") {
+            30_000
+        } else {
+            10 * 60_000
+        };
+    }
     if source == "pitch" && path.starts_with("date/") {
         return pitch_date_ttl(path, payload, now_ms());
     }
@@ -648,7 +700,7 @@ where
     if base_for(&source).is_none() {
         return Err(BridgeError::UnknownSource);
     }
-    if !valid_relative_path(&path) {
+    if !source_path_allowed(&source, &path) {
         return Err(BridgeError::InvalidPath);
     }
 
@@ -1385,6 +1437,62 @@ mod acceptance_tests {
             assert!(build_url("pitch", path).is_err());
         }
         assert!(build_url("unknown", "leagues").is_err());
+    }
+
+    #[test]
+    fn livescore_accepts_only_its_date_and_live_paths() {
+        for path in [
+            "date/soccer/20261108/-12?MD=1",
+            "date/soccer/20261108/0?MD=1",
+            "date/soccer/20261108/14?MD=1",
+            "live/soccer/-12?MD=1",
+            "live/soccer/0?MD=1",
+            "live/soccer/14?MD=1",
+        ] {
+            assert!(build_url("livescore", path).is_ok(), "{path}");
+        }
+        assert_eq!(
+            build_url("livescore", "date/soccer/20261108/9?MD=1")
+                .unwrap()
+                .as_str(),
+            "https://prod-public-api.livescore.com/v1/api/app/date/soccer/20261108/9?MD=1"
+        );
+        for path in [
+            "date/soccer/20261108/15?MD=1",
+            "date/soccer/20261108/-13?MD=1",
+            "date/soccer/20261108/9",
+            "date/soccer/20261108/9?MD=2",
+            "date/soccer/20261108/9?MD=1&x=1",
+            "date/soccer/20261308/9?MD=1",
+            "date/soccer/2026118/9?MD=1",
+            "date/soccer/20261108/+9?MD=1",
+            "date/soccer/20261108/9.0?MD=1",
+            "date/soccer/20261108/9/extra?MD=1",
+            "live/soccer/9?MD=1&x=1",
+            "live/soccer/15?MD=1",
+            "live/soccer/9",
+            "live/soccer/+9?MD=1",
+            "live/soccer/9.0?MD=1",
+            "live/soccer/9/extra?MD=1",
+            "live/rugby/9?MD=1",
+        ] {
+            assert!(build_url("livescore", path).is_err(), "{path}");
+        }
+    }
+
+    #[test]
+    fn livescore_cache_is_ten_minutes_for_days_and_thirty_seconds_for_live() {
+        let empty = serde_json::json!({});
+        assert_eq!(
+            ttl_ms("livescore", "date/soccer/20261108/9?MD=1", &empty),
+            600_000
+        );
+        assert_eq!(ttl_ms("livescore", "live/soccer/9?MD=1", &empty), 30_000);
+        // The new source's rule does not leak into the other sources.
+        assert_eq!(
+            ttl_ms("espn", "eng.1/scoreboard?dates=20261108", &empty),
+            60_000
+        );
     }
 
     #[test]
