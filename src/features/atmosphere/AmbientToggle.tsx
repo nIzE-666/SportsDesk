@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useModules } from '../../lib/modules';
 import {
   getAmbientState,
   setAmbientSportHint,
@@ -19,6 +20,7 @@ const NOTE_MS = 6000;
  */
 export function AmbientToggle({ sport }: { sport: string }) {
   const settings = useAtmosphere();
+  const atmosphereOn = useModules().atmosphere;
   const ambient = useAmbientState();
   const [note, setNote] = useState<string | null>(null);
   const reason = ambient.stoppedBy;
@@ -35,7 +37,7 @@ export function AmbientToggle({ sport }: { sport: string }) {
     return () => clearTimeout(timer);
   }, [note]);
 
-  if (!ambientAllowed(settings)) return null;
+  if (!atmosphereOn || !ambientAllowed(settings)) return null;
   const playing = ambient.kind !== null;
   const click = () => {
     setNote(null);

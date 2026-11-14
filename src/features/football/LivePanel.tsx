@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
+import { isCompetitionVisible, useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import { CUP_COMPETITIONS } from '../ucl/cups';
@@ -28,7 +29,6 @@ const LEAGUE_IDS = [
   'l_2WZ2tt',
   'l_1XLtP0',
 ] as const;
-const LEAGUE_ID_SET = new Set<string>(LEAGUE_IDS);
 const COMPETITION_LABELS = new Map<string, string>([
   ...LEAGUES.map((league) => [league.id, league.label] as const),
   ...CUP_COMPETITIONS.map((cup) => [cup.id, cup.title] as const),
@@ -92,8 +92,16 @@ export interface LivePanelProps {
 export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
   const timezone = getUserTimezone();
   const { favoriteTeamNames } = useFavorites();
+  const modules = useModules();
+  // Список турниров внутри экрана следует выключателям модулей.
+  const visibleLeagueIds = useMemo(
+    () => LEAGUE_IDS.filter((id) => isCompetitionVisible(id)),
+    // modules is the value read from storage; isCompetitionVisible reads the same snapshot.
+    [modules],
+  );
+  const leagueIdSet = useMemo(() => new Set<string>(visibleLeagueIds), [visibleLeagueIds]);
   const { matches, source, fetchedAt, stale, loading, refreshing, error, refresh } = useLiveMatches(
-    { leagueIds: LEAGUE_IDS },
+    { leagueIds: visibleLeagueIds },
   );
   const [filter, setFilter] = useViewState<LiveFilter>('football.live.filter', 'all', (v) =>
     ['all', 'live', 'finished', 'favorites'].includes(String(v)),
@@ -114,11 +122,12 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
     () =>
       matches.filter(
         (match) =>
-          (match.leagueId !== null && LEAGUE_ID_SET.has(match.leagueId)) ||
-          isFollowedCompetition(match.competition) ||
-          isFavorite(match),
+          (match.leagueId === null || isCompetitionVisible(match.leagueId)) &&
+          ((match.leagueId !== null && leagueIdSet.has(match.leagueId)) ||
+            isFollowedCompetition(match.competition) ||
+            isFavorite(match)),
       ),
-    [matches, isFavorite],
+    [matches, isFavorite, leagueIdSet],
   );
   const favoriteList = useMemo(
     () => personalMatches.filter(isFavorite),

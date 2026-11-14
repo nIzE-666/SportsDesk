@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it } from 'vitest';
-import { writeAtmosphere } from './atmosphereStore';
+import { writeModules } from '../../lib/modules';
 import { F1_RADIO_KEY, F1_RADIO_NAME_KEY, cleanRadioName, readTeamRadio } from './teamRadio';
 import { playRadioSignal } from './soundEngine';
 
 beforeEach(() => localStorage.clear());
 
-it('radio is off by default and needs the atmosphere block', () => {
+it('radio is off by default and needs the atmosphere module', () => {
   expect(readTeamRadio()).toEqual({ f1Radio: false, f1RadioName: '' });
   localStorage.setItem(F1_RADIO_KEY, '1');
   localStorage.setItem(F1_RADIO_NAME_KEY, '  Макс  ');
   expect(readTeamRadio()).toEqual({ f1Radio: true, f1RadioName: 'Макс' });
-  writeAtmosphere({ enabled: false });
+  writeModules({ atmosphere: false });
   expect(readTeamRadio()).toEqual({ f1Radio: false, f1RadioName: '' });
 });
 

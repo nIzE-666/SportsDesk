@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { subscribeModules } from '../../lib/modules';
 import { AMBIENT_LEVEL, decideAmbient, resolveAmbientKind } from './ambientPolicy';
 import type { AmbientStopReason } from './ambientPolicy';
 import { createAmbientVoice, type AmbientVoice } from './ambientSynth';
@@ -153,12 +154,14 @@ function sync(): void {
 function watch(): void {
   if (unwatch) return;
   const offSettings = subscribeAtmosphere(sync);
+  const offModules = subscribeModules(sync);
   const offContext = subscribePlaybackContext(sync);
   // Закрытие окна или завершение сеанса: фон не должен продолжать звучать.
   const onPageHide = () => hardStop();
   window.addEventListener('pagehide', onPageHide);
   unwatch = () => {
     offSettings();
+    offModules();
     offContext();
     window.removeEventListener('pagehide', onPageHide);
   };

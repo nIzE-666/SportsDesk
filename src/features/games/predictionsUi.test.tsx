@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../lib/bridge';
-import { writeAtmosphere } from '../atmosphere/atmosphereStore';
+import { writeModules } from '../../lib/modules';
 import type { MatchDetail } from '../football/types';
 import { hideResult } from '../spoilers/spoilerStore';
 import { PredictionPanel } from './PredictionPanel';
@@ -115,12 +115,12 @@ describe('PredictionPanel', () => {
     );
     expect(buttonByText('Мой прогноз')).toBeUndefined();
   });
-  it('is not shown for other competitions or when games are switched off', () => {
+  it('is not shown for other competitions or when predictions are switched off', () => {
     render(<PredictionPanel detail={detail({ league: { id: 'l_0eg6C9', name: 'MLS' } })} />);
     expect(host?.querySelector('.prediction-panel')).toBeNull();
     act(() => root?.render(<PredictionPanel detail={detail({ league: undefined })} />));
     expect(host?.querySelector('.prediction-panel')).toBeNull();
-    writeAtmosphere({ enabled: false });
+    writeModules({ predictions: false });
     act(() => root?.render(<PredictionPanel detail={detail()} />));
     expect(host?.querySelector('.prediction-panel')).toBeNull();
   });

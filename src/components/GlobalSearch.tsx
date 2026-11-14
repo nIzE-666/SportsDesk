@@ -1,6 +1,7 @@
 import { Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { isCompetitionVisible, useModules } from '../lib/modules';
 import { useModalFocus } from '../lib/useModalFocus';
 import {
   findSearchItems,
@@ -23,6 +24,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
     [query, setQuery] = useState(''),
     [active, setActive] = useState(0),
     [items, setItems] = useState<SearchItem[]>([]);
+  const modules = useModules();
   const panel = useRef<HTMLDivElement>(null);
   useModalFocus(panel, open, () => setOpen(false));
   useEffect(() => {
@@ -50,8 +52,15 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
       window.removeEventListener('storage', update);
     };
   }, [open]);
-  const results = findSearchItems(items, query),
-    selected = Math.min(active, Math.max(0, results.length - 1));
+  const results = findSearchItems(items, query).filter((item) => {
+    const target = item.target;
+    if (target.kind === 'channel' || (target.kind === 'section' && target.id === 'watch'))
+      return modules.watch;
+    if ((target.kind === 'team' || target.kind === 'match') && target.leagueId)
+      return isCompetitionVisible(target.leagueId);
+    return true;
+  });
+  const selected = Math.min(active, Math.max(0, results.length - 1));
   useEffect(() => {
     panel.current
       ?.querySelector(`#search-result-${selected}`)

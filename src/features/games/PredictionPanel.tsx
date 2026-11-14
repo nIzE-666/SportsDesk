@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Target } from 'lucide-react';
+import { useModules } from '../../lib/modules';
 import { useNow } from '../../lib/useNow';
-import { useAtmosphere } from '../atmosphere/atmosphereStore';
 import type { MatchDetail } from '../football/types';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { useResultHidden } from '../spoilers/spoilerStore';
@@ -72,7 +72,7 @@ function plural(points: number): string {
 /**
  * «Угадай счёт» в карточке матча: свой прогноз на счёт основного времени до
  * начала, а после матча — игровые очки. Показывается только в чемпионатах без
- * дополнительного времени и пока включён блок «Игры и атмосфера».
+ * дополнительного времени и пока включён модуль «Прогнозы».
  */
 export function PredictionPanel({
   detail,
@@ -81,7 +81,7 @@ export function PredictionPanel({
   detail: MatchDetail;
   compact?: boolean;
 }) {
-  const settings = useAtmosphere();
+  const predictionsOn = useModules().predictions;
   const { items } = usePredictions();
   const hiddenResult = useResultHidden('football', detail.id);
   const now = useNow();
@@ -94,8 +94,8 @@ export function PredictionPanel({
 
   // Свежие данные матча обновляют сохранённый прогноз: перенос, итог, отмену.
   useEffect(() => {
-    if (supported) observeMatchResult(toObservedMatch(detail));
-  }, [supported, detail]);
+    if (supported && predictionsOn) observeMatchResult(toObservedMatch(detail));
+  }, [supported, predictionsOn, detail]);
   // Поля следуют за сохранённым прогнозом (например, после «Убрать»), но не сбрасываются другими записями.
   const savedHome = prediction?.home;
   const savedAway = prediction?.away;
@@ -105,7 +105,7 @@ export function PredictionPanel({
     setAway(savedAway === undefined ? '' : String(savedAway));
   }, [savedHome, savedAway, savedAt]);
 
-  if (!settings.enabled || !supported) return null;
+  if (!predictionsOn || !supported) return null;
   if (compact && !prediction && classifyMatchStatus(detail.status) === 'finished') return null;
   const match = toObservedMatch(detail);
   const open = availability(match, now);

@@ -8,6 +8,7 @@ import { setString } from '../football/storage';
 import { writeFavorites, writeRecent } from '../watch/watchShared';
 import {
   applyProfile,
+  profileEntries,
   recoverInterruptedRestore,
   replaceProfile,
   restoreFullBackup,
@@ -34,6 +35,24 @@ beforeEach(() => {
   eventState.callback = undefined;
 });
 afterEach(() => vi.restoreAllMocks());
+
+it('round-trips the module switches and rejects a damaged value', () => {
+  localStorage.setItem('sportsdesk.scheme', 'dark');
+  const modules = JSON.stringify({
+    version: 1,
+    modules: { watch: false, atmosphere: false, 'league.l_4WFCIZ': false },
+  });
+  replaceProfile({ 'sportsdesk.scheme': 'dark', 'sportsdesk.modules': modules });
+  expect(localStorage.getItem('sportsdesk.modules')).toBe(modules);
+  expect(profileEntries()).toContainEqual(['sportsdesk.modules', modules]);
+
+  expect(() =>
+    replaceProfile({
+      'sportsdesk.modules': '{"version":1,"modules":{"watch":1}}',
+    }),
+  ).toThrow('модулей');
+  expect(localStorage.getItem('sportsdesk.modules')).toBe(modules);
+});
 
 it('validates all keys before changing the existing profile', () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');

@@ -1,12 +1,15 @@
 import { useSyncExternalStore } from 'react';
+import { isModuleOn } from '../../lib/modules';
 import { getString, setJson } from '../football/storage';
 
 /**
- * Общие настройки блока «Игры и атмосфера».
+ * Настройки атмосферы: празднования, звуки и фон.
  *
- * Один главный выключатель и отдельные переключатели празднований, звуков и
- * фона. Звуки по умолчанию выключены и не включаются сами после обновления.
- * Значение версионировано и входит в резервную копию профиля.
+ * Сам блок включается выключателем «Атмосфера» в «Настройках → Модули»
+ * (`src/lib/modules.ts`). Поле `enabled` осталось от старого общего
+ * выключателя «Игры и атмосфера»: оно читается при переходе и сохраняется в
+ * резервной копии, но больше не управляет эффектами. Звуки по умолчанию
+ * выключены и не включаются сами после обновления.
  */
 
 export const ATMOSPHERE_KEY = 'sportsdesk.view.atmosphere';
@@ -25,7 +28,7 @@ export type AmbientHiddenPolicy = 'stop' | 'keep';
 
 export interface AtmosphereSettings {
   version: number;
-  /** Главный выключатель всего блока. */
+  /** Старый общий выключатель; оставлен для чтения прежних профилей. */
   enabled: boolean;
   /** Визуальные празднования: конфетти гола, флаг финиша. */
   celebrations: boolean;
@@ -167,14 +170,14 @@ export function motionReduced(settings: AtmosphereSettings = readAtmosphere()): 
 }
 
 export function celebrationsAllowed(settings: AtmosphereSettings = readAtmosphere()): boolean {
-  return settings.enabled && settings.celebrations;
+  return isModuleOn('atmosphere') && settings.celebrations;
 }
 
 export function soundsAllowed(settings: AtmosphereSettings = readAtmosphere()): boolean {
-  return settings.enabled && settings.sounds && settings.volume > 0;
+  return isModuleOn('atmosphere') && settings.sounds && settings.volume > 0;
 }
 
 /** Фон разрешён: кнопка «Фон» доступна, но сам звук включает только пользователь. */
 export function ambientAllowed(settings: AtmosphereSettings = readAtmosphere()): boolean {
-  return settings.enabled && settings.ambient && settings.ambientVolume > 0;
+  return isModuleOn('atmosphere') && settings.ambient && settings.ambientVolume > 0;
 }

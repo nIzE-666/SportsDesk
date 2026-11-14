@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { Gamepad2 } from 'lucide-react';
 import { EmptyBlock, LoadingBlock } from '../../components/StateViews';
-import { useAtmosphere } from '../atmosphere/atmosphereStore';
+import { useModules } from '../../lib/modules';
 import './games.css';
 
 // Каждая игра грузится только когда её открыли: обычный запуск приложения её не тянет.
@@ -26,23 +26,26 @@ export const GAMES = [
 ] as const;
 export type GameId = (typeof GAMES)[number]['id'];
 
-/** Раздел «Игры»: открывается только действием пользователя и выключается общим переключателем. */
+const GAME_MODULE: Record<GameId, 'games' | 'predictions'> = {
+  'start-lights': 'games',
+  predictions: 'predictions',
+};
+
+/** Раздел «Игры»: открывается только действием пользователя; игры включаются модулями. */
 export function GamesView({
   onOpenMatch,
 }: {
   onOpenMatch?: (matchId: string, leagueId?: string) => void;
 }) {
-  const settings = useAtmosphere();
+  const modules = useModules();
   const [game, setGame] = useState<GameId>(GAMES[0].id);
-  if (!settings.enabled) {
+  const available = GAMES.filter((item) => modules[GAME_MODULE[item.id]]);
+  if (!available.length) {
     return (
-      <EmptyBlock
-        title="Игры выключены"
-        message="Включить их можно в «Настройки → Игры и атмосфера»."
-      />
+      <EmptyBlock title="Игры выключены" message="Включить их можно в «Настройки → Модули»." />
     );
   }
-  const current = GAMES.find((item) => item.id === game) ?? GAMES[0];
+  const current = available.find((item) => item.id === game) ?? available[0]!;
   return (
     <section className="panel games-view" aria-label="Игры">
       <div className="section-title">
@@ -51,13 +54,13 @@ export function GamesView({
         </h2>
       </div>
       <div className="games-tabs" role="tablist" aria-label="Выбор игры">
-        {GAMES.map((item) => (
+        {available.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
-            aria-selected={item.id === game}
-            className={`ghost-btn${item.id === game ? ' active' : ''}`}
+            aria-selected={item.id === current.id}
+            className={`ghost-btn${item.id === current.id ? ' active' : ''}`}
             onClick={() => setGame(item.id)}
           >
             {item.title}
@@ -66,8 +69,8 @@ export function GamesView({
       </div>
       <p className="muted small">{current.blurb}</p>
       <Suspense fallback={<LoadingBlock label="Открываем игру…" rows={2} />}>
-        {game === 'start-lights' && <StartLights />}
-        {game === 'predictions' && <PredictionsGame onOpenMatch={onOpenMatch} />}
+        {current.id === 'start-lights' && <StartLights />}
+        {current.id === 'predictions' && <PredictionsGame onOpenMatch={onOpenMatch} />}
       </Suspense>
     </section>
   );

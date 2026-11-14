@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { writeModules } from '../../lib/modules';
 import { f1SpoilerId, hideResult } from '../spoilers/spoilerStore';
 import { writeAtmosphere } from './atmosphereStore';
 import { readCelebrated, rememberCelebrated } from './celebrationRules';
@@ -108,9 +109,10 @@ describe('decideFinish', () => {
   it('stays quiet when celebrations are off, the window is hidden or the weekend is hidden', () => {
     writeAtmosphere({ celebrations: false });
     expect(decideFinish(payload, { windowHidden: false })).toBe('quiet');
-    writeAtmosphere({ celebrations: true, enabled: false });
+    writeAtmosphere({ celebrations: true });
+    writeModules({ atmosphere: false });
     expect(decideFinish(payload, { windowHidden: false })).toBe('quiet');
-    writeAtmosphere({ enabled: true });
+    writeModules({ atmosphere: true });
     expect(decideFinish(payload, { windowHidden: true })).toBe('quiet');
     hideResult({ kind: 'f1', id: f1SpoilerId('2026', '21') });
     expect(decideFinish(payload, { windowHidden: false })).toBe('quiet');

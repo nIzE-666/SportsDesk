@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatHumanDate } from '../../lib/humanDate';
+import { useModules } from '../../lib/modules';
 import { getUserTimezone } from '../football/storage';
 import { useResultHidden, f1SpoilerId } from '../spoilers/spoilerStore';
 import {
@@ -34,9 +35,11 @@ function DiaryMarkState({
   const { store, writable, error } = useDiary();
   const target = diarySpoiler(event),
     hidden = useResultHidden(target?.kind ?? 'football', target?.id);
+  const diaryOn = useModules().diary;
   const existing = store.entries.find((e) => e.id === diaryEventKey(event));
   const [editing, setEditing] = useState<DiaryEntry | null>(null),
     [message, setMessage] = useState('');
+  if (!diaryOn) return null;
   return (
     <div className="diary-mark">
       <div className="diary-actions">

@@ -38,6 +38,7 @@ pub const EXACT_KEYS: &[&str] = &[
     "planner.priorities",
     "hero.compact",
     "notifications",
+    "modules",
 ];
 
 /// Name prefixes whose keys belong to the profile; must match
@@ -207,6 +208,27 @@ mod tests {
         assert!(!is_allowed_key("evil"));
         assert!(is_allowed_key("sportsdesk.scheme"));
         assert!(is_allowed_key("sportsdesk.design"));
+    }
+
+    #[test]
+    fn module_switches_are_exported_with_the_profile() {
+        // «Настройки → Модули» пишут этот ключ; без него весь экспорт был бы
+        // отклонён, а резервная копия не содержала бы выключенные модули.
+        assert!(is_allowed_key("sportsdesk.modules"));
+        let value = "{\"version\":1,\"modules\":{\"watch\":false,\"atmosphere\":false}}";
+        let profile = build_profile(&[
+            ("sportsdesk.scheme".into(), "dark".into()),
+            ("sportsdesk.modules".into(), value.into()),
+        ])
+        .unwrap();
+        assert_eq!(profile.settings.get("sportsdesk.modules").unwrap(), value);
+
+        let dir = std::env::temp_dir().join(format!("sd-profile-modules-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("profile.json");
+        write_profile(path.to_str().unwrap(), &profile).unwrap();
+        let back = read_profile(path.to_str().unwrap()).unwrap();
+        assert_eq!(back.settings.get("sportsdesk.modules").unwrap(), value);
     }
 
     #[test]

@@ -113,6 +113,48 @@
   margin: 0;
 }
 
+.module-switches {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.module-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.module-switch span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.module-switch small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.module-group {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.module-group-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.module-options {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
 .settings-category .diagnostics-grid {
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;

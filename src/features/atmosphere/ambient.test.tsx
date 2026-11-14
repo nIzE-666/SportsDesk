@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { writeModules } from '../../lib/modules';
 import { AmbientToggle } from './AmbientToggle';
 import {
   getAmbientState,
@@ -75,7 +76,7 @@ describe('ambient policy', () => {
 
   it('stays silent when disabled, muted or when the window is hidden by policy', () => {
     expect(decideAmbient(DEFAULT_ATMOSPHERE, quiet)).toEqual({ play: false, reason: 'disabled' });
-    expect(decideAmbient({ ...allowed, enabled: false }, quiet)).toMatchObject({ play: false });
+    expect(decideAmbient({ ...allowed, ambient: false }, quiet)).toMatchObject({ play: false });
     expect(decideAmbient({ ...allowed, ambientVolume: 0 }, quiet)).toMatchObject({ play: false });
     const hidden = { ...quiet, windowHidden: true };
     expect(decideAmbient(allowed, hidden)).toEqual({ play: false, reason: 'hidden' });
@@ -215,10 +216,10 @@ describe('ambient engine', () => {
     expect(busGain()).toBeCloseTo(0.8 * AMBIENT_LEVEL);
   });
 
-  it('stops when sounds are disabled in the settings', () => {
+  it('stops when the atmosphere module is disabled', () => {
     allowAmbient();
     startAmbient();
-    writeAtmosphere({ enabled: false });
+    writeModules({ atmosphere: false });
     expect(getAmbientState()).toMatchObject({ kind: null, stoppedBy: 'disabled' });
     vi.advanceTimersByTime(2000);
     expect(theFakeContext().liveSources()).toBe(0);
@@ -340,7 +341,7 @@ describe('AmbientToggle', () => {
     expect(button()).not.toBeNull();
     expect(button()?.getAttribute('aria-pressed')).toBe('false');
     act(() => {
-      writeAtmosphere({ enabled: false });
+      writeModules({ atmosphere: false });
     });
     expect(button()).toBeNull();
   });

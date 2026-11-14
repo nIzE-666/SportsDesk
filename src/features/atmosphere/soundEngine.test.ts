@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it } from 'vitest';
+import { writeModules } from '../../lib/modules';
 import { POLICY_KEY } from '../settings/notificationPolicy';
 import { resetAudioContextForTests } from './audioContext';
 import { writeAtmosphere } from './atmosphereStore';
@@ -59,10 +60,12 @@ it('does not stack signals on top of each other', () => {
   expect(playGoalHorn({ now: NOON + 2000 })).toBe(true);
 });
 
-it('stays silent when the master switch is off or the volume is zero', () => {
-  writeAtmosphere({ sounds: true, enabled: false });
+it('stays silent when the atmosphere module is off or the volume is zero', () => {
+  writeAtmosphere({ sounds: true });
+  writeModules({ atmosphere: false });
   expect(playGoalHorn({ now: NOON })).toBe(false);
-  writeAtmosphere({ enabled: true, volume: 0 });
+  writeModules({ atmosphere: true });
+  writeAtmosphere({ volume: 0 });
   expect(playGoalHorn({ now: NOON })).toBe(false);
 });
 

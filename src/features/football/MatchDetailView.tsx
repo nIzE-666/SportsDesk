@@ -6,6 +6,7 @@ import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateView
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
 import { api, isTauriRuntime, rpc } from '../../lib/bridge';
+import { useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
 import { useInterfaceDesign } from '../../lib/interfaceDesign';
@@ -84,6 +85,7 @@ export function MatchDetailView({
   onOpenMatch?: (id: string) => void;
 }) {
   const broadcast = useInterfaceDesign() === 'broadcast';
+  const modules = useModules();
   const timezone = getUserTimezone();
   const [tab, setTab] = useViewState<TabKey>(`match.${matchId}.tab`, 'overview', (v) =>
     ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'].includes(
@@ -293,9 +295,12 @@ export function MatchDetailView({
   }, [liveTick, manualTick, matchId, loadOptional, tab]);
 
   const detail = loaded.detail;
+  const tacticsOn = modules.tactics;
+  // Сохранённая вкладка «Мои схемы» не открывается, пока тактическая доска выключена.
+  const activeTab: TabKey = tab === 'tactics' && !tacticsOn ? 'overview' : tab;
   const sourceEntries = [
     ...Object.values(sources),
-    ...(tab === 'analysis' && analysisSource ? [analysisSource] : []),
+    ...(activeTab === 'analysis' && analysisSource ? [analysisSource] : []),
   ];
   const datedSources = sourceEntries
     .map((source) => source.fetchedAt)
@@ -400,31 +405,31 @@ export function MatchDetailView({
         />
       </div>
       <div className="md-tabs" role="tablist" aria-label="Разделы матча">
-        {(
-          ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'] as const
-        ).map((k) => (
-          <button
-            key={k}
-            role="tab"
-            aria-selected={tab === k}
-            className={tab === k ? 'active' : ''}
-            onClick={() => setTab(k)}
-          >
-            {k === 'overview'
-              ? 'Сводка'
-              : k === 'events'
-                ? 'События'
-                : k === 'lineups'
-                  ? 'Поле и оценки'
-                  : k === 'stats'
-                    ? 'Статистика'
-                    : k === 'players'
-                      ? 'Игроки'
-                      : k === 'analysis'
-                        ? 'Разбор матча'
-                        : 'Мои схемы'}
-          </button>
-        ))}
+        {(['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'] as const)
+          .filter((k) => k !== 'tactics' || tacticsOn)
+          .map((k) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={activeTab === k}
+              className={activeTab === k ? 'active' : ''}
+              onClick={() => setTab(k)}
+            >
+              {k === 'overview'
+                ? 'Сводка'
+                : k === 'events'
+                  ? 'События'
+                  : k === 'lineups'
+                    ? 'Поле и оценки'
+                    : k === 'stats'
+                      ? 'Статистика'
+                      : k === 'players'
+                        ? 'Игроки'
+                        : k === 'analysis'
+                          ? 'Разбор матча'
+                          : 'Мои схемы'}
+            </button>
+          ))}
       </div>
 
       <SpoilerGate
@@ -432,20 +437,20 @@ export function MatchDetailView({
         id={detail.id}
         bypass={classifyMatchStatus(detail.status) === 'scheduled'}
       >
-        <SectionBoundary resetKey={`${matchId}.${tab}`} name="Вкладка матча">
-          {tab !== 'overview' &&
-          optionalLoading[tab] &&
-          ((tab === 'stats' && !loaded.stats) ||
-            (tab === 'lineups' && !loaded.lineups) ||
-            (tab === 'players' && !loaded.players.length) ||
-            (tab === 'events' && !loaded.events)) ? (
+        <SectionBoundary resetKey={`${matchId}.${activeTab}`} name="Вкладка матча">
+          {activeTab !== 'overview' &&
+          optionalLoading[activeTab] &&
+          ((activeTab === 'stats' && !loaded.stats) ||
+            (activeTab === 'lineups' && !loaded.lineups) ||
+            (activeTab === 'players' && !loaded.players.length) ||
+            (activeTab === 'events' && !loaded.events)) ? (
             <LoadingBlock
               label={
-                tab === 'lineups'
+                activeTab === 'lineups'
                   ? 'Загружаем составы и расстановку…'
-                  : tab === 'stats'
+                  : activeTab === 'stats'
                     ? 'Загружаем статистику матча…'
-                    : tab === 'players'
+                    : activeTab === 'players'
                       ? 'Загружаем показатели игроков…'
                       : 'Загружаем события матча…'
               }
@@ -453,7 +458,7 @@ export function MatchDetailView({
             />
           ) : (
             <>
-              {tab === 'tactics' && (
+              {activeTab === 'tactics' && tacticsOn && (
                 <TacticsBoard
                   key={matchId}
                   detail={detail}
@@ -462,7 +467,7 @@ export function MatchDetailView({
                   error={optionalErrors.lineups}
                 />
               )}
-              {tab === 'analysis' && (
+              {activeTab === 'analysis' && (
                 <MatchAnalysis
                   key={matchId}
                   detail={detail}
@@ -471,7 +476,7 @@ export function MatchDetailView({
                   onSourceStatus={updateAnalysisSource}
                 />
               )}
-              {tab === 'overview' && (
+              {activeTab === 'overview' && (
                 <Overview
                   detail={detail}
                   events={loaded.events}
@@ -479,10 +484,10 @@ export function MatchDetailView({
                   timezone={timezone}
                 />
               )}
-              {tab === 'events' && (
+              {activeTab === 'events' && (
                 <EventsTab payload={loaded.events} error={optionalErrors.events} detail={detail} />
               )}
-              {tab === 'lineups' && (
+              {activeTab === 'lineups' && (
                 <MatchLineups
                   detail={detail}
                   payload={loaded.lineups}
@@ -490,17 +495,17 @@ export function MatchDetailView({
                   error={optionalErrors.lineups}
                   playersError={optionalErrors.players}
                   playersLoading={optionalLoading.players}
-                  onOpenTactics={() => setTab('tactics')}
+                  onOpenTactics={tacticsOn ? () => setTab('tactics') : undefined}
                 />
               )}
-              {tab === 'stats' && (
+              {activeTab === 'stats' && (
                 <MatchStatsTab
                   payload={loaded.stats}
                   error={optionalErrors.stats}
                   detail={detail}
                 />
               )}
-              {tab === 'players' && (
+              {activeTab === 'players' && (
                 <PlayersTab
                   key={matchId}
                   entries={loaded.players}

@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { writeAtmosphere } from '../atmosphere/atmosphereStore';
+import { writeModules } from '../../lib/modules';
 import { GamesView } from './GamesView';
 import { StartLights, type GameClock } from './StartLightsGame';
 import { START_LIGHTS_KEY, readStartLights } from './startLights';
@@ -273,17 +273,17 @@ describe('GamesView', () => {
     });
   };
 
-  it('opens the game only on demand and says so when games are switched off', async () => {
+  it('opens the game only on demand and says so when both games are switched off', async () => {
     vi.useRealTimers();
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
-    writeAtmosphere({ enabled: false });
+    writeModules({ games: false, predictions: false });
     act(() => root?.render(<GamesView />));
     expect(host.textContent).toContain('Игры выключены');
     expect(host.querySelector('.lights-pad')).toBeNull();
     act(() => {
-      writeAtmosphere({ enabled: true });
+      writeModules({ games: true });
     });
     await flush();
     await act(async () => {

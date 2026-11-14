@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it } from 'vitest';
+import { writeModules } from '../../lib/modules';
 import {
   ATMOSPHERE_KEY,
   DEFAULT_ATMOSPHERE,
@@ -108,25 +109,29 @@ it('parse keeps valid ambient choices and drops invalid ones', () => {
   });
 });
 
-it('ambient needs the master switch, the ambient flag and a non-zero volume', () => {
+it('ambient needs the atmosphere module, the ambient flag and a non-zero volume', () => {
   expect(ambientAllowed()).toBe(false);
   writeAtmosphere({ ambient: true });
   expect(ambientAllowed()).toBe(true);
   writeAtmosphere({ ambientVolume: 0 });
   expect(ambientAllowed()).toBe(false);
-  writeAtmosphere({ ambientVolume: 0.5, enabled: false });
+  writeAtmosphere({ ambientVolume: 0.5 });
+  writeModules({ atmosphere: false });
   expect(ambientAllowed()).toBe(false);
+  writeModules({ atmosphere: true });
+  expect(ambientAllowed()).toBe(true);
 });
 
-it('master switch and motion settings control effects', () => {
+it('atmosphere module and motion settings control effects', () => {
   expect(celebrationsAllowed()).toBe(true);
   expect(soundsAllowed()).toBe(false);
   writeAtmosphere({ sounds: true });
   expect(soundsAllowed()).toBe(true);
-  writeAtmosphere({ enabled: false });
+  writeModules({ atmosphere: false });
   expect(celebrationsAllowed()).toBe(false);
   expect(soundsAllowed()).toBe(false);
-  writeAtmosphere({ enabled: true, motion: 'reduced' });
+  writeModules({ atmosphere: true });
+  writeAtmosphere({ motion: 'reduced' });
   expect(motionReduced()).toBe(true);
   writeAtmosphere({ motion: 'full' });
   expect(motionReduced()).toBe(false);

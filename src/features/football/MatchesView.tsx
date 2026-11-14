@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
+import { isCompetitionVisible, useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
@@ -23,6 +24,7 @@ export interface MatchesViewProps {
 
 export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
   const timezone = getUserTimezone();
+  const modules = useModules();
   const { isTeamFavorite, toggleTeam } = useFavorites();
   const scope = `football.matches.${data.selectedLeagueId}.${data.season ?? 'current'}`;
   const [status, setStatus] = useViewState<StatusFilter>(`${scope}.status`, 'all', (v) =>
@@ -57,6 +59,10 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
       });
   }, [data.matches, status, teamFilter, query]);
 
+  const visibleLeagues = useMemo(
+    () => data.leagues.filter((league) => isCompetitionVisible(league.id)),
+    [data.leagues, modules],
+  );
   const seasons = data.seasonsForLeague(data.selectedLeagueId);
 
   return (
@@ -86,7 +92,7 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
             value={data.selectedLeagueId}
             onChange={(e) => data.setSelectedLeague(e.target.value)}
           >
-            {data.leagues.map((l) => {
+            {visibleLeagues.map((l) => {
               const s =
                 seasons.length > 0 && l.id === data.selectedLeagueId
                   ? (data.season ?? l.season)

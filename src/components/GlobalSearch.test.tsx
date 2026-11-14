@@ -3,6 +3,7 @@ import { act, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
 import { GlobalSearch } from './GlobalSearch';
+import { writeModules } from '../lib/modules';
 import { rememberSearchItems } from '../lib/searchIndex';
 import { useModalFocus } from '../lib/useModalFocus';
 it('opens by Ctrl+K, activates the exact result by Enter and restores focus with Escape', async () => {
@@ -53,6 +54,68 @@ it('opens by Ctrl+K, activates the exact result by Enter and restores focus with
     localStorage.clear();
   }
 });
+it('hides channels and results of competitions whose module is off', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  localStorage.clear();
+  const host = document.createElement('div');
+  host.className = 'app-root';
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    rememberSearchItems([
+      {
+        key: 'channel:7',
+        title: 'Sky Sports F1',
+        subtitle: 'Канал',
+        target: { kind: 'channel', id: 7 },
+      },
+      {
+        key: 'team:arsenal',
+        title: 'Arsenal',
+        subtitle: 'Premier League',
+        target: { kind: 'team', id: 'arsenal', leagueId: 'l_4WFCIZ' },
+      },
+      {
+        key: 'match:ucl',
+        title: 'Real Madrid — Bayern',
+        subtitle: 'Лига чемпионов',
+        target: { kind: 'match', id: 'ucl', leagueId: 'l_0bfbkO' },
+      },
+    ]);
+    await act(async () => root.render(<GlobalSearch onNavigate={() => {}} />));
+    await act(async () => host.querySelector('button')?.click());
+    const input = host.querySelector('input')!;
+    const search = async (text: string) => {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+          input,
+          text,
+        );
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    };
+
+    await search('Sky');
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(1);
+    await act(async () => writeModules({ watch: false }));
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(0);
+
+    await search('Arsenal');
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(1);
+    await act(async () => writeModules({ watch: true, 'league.l_4WFCIZ': false }));
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(0);
+
+    await search('Real Madrid');
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(1);
+    await act(async () => writeModules({ 'league.l_4WFCIZ': true, europe: false }));
+    expect(host.querySelectorAll('[role=option]')).toHaveLength(0);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    localStorage.clear();
+  }
+});
+
 it('does not open over another modal dialog', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const host = document.createElement('div');

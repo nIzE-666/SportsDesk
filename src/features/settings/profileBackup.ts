@@ -13,6 +13,7 @@ import {
   validOfflineQueueValue,
   offlineQueueError,
 } from '../offline/offlineQueue';
+import { isValidModulesValue, MODULES_KEY } from '../../lib/modules';
 /**
  * Setting names (after `sportsdesk.`) that belong to the profile. The native
  * side checks every key again (`EXACT_KEYS` and `KEY_PREFIXES` in
@@ -35,6 +36,7 @@ export const PROFILE_EXACT_KEYS = [
   'planner.priorities',
   'hero.compact',
   'notifications',
+  'modules',
 ] as const;
 export const PROFILE_KEY_PREFIXES = [
   'football.',
@@ -93,6 +95,8 @@ function validateProfile(settings: Record<string, string>) {
       throw new Error('В профиле повреждены прогнозы игры «Угадай счёт».');
     if (k === TACTICS_KEY && !isValidTacticsValue(v)) throw new Error(tacticsReadError(v));
     if (k === DIARY_KEY && !isValidDiaryValue(v)) throw new Error(diaryReadError(v));
+    if (k === MODULES_KEY && !isValidModulesValue(v))
+      throw new Error('В профиле повреждены настройки модулей.');
     if (k === OFFLINE_QUEUE_KEY && !validOfflineQueueValue(v))
       throw new Error(offlineQueueError(v));
     total += bytes(k) + bytes(v);
