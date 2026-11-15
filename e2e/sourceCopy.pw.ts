@@ -27,11 +27,15 @@ test('source information and settings remain clear when saved data is stale', as
   await page.goto('/');
   const rail = page.getByRole('navigation', { name: 'Разделы' });
   await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
-  await page.locator('.shell-tabs').getByRole('tab', { name: 'Сейчас идут', exact: true }).click();
-  await expect(page.locator('.live-flat-list')).toContainText('Arsenal');
-  await expect(page.locator('.live-view .source-foot')).toHaveCount(1);
-  await expect(page.locator('.live-view .source-foot')).toContainText('LiveScore');
-  await expect(page.locator('.live-view .source-foot')).toContainText('устаревшими');
+  await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+  await page
+    .getByRole('radiogroup', { name: 'Фильтр матчей' })
+    .getByRole('radio', { name: 'Сейчас идут', exact: true })
+    .click();
+  await expect(page.locator('.live-panel')).toContainText('Arsenal');
+  await expect(page.locator('.live-panel .source-foot')).toHaveCount(1);
+  await expect(page.locator('.live-panel .source-foot')).toContainText('LiveScore');
+  await expect(page.locator('.live-panel .source-foot')).toContainText('устаревшими');
   await rail.getByRole('button', { name: 'Настройки', exact: true }).click();
   await expect(page.locator('.shell-page-title')).toHaveText('Настройки');
   await page

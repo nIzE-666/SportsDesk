@@ -1,0 +1,28 @@
+/* One day-grouped list; screens import it through MatchList.tsx. */
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.match-list__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.match-list__heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-13);
+  font-weight: var(--weight-semibold);
+}
+
+.match-list__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

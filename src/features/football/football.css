@@ -237,3 +237,70 @@
   margin: 0;
   font-size: var(--text-24);
 }
+
+/* «Матчи»: one list grouped by day, the live filter and the screen menu. */
+.matches-toolbar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-16);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-12) var(--space-16);
+}
+
+.matches-toolbar__filter,
+.matches-toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.matches-toolbar__fields {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-12);
+}
+
+.matches-toolbar__field {
+  flex: 0 1 calc(var(--space-48) * 4);
+  min-width: calc(var(--space-48) * 3);
+}
+
+.matches-toolbar__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.matches-view .ui-button--icon.is-active,
+.live-panel .ui-button--icon.is-active {
+  color: var(--color-accent);
+}
+
+.matches-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.matches-loading__row {
+  height: var(--control-lg);
+  border-radius: var(--radius-md);
+}
+
+.live-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.live-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}

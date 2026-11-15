@@ -77,7 +77,6 @@ const LEAGUE_TABS: ReadonlyArray<[LeagueTab, string]> = [
   ['standings', 'Таблица'],
   ['team', 'Клубы'],
   ['players', 'Игроки'],
-  ['live', 'Сейчас идут'],
 ];
 
 const CHAMPIONS_TABS: ReadonlyArray<[ChampionsTab, string]> = [

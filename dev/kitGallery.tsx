@@ -219,6 +219,33 @@ export function KitGallery() {
               competition="Премьер-лига"
             />
             <MatchRow
+              home={{
+                name: 'Арсенал',
+                action: (
+                  <IconButton
+                    small
+                    aria-label="Отслеживать: Арсенал"
+                    title="Отслеживать: Арсенал"
+                    icon={<Star size={14} aria-hidden="true" />}
+                  />
+                ),
+              }}
+              away={{
+                name: 'Челси',
+                action: (
+                  <IconButton
+                    small
+                    aria-label="Отслеживать: Челси"
+                    title="Отслеживать: Челси"
+                    icon={<Star size={14} aria-hidden="true" />}
+                  />
+                ),
+              }}
+              time="21:30"
+              status="scheduled"
+              competition="Премьер-лига"
+            />
+            <MatchRow
               home={{ name: 'Ливерпуль' }}
               away={{ name: 'Манчестер Сити' }}
               status="live"
@@ -239,6 +266,18 @@ export function KitGallery() {
               home={{ name: 'Барселона' }}
               away={{ name: 'Реал Мадрид' }}
               status="postponed"
+              competition="Ла Лига"
+            />
+            <MatchRow
+              home={{ name: 'Валенсия' }}
+              away={{ name: 'Сельта' }}
+              status="cancelled"
+              competition="Ла Лига"
+            />
+            <MatchRow
+              home={{ name: 'Хетафе' }}
+              away={{ name: 'Осасуна' }}
+              status="unknown"
               competition="Ла Лига"
             />
             <MatchRow

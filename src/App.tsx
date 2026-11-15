@@ -17,6 +17,7 @@ import {
   isLeagueTab,
   isMyTab,
   isValidSettingsCategory,
+  MATCHES_FILTER_VIEW_KEY,
 } from './lib/navigation';
 import { isCompetitionVisible } from './lib/modules';
 import { isTauriRuntime, rpc } from './lib/bridge';
@@ -148,7 +149,10 @@ function MainApp() {
           navigate({ kind: 'settings', category: target.category });
         break;
       case 'section':
-        if (target.id.startsWith('football.')) {
+        if (target.id === 'football.live') {
+          viewState.write(MATCHES_FILTER_VIEW_KEY, 'live');
+          navigate({ kind: 'football', competitionId: leagueId, tab: 'matches' });
+        } else if (target.id.startsWith('football.')) {
           const tab = target.id.slice('football.'.length);
           if (isLeagueTab(tab)) navigate({ kind: 'football', competitionId: leagueId, tab });
         } else if (target.id === 'football')

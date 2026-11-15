@@ -12,23 +12,23 @@
 
 ## Компоненты и свойства
 
-| Компонент          | Главные свойства                                                                                                       |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `Button`           | `variant`: `default`, `primary`, `quiet`; `danger`, `small`, `busy`, `icon`; `aria-pressed`                            |
-| `IconButton`       | `icon`, обязательный `aria-label`, `variant`, `small`, `busy`, `danger`                                                |
-| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`, `panelId`; у пункта `domId`, `title`, `ref`          |
-| `SegmentedControl` | `items`, `value`, `onChange`, `ariaLabel`                                                                              |
-| `MatchRow`         | `home`, `away`, `time`, `status`, `minute`, `score`, `hideScore`, `competition`, `badge`, `actions`, `size`, `onClick` |
-| `Panel`            | свойства `section` и `children`                                                                                        |
-| `PanelHeader`      | `title`, `action`, `id`                                                                                                |
-| `StatTile`         | `label`, `value`, `note`; без `value` не рисуется                                                                      |
-| `EmptyState`       | `message`, `title`, `icon`, `action`, `tone`: `neutral`/`error`                                                        |
-| `Badge`            | `children`, `variant`: `live`, `win`, `draw`, `loss`, `warning`                                                        |
-| `Tooltip`          | `label`, `children`, `side`: `top`/`bottom`                                                                            |
-| `Dialog`           | `open`, `onClose`, `title`, `children`, `footer`, `closeLabel`                                                         |
-| `Toast`            | `message`, `action`, `onDismiss`, `dismissLabel`, `tone`: `info`/`error`                                               |
-| `Skeleton`         | свойства `span`; размер задаёт родитель                                                                                |
-| `SearchSelect`     | `ariaLabel`, `value`, `options`, `onChange`, `placeholder`, `clearLabel`                                               |
+| Компонент          | Главные свойства                                                                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`           | `variant`: `default`, `primary`, `quiet`; `danger`, `small`, `busy`, `icon`; `aria-pressed`                                                                |
+| `IconButton`       | `icon`, обязательный `aria-label`, `variant`, `small`, `busy`, `danger`                                                                                    |
+| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`, `panelId`; у пункта `domId`, `title`, `ref`                                              |
+| `SegmentedControl` | `items`, `value`, `onChange`, `ariaLabel`                                                                                                                  |
+| `MatchRow`         | `home`, `away` (у каждого необязательный `action`), `time`, `status`, `minute`, `score`, `hideScore`, `competition`, `badge`, `actions`, `size`, `onClick` |
+| `Panel`            | свойства `section` и `children`                                                                                                                            |
+| `PanelHeader`      | `title`, `action`, `id`                                                                                                                                    |
+| `StatTile`         | `label`, `value`, `note`; без `value` не рисуется                                                                                                          |
+| `EmptyState`       | `message`, `title`, `icon`, `action`, `tone`: `neutral`/`error`                                                                                            |
+| `Badge`            | `children`, `variant`: `live`, `win`, `draw`, `loss`, `warning`                                                                                            |
+| `Tooltip`          | `label`, `children`, `side`: `top`/`bottom`                                                                                                                |
+| `Dialog`           | `open`, `onClose`, `title`, `children`, `footer`, `closeLabel`                                                                                             |
+| `Toast`            | `message`, `action`, `onDismiss`, `dismissLabel`, `tone`: `info`/`error`                                                                                   |
+| `Skeleton`         | свойства `span`; размер задаёт родитель                                                                                                                    |
+| `SearchSelect`     | `ariaLabel`, `value`, `options`, `onChange`, `placeholder`, `clearLabel`, `clearable`                                                                      |
 
 ## Кнопки
 
@@ -69,7 +69,11 @@
 
 `MatchRow` (`.ui-match-row`) — время или состояние, команды с эмблемами, счёт,
 необязательный турнир, одна метка и место для действий. Подписей «Хозяева» и «Гости» нет:
-сторону показывает порядок. Неизвестное значение — прочерк. Время, счёт и турнир
+сторону показывает порядок. У каждой команды есть необязательный `action`: он стоит
+рядом с её названием, со стороны счёта, поэтому звезда не теряется среди общих
+действий строки. Неизвестное значение — прочерк. `status` знает
+`scheduled`, `live`, `finished`, `postponed`, `cancelled` и `unknown`; у отменённого
+и неизвестного матча время не подменяется началом. Время, счёт и турнир
 занимают постоянные колонки, поэтому счёт стоит на одном месте во всех строках списка;
 колонка турнира включается классами `--with-competition` и `--with-badge`, а в панели
 уже 480 px турнир и метка переходят на вторую строку.

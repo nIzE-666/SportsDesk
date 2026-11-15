@@ -87,8 +87,12 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
   await capture('Матчи', '.matches-view');
   await tab('Таблица');
   await capture('Таблица', '.standings-view');
-  await tab('Сейчас идут');
-  await capture('Сейчас идут', '.live-view');
+  await tab('Матчи');
+  await page
+    .getByRole('radiogroup', { name: 'Фильтр матчей' })
+    .getByRole('radio', { name: 'Сейчас идут', exact: true })
+    .click();
+  await capture('Матчи: сейчас идут', '.live-panel');
   await tab('Игроки');
   await capture('Игроки', '.players-view');
   await tab('Клубы');

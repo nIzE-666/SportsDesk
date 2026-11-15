@@ -1,11 +1,19 @@
-import { Radio, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
-import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  MatchRow,
+  SegmentedControl,
+  Skeleton,
+  type MatchRowStatus,
+} from '../../kit';
 import { isCompetitionVisible, useModules } from '../../lib/modules';
-import { useViewState } from '../../lib/useViewState';
 import { LEAGUES } from '../../lib/navigationMetadata';
-import { Button, Badge, MatchRow, SegmentedControl, type MatchRowStatus } from '../../kit';
+import { useViewState } from '../../lib/useViewState';
+import { useResultHidden } from '../spoilers/spoilerStore';
 import { CUP_COMPETITIONS } from '../ucl/cups';
 import { clubKey } from './clubNames';
 import { useFavorites } from './FavoritesProvider';
@@ -13,8 +21,7 @@ import { isFollowedCompetition } from './liveCompetitions';
 import { findPitchMatchId, useLiveMatches, type PitchMatchReference } from './liveData';
 import type { LiveMatch, LiveState } from './liveSources';
 import { getUserTimezone } from './storage';
-
-type LiveFilter = 'all' | 'live' | 'finished' | 'favorites';
+import { MatchList } from './MatchList';
 
 /** The same ten followed competitions the panel has always shown. */
 const LEAGUE_IDS = [
@@ -79,11 +86,13 @@ function kickoffTime(iso: string | null, timezone: string): string | null {
   return formatter.format(date);
 }
 
-/** The kit row knows four states; the other two keep their honest label in the time column. */
+/** The kit row knows the live-source states; the time column stays honest for the rest. */
 function rowStatus(state: LiveState): MatchRowStatus {
   if (state === 'live') return 'live';
   if (state === 'finished') return 'finished';
   if (state === 'postponed') return 'postponed';
+  if (state === 'cancelled') return 'cancelled';
+  if (state === 'unknown') return 'unknown';
   return 'scheduled';
 }
 
@@ -93,6 +102,14 @@ export interface LivePanelProps {
   onOpenMatch?: (matchId: string) => void;
 }
 
+type LiveFilter = 'all' | 'live' | 'finished' | 'favorites';
+
+const LIVE_FILTERS: readonly string[] = ['all', 'live', 'finished', 'favorites'];
+
+/**
+ * «Сейчас идут» as the live filter of «Матчи»: today's matches of the followed
+ * clubs and competitions, grouped by day, with the source line of the live feed.
+ */
 export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
   const timezone = getUserTimezone();
   const { favoriteTeamNames } = useFavorites();
@@ -107,8 +124,8 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
   const { matches, source, fetchedAt, stale, loading, refreshing, error, refresh } = useLiveMatches(
     { leagueIds: visibleLeagueIds },
   );
-  const [filter, setFilter] = useViewState<LiveFilter>('football.live.filter', 'all', (v) =>
-    ['all', 'live', 'finished', 'favorites'].includes(String(v)),
+  const [filter, setFilter] = useViewState<LiveFilter>('football.live.filter', 'all', (value) =>
+    LIVE_FILTERS.includes(String(value)),
   );
 
   const favoriteKeys = useMemo(
@@ -120,7 +137,6 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
       favoriteKeys.has(match.home.clubKey) || favoriteKeys.has(match.away.clubKey),
     [favoriteKeys],
   );
-  const isLive = useCallback((match: LiveMatch) => match.state === 'live', []);
 
   const personalMatches = useMemo(
     () =>
@@ -137,97 +153,75 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
     () => personalMatches.filter(isFavorite),
     [personalMatches, isFavorite],
   );
-  const liveCount = personalMatches.filter(isLive).length;
-
+  const liveCount = personalMatches.filter((match) => match.state === 'live').length;
   const visible = useMemo(() => {
-    if (filter === 'live') return personalMatches.filter(isLive);
+    if (filter === 'live') return personalMatches.filter((match) => match.state === 'live');
     if (filter === 'finished') return personalMatches.filter((match) => match.state === 'finished');
     if (filter === 'favorites') return favoriteList;
     return personalMatches;
-  }, [filter, personalMatches, favoriteList, isLive]);
+  }, [filter, personalMatches, favoriteList]);
 
   return (
-    <div className="live-view">
-      <div className="dashboard-head">
-        <div>
-          <h2 className="screen-title">
-            <Radio size={18} /> Счёт и события
-          </h2>
-          <p className="muted small">Ваши клубы и турниры.</p>
-        </div>
-        <div className="dashboard-head-actions">
-          <Button onClick={refresh} disabled={refreshing || loading}>
-            <RefreshCw size={14} /> {refreshing ? 'Обновление…' : 'Обновить'}
-          </Button>
-        </div>
+    <div className="live-panel">
+      <div className="live-panel__toolbar">
+        <SegmentedControl
+          ariaLabel="Фильтр ленты"
+          value={filter}
+          onChange={(id) => setFilter(id as LiveFilter)}
+          items={[
+            { id: 'all', label: `Все (${personalMatches.length})` },
+            { id: 'live', label: `Live (${liveCount})` },
+            { id: 'finished', label: 'Завершённые' },
+            { id: 'favorites', label: `Избранные (${favoriteList.length})` },
+          ]}
+        />
+        <Button
+          variant="quiet"
+          small
+          icon={<RefreshCw size={14} aria-hidden="true" />}
+          onClick={refresh}
+          busy={refreshing || loading}
+        >
+          Обновить
+        </Button>
       </div>
-
-      <div className="filters-bar panel">
-        <div className="filter-group grow">
-          <span className="muted small">Фильтр</span>
-          <SegmentedControl
-            ariaLabel="Фильтр матчей"
-            value={filter}
-            onChange={(id) => setFilter(id as LiveFilter)}
-            items={[
-              { id: 'all', label: `Все (${personalMatches.length})` },
-              { id: 'live', label: `Live (${liveCount})` },
-              { id: 'finished', label: 'Завершённые' },
-              { id: 'favorites', label: `Избранные (${favoriteList.length})` },
-            ]}
-          />
+      {loading && matches.length === 0 && (
+        <div className="matches-loading" role="status" aria-label="Загрузка матчей">
+          <Skeleton className="matches-loading__row" />
+          <Skeleton className="matches-loading__row" />
+          <Skeleton className="matches-loading__row" />
         </div>
-      </div>
-
-      {loading && matches.length === 0 && <LoadingBlock label="Загрузка матчей…" rows={4} />}
+      )}
       {error && matches.length === 0 && (
-        <ErrorBlock title="Матчи недоступны" message={error} onRetry={refresh} />
+        <EmptyState tone="error" title="Матчи недоступны" message={error} />
       )}
-      {!loading && !error && visible.length === 0 && personalMatches.length === 0 && (
-        <EmptyBlock title="Нет матчей ваших клубов и турниров" message="На сегодня матчей нет." />
+      {error && matches.length > 0 && (
+        <EmptyState tone="error" title="Матчи не обновились" message={error} />
       )}
-      {!loading && !error && visible.length === 0 && personalMatches.length > 0 && (
-        <EmptyBlock title="Нет матчей в выбранном фильтре" message="Попробуйте другой фильтр." />
+      {!loading && !error && personalMatches.length === 0 && (
+        <EmptyState title="Нет матчей ваших клубов и турниров" message="На сегодня матчей нет." />
+      )}
+      {!loading && !error && personalMatches.length > 0 && visible.length === 0 && (
+        <EmptyState title="Нет матчей в выбранном фильтре" message="Попробуйте другой фильтр." />
       )}
 
       {visible.length > 0 && (
-        <section className="panel">
-          <ul className="live-flat-list">
-            {visible.map((m) => {
-              const favorite = isFavorite(m);
-              const clickableId =
-                onOpenMatch && pitchMatches.length > 0 ? findPitchMatchId(m, pitchMatches) : null;
-              const kickoff = m.state === 'scheduled' ? kickoffTime(m.kickoffUtc, timezone) : null;
-              const minute = minuteLabel(m.minute);
-              const status = rowStatus(m.state);
-              return (
-                <li key={m.id}>
-                  <MatchRow
-                    size="compact"
-                    competition={competitionLabel(m)}
-                    badge={favorite ? <Badge>Избранное</Badge> : undefined}
-                    home={{ name: m.home.name }}
-                    away={{ name: m.away.name }}
-                    time={
-                      m.state === 'scheduled'
-                        ? kickoff
-                        : m.state === 'cancelled' || m.state === 'unknown'
-                          ? STATE_LABELS[m.state]
-                          : null
-                    }
-                    status={status}
-                    minute={minute}
-                    score={{ home: m.score.home, away: m.score.away }}
-                    onClick={
-                      clickableId && onOpenMatch ? () => onOpenMatch(clickableId) : undefined
-                    }
-                    ariaLabel={`Открыть разбор матча: ${m.home.name} — ${m.away.name}`}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <MatchList
+          items={visible}
+          getKey={(match) => match.id}
+          getTime={(match) => match.kickoffUtc}
+          timezone={timezone}
+          dayOrder="nearest"
+          renderRow={(match) => (
+            <LiveRow
+              match={match}
+              timezone={timezone}
+              favorite={isFavorite(match)}
+              pitchMatches={pitchMatches}
+              onOpenMatch={onOpenMatch}
+            />
+          )}
+        />
       )}
 
       <SourceLine
@@ -237,5 +231,47 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
         timezone={timezone}
       />
     </div>
+  );
+}
+
+function LiveRow({
+  match,
+  timezone,
+  favorite,
+  pitchMatches,
+  onOpenMatch,
+}: {
+  match: LiveMatch;
+  timezone: string;
+  favorite: boolean;
+  pitchMatches: readonly PitchMatchReference[];
+  onOpenMatch?: (matchId: string) => void;
+}) {
+  const clickableId =
+    onOpenMatch && pitchMatches.length > 0 ? findPitchMatchId(match, pitchMatches) : null;
+  const hidden = useResultHidden('football', clickableId ?? match.id);
+  const kickoff = match.state === 'scheduled' ? kickoffTime(match.kickoffUtc, timezone) : null;
+  const minute = minuteLabel(match.minute);
+  return (
+    <MatchRow
+      size="compact"
+      competition={competitionLabel(match)}
+      badge={favorite ? <Badge>Избранное</Badge> : undefined}
+      home={{ name: match.home.name }}
+      away={{ name: match.away.name }}
+      time={
+        match.state === 'scheduled'
+          ? kickoff
+          : match.state === 'cancelled' || match.state === 'unknown'
+            ? STATE_LABELS[match.state]
+            : null
+      }
+      status={rowStatus(match.state)}
+      minute={minute}
+      score={{ home: match.score.home, away: match.score.away }}
+      hideScore={hidden}
+      onClick={clickableId && onOpenMatch ? () => onOpenMatch(clickableId) : undefined}
+      ariaLabel={`Открыть разбор матча: ${match.home.name} — ${match.away.name}`}
+    />
   );
 }

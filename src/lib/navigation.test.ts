@@ -29,7 +29,12 @@ import {
   startRoute,
   type ShellRoute,
 } from './navigation';
-import { readSearchIndex, readSearchRecent, rememberSearchItems } from './searchIndex';
+import {
+  readSearchIndex,
+  readSearchRecent,
+  rememberSearchItems,
+  rememberSearchVisit,
+} from './searchIndex';
 
 beforeEach(() => localStorage.clear());
 
@@ -39,6 +44,7 @@ const validRoutes: ShellRoute[] = [
   { kind: 'today', mode: 'week' },
   { kind: 'today', mode: 'plan' },
   { kind: 'football', competitionId: LEAGUES[0].id, tab: 'matches' },
+  { kind: 'football', competitionId: LEAGUES[0].id, tab: 'matches', matchesFilter: 'live' },
   { kind: 'football', competitionId: LEAGUES[0].id, tab: 'team', teamId: 'arsenal' },
   { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'bracket' },
   { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'table' },
@@ -85,6 +91,7 @@ it('validates every route kind and keeps tabs tied to the competition kind', () 
     { kind: 'football' },
     { kind: 'football', competitionId: 'unknown', tab: 'matches' },
     { kind: 'football', competitionId: LEAGUES[0].id, tab: 'overview' },
+    { kind: 'football', competitionId: LEAGUES[0].id, tab: 'matches', matchesFilter: 'later' },
     { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'live' },
     { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'stats' },
     { kind: 'football-match', matchId: '', competitionId: LEAGUES[0].id },
@@ -113,6 +120,18 @@ it('migrates every old route shape to the new union idempotently', () => {
     kind: 'football',
     competitionId: DEFAULT_LEAGUE_ID,
     tab: 'matches',
+  });
+  expect(migrateRoute({ kind: 'football', section: 'live' })).toEqual({
+    kind: 'football',
+    competitionId: DEFAULT_LEAGUE_ID,
+    tab: 'matches',
+    matchesFilter: 'live',
+  });
+  expect(migrateRoute({ kind: 'football', competitionId: LEAGUES[2].id, tab: 'live' })).toEqual({
+    kind: 'football',
+    competitionId: LEAGUES[2].id,
+    tab: 'matches',
+    matchesFilter: 'live',
   });
   expect(migrateRoute({ kind: 'football', section: 'team', teamId: 'arsenal' })).toEqual({
     kind: 'football',
@@ -157,6 +176,8 @@ it('migrates every old route shape to the new union idempotently', () => {
   const old = [
     { kind: 'football', section: 'dashboard' },
     { kind: 'football', section: 'players' },
+    { kind: 'football', section: 'live' },
+    { kind: 'football', competitionId: LEAGUES[0].id, tab: 'live' },
     { kind: 'football-match', matchId: 'match-1' },
     { kind: 'f1', tab: 'session' },
     { kind: 'ucl', tab: 'stats' },
@@ -284,6 +305,25 @@ it('remembers the last place per section and migrates old per-sport memories', (
   });
   expect(rememberedLocation('football', { location: football })).toEqual(football);
   expect(
+    rememberedLocation('football', {
+      location: {
+        section: 'football',
+        route: { kind: 'football', competitionId: LEAGUES[1].id, tab: 'live' },
+        sport: 'football',
+        leagueId: LEAGUES[1].id,
+        cupId: DEFAULT_CUP_ID,
+      },
+    }),
+  ).toMatchObject({
+    section: 'football',
+    route: {
+      kind: 'football',
+      competitionId: LEAGUES[1].id,
+      tab: 'matches',
+      matchesFilter: 'live',
+    },
+  });
+  expect(
     rememberedLocation('football', { route: { kind: 'football', section: 'players' } }),
   ).toMatchObject({
     section: 'football',
@@ -324,6 +364,15 @@ it('remembers the last place per section and migrates old per-sport memories', (
     section: 'football',
     route: { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'table' },
   });
+});
+
+it('keeps «Сейчас идут» as a search target of «Матчи» with the live filter', () => {
+  const items = readSearchIndex();
+  const live = items.find((item) => item.key === 'section:football.live');
+  expect(live?.title).toBe('Сейчас идут');
+  expect(live?.target).toEqual({ kind: 'section', id: 'football.live' });
+  rememberSearchVisit('section:football.live');
+  expect(readSearchRecent()).toContain('section:football.live');
 });
 
 it('migrates search section targets and recent keys at read time', () => {

@@ -101,6 +101,19 @@ function rowFor(host: HTMLElement, text: string): HTMLElement | null {
   );
 }
 
+function liveFilterButton(host: HTMLElement, text: string): HTMLButtonElement {
+  const group = host.querySelector('[role="radiogroup"][aria-label="Фильтр ленты"]');
+  const found = [...(group?.querySelectorAll<HTMLButtonElement>('[role="radio"]') ?? [])].find(
+    (button) => button.textContent === text,
+  );
+  if (!found) throw new Error(`Live filter missing: ${text}`);
+  return found;
+}
+
+async function chooseLiveFilter(host: HTMLElement, text: string) {
+  await act(async () => liveFilterButton(host, text).click());
+}
+
 describe('LivePanel', () => {
   let host: HTMLDivElement;
   let root: Root;
@@ -128,43 +141,92 @@ describe('LivePanel', () => {
     await act(async () => {});
   }
 
-  it('limits every filter to followed competitions or favourite clubs', async () => {
+  it('shows only followed competitions or favourite clubs, grouped by day', async () => {
     vi.mocked(api).mockResolvedValue(reply(LIVE_DAY));
     await render();
     expect(host.textContent).toContain('Arsenal');
     expect(host.textContent).toContain('Everton');
     expect(host.textContent).not.toContain('Jamaica Premier League');
     expect(host.textContent).not.toContain('International Friendly');
-    expect(host.textContent).toContain('Все (3)');
-    expect(host.textContent).toContain('Live (1)');
-    expect(host.textContent).toContain('Избранные (1)');
+    expect(host.textContent).toContain('Сегодня');
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(3);
+    expect(host.querySelectorAll('.match-list__day')).toHaveLength(1);
     expect(host.querySelectorAll('.source-foot')).toHaveLength(1);
     expect(host.querySelector('.source-foot')?.textContent).toContain('Данные: LiveScore');
     expect(host.querySelector('.source-foot')?.textContent).toContain('обновлено');
     expect(host.textContent).not.toContain('Powered by SportScore');
+    expect(vi.mocked(api).mock.calls.some(([source]) => source === 'sportscore')).toBe(false);
+  });
 
-    const live = [...host.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Live (1)'),
-    )!;
-    await act(async () => live.click());
+  it('restores the live feed filter with counts and applies each value', async () => {
+    vi.mocked(api).mockResolvedValue(reply(LIVE_DAY));
+    await render();
+    const group = host.querySelector('[role="radiogroup"][aria-label="Фильтр ленты"]')!;
+    expect(
+      [...group.querySelectorAll('[role="radio"]')].map((button) => button.textContent),
+    ).toEqual(['Все (3)', 'Live (1)', 'Завершённые', 'Избранные (1)']);
+
+    await chooseLiveFilter(host, 'Live (1)');
     expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Arsenal')?.textContent).toContain("67'");
     expect(rowFor(host, 'Everton')).toBeNull();
 
-    const finished = [...host.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Завершённые'),
-    )!;
-    await act(async () => finished.click());
+    await chooseLiveFilter(host, 'Завершённые');
     expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Everton')?.textContent).toContain('2 : 1');
 
-    const favorites = [...host.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Избранные (1)'),
-    )!;
-    await act(async () => favorites.click());
+    await chooseLiveFilter(host, 'Избранные (1)');
     expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Arsenal')).not.toBeNull();
-    expect(vi.mocked(api).mock.calls.some(([source]) => source === 'sportscore')).toBe(false);
+    expect(rowFor(host, 'Everton')).toBeNull();
+
+    await chooseLiveFilter(host, 'Все (3)');
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(3);
+  });
+
+  it('remembers the live feed filter', async () => {
+    vi.mocked(api).mockResolvedValue(reply(LIVE_DAY));
+    await render();
+    await chooseLiveFilter(host, 'Завершённые');
+    expect(viewState.read('football.live.filter', 'all')).toBe('finished');
+    expect(liveFilterButton(host, 'Завершённые').getAttribute('aria-checked')).toBe('true');
+
+    await act(async () => root.unmount());
+    root = createRoot(host);
+    await render();
+    expect(liveFilterButton(host, 'Завершённые').getAttribute('aria-checked')).toBe('true');
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
+    expect(rowFor(host, 'Everton')).not.toBeNull();
+  });
+
+  it('keeps the old empty state for a filter without matches', async () => {
+    vi.mocked(api).mockResolvedValue(
+      reply({
+        Stages: [
+          {
+            CompN: 'Premier League',
+            CompD: 'England',
+            Cnm: 'England',
+            Events: [
+              {
+                Eid: 'live-only',
+                T1: [{ Nm: 'Arsenal' }],
+                T2: [{ Nm: 'Visitor' }],
+                Eps: "67'",
+                Esd: 20261108200000,
+                Tr1: '1',
+                Tr2: '0',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await render();
+    await chooseLiveFilter(host, 'Завершённые');
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(0);
+    expect(host.textContent).toContain('Нет матчей в выбранном фильтре');
+    expect(host.textContent).toContain('Попробуйте другой фильтр.');
   });
 
   it('shows the minute only live, a dash for an unknown score and the kickoff when scheduled', async () => {

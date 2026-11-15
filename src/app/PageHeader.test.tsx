@@ -61,7 +61,7 @@ it('switches the league tabs', async () => {
     competitionId: 'l_4WFCIZ',
     tab: 'matches',
   });
-  expect(host.querySelectorAll('[role="tab"]')).toHaveLength(5);
+  expect(host.querySelectorAll('[role="tab"]')).toHaveLength(4);
   expect(tab('Матчи').getAttribute('aria-selected')).toBe('true');
   await act(async () => tab('Таблица').click());
   expect(navigate).toHaveBeenCalledWith({

@@ -36,10 +36,14 @@ const screens: Screen[] = [
     },
   },
   {
-    name: 'Сейчас идут',
+    name: 'Матчи: сейчас идут',
     open: async (page) => {
       await section(page, 'Футбол');
-      await tab(page, 'Сейчас идут');
+      await tab(page, 'Матчи');
+      await page
+        .getByRole('radiogroup', { name: 'Фильтр матчей' })
+        .getByRole('radio', { name: 'Сейчас идут', exact: true })
+        .click();
     },
   },
   {
@@ -270,6 +274,10 @@ test('every screen shows at most one data-source line and one refresh button', a
   // Матч: каждая вкладка отдельно.
   await competition(page, 'Premier League');
   await tab(page, 'Матчи');
+  await page
+    .getByRole('radiogroup', { name: 'Фильтр матчей' })
+    .getByRole('radio', { name: 'Все', exact: true })
+    .click();
   await page.locator('[data-match-id="test-match"] .mt-open').first().click();
   await expect(page.getByRole('tablist', { name: 'Разделы матча' })).toBeVisible();
   const tabs = page.getByRole('tablist', { name: 'Разделы матча' }).getByRole('tab');

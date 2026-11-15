@@ -80,4 +80,15 @@ test('search targets open «Моё», settings, a cup and Formula 1 analysis', a
   await expect(
     page.locator('.shell-tabs').getByRole('tab', { name: 'Анализ', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
+
+  dialog = await search(page, 'Сейчас идут');
+  await expect(dialog.getByRole('option').first()).toContainText('Сейчас идут');
+  await dialog.locator('[role="option"]').filter({ hasText: 'Сейчас идут' }).first().click();
+  await expect(page.locator('.matches-view')).toBeVisible();
+  await expect(
+    page.getByRole('radiogroup', { name: 'Фильтр матчей' }).getByRole('radio', {
+      name: 'Сейчас идут',
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-checked', 'true');
 });

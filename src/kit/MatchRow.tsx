@@ -4,11 +4,14 @@ import { SPOILER_MASK } from '../features/spoilers/spoilerStore';
 import { cx } from './classes';
 
 export type MatchRowSize = 'compact' | 'normal' | 'large';
-export type MatchRowStatus = 'scheduled' | 'live' | 'finished' | 'postponed';
+export type MatchRowStatus =
+  'scheduled' | 'live' | 'finished' | 'postponed' | 'cancelled' | 'unknown';
 
 export interface MatchRowTeam {
   name: string;
   imageUrl?: string | null;
+  /** One action shown next to this team's name, on the side facing the score. */
+  action?: ReactNode;
 }
 
 export interface MatchRowScore {
@@ -61,6 +64,12 @@ function whenLabel(
   if (status === 'postponed') {
     return { primary: 'Перенесён', secondary: null };
   }
+  if (status === 'cancelled') {
+    return { primary: 'Отменён', secondary: null };
+  }
+  if (status === 'unknown') {
+    return { primary: 'Статус уточняется', secondary: null };
+  }
   return { primary: time ?? '—', secondary: time ? 'Начало матча' : null };
 }
 
@@ -88,6 +97,7 @@ export function MatchRow({
   const hidden = hideScore && (score?.home != null || score?.away != null);
   const hasCompetition = competition != null && competition !== '';
   const hasBadge = badge != null && badge !== '';
+  const hasTeamAction = home.action != null || away.action != null;
   const content = (
     <>
       <span className="ui-match-row__when">
@@ -103,6 +113,7 @@ export function MatchRow({
       <span className="ui-match-row__team ui-match-row__team--home">
         <TeamBadge name={home.name} imageUrl={home.imageUrl} size={badgeSize} />
         <span className="ui-match-row__team-name">{home.name}</span>
+        {home.action != null && <span className="ui-match-row__team-action">{home.action}</span>}
       </span>
       <span
         className={cx('ui-match-row__score', hidden && 'ui-match-row__score--hidden')}
@@ -111,6 +122,7 @@ export function MatchRow({
         {scoreLabel(score, hidden)}
       </span>
       <span className="ui-match-row__team ui-match-row__team--away">
+        {away.action != null && <span className="ui-match-row__team-action">{away.action}</span>}
         <span className="ui-match-row__team-name">{away.name}</span>
         <TeamBadge name={away.name} imageUrl={away.imageUrl} size={badgeSize} />
       </span>
@@ -133,7 +145,7 @@ export function MatchRow({
     className,
   );
 
-  if (onClick && actions == null) {
+  if (onClick && actions == null && !hasTeamAction) {
     return (
       <button type="button" className={rootClass} onClick={onClick} aria-label={ariaLabel}>
         {content}

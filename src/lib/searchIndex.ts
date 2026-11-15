@@ -179,6 +179,7 @@ export const searchSections: SearchItem[] = [
   sectionItem('watch', 'Смотреть', 'Онлайн-просмотр', 'каналы трансляции'),
   sectionItem('my', 'Моё', 'Избранное, дневник и игры', 'профиль'),
   sectionItem('football.matches', 'Матчи', 'Футбол', 'календарь'),
+  sectionItem('football.live', 'Сейчас идут', 'Футбол · матчи сегодня', 'прямой эфир live счёт'),
   sectionItem('football.players', 'Игроки', 'Футбол · профили и сравнение', 'футболисты'),
   sectionItem('today.plan', 'Мой план', 'Сегодня', 'планировщик мой спортивный вечер'),
   sectionItem('events', 'События', 'Голы, результаты и напоминания', 'центр событий уведомления'),

@@ -34,7 +34,7 @@ test('switches Premier League → Лига чемпионов → Лига Ев�
   const switcher = await openFootball(page);
   await expect(switcher).toContainText('Premier League');
   await expect(page.locator('.matches-view')).toBeVisible();
-  await expect(tabs(page)).toHaveText(['Матчи', 'Таблица', 'Клубы', 'Игроки', 'Сейчас идут']);
+  await expect(tabs(page)).toHaveText(['Матчи', 'Таблица', 'Клубы', 'Игроки']);
 
   await switcher.click();
   const menu = page.getByRole('menu', { name: 'Соревнование' });
@@ -66,7 +66,7 @@ test('«Матчи» has no league select in the new frame', async ({ page }) =>
   await openFootball(page);
   await expect(page.locator('.matches-view')).toBeVisible();
   await expect(page.locator('#league-select')).toHaveCount(0);
-  await expect(page.locator('.filters-bar').getByText('Лига', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.matches-view').getByText('Лига', { exact: true })).toHaveCount(0);
 });
 
 test('a saved link to a hidden league opens the first visible league', async ({ page }) => {

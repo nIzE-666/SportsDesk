@@ -217,7 +217,7 @@ it('shows catalogue names and crests for clubs another league table spells diffe
   expect(open).toHaveBeenCalledWith('inter');
 });
 
-it('normalizes both the search and team names', async () => {
+it('finds a team through the searchable filter regardless of case', async () => {
   await render(
     <FavoritesProvider>
       <MatchesView
@@ -226,14 +226,20 @@ it('normalizes both the search and team names', async () => {
       />
     </FavoritesProvider>,
   );
-  const input = host.querySelector<HTMLInputElement>('#match-search')!;
+  const input = host.querySelector<HTMLInputElement>('[role="combobox"][aria-label="Команда"]')!;
+  await act(async () => input.focus());
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
       input,
-      'ATLETICO F C',
+      'ATLETICO',
     );
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
+  const option = [...host.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (entry) => entry.textContent?.trim() === 'Atlético F.C.',
+  );
+  expect(option).toBeTruthy();
+  await act(async () => option!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   expect(host.querySelector('[data-match-id="scheduled"]')).not.toBeNull();
 });
 

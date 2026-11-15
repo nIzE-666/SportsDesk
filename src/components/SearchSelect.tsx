@@ -16,6 +16,8 @@ export interface SearchSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   clearLabel?: string;
+  /** A required choice has no clearing control and no empty result. */
+  clearable?: boolean;
   className?: string;
 }
 
@@ -66,6 +68,7 @@ export function SearchSelect({
   onChange,
   placeholder,
   clearLabel = 'Очистить выбор',
+  clearable = true,
   className,
 }: SearchSelectProps) {
   const baseId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
@@ -280,7 +283,7 @@ export function SearchSelect({
             }
           }}
         />
-        {value !== '' && (
+        {clearable && value !== '' && (
           <button
             type="button"
             className="search-select-clear"

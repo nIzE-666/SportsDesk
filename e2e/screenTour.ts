@@ -88,12 +88,24 @@ export async function screenTour(
   await expect(page.locator('.today-view')).toBeVisible();
 
   await stop('Сегодня');
-  const football = ['Матчи', 'Таблица', 'Сейчас идут', 'Игроки', 'Клубы'];
+  const football = ['Матчи', 'Таблица', 'Игроки', 'Клубы'];
   for (const title of football) {
     await section(page, 'Футбол');
     await tab(page, title);
     await stop(title);
   }
+  await section(page, 'Футбол');
+  await tab(page, 'Матчи');
+  await page.getByRole('button', { name: 'Меню', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Матчи' })).toBeVisible();
+  await stop('Матчи: меню', { root: '.ui-dialog' });
+  await page.keyboard.press('Escape');
+  const matchFilter = page.getByRole('radiogroup', { name: 'Фильтр матчей' });
+  await matchFilter.getByRole('radio', { name: 'Мои', exact: true }).click();
+  await stop('Матчи: мои');
+  await matchFilter.getByRole('radio', { name: 'Сейчас идут', exact: true }).click();
+  await stop('Матчи: сейчас идут');
+  await matchFilter.getByRole('radio', { name: 'Все', exact: true }).click();
   await section(page, 'Футбол');
   await tab(page, 'Клубы');
   await page.locator('.team-favorites').getByRole('button', { name: 'Arsenal' }).click();

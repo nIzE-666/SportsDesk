@@ -213,6 +213,20 @@ describe('SearchSelect', () => {
     expect(host.querySelector('[role="listbox"]')).toBeNull();
   });
 
+  it('hides the clearing control for a required choice', async () => {
+    await render(
+      <SearchSelect
+        ariaLabel="Сезон"
+        value="2026/2027"
+        options={[{ value: '2026/2027', label: '2026/2027' }]}
+        onChange={() => {}}
+        clearable={false}
+      />,
+    );
+    expect(host.querySelector('.search-select-clear')).toBeNull();
+    expect(input().value).toBe('2026/2027');
+  });
+
   it('closes when the click lands outside', async () => {
     await render(<Harness />);
     await focus();

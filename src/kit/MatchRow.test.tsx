@@ -74,6 +74,12 @@ describe('MatchRow', () => {
     await app.render(<MatchRow home={HOME} away={AWAY} status="postponed" />);
     expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Перенесён');
 
+    await app.render(<MatchRow home={HOME} away={AWAY} status="cancelled" />);
+    expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Отменён');
+
+    await app.render(<MatchRow home={HOME} away={AWAY} status="unknown" />);
+    expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Статус уточняется');
+
     await app.render(
       <MatchRow home={HOME} away={AWAY} status="finished" score={{ home: 0, away: 0 }} />,
     );
@@ -111,6 +117,30 @@ describe('MatchRow', () => {
     expect(row.getAttribute('aria-label')).toBe('Открыть');
     await click(row);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a team action next to its own name and out of a clickable row', async () => {
+    const onClick = vi.fn();
+    await app.render(
+      <MatchRow
+        home={{ ...HOME, action: <button type="button">Дом</button> }}
+        away={{ ...AWAY, action: <button type="button">Гости</button> }}
+        onClick={onClick}
+      />,
+    );
+    const row = app.host.querySelector('.ui-match-row')!;
+    expect(row.tagName).toBe('DIV');
+    const homeTeam = row.querySelector('.ui-match-row__team--home')!;
+    const awayTeam = row.querySelector('.ui-match-row__team--away')!;
+    const classes = (element: Element) => [...element.children].map((child) => child.className);
+    expect(classes(homeTeam).indexOf('ui-match-row__team-name')).toBeLessThan(
+      classes(homeTeam).indexOf('ui-match-row__team-action'),
+    );
+    expect(classes(awayTeam).indexOf('ui-match-row__team-action')).toBeLessThan(
+      classes(awayTeam).indexOf('ui-match-row__team-name'),
+    );
+    expect(homeTeam.querySelector('.ui-match-row__team-action')?.textContent).toBe('Дом');
+    expect(awayTeam.querySelector('.ui-match-row__team-action')?.textContent).toBe('Гости');
   });
 
   it('shows one badge next to the competition and reserves its track', async () => {

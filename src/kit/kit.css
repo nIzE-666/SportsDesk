@@ -418,6 +418,13 @@ button.ui-match-row {
   white-space: nowrap;
 }
 
+/* A team action sits next to its own name, facing the score. */
+.ui-match-row__team-action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 /* TeamBadge lives in components; inside the kit row it is centred and keeps
    its own fallback readable even without the old design.css. */
 .ui-match-row__team :is(.team-badge, .team-badge-fallback),

@@ -120,6 +120,17 @@ async function change(element: HTMLInputElement | HTMLSelectElement, value: stri
     );
   });
 }
+
+async function choose(label: string, optionText: string) {
+  const input = host.querySelector<HTMLInputElement>(`[role="combobox"][aria-label="${label}"]`);
+  if (!input) throw new Error(`Combobox missing: ${label}`);
+  await act(async () => input.focus());
+  const option = [...host.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (entry) => entry.textContent?.trim() === optionText,
+  );
+  if (!option) throw new Error(`Option missing: ${optionText}`);
+  await click(option);
+}
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
@@ -295,6 +306,52 @@ it('opens a match from «Матчи» and leaves only the header back button', a
   expect(host.querySelectorAll('.shell-header-bar [aria-label="Назад"]')).toHaveLength(1);
 });
 
+it('opens an old «Сейчас идут» tab as the live filter of «Матчи»', async () => {
+  sessionStorage.setItem(
+    'sportsdesk.view.navigation2.football',
+    JSON.stringify({
+      section: 'football',
+      route: { kind: 'football', competitionId: 'l_4WFCIZ', tab: 'live' },
+      sport: 'football',
+      leagueId: 'l_4WFCIZ',
+      cupId: 'l_38d9HA',
+    }),
+  );
+  await renderApp();
+  await click(railButton('Футбол'));
+  expect(headerTab('Матчи').getAttribute('aria-selected')).toBe('true');
+  expect(host.querySelector('.ui-segmented [aria-checked="true"]')?.textContent).toBe(
+    'Сейчас идут',
+  );
+  expect(host.querySelector('.live-panel')).not.toBeNull();
+});
+
+it('opens the same live filter from the search item «Сейчас идут»', async () => {
+  await renderApp();
+  await act(async () =>
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })),
+  );
+  const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+  const input = dialog?.querySelector<HTMLInputElement>('[role="combobox"]');
+  expect(input).toBeTruthy();
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      input,
+      'Сейчас идут',
+    );
+    input!.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const option = [...(dialog?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find(
+    (entry) => entry.textContent?.includes('Сейчас идут'),
+  );
+  expect(option).toBeTruthy();
+  await click(option!);
+  expect(host.querySelector('.ui-segmented [aria-checked="true"]')?.textContent).toBe(
+    'Сейчас идут',
+  );
+  expect(host.querySelector('.live-panel')).not.toBeNull();
+});
+
 it('opens the F1 cover weekend in its actual season and round', async () => {
   viewState.write('f1.year', 2025);
   viewState.write('navigation2.f1', { kind: 'f1', tab: 'overview' });
@@ -311,9 +368,9 @@ it('retains football season, filters and list scroll through settings and back',
   await renderApp();
   await click(railButton('Футбол'));
   await click(headerTab('Матчи'));
-  await change(host.querySelector<HTMLSelectElement>('#football-season')!, '2025/2026');
-  await change(host.querySelector<HTMLInputElement>('#match-search')!, 'Arsenal');
-  await click(button('Завершённые'));
+  await choose('Сезон', '2025/2026');
+  await choose('Команда', 'Arsenal');
+  await click(button('Мои'));
   const main = host.querySelector<HTMLElement>('main.content')!;
   Object.defineProperties(main, {
     scrollHeight: { get: () => 3500 },
@@ -321,7 +378,7 @@ it('retains football season, filters and list scroll through settings and back',
   });
   main.scrollTop = 640;
   main.dispatchEvent(new Event('scroll'));
-  await click(host.querySelector<HTMLButtonElement>('.mt-open')!);
+  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .mt-open')!);
   await click(button('Статистика'));
   await click(railButton('Настройки'));
   expect(host.textContent).toContain('Настройки');
@@ -329,11 +386,13 @@ it('retains football season, filters and list scroll through settings and back',
   expect(host.querySelector('.ui-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
   await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
   await new Promise((resolve) => setTimeout(resolve, 5));
-  expect(host.querySelector<HTMLInputElement>('#match-search')?.value).toBe('Arsenal');
-  expect(host.querySelector<HTMLSelectElement>('#football-season')?.value).toBe('2025/2026');
-  expect(host.querySelector('.ui-segmented [aria-checked="true"]')?.textContent).toBe(
-    'Завершённые',
+  expect(host.querySelector<HTMLInputElement>('[role="combobox"][aria-label="Сезон"]')?.value).toBe(
+    '2025/2026',
   );
+  expect(
+    host.querySelector<HTMLInputElement>('[role="combobox"][aria-label="Команда"]')?.value,
+  ).toBe('Arsenal');
+  expect(host.querySelector('.ui-segmented [aria-checked="true"]')?.textContent).toBe('Мои');
   expect(main.scrollTop).toBe(640);
 });
 

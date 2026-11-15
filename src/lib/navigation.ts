@@ -18,7 +18,9 @@ export type Sport = 'football' | 'f1' | 'ucl' | 'cup';
 export type Section = 'today' | 'football' | 'f1' | 'watch' | 'my';
 export type CompetitionKind = 'league' | 'ucl' | 'cup';
 export type TodayMode = 'today' | 'week' | 'plan';
-export type LeagueTab = 'matches' | 'standings' | 'team' | 'players' | 'live';
+/** The «Сейчас идут» tab became a filter of «Матчи» in U4.2. */
+export type MatchesFilter = 'mine' | 'all' | 'live';
+export type LeagueTab = 'matches' | 'standings' | 'team' | 'players';
 export type ChampionsTab = 'overview' | 'table' | 'bracket' | 'matches' | 'stats';
 export type CupTab = 'overview' | 'table' | 'bracket' | 'matches';
 export type FootballTab = LeagueTab | ChampionsTab | CupTab;
@@ -37,7 +39,13 @@ export type SettingsCategory =
 
 export type ShellRoute =
   | { kind: 'today'; mode?: TodayMode }
-  | { kind: 'football'; competitionId: string; tab?: FootballTab; teamId?: string }
+  | {
+      kind: 'football';
+      competitionId: string;
+      tab?: FootballTab;
+      teamId?: string;
+      matchesFilter?: MatchesFilter;
+    }
   | { kind: 'football-match'; matchId: string; competitionId: string }
   | { kind: 'f1'; tab?: F1Tab }
   | { kind: 'watch'; channelId?: number; intent?: WatchIntent }
@@ -66,7 +74,10 @@ export const DEFAULT_CUP_ID = 'l_38d9HA';
 export const START_SECTION: Section = 'today';
 
 export const TODAY_MODES = ['today', 'week', 'plan'] as const;
-export const LEAGUE_TABS = ['matches', 'standings', 'team', 'players', 'live'] as const;
+export const LEAGUE_TABS = ['matches', 'standings', 'team', 'players'] as const;
+export const MATCHES_FILTERS = ['mine', 'all', 'live'] as const;
+/** The remembered «Матчи» filter; the same place for a search result or a migrated tab. */
+export const MATCHES_FILTER_VIEW_KEY = 'football.matches.filter';
 export const CHAMPIONS_TABS = ['overview', 'table', 'bracket', 'matches', 'stats'] as const;
 export const CUP_TABS = ['overview', 'table', 'bracket', 'matches'] as const;
 export const F1_TABS = ['overview', 'calendar', 'standings', 'compare', 'pace', 'session'] as const;
@@ -126,6 +137,10 @@ export function isLeagueTab(tab: unknown): tab is LeagueTab {
   return includes(LEAGUE_TABS, tab);
 }
 
+export function isMatchesFilter(value: unknown): value is MatchesFilter {
+  return includes(MATCHES_FILTERS, value);
+}
+
 export function isF1Tab(tab: unknown): tab is F1Tab {
   return includes(F1_TABS, tab);
 }
@@ -172,7 +187,8 @@ export function isValidShellRoute(value: unknown): value is ShellRoute {
       return (
         isCompetitionId(value.competitionId) &&
         (value.tab === undefined || isValidFootballTab(value.competitionId, value.tab)) &&
-        (value.teamId === undefined || isText(value.teamId))
+        (value.teamId === undefined || isText(value.teamId)) &&
+        (value.matchesFilter === undefined || isMatchesFilter(value.matchesFilter))
       );
     case 'football-match':
       return isText(value.matchId) && isCompetitionId(value.competitionId);
@@ -341,7 +357,22 @@ export function migrateRoute(value: unknown, context: LegacyContext = {}): Shell
 
   switch (value.kind) {
     case 'football': {
+      // U4.2: the old «Сейчас идут» tab is now the live filter of «Матчи».
+      if (value.tab === 'live' && isLeagueId(value.competitionId))
+        return {
+          kind: 'football',
+          competitionId: value.competitionId,
+          tab: 'matches',
+          matchesFilter: 'live',
+        };
       const section = value.section;
+      if (section === 'live')
+        return {
+          kind: 'football',
+          competitionId: leagueId,
+          tab: 'matches',
+          matchesFilter: 'live',
+        };
       if (section === 'dashboard') return { kind: 'today', mode: 'today' };
       if (!isLeagueTab(section)) return undefined;
       const teamId = isText(value.teamId) ? value.teamId : undefined;

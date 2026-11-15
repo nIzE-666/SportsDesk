@@ -157,6 +157,7 @@ export function RouteContent({
                 selectedTeamId={
                   route.kind === 'football' && route.tab === 'team' ? route.teamId : undefined
                 }
+                initialMatchesFilter={route.kind === 'football' ? route.matchesFilter : undefined}
                 matchId={route.kind === 'football-match' ? route.matchId : null}
                 onOpenMatch={onOpenMatch}
                 onOpenTeam={(id, _name, teamLeagueId) => {
