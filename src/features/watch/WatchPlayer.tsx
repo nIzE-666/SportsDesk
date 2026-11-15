@@ -100,9 +100,11 @@ function PlayerControls({
         />
       </div>
 
-      <Badge variant="live">
-        <span className="watch-dot" /> LIVE
-      </Badge>
+      {status === 'ready' && (
+        <Badge variant="live">
+          <span className="watch-dot" /> LIVE
+        </Badge>
+      )}
 
       <div className="watch-player-spacer" />
 
@@ -579,21 +581,18 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
             {status === 'error' && (
               <EmptyState
                 className="watch-player-error"
+                tone="error"
+                title="Не удалось воспроизвести поток"
                 icon={<AlertTriangle size={20} aria-hidden />}
-                message={error ?? 'Не удалось воспроизвести поток.'}
+                message={error ?? 'Попробуйте ещё раз.'}
                 action={
-                  <div className="watch-player-error-actions">
-                    <Button
-                      variant="primary"
-                      icon={<RefreshCw size={15} aria-hidden />}
-                      onClick={retry}
-                    >
-                      Повторить
-                    </Button>
-                    <Button icon={<ExternalLink size={15} aria-hidden />} onClick={openSite}>
-                      Открыть в браузере
-                    </Button>
-                  </div>
+                  <Button
+                    variant="primary"
+                    icon={<RefreshCw size={15} aria-hidden />}
+                    onClick={retry}
+                  >
+                    Повторить
+                  </Button>
                 }
               />
             )}
@@ -626,14 +625,13 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
       </div>
 
       <div className="watch-player-foot">
-        <span className="watch-muted">Качество и дорожки — если их даёт поток.</span>
         <Button
           variant="quiet"
           small
           icon={<ExternalLink size={13} aria-hidden />}
           onClick={onOpenSitePage}
         >
-          канал на kino.watch
+          Открыть канал на сайте
         </Button>
       </div>
     </div>

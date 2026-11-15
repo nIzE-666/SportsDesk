@@ -258,3 +258,53 @@ it('cancels a commit in flight when the user stops waiting', async () => {
     vi.useRealTimers();
   }
 });
+
+it('groups the catalog and keeps the favourite filter honest', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  localStorage.clear();
+  localStorage.setItem('sportsdesk.watch.favorites', JSON.stringify([1]));
+  localStorage.setItem('sportsdesk.watch.recent', JSON.stringify([3]));
+  const channels = [
+    { id: 1, title: 'OKKO Football' },
+    { id: 2, title: 'Матч ТВ' },
+    { id: 3, title: 'Sky Sports F1' },
+    { id: 4, title: 'Дом кино' },
+  ];
+  vi.mocked(rpc).mockClear();
+  vi.mocked(rpc).mockImplementation(async (command) => {
+    if (command === 'secret_status') return { kino: true };
+    if (command === 'kino_channels') return channels;
+    return {};
+  });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  const groupTitles = () =>
+    [...host.querySelectorAll('.watch-group-title')].map((node) => node.textContent?.trim());
+  const channelTitles = () =>
+    [...host.querySelectorAll('.watch-channel-title')].map((node) => node.textContent);
+  const radios = () => [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+  try {
+    await act(async () => root.render(<WatchView />));
+    await act(async () => {});
+    expect(groupTitles()).toEqual(['Избранное', 'Недавние', 'Все каналы']);
+    expect(channelTitles()).toEqual(['OKKO Football', 'Sky Sports F1', 'Матч ТВ', 'Дом кино']);
+
+    const favourites = radios().find((radio) => radio.textContent?.trim() === 'Избранное')!;
+    await act(async () => favourites.click());
+    expect(channelTitles()).toEqual(['OKKO Football']);
+
+    const star = host.querySelector<HTMLButtonElement>(
+      '[aria-label="Убрать из избранного: OKKO Football"]',
+    )!;
+    expect(star.getAttribute('aria-pressed')).toBe('true');
+    await act(async () => star.click());
+    expect(radios().map((radio) => radio.textContent?.trim())).toEqual(['Все', 'Спорт']);
+    expect(groupTitles()).toEqual(['Недавние', 'Все каналы']);
+    expect(channelTitles()).toEqual(['Sky Sports F1', 'OKKO Football', 'Матч ТВ', 'Дом кино']);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    localStorage.clear();
+  }
+});

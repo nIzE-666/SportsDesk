@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { addMatchDetails, enabled, upcoming } from './matchDetails';
 import { setupVisualFixture } from './uiFixture';
+import { mockWatchAccount, WATCH_FAVORITES, WATCH_RECENT } from './watchFixture';
 
 /** Where a tour stop lives: the page itself, another page, and the part of it to inspect. */
 export type ScreenTourStop = {
@@ -147,8 +148,42 @@ export async function screenTour(
   await section(page, 'Моё');
   await tab(page, 'Игры и прогнозы');
   await stop('Игры');
+  const signedOutWatch = await mockWatchAccount(page, false);
   await section(page, 'Смотреть');
   await stop('Смотреть');
+  await page.getByRole('button', { name: 'Подключить устройство' }).click();
+  await expect(page.getByRole('dialog', { name: 'Подключение Kino' })).toBeVisible();
+  await stop('Смотреть: подключение', { root: '.ui-dialog' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // The signed-in catalog and the player use invented channels; no real stream.
+  const signedInWatch = await mockWatchAccount(page, true);
+  await page.evaluate(
+    ({ favorites, recent }) => {
+      localStorage.setItem('sportsdesk.watch.favorites', JSON.stringify(favorites));
+      localStorage.setItem('sportsdesk.watch.recent', JSON.stringify(recent));
+      localStorage.setItem('sportsdesk.watch.view', 'grid');
+    },
+    { favorites: WATCH_FAVORITES, recent: WATCH_RECENT },
+  );
+  await section(page, 'Сегодня');
+  await section(page, 'Смотреть');
+  await expect(page.locator('.watch-catalog')).toBeVisible();
+  await stop('Смотреть: каталог');
+  await page.getByRole('button', { name: 'Список каналов', exact: true }).click();
+  await stop('Смотреть: каталог списком');
+  await page
+    .locator('.watch-catalog--list')
+    .getByRole('button', { name: 'OKKO Football', exact: true })
+    .click();
+  await stop('Смотреть: плеер');
+  await page.locator('.watch-topbar').getByRole('button', { name: 'Выйти', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await stop('Смотреть: выход', { root: '.ui-dialog' });
+  await page.keyboard.press('Escape');
+  await page.unroute('**/bridge/command', signedInWatch);
+  await page.unroute('**/bridge/command', signedOutWatch);
   await rail(page).getByRole('button', { name: 'События', exact: true }).click();
   await stop('Центр событий', { root: '.events-drawer' });
   await rail(page).getByRole('button', { name: 'Настройки', exact: true }).click();

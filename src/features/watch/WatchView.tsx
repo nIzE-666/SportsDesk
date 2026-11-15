@@ -4,15 +4,16 @@ import {
   CheckCircle2,
   ExternalLink,
   Heart,
+  History as HistoryIcon,
   LogOut,
   MonitorPlay,
   RefreshCw,
   Search,
+  Signal,
   Tv,
   X,
   LayoutGrid,
   List,
-  History as HistoryIcon,
 } from 'lucide-react';
 import { openExternal, rpc } from '../../lib/bridge';
 import {
@@ -45,9 +46,9 @@ import {
   readFavorites,
   writeFavorites,
 } from './watchShared';
-import { SplitAuthPanel, LogoutConfirm } from './WatchAuth';
+import { AuthDialog, LogoutConfirm } from './WatchAuth';
 import { PlayerPane } from './WatchPlayer';
-import { ChannelListItem, ChannelTile, ChannelInfoPanel } from './WatchChannels';
+import { ChannelInfoPanel, ChannelItem } from './WatchChannels';
 import {
   beginKinoAttempt,
   cancelKinoAttempt,
@@ -80,9 +81,10 @@ export function WatchView({
   );
   const [channelsError, setChannelsError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'sport'>('all');
+  const [filter, setFilter] = useState<'all' | 'sport' | 'favorites'>('all');
   const [favorites, setFavorites] = useState<Set<number>>(() => readFavorites());
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   // №10: вид каналов (сетка картиночек / список) и недавние.
@@ -227,6 +229,7 @@ export function WatchView({
   const cancelAuth = useCallback(() => {
     const cancellation = abandonAuth();
     const generation = authGeneration.current;
+    setAuthOpen(false);
     setAuthPhase({ kind: 'idle' });
     void cancellation.catch((e) => {
       if (generation === authGeneration.current)
@@ -305,6 +308,7 @@ export function WatchView({
             authGeneration.current += 1;
             finishKinoAttempt(sessionId, attempt);
             setAuthPhase({ kind: 'idle' });
+            setAuthOpen(false);
             setAccount({ kind: 'signed-in' });
             return;
           }
@@ -341,32 +345,81 @@ export function WatchView({
     });
   }, []);
 
-  const filtered = useMemo(() => {
+  const visibleChannels = useMemo(() => {
     const q = query.trim().toLowerCase();
     return channels.filter((c) => {
+      if (filter === 'favorites' && !favorites.has(c.id)) return false;
       if (filter === 'sport' && !looksLikeSport(c.title)) return false;
-      if (!q) return true;
-      return c.title.toLowerCase().includes(q);
+      return !q || c.title.toLowerCase().includes(q);
     });
-  }, [channels, query, filter]);
+  }, [channels, query, filter, favorites]);
 
   const favoriteChannels = useMemo(
     () => channels.filter((c) => favorites.has(c.id)),
     [channels, favorites],
   );
 
-  const recentChannels = useMemo(
-    () =>
-      recentIds
-        .map((id) => channels.find((c) => c.id === id))
-        .filter((c): c is KinoChannel => Boolean(c)),
-    [channels, recentIds],
+  // Favourites come first, then the channels opened last, then the rest;
+  // every channel appears in one group only.
+  const groups = useMemo(() => {
+    if (filter === 'favorites')
+      return [
+        {
+          id: 'favorites',
+          label: 'Избранное',
+          icon: <Heart size={12} aria-hidden fill="currentColor" />,
+          items: visibleChannels,
+        },
+      ];
+    const favoriteIds = new Set(favorites);
+    const recentIdsSet = new Set(recentIds);
+    const recent = visibleChannels.filter((c) => !favoriteIds.has(c.id) && recentIdsSet.has(c.id));
+    const rest = visibleChannels.filter((c) => !favoriteIds.has(c.id) && !recentIdsSet.has(c.id));
+    return [
+      {
+        id: 'favorites',
+        label: 'Избранное',
+        icon: <Heart size={12} aria-hidden fill="currentColor" />,
+        items: visibleChannels.filter((c) => favoriteIds.has(c.id)),
+      },
+      {
+        id: 'recent',
+        label: 'Недавние',
+        icon: <HistoryIcon size={12} aria-hidden />,
+        items: recent,
+      },
+      {
+        id: 'all',
+        label: 'Все каналы',
+        icon: <Tv size={12} aria-hidden />,
+        items: rest,
+      },
+    ].filter((group) => group.items.length > 0);
+  }, [visibleChannels, favorites, recentIds, filter]);
+
+  const filterItems = useMemo(
+    () => [
+      { id: 'all', label: 'Все' },
+      { id: 'sport', label: 'Спорт' },
+      ...(favoriteChannels.length > 0 ? [{ id: 'favorites', label: 'Избранное' }] : []),
+    ],
+    [favoriteChannels.length],
   );
+
+  // Removing the last favourite while its filter is on returns to all channels.
+  useEffect(() => {
+    if (filter === 'favorites' && favoriteChannels.length === 0) setFilter('all');
+  }, [filter, favoriteChannels.length]);
 
   const selected = useMemo(
     () => channels.find((c) => c.id === selectedId) ?? null,
     [channels, selectedId],
   );
+
+  const clearFilters = () => {
+    setQuery('');
+    setFilter('all');
+  };
 
   const doLogout = useCallback(async () => {
     abandonAuth();
@@ -392,7 +445,9 @@ export function WatchView({
       <div className="watch-root">
         <div className="watch-center-state">
           <Skeleton className="watch-center-skeleton" />
-          <span className="watch-muted">Проверяем аккаунт…</span>
+          <span className="watch-muted" role="status">
+            Проверяем аккаунт…
+          </span>
         </div>
       </div>
     );
@@ -403,6 +458,8 @@ export function WatchView({
       <div className="watch-root">
         <div className="watch-center-state">
           <EmptyState
+            tone="error"
+            title="Не удалось проверить аккаунт"
             icon={<AlertTriangle size={20} aria-hidden />}
             message={account.message}
             action={
@@ -425,21 +482,26 @@ export function WatchView({
       <div className="watch-root watch-root-signed-out">
         {contextPanel}
         <div className="watch-signedout-stage">
-          <div className="watch-signedout-hero">
-            <span className="watch-hero-icon">
-              <MonitorPlay size={30} aria-hidden />
-            </span>
-            <h2 className="ui-page-title">Kino Live</h2>
-            <p className="watch-muted">Подключите аккаунт Kino один раз.</p>
-          </div>
-          <SplitAuthPanel
-            phase={authPhase}
-            onStart={() => void startAuth()}
-            onCancel={cancelAuth}
-            onOpenSite={openSite}
+          <EmptyState
+            className="watch-signedout-empty"
+            icon={<MonitorPlay size={20} aria-hidden />}
+            title="Kino"
+            message="Подключите аккаунт по коду устройства, без пароля."
+            action={
+              <Button
+                variant="primary"
+                icon={<Signal size={16} aria-hidden />}
+                onClick={() => {
+                  setAuthOpen(true);
+                  void startAuth();
+                }}
+              >
+                Подключить устройство
+              </Button>
+            }
           />
           <div className="watch-browser-fallback">
-            <span className="watch-muted">Без входа в приложение:</span>
+            <span className="watch-muted">Без входа в приложение</span>
             <div className="watch-fallback-links">
               <Button
                 variant="quiet"
@@ -465,6 +527,14 @@ export function WatchView({
             </div>
           </div>
         </div>
+        <AuthDialog
+          open={authOpen}
+          phase={authPhase}
+          onClose={cancelAuth}
+          onStart={() => void startAuth()}
+          onCancel={cancelAuth}
+          onOpenSite={openSite}
+        />
       </div>
     );
   }
@@ -498,89 +568,62 @@ export function WatchView({
 
       <div className="watch-layout">
         <aside className="watch-rail" aria-label="Каналы">
-          <div className="watch-rail-search">
-            <Search size={15} aria-hidden className="watch-search-icon" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск канала…"
-              aria-label="Поиск канала"
-            />
-            {query && (
-              <IconButton
-                small
-                className="watch-search-clear"
-                icon={<X size={14} aria-hidden />}
-                aria-label="Очистить поиск"
-                onClick={() => setQuery('')}
-              />
-            )}
-          </div>
+          <h2 className="visually-hidden">Каналы</h2>
 
-          <div className="watch-filter-row">
-            <SegmentedControl
-              ariaLabel="Фильтр каналов"
-              value={filter}
-              onChange={(id) => setFilter(id as 'all' | 'sport')}
-              items={[
-                { id: 'all', label: 'Все' },
-                { id: 'sport', label: 'Спорт' },
-              ]}
-            />
-            <span className="watch-view-toggle" role="group" aria-label="Вид каналов">
-              <IconButton
-                small
-                variant={viewMode === 'grid' ? 'default' : 'quiet'}
-                icon={<LayoutGrid size={14} aria-hidden />}
-                aria-label="Сетка каналов"
-                aria-pressed={viewMode === 'grid'}
-                onClick={() => setViewMode('grid')}
-              />
-              <IconButton
-                small
-                variant={viewMode === 'list' ? 'default' : 'quiet'}
-                icon={<List size={14} aria-hidden />}
-                aria-label="Список каналов"
-                aria-pressed={viewMode === 'list'}
-                onClick={() => setViewMode('list')}
-              />
-            </span>
-          </div>
+          {channelsState === 'ready' && channels.length > 0 && (
+            <>
+              <div className="watch-rail-search">
+                <Search size={15} aria-hidden className="watch-search-icon" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Поиск канала…"
+                  aria-label="Поиск канала"
+                />
+                {query && (
+                  <IconButton
+                    small
+                    className="watch-search-clear"
+                    icon={<X size={14} aria-hidden />}
+                    aria-label="Очистить поиск"
+                    onClick={() => setQuery('')}
+                  />
+                )}
+              </div>
 
-          {recentChannels.length > 0 && (
-            <div className="watch-fav-bar">
-              <span className="watch-fav-bar-label">
-                <HistoryIcon size={12} aria-hidden /> Недавние
-              </span>
-              <SegmentedControl
-                className="watch-fav-chips"
-                ariaLabel="Недавние каналы"
-                value={selectedId === null ? '' : String(selectedId)}
-                onChange={(id) => selectChannel(Number(id))}
-                items={recentChannels.map((c) => ({ id: String(c.id), label: c.title }))}
-              />
-            </div>
-          )}
-
-          {favoriteChannels.length > 0 && (
-            <div className="watch-fav-bar">
-              <span className="watch-fav-bar-label">
-                <Heart size={12} aria-hidden fill="currentColor" /> Избранное
-              </span>
-              <SegmentedControl
-                className="watch-fav-chips"
-                ariaLabel="Избранные каналы"
-                value={selectedId === null ? '' : String(selectedId)}
-                onChange={(id) => selectChannel(Number(id))}
-                items={favoriteChannels.map((c) => ({ id: String(c.id), label: c.title }))}
-              />
-            </div>
+              <div className="watch-filter-row">
+                <SegmentedControl
+                  ariaLabel="Фильтр каналов"
+                  value={filter}
+                  onChange={(id) => setFilter(id as 'all' | 'sport' | 'favorites')}
+                  items={filterItems}
+                />
+                {visibleChannels.length > 0 && (
+                  <span className="watch-view-toggle" role="group" aria-label="Вид каналов">
+                    <IconButton
+                      small
+                      icon={<LayoutGrid size={14} aria-hidden />}
+                      aria-label="Сетка каналов"
+                      aria-pressed={viewMode === 'grid'}
+                      onClick={() => setViewMode('grid')}
+                    />
+                    <IconButton
+                      small
+                      icon={<List size={14} aria-hidden />}
+                      aria-label="Список каналов"
+                      aria-pressed={viewMode === 'list'}
+                      onClick={() => setViewMode('list')}
+                    />
+                  </span>
+                )}
+              </div>
+            </>
           )}
 
           <div className="watch-rail-list-wrap">
             {channelsState === 'loading' && (
-              <div className="watch-rail-state">
+              <div className="watch-rail-state" role="status">
                 <Skeleton />
                 <Skeleton />
                 <span className="watch-muted">Загружаем каналы…</span>
@@ -589,6 +632,8 @@ export function WatchView({
             {channelsState === 'error' && (
               <div className="watch-rail-state">
                 <EmptyState
+                  tone="error"
+                  title="Каналы не загрузились"
                   icon={<AlertTriangle size={20} aria-hidden />}
                   message={channelsError ?? 'Не удалось получить каналы.'}
                   action={
@@ -603,36 +648,49 @@ export function WatchView({
                 />
               </div>
             )}
-            {channelsState === 'ready' && filtered.length === 0 && (
+            {channelsState === 'ready' && channels.length === 0 && (
               <div className="watch-rail-state">
-                <EmptyState message="Ничего не найдено." />
+                <EmptyState message="В каталоге нет каналов." />
               </div>
             )}
-            {channelsState === 'ready' && filtered.length > 0 && viewMode === 'list' && (
-              <ul className="watch-channel-list">
-                {filtered.map((c) => (
-                  <ChannelListItem
-                    key={c.id}
-                    channel={c}
-                    active={c.id === selectedId}
-                    favorite={favorites.has(c.id)}
-                    onSelect={() => selectChannel(c.id)}
-                    onToggleFavorite={() => toggleFavorite(c.id)}
-                  />
-                ))}
-              </ul>
+            {channelsState === 'ready' && channels.length > 0 && visibleChannels.length === 0 && (
+              <div className="watch-rail-state">
+                <EmptyState
+                  message={query ? 'Ничего не найдено.' : 'Нет каналов в этом фильтре.'}
+                  action={
+                    <Button small onClick={clearFilters}>
+                      {query ? 'Сбросить поиск' : 'Показать все'}
+                    </Button>
+                  }
+                />
+              </div>
             )}
-            {channelsState === 'ready' && filtered.length > 0 && viewMode === 'grid' && (
-              <div className="watch-channel-grid">
-                {filtered.map((c) => (
-                  <ChannelTile
-                    key={c.id}
-                    channel={c}
-                    active={c.id === selectedId}
-                    favorite={favorites.has(c.id)}
-                    onSelect={() => selectChannel(c.id)}
-                    onToggleFavorite={() => toggleFavorite(c.id)}
-                  />
+            {channelsState === 'ready' && visibleChannels.length > 0 && (
+              <div className={`watch-catalog watch-catalog--${viewMode}`}>
+                {groups.map((group) => (
+                  <section
+                    className="watch-group"
+                    key={group.id}
+                    aria-labelledby={`watch-group-${group.id}`}
+                  >
+                    <h3 className="watch-group-title" id={`watch-group-${group.id}`}>
+                      {group.icon}
+                      {group.label}
+                    </h3>
+                    <ul className="watch-channel-list">
+                      {group.items.map((c) => (
+                        <ChannelItem
+                          key={c.id}
+                          channel={c}
+                          active={c.id === selectedId}
+                          favorite={favorites.has(c.id)}
+                          layout={viewMode === 'grid' ? 'tile' : 'row'}
+                          onSelect={() => selectChannel(c.id)}
+                          onToggleFavorite={() => toggleFavorite(c.id)}
+                        />
+                      ))}
+                    </ul>
+                  </section>
                 ))}
               </div>
             )}
@@ -665,12 +723,17 @@ export function WatchView({
               onOpenSite={() => undefined}
               onOpenSitePage={() => openSite(siteUrlForChannel(selected))}
             />
-          ) : (
+          ) : channelsState === 'ready' ? (
             <ChannelInfoPanel
               channelsCount={channels.length}
               favoritesCount={favoriteChannels.length}
             />
-          )}
+          ) : channelsState === 'loading' ? (
+            <div className="watch-center-state" aria-hidden>
+              <Skeleton className="watch-center-skeleton" />
+              <Skeleton className="watch-center-skeleton" />
+            </div>
+          ) : null}
         </main>
       </div>
 

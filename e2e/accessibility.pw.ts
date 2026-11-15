@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { setupVisualFixture } from './uiFixture';
+import { mockWatchAccount, seedWatchPreferences } from './watchFixture';
 
 /**
  * Accessibility guard of the five-section frame (U3.5).
@@ -374,8 +375,14 @@ test('key screens have one h1, a named rail, named controls and a focus ring', a
     await screen(`Формула 1 · анализ · ${name}`, '.f1-analysis');
   }
 
+  const watchSignedOut = await mockWatchAccount(page, false);
   await section(page, 'Смотреть');
   await screen('Смотреть', '.watch-root');
+  await page.getByRole('button', { name: 'Подключить устройство' }).click();
+  await screen('Смотреть · подключение', '.ui-dialog', { trap: '.ui-dialog' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.unroute('**/bridge/command', watchSignedOut);
 
   await section(page, 'Моё');
   for (const [name, selector] of [
@@ -510,6 +517,38 @@ test('the events drawer and the search dialog keep focus, close on Escape and re
   await expect(page.getByRole('heading', { name: 'Premier League', exact: true })).toBeVisible();
   await page.keyboard.press('Alt+ArrowRight');
   await expect(page.getByRole('heading', { name: 'Формула 1', exact: true })).toBeVisible();
+
+  expect(failures, failures.join('\n')).toEqual([]);
+});
+
+test('the signed-in watch catalog, player and logout dialog pass', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1100, height: 720 });
+  await setupVisualFixture(page, 'dark', true);
+  await seedWatchPreferences(page);
+  const watch = await mockWatchAccount(page, true);
+  await page.goto('/');
+  await settle(page, '.today-view');
+  const failures: string[] = [];
+  const screen = async (name: string, selector?: string, options?: AuditOptions) => {
+    await settle(page, selector);
+    await audit(page, name, failures, options);
+  };
+
+  await section(page, 'Смотреть');
+  await screen('Смотреть · каталог', '.watch-root');
+  await page.getByRole('button', { name: 'Список каналов', exact: true }).click();
+  await screen('Смотреть · каталог списком', '.watch-root');
+  await page
+    .locator('.watch-catalog--list')
+    .getByRole('button', { name: 'OKKO Football', exact: true })
+    .click();
+  await screen('Смотреть · плеер', '.watch-player-shell');
+  await page.locator('.watch-topbar').getByRole('button', { name: 'Выйти', exact: true }).click();
+  await screen('Смотреть · выход', '.ui-dialog', { trap: '.ui-dialog' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.unroute('**/bridge/command', watch);
 
   expect(failures, failures.join('\n')).toEqual([]);
 });

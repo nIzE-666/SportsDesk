@@ -1,19 +1,11 @@
-import { ArrowLeftRight, Star, Tv, WifiOff } from 'lucide-react';
+import { MonitorPlay, Star, Tv, Wifi, WifiOff } from 'lucide-react';
 
-import { Button, IconButton, StatTile } from '../../kit';
+import { Button, EmptyState, IconButton, StatTile } from '../../kit';
 import type { KinoChannel } from './watchShared';
 
-function ChannelLogo({
-  channel,
-  size,
-  tile = false,
-}: {
-  channel: KinoChannel;
-  size: number;
-  tile?: boolean;
-}) {
+function ChannelLogo({ channel, tile = false }: { channel: KinoChannel; tile?: boolean }) {
   return (
-    <span className={tile ? 'watch-tile-logo' : 'watch-channel-logo'}>
+    <span className={tile ? 'watch-channel-logo watch-channel-logo--tile' : 'watch-channel-logo'}>
       {channel.logo ? (
         <img
           src={channel.logo}
@@ -24,102 +16,62 @@ function ChannelLogo({
           }}
         />
       ) : (
-        <Tv size={size} aria-hidden />
+        <Tv size={tile ? 26 : 16} aria-hidden />
       )}
     </span>
   );
 }
 
-export function ChannelListItem({
+/** One catalog entry; `layout` only changes the shape, not the content or actions. */
+export function ChannelItem({
   channel,
   active,
   favorite,
+  layout,
   onSelect,
   onToggleFavorite,
 }: {
   channel: KinoChannel;
   active: boolean;
   favorite: boolean;
+  layout: 'row' | 'tile';
   onSelect: () => void;
   onToggleFavorite: () => void;
 }) {
+  const available = Boolean(channel.url);
   return (
-    <li className={`watch-channel-item${active ? ' is-active' : ''}`}>
+    <li className={`watch-channel watch-channel--${layout}${active ? ' is-active' : ''}`}>
       <Button
         variant="quiet"
         className="watch-channel-main"
         onClick={onSelect}
         aria-current={active ? 'true' : undefined}
+        title={channel.title}
       >
-        <ChannelLogo channel={channel} size={16} />
+        <ChannelLogo channel={channel} tile={layout === 'tile'} />
         <span className="watch-channel-title">{channel.title}</span>
-        {channel.url ? (
-          <span className="watch-channel-live" aria-label="поток доступен">
-            <span className="watch-dot" />
-          </span>
-        ) : (
-          <span className="watch-channel-live is-off" title="Поток недоступен">
-            <WifiOff size={12} aria-hidden />
-          </span>
-        )}
       </Button>
+      <span
+        className={`watch-channel-availability${available ? '' : ' is-off'}`}
+        role="img"
+        aria-label={available ? 'Поток есть' : 'Потока нет'}
+        title={available ? 'Поток есть' : 'Потока нет'}
+      >
+        {available ? <Wifi size={12} aria-hidden /> : <WifiOff size={12} aria-hidden />}
+      </span>
       <IconButton
         small
-        className={`watch-fav-toggle${favorite ? ' is-on' : ''}`}
+        className="watch-fav-toggle"
         icon={<Star size={14} aria-hidden fill={favorite ? 'currentColor' : 'none'} />}
-        aria-label={favorite ? 'Убрать из избранного' : 'В избранное'}
+        aria-label={`${favorite ? 'Убрать из избранного' : 'В избранное'}: ${channel.title}`}
+        aria-pressed={favorite}
         onClick={onToggleFavorite}
       />
     </li>
   );
 }
 
-// №10: карточка канала для сеточного вида — крупная эмблема + название.
-export function ChannelTile({
-  channel,
-  active,
-  favorite,
-  onSelect,
-  onToggleFavorite,
-}: {
-  channel: KinoChannel;
-  active: boolean;
-  favorite: boolean;
-  onSelect: () => void;
-  onToggleFavorite: () => void;
-}) {
-  return (
-    <div className={`watch-channel-tile${active ? ' is-active' : ''}`}>
-      <Button
-        variant="quiet"
-        className="watch-tile-main"
-        onClick={onSelect}
-        aria-current={active ? 'true' : undefined}
-        title={channel.title}
-      >
-        <ChannelLogo channel={channel} size={26} tile />
-        <span className="watch-tile-title">{channel.title}</span>
-        {!channel.url && (
-          <span className="watch-tile-off" title="Поток недоступен">
-            <WifiOff size={11} aria-hidden />
-          </span>
-        )}
-      </Button>
-      <IconButton
-        small
-        className={`watch-fav-toggle${favorite ? ' is-on' : ''}`}
-        icon={<Star size={13} aria-hidden fill={favorite ? 'currentColor' : 'none'} />}
-        aria-label={favorite ? 'Убрать из избранного' : 'В избранное'}
-        onClick={onToggleFavorite}
-      />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Player
-// ---------------------------------------------------------------------------
-
+/** The stage before a channel is picked: a kit empty state, real counts and the shortcuts. */
 export function ChannelInfoPanel({
   channelsCount,
   favoritesCount,
@@ -129,15 +81,14 @@ export function ChannelInfoPanel({
 }) {
   return (
     <div className="watch-info-panel">
-      <div className="watch-info-hero">
-        <span className="watch-hero-icon">
-          <ArrowLeftRight size={26} aria-hidden />
-        </span>
-        <h2 className="ui-section-title">Выберите канал</h2>
-        <p className="watch-muted">Список каналов слева; воспроизведение по клику.</p>
-      </div>
+      <EmptyState
+        className="watch-info-empty"
+        icon={<MonitorPlay size={20} aria-hidden />}
+        title="Выберите канал"
+        message="Список каналов слева."
+      />
       <div className="watch-info-facts">
-        <StatTile label="Доступные каналы" value={channelsCount} />
+        <StatTile label="Каналов в каталоге" value={channelsCount} />
         <StatTile label="В избранном" value={favoritesCount} />
       </div>
       <ul className="watch-shortcuts">
