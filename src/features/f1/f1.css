@@ -37,15 +37,12 @@
   margin-bottom: var(--space-4);
 }
 
-.f1-analysis-choice {
-  display: flex;
+.f1-analysis-choice.ui-panel {
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-12) var(--space-16);
   padding: var(--space-12);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-1);
 }
 
 .f1-analysis-current {
@@ -74,8 +71,13 @@
   font-size: var(--text-13);
 }
 
-.f1-session-title {
-  margin-top: var(--space-4);
+.f1-session-label {
+  color: var(--color-text);
+  font-size: var(--text-13);
+}
+
+.weekend-schedule .ui-stat__label {
+  color: var(--color-text);
 }
 
 .f1-session-card-title {
@@ -128,14 +130,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.f1-icon-accent {
-  color: var(--color-accent);
-}
-
-.f1-icon-muted {
-  color: var(--color-text-secondary);
-}
-
 /* Tyre compounds are data: the colours come from the tyre tokens. */
 .f1-tyre {
   background: var(--color-tyre-unknown);
@@ -183,22 +177,89 @@
   min-width: 90px;
 }
 
-.f1-grid {
+.f1-overview-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: var(--space-16);
+}
+
+.f1-overview-panel.ui-panel {
+  gap: var(--space-12);
+  padding: var(--space-16);
+}
+
+.f1-weekend {
+  display: grid;
+  gap: var(--space-12);
   min-width: 0;
 }
 
-.f1-overview-grid {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  align-items: start;
+.f1-podium {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
 }
 
-.f1-overview-column {
+.f1-podium-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--space-8);
+}
+
+.f1-podium-driver {
+  display: grid;
+  gap: var(--space-4);
   min-width: 0;
+}
+
+.f1-mini-table th,
+.f1-mini-table td {
+  padding: var(--space-8) var(--space-12);
+}
+
+.f1-mini-table .ui-table__team-name,
+.f1-mini-table .f1-driver-identity {
+  min-width: 0;
+}
+
+.f1-chevron {
+  transition: transform var(--duration-hover) var(--ease);
+}
+
+.f1-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.f1-constructor-leader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-13);
+}
+
+.f1-constructor-leader-team {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.f1-fav-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.f1-fav-teams .ui-button {
+  color: var(--color-text);
+}
+
+.f1-fav-teams .ui-button .f1-muted {
+  font-size: var(--text-12);
 }
 
 @media (max-width: 820px) {
@@ -207,88 +268,15 @@
   }
 }
 
-.f1-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  min-width: 0;
-  padding: var(--space-16);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-1);
-}
-
-.f1-card.hl {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 8%, transparent) inset;
-}
-
-.f1-card--driver {
-  gap: var(--space-8);
-}
-
-.f1-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-12);
-}
-
-.f1-eyebrow {
-  color: var(--color-text-secondary);
-  font-size: var(--text-12);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.f1-title {
-  margin: 0;
-  font-size: var(--text-20);
-  font-weight: var(--weight-semibold);
-  line-height: var(--line-heading);
-  letter-spacing: -0.01em;
-}
-
-.f1-title--tight {
-  margin-top: var(--space-4);
-}
-
-.f1-title--race {
-  font-size: var(--text-16);
-}
-
-.f1-big {
-  font-size: var(--text-32);
-  font-weight: var(--weight-regular);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.f1-big--position {
-  min-width: var(--space-48);
-  color: var(--color-accent);
-}
-
 .f1-muted {
   color: var(--color-text-secondary);
   font-size: var(--text-13);
-}
-
-.f1-muted--tight {
-  margin-top: var(--space-4);
 }
 
 .f1-inline {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-}
-
-.f1-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
 }
 
 .f1-meta-row {
@@ -300,68 +288,12 @@
   font-size: var(--text-13);
 }
 
-.f1-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
-.f1-row {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-12);
-  width: 100%;
-  padding: var(--space-8) var(--space-12);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: inherit;
-  font-size: var(--text-13);
-  text-align: left;
-}
-
-.f1-row:hover {
-  background: var(--color-surface-2);
-}
-.f1-row.is-fav {
-  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
-}
-
-.f1-row-name {
-  overflow: hidden;
-  min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.f1-pos {
-  min-width: var(--space-32);
-  color: var(--color-text);
-  font-size: var(--text-20);
-  font-weight: var(--weight-regular);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 .f1-team-dot {
   flex: 0 0 auto;
   width: 9px;
   height: 9px;
   border-radius: var(--radius-round);
   background: var(--dot-color, var(--color-text-tertiary));
-}
-
-.f1-points {
-  color: var(--color-text);
-  font-size: var(--text-14);
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.f1-points--big {
-  font-size: var(--text-20);
 }
 
 .f1-kv {
@@ -381,10 +313,6 @@
   margin-top: var(--space-8);
 }
 
-.f1-kv--tight {
-  margin-top: var(--space-4);
-}
-
 .f1-kv--column {
   flex-direction: column;
   align-items: flex-start;
@@ -399,33 +327,6 @@
   border-radius: var(--radius-md);
   background: var(--color-surface-2);
   font-size: var(--text-13);
-}
-
-.f1-expand-button {
-  align-self: flex-start;
-}
-
-.f1-team-chip.ui-button {
-  height: auto;
-  min-height: 0;
-  padding: var(--space-4) var(--space-8);
-  border-color: color-mix(in srgb, var(--team-color) 50%, transparent);
-  border-radius: var(--radius-round);
-  background: color-mix(in srgb, var(--team-color) 12%, transparent);
-  color: var(--color-text);
-  font-size: var(--text-12);
-  font-weight: var(--weight-medium);
-}
-
-.f1-team-chip.ui-button:hover:not(:disabled) {
-  border-color: var(--team-color);
-  background: color-mix(in srgb, var(--team-color) 20%, transparent);
-}
-
-.f1-podium {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 }
 
 .f1-podium-row {
@@ -458,39 +359,6 @@
   gap: var(--space-16);
 }
 
-.f1-driver-main {
-  min-width: 0;
-}
-
-.f1-driver-name {
-  font-size: var(--text-16);
-}
-
-.f1-driver-team {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8);
-}
-
-.f1-driver-points {
-  text-align: right;
-}
-
-.f1-leader-name {
-  margin-top: var(--space-4);
-  font-size: var(--text-16);
-}
-
-.f1-leader-divider {
-  padding-top: var(--space-12);
-  border-top: 1px solid var(--color-border);
-}
-
-.f1-leader-team {
-  margin-top: var(--space-4);
-}
-
 .f1-team-inline {
   display: inline-flex;
   align-items: center;
@@ -521,6 +389,42 @@
 
 .f1-standings-tabs {
   border-bottom: 0;
+}
+
+.comparison-picker.ui-panel {
+  flex-direction: row;
+  align-items: center;
+  padding: var(--space-12) var(--space-16);
+}
+
+.versus-driver.ui-panel {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-16);
+}
+
+.comparison-picker > svg {
+  color: var(--color-accent);
+}
+
+.f1-analysis-issues {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.f1-h2h-text {
+  font-size: var(--text-12);
+  text-align: center;
+}
+
+.f1-h2h-text small {
+  display: block;
+  margin-top: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
 
 .f1-comparison-metrics {

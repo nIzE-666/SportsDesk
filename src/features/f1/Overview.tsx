@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarClock, Trophy, Flag, Users, Star } from 'lucide-react';
+import { CalendarClock, ChevronDown, Star } from 'lucide-react';
 import { useApiResource } from './api';
 import {
   parseSchedule,
@@ -16,21 +16,22 @@ import type {
   JolpicaDriverStanding,
   JolpicaResultEntry,
   JolpicaConstructor,
+  JolpicaConstructorStanding,
 } from './types';
 import { parseUtc, formatDateTime, formatShort } from './time';
 import { teamColor } from './teamColors';
 import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
 import { useSeason } from './SeasonContext';
-import { SourceBar, State, TeamDot, DriverName, type F1Style } from './shared';
-import { Badge, Button } from '../../kit';
+import { DriverName, RetryButton, SourceBar, State, TeamDot } from './shared';
+import { Badge, Button, IconButton, Panel, PanelHeader, Tooltip } from '../../kit';
 import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
 import { grandPrixTitle, racePresentation } from './calendarModel';
 
 /**
  * Latest verified race results.
- * Fetched once at Overview level and shared by the latest-race card and
- * favorite-driver cards, so we do not issue one request per card.
+ * Fetched once at Overview level and shared by the latest-race panel and the
+ * favourite-driver table, so we do not issue one request per block.
  */
 interface LatestRaceData {
   round: number | null;
@@ -46,6 +47,7 @@ interface LatestRaceData {
 }
 
 const EMPTY_LATEST: LatestRaceData = { round: null, race: null, results: [] };
+const DASH = '—';
 
 function transformLatest(payload: unknown): LatestRaceData {
   const rows = parseRaceResults(payload);
@@ -67,17 +69,40 @@ function transformLatest(payload: unknown): LatestRaceData {
   };
 }
 
+function pointsValue(value: string | null | undefined): number | null {
+  if (value === null || value === undefined || !value.trim()) return null;
+  const points = Number(value);
+  return Number.isFinite(points) ? points : null;
+}
+
+function numberLabel(value: number): string {
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+}
+
+/** The gap to the leader; zero for the leader, a dash when either value is unknown. */
+function gapToLeader(
+  points: string | null | undefined,
+  leaderPoints: string | null | undefined,
+): string {
+  const own = pointsValue(points);
+  const leader = pointsValue(leaderPoints);
+  if (own === null || leader === null) return DASH;
+  const gap = leader - own;
+  if (!Number.isFinite(gap) || gap <= 0) return '0';
+  return `−${numberLabel(gap)}`;
+}
+
 function SessionRow({ label, d }: { label: string; d?: { date?: string; time?: string } }) {
   const dt = d?.date ? parseUtc(d.date, d.time) : null;
   return (
     <div className="f1-session-row">
-      <span className="f1-muted">{label}</span>
-      <span className="f1-num">{formatDateTime(dt)}</span>
+      <span className="f1-session-label">{label}</span>
+      <span className="f1-num">{dt ? formatDateTime(dt) : DASH}</span>
     </div>
   );
 }
 
-function WeekendCard({ race }: { race: JolpicaRace }) {
+function WeekendBody({ race }: { race: JolpicaRace }) {
   const sessions: Array<{ label: string; d?: { date?: string; time?: string } }> = [];
   if (race.FirstPractice) sessions.push({ label: 'Практика 1', d: race.FirstPractice });
   if (race.SprintQualifying || race.SprintShootout)
@@ -94,28 +119,19 @@ function WeekendCard({ race }: { race: JolpicaRace }) {
   const circuit = race.Circuit;
   const loc = circuit.Location;
   return (
-    <div className="f1-card hl">
-      <div className="f1-card-head">
-        <div>
-          <div className="f1-eyebrow">
-            {racePresentation(race).title} · Раунд {race.round}
-          </div>
-          <h2 className="f1-title f1-title--tight">Расписание уикенда</h2>
-          <div className="f1-muted f1-muted--tight">
-            {circuit.circuitName}
-            {loc?.locality ? ` · ${loc.locality}` : ''}
-            {loc?.country ? `, ${loc.country}` : ''}
-          </div>
+    <div className="f1-weekend">
+      <div>
+        <strong className="ui-section-title">{racePresentation(race).title}</strong>
+        <div className="f1-muted">
+          {circuit.circuitName}
+          {loc?.locality ? ` · ${loc.locality}` : ''}
+          {loc?.country ? `, ${loc.country}` : ''}
         </div>
-        <Flag size={22} className="f1-icon-accent" aria-hidden="true" />
       </div>
       <div>
-        {sessions.map((s) => (
-          <SessionRow key={s.label} label={s.label} d={s.d} />
+        {sessions.map((session) => (
+          <SessionRow key={session.label} label={session.label} d={session.d} />
         ))}
-      </div>
-      <div className="f1-muted f1-note-small">
-        Время в вашем часовом поясе (настраивается в параметрах приложения).
       </div>
     </div>
   );
@@ -126,12 +142,14 @@ interface PodiumItem {
   entry: JolpicaResultEntry | undefined;
 }
 
-function LatestRaceCard({
+function PodiumBody({
   last,
   fallbackRound,
+  onRetry,
 }: {
   last: LatestRaceData;
   fallbackRound: number | null;
+  onRetry: () => void;
 }) {
   const summary = useMemo(() => {
     if (!last.race || last.results.length === 0) return null;
@@ -152,219 +170,128 @@ function LatestRaceCard({
 
   const roundLabel = last.round ?? fallbackRound;
 
+  if (!last.race && fallbackRound === null)
+    return <State kind="empty" title="Нет завершённых гонок" message="Результатов сезона нет." />;
+  if (!last.race && fallbackRound !== null)
+    return (
+      <State
+        kind="empty"
+        title={`Нет результатов раунда ${fallbackRound}`}
+        action={<RetryButton onClick={onRetry} />}
+      />
+    );
+  if (last.race && last.results.length === 0)
+    return <State kind="empty" title="Нет результатов этапа" />;
+  if (!last.race || !summary) return null;
+
   return (
-    <div className="f1-card">
-      <div className="f1-card-head">
-        <div>
-          <div className="f1-eyebrow">
-            Последняя гонка{roundLabel ? ` · Раунд ${roundLabel}` : ''}
-          </div>
-          <div className="f1-title f1-title--tight f1-title--race">
-            {last.race ? last.race.title : 'Нет данных'}
-          </div>
-          {last.race ? (
-            <div className="f1-muted">
-              {last.race.Circuit.circuitName}
-              {last.race.Circuit.Location?.country
-                ? ` · ${last.race.Circuit.Location.country}`
-                : ''}
-            </div>
-          ) : null}
+    <div className="f1-podium">
+      <div>
+        <strong className="ui-section-title">{last.race.title}</strong>
+        <div className="f1-muted">
+          {last.race.Circuit.circuitName}
+          {last.race.Circuit.Location?.country ? ` · ${last.race.Circuit.Location.country}` : ''}
+          {roundLabel ? ` · Раунд ${roundLabel}` : ''}
         </div>
-        <Trophy size={20} className="f1-icon-accent" aria-hidden="true" />
       </div>
-
-      {!last.race && fallbackRound === null ? (
-        <State kind="empty" title="Нет завершённых гонок в сезоне">
-          Результаты этого сезона недоступны.
-        </State>
-      ) : null}
-
-      {!last.race && fallbackRound !== null ? (
-        <State kind="empty" title="Результаты последней гонки недоступны">
-          Данные раунда {fallbackRound} не получены. Попробуйте обновить.
-        </State>
-      ) : null}
-
-      {last.race && last.results.length === 0 ? (
-        <State kind="empty" title="Нет данных о результатах">
-          Результаты этого этапа недоступны.
-        </State>
-      ) : null}
-
-      {summary && last.race ? (
-        <div className="f1-podium">
-          {summary.podium.map(({ place, entry }) => {
-            if (!entry) return null;
-            return (
-              <div key={entry.Driver.driverId} className="f1-podium-row">
-                <span className={place === 1 ? 'f1-podium-place is-first' : 'f1-podium-place'}>
-                  {place}
+      <div className="f1-podium-list">
+        {summary.podium.map(({ place, entry }) => {
+          if (!entry) return null;
+          return (
+            <div key={entry.Driver.driverId} className="f1-podium-row">
+              <span className={place === 1 ? 'f1-podium-place is-first' : 'f1-podium-place'}>
+                {place}
+              </span>
+              <div className="f1-podium-driver">
+                <DriverName
+                  givenName={entry.Driver.givenName}
+                  familyName={entry.Driver.familyName}
+                  size={24}
+                />
+                <span className="f1-muted f1-inline">
+                  <TeamDot color={teamColor(entry.Constructor.constructorId)} />
+                  {entry.Constructor.name}
                 </span>
-                <div>
-                  <div>
-                    <DriverName
-                      givenName={entry.Driver.givenName}
-                      familyName={entry.Driver.familyName}
-                    />
-                  </div>
-                  <div className="f1-muted f1-inline">
-                    <TeamDot color={teamColor(entry.Constructor.constructorId)} />
-                    {entry.Constructor.name}
-                  </div>
-                </div>
-                <div className="f1-podium-right">
-                  {place === 1 ? (
-                    <div className="f1-num f1-note-small">Победитель</div>
-                  ) : entry.Time?.time ? (
-                    <div className="f1-num f1-note-small">{entry.Time.time}</div>
-                  ) : null}
-                  {entry.FastestLap?.rank === '1' && entry.FastestLap.Time?.time ? (
-                    <div className="f1-muted">БК {entry.FastestLap.Time.time}</div>
-                  ) : null}
-                </div>
               </div>
-            );
-          })}
-          <div className="f1-kv f1-kv--spaced">
-            <span>
-              Финишировали: <b>{summary.finishedCount}</b>
-            </span>
-            <span>
-              Сходы: <b>{summary.retirements}</b>
-            </span>
-            <span className="f1-muted">
-              Дата: {formatShort(parseUtc(last.race.date, last.race.time))}
-            </span>
-          </div>
-        </div>
-      ) : null}
+              <div className="f1-podium-right">
+                <div className="f1-num f1-note-small">
+                  {place === 1 ? 'Победитель' : (entry.Time?.time ?? DASH)}
+                </div>
+                {entry.FastestLap?.rank === '1' && entry.FastestLap.Time?.time ? (
+                  <div className="f1-muted">БК {entry.FastestLap.Time.time}</div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="f1-kv f1-kv--spaced">
+        <span>
+          Финишировали: <b>{summary.finishedCount}</b>
+        </span>
+        <span>
+          Сходы: <b>{summary.retirements}</b>
+        </span>
+        <span className="f1-muted">
+          {last.race ? formatShort(parseUtc(last.race.date, last.race.time)) : DASH}
+        </span>
+      </div>
     </div>
   );
 }
 
-interface FavoriteDriverCardProps {
-  standing: JolpicaDriverStanding;
-  /** Constructor from the latest verified race result, when available. */
-  currentTeam: JolpicaConstructor | null;
-  lineupSourceLabel: string | null;
-  latestRound: number | null;
-  latestRaceName: string | null;
-  latestEntry: JolpicaResultEntry | null;
-}
-
-function FavoriteDriverCard({
-  standing,
-  currentTeam,
-  lineupSourceLabel,
-  latestRound,
-  latestRaceName,
-  latestEntry,
-}: FavoriteDriverCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [favTeams, toggleTeam] = useFavoriteTeams();
-
-  // Team to display: actual current team from the latest race if we have it,
-  // otherwise the first constructor listed in season standings.
-  const displayTeam = currentTeam ?? standing.Constructors?.[0] ?? null;
-  const teamIsFromLatest = !!currentTeam;
-  const isFavTeam = displayTeam ? favTeams.includes(displayTeam.constructorId) : false;
-
+function TopFiveTable({
+  standings,
+  leaderPoints,
+  favoriteDrivers,
+}: {
+  standings: JolpicaDriverStanding[];
+  leaderPoints: string | undefined;
+  favoriteDrivers: readonly string[];
+}) {
   return (
-    <div className="f1-card f1-card--driver">
-      <div className="f1-driver-head">
-        <div className="f1-big f1-big--position">{standing.position ?? '—'}</div>
-        <div className="f1-driver-main">
-          <div className="f1-driver-name">
-            <DriverName
-              givenName={standing.Driver.givenName}
-              familyName={standing.Driver.familyName}
-            />
-          </div>
-          <div className="f1-muted f1-driver-team">
-            {displayTeam ? (
-              <Button
-                type="button"
-                variant="quiet"
-                small
-                className="f1-team-chip"
-                onClick={() => toggleTeam(displayTeam.constructorId)}
-                title="Отметить команду избранной"
-                style={
-                  {
-                    '--team-color': teamColor(displayTeam.constructorId),
-                  } as F1Style
-                }
-              >
-                <TeamDot color={teamColor(displayTeam.constructorId)} />
-                {displayTeam.name}
-                {isFavTeam ? <Star size={11} fill="currentColor" aria-hidden="true" /> : null}
-              </Button>
-            ) : (
-              <span>Команда не указана</span>
-            )}
-            {standing.Driver.code ? <Badge>{standing.Driver.code}</Badge> : null}
-          </div>
-          {teamIsFromLatest && lineupSourceLabel ? (
-            <div className="f1-muted f1-note-tight">
-              Текущая команда по составу: {lineupSourceLabel}
-            </div>
-          ) : null}
-        </div>
-        <div className="f1-driver-points">
-          <div className="f1-points f1-points--big">{standing.points ?? '—'}</div>
-          <div className="f1-muted">очков</div>
-        </div>
-      </div>
-      <div className="f1-kv">
-        <span>
-          Победы: <b>{standing.wins ?? '—'}</b>
-        </span>
-        {displayTeam && (standing.Constructors?.length ?? 0) > 1 ? (
-          <span title="В таблице указано несколько команд в сезоне">
-            <Badge variant="warning">Команд в сезоне: {standing.Constructors?.length}</Badge>
-          </span>
-        ) : null}
-      </div>
-      <Button
-        type="button"
-        variant="quiet"
-        small
-        className="f1-expand-button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-      >
-        {expanded ? 'Скрыть последний результат' : 'Показать последний результат'}
-      </Button>
-      {expanded ? (
-        <div>
-          {latestEntry && latestRaceName ? (
-            <div className="f1-kv f1-kv--column">
-              <div className="f1-muted f1-note-small">
-                {latestRaceName}
-                {latestRound !== null ? ` · Раунд ${latestRound}` : ''}
-              </div>
-              <span>
-                Финиш: <b>{latestEntry.positionText ?? latestEntry.position ?? '—'}</b>
-                {latestEntry.status ? ` (${latestEntry.status})` : ''}
-              </span>
-              <span>
-                Очки: <b>{latestEntry.points ?? '—'}</b> · Старт: <b>{latestEntry.grid ?? '—'}</b>
-              </span>
-              {latestEntry.Time?.time ? (
-                <span>
-                  Время: <b>{latestEntry.Time.time}</b>
-                </span>
-              ) : null}
-              <span className="f1-muted">Команда в этом этапе: {latestEntry.Constructor.name}</span>
-            </div>
-          ) : (
-            <State kind="empty" title="Пилот не найден в последнем результате">
-              В последней гонке сезона этот пилот не участвовал или результаты недоступны.
-            </State>
-          )}
-        </div>
-      ) : null}
+    <div className="ui-table-scroll">
+      <table className="ui-table f1-mini-table">
+        <thead>
+          <tr>
+            <th className="ui-table__num">Поз.</th>
+            <th>Пилот</th>
+            <th>Команда</th>
+            <th className="ui-table__num">Очки</th>
+            <th className="ui-table__num">Отставание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map((row) => {
+            const favorite = favoriteDrivers.includes(row.Driver.driverId);
+            const displayTeam = row.Constructors?.[0] ?? null;
+            return (
+              <tr key={row.Driver.driverId} className={favorite ? 'ui-table__favorite' : ''}>
+                <td className="ui-table__num f1-cell-position">{row.position ?? DASH}</td>
+                <td>
+                  <DriverName
+                    givenName={row.Driver.givenName}
+                    familyName={row.Driver.familyName}
+                    size={24}
+                  />
+                </td>
+                <td>
+                  {displayTeam ? (
+                    <span className="f1-team-inline">
+                      <TeamDot color={teamColor(displayTeam.constructorId)} />
+                      {displayTeam.name}
+                    </span>
+                  ) : (
+                    DASH
+                  )}
+                </td>
+                <td className="ui-table__num f1-cell-points">{row.points ?? DASH}</td>
+                <td className="ui-table__num">{gapToLeader(row.points, leaderPoints)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -374,17 +301,193 @@ interface RosterRow {
   currentTeam: JolpicaConstructor | null;
 }
 
+function FavoriteDriverRow({
+  row,
+  leaderPoints,
+  latestRound,
+  latestRaceName,
+  latestEntry,
+}: {
+  row: RosterRow;
+  leaderPoints: string | undefined;
+  latestRound: number | null;
+  latestRaceName: string | null;
+  latestEntry: JolpicaResultEntry | null;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { standing, currentTeam } = row;
+  const displayTeam = currentTeam ?? standing.Constructors?.[0] ?? null;
+  const name = `${standing.Driver.givenName} ${standing.Driver.familyName}`;
+
+  return (
+    <>
+      <tr>
+        <td className="f1-col-toggle">
+          <IconButton
+            small
+            aria-label={`${expanded ? 'Скрыть' : 'Показать'} последний результат: ${name}`}
+            aria-expanded={expanded}
+            icon={
+              <ChevronDown
+                size={14}
+                className={expanded ? 'f1-chevron is-open' : 'f1-chevron'}
+                aria-hidden="true"
+              />
+            }
+            onClick={() => setExpanded((value) => !value)}
+          />
+        </td>
+        <td className="ui-table__num f1-cell-position">{standing.position ?? DASH}</td>
+        <td>
+          <DriverName
+            givenName={standing.Driver.givenName}
+            familyName={standing.Driver.familyName}
+            size={24}
+          />
+        </td>
+        <td>
+          {displayTeam ? (
+            <span className="f1-team-inline">
+              <TeamDot color={teamColor(displayTeam.constructorId)} />
+              {displayTeam.name}
+              {standing.Driver.code ? <Badge>{standing.Driver.code}</Badge> : null}
+            </span>
+          ) : (
+            DASH
+          )}
+        </td>
+        <td className="ui-table__num f1-cell-points">{standing.points ?? DASH}</td>
+        <td className="ui-table__num">{gapToLeader(standing.points, leaderPoints)}</td>
+      </tr>
+      {expanded ? (
+        <tr>
+          <td colSpan={6} className="f1-expand-cell">
+            <div className="f1-expand">
+              {latestEntry && latestRaceName ? (
+                <div className="f1-kv f1-kv--column">
+                  <span className="f1-muted f1-note-small">
+                    {latestRaceName}
+                    {latestRound !== null ? ` · Раунд ${latestRound}` : ''}
+                  </span>
+                  <span>
+                    Финиш: <b>{latestEntry.positionText ?? latestEntry.position ?? DASH}</b>
+                    {latestEntry.status ? ` (${latestEntry.status})` : ''}
+                  </span>
+                  <span>
+                    Очки: <b>{latestEntry.points ?? DASH}</b> · Старт:{' '}
+                    <b>{latestEntry.grid ?? DASH}</b> · Победы: <b>{standing.wins ?? DASH}</b>
+                  </span>
+                  {latestEntry.Time?.time ? (
+                    <span>
+                      Время: <b>{latestEntry.Time.time}</b>
+                    </span>
+                  ) : null}
+                  <span className="f1-muted">
+                    Команда в этом этапе: {latestEntry.Constructor.name}
+                  </span>
+                </div>
+              ) : (
+                <p className="f1-muted">Нет результата в последней гонке.</p>
+              )}
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+function FavoriteDriversTable({
+  rows,
+  leaderPoints,
+  latestRound,
+  latestRaceName,
+  latestByDriver,
+}: {
+  rows: RosterRow[];
+  leaderPoints: string | undefined;
+  latestRound: number | null;
+  latestRaceName: string | null;
+  latestByDriver: Map<string, JolpicaResultEntry>;
+}) {
+  return (
+    <div className="ui-table-scroll">
+      <table className="ui-table f1-mini-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th className="ui-table__num">Поз.</th>
+            <th>Пилот</th>
+            <th>Команда</th>
+            <th className="ui-table__num">Очки</th>
+            <th className="ui-table__num">Отставание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <FavoriteDriverRow
+              key={row.standing.Driver.driverId}
+              row={row}
+              leaderPoints={leaderPoints}
+              latestRound={latestRound}
+              latestRaceName={latestRaceName}
+              latestEntry={latestByDriver.get(row.standing.Driver.driverId) ?? null}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FavoriteTeams({
+  rows,
+  onToggle,
+}: {
+  rows: JolpicaConstructorStanding[];
+  onToggle: (id: string) => void;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="f1-fav-teams">
+      {rows.map((row) => (
+        <Button
+          key={row.Constructor.constructorId}
+          variant="quiet"
+          small
+          aria-pressed
+          title="Убрать из избранных"
+          onClick={() => onToggle(row.Constructor.constructorId)}
+        >
+          <TeamDot color={teamColor(row.Constructor.constructorId)} />
+          {row.Constructor.name}
+          <span className="f1-muted">
+            {row.position ? `${row.position}-е` : DASH} · {row.points ?? DASH}
+          </span>
+          <Star size={11} fill="currentColor" aria-hidden="true" />
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Overview tab.
  *
- * Current roster of favorite teams is derived from the *latest verified race
+ * Current roster of favourite teams is derived from the *latest verified race
  * results* (`{year}/last/results.json?limit=100`). Driver.driverId in a result
  * is matched to Constructor.constructorId via the entry's own Constructor.
- * We also include manually favorited drivers (e.g. max_verstappen) and
+ * We also include manually favourited drivers (e.g. max_verstappen) and
  * de-duplicate by driverId. If latest results are unavailable we do NOT claim
  * that Constructors[] season history is the current roster.
  */
-export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) => void } = {}) {
+export function Overview({
+  onOpenCalendar,
+  onOpenStandings,
+}: {
+  onOpenCalendar?: (round: string) => void;
+  onOpenStandings?: () => void;
+} = {}) {
   const { year } = useSeason();
   const schedule = useApiResource(
     `${year}-overview-schedule`,
@@ -407,7 +510,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
     transformLatest,
   );
   const [favDrivers] = useFavoriteDrivers();
-  const [favTeams] = useFavoriteTeams();
+  const [favTeams, toggleFavTeam] = useFavoriteTeams();
   const now = useNow();
 
   const races = useMemo(() => schedule.data?.races ?? [], [schedule.data]);
@@ -479,6 +582,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
         const entry = latestByDriver.get(did);
         pushStanding(s, entry ? entry.Constructor : null);
       }
+      rows.sort((a, b) => Number(a.standing.position ?? 999) - Number(b.standing.position ?? 999));
       return { rows, source: 'latest' };
     }
 
@@ -489,6 +593,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
       const s = standingById.get(did);
       if (s) pushStanding(s, null);
     }
+    rows.sort((a, b) => Number(a.standing.position ?? 999) - Number(b.standing.position ?? 999));
     return { rows, source: favDrivers.length ? 'standings' : 'none' };
   }, [favTeams, favDrivers, latestHasResults, latestByConstructor, latestByDriver, standingById]);
 
@@ -501,10 +606,20 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
     return constructorStandings.filter((c) => favTeams.includes(c.Constructor.constructorId));
   }, [constructorStandings, favTeams]);
 
-  const rule = driverStandings.length > 0 ? String(driverStandings.length) : '—';
-
-  const leadDriver: JolpicaDriverStanding | undefined = driverStandings[0];
-  const leadCons = constructorStandings[0];
+  const orderedStandings = useMemo(
+    () =>
+      [...driverStandings].sort((a, b) => Number(a.position ?? 999) - Number(b.position ?? 999)),
+    [driverStandings],
+  );
+  const leaderPoints = orderedStandings[0]?.points;
+  const topFive = orderedStandings.slice(0, 5);
+  const leadConstructor = useMemo(
+    () =>
+      [...constructorStandings].sort(
+        (a, b) => Number(a.position ?? 999) - Number(b.position ?? 999),
+      )[0] ?? null,
+    [constructorStandings],
+  );
 
   // Show the "no current lineup" hint when latest results missing.
   const showLineupWarning = !latest.loading && !latestHasResults && favTeams.length > 0;
@@ -533,230 +648,186 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
             </div>
           </>
         ) : (
-          <p>
-            {schedule.loading
-              ? 'Загружаем календарь и расписание сессий.'
-              : 'Календарь недоступен.'}
-          </p>
+          <p>{schedule.loading ? 'Загружаем календарь…' : 'Календарь недоступен.'}</p>
         )}
       </EventCover>
-      <div className="f1-grid f1-overview-grid">
-        <div className="f1-overview-column">
-          <SourceBar
-            source={schedule.source}
-            fetchedAt={schedule.fetchedAt}
-            stale={schedule.stale}
-            onRefresh={schedule.reload}
-            refreshing={schedule.loading}
-          />
-          <SourceBar
-            source={latest.source}
-            fetchedAt={latest.fetchedAt}
-            stale={latest.stale}
-            onRefresh={latest.reload}
-            refreshing={latest.loading}
+
+      <div className="f1-overview-grid">
+        <Panel className="f1-overview-panel" aria-label="Расписание уикенда">
+          <PanelHeader
+            title="Расписание уикенда"
+            action={next ? <Badge>Этап {next.round}</Badge> : undefined}
           />
           {schedule.loading && !schedule.data ? (
-            <State kind="loading" title="Загрузка календаря сезона…" />
+            <State kind="loading" title="Загрузка календаря…" />
           ) : null}
           {schedule.error && !schedule.data ? (
-            <State kind="error" title="Календарь недоступен">
-              {schedule.error}
-            </State>
+            <State
+              kind="error"
+              title="Календарь недоступен"
+              action={<RetryButton onClick={schedule.reload} details={schedule.error} />}
+            />
           ) : null}
           {schedule.data && races.length === 0 ? (
-            <State kind="empty" title={`Календарь сезона ${year} пуст`}>
-              Этапы этого сезона недоступны.
-            </State>
+            <State
+              kind="empty"
+              title={`Календарь сезона ${year} пуст`}
+              message="Этапы не объявлены."
+            />
           ) : null}
           {schedule.data && races.length > 0 && !next ? (
-            <State kind="empty" title={`Сезон ${year} завершён`}>
-              Все гонки сезона уже прошли.
-            </State>
+            <State kind="empty" title={`Сезон ${year} завершён`} message="Все гонки уже прошли." />
           ) : null}
-          {next ? <WeekendCard race={next} /> : null}
+          {next ? <WeekendBody race={next} /> : null}
+        </Panel>
 
+        <Panel className="f1-overview-panel" aria-label="Последняя гонка">
+          <PanelHeader
+            title="Последняя гонка"
+            action={
+              (latestData?.round ?? lastFinishedRace?.round) ? (
+                <Badge>Раунд {latestData?.round ?? lastFinishedRace?.round}</Badge>
+              ) : undefined
+            }
+          />
           {latest.loading && !latestData ? (
-            <State kind="loading" title="Загрузка результатов последней гонки…" />
+            <State kind="loading" title="Загрузка результатов…" />
           ) : null}
           {latest.error && !latestData ? (
-            <State kind="error" title="Результаты последней гонки недоступны">
-              {latest.error}
-            </State>
+            <State
+              kind="error"
+              title="Результаты недоступны"
+              action={<RetryButton onClick={latest.reload} details={latest.error} />}
+            />
           ) : null}
           {!latest.loading && !latest.error ? (
-            <LatestRaceCard
+            <PodiumBody
               last={latestData ?? EMPTY_LATEST}
               fallbackRound={lastFinishedRace ? Number(lastFinishedRace.round) : null}
+              onRetry={latest.reload}
             />
           ) : null}
-        </div>
-
-        <div className="f1-overview-column">
-          <div className="f1-card">
-            <div className="f1-card-head">
-              <div className="f1-eyebrow">Чемпионат · Сезон {year}</div>
-              <Users size={16} className="f1-icon-muted" aria-hidden="true" />
-            </div>
-            {dStand.loading && !dStand.data ? (
-              <State kind="loading" title="Загрузка лидеров…" />
-            ) : null}
-            {dStand.error && !dStand.data ? (
-              <State kind="error" title="Таблица пилотов недоступна">
-                {dStand.error}
-              </State>
-            ) : null}
-            {leadDriver ? (
-              <div className="f1-stack">
-                <div>
-                  <div className="f1-muted f1-note-small">Лидер пилотов</div>
-                  <div className="f1-leader-name">
-                    <DriverName
-                      givenName={leadDriver.Driver.givenName}
-                      familyName={leadDriver.Driver.familyName}
-                    />
-                  </div>
-                  <div className="f1-muted f1-inline">
-                    {leadDriver.Constructors?.[0] ? (
-                      <TeamDot color={teamColor(leadDriver.Constructors[0].constructorId)} />
-                    ) : null}
-                    {leadDriver.Constructors?.[0]?.name ?? '—'}
-                  </div>
-                </div>
-                <div className="f1-kv">
-                  <span>
-                    Очки: <b>{leadDriver.points ?? '—'}</b>
-                  </span>
-                  <span>
-                    Победы: <b>{leadDriver.wins ?? '—'}</b>
-                  </span>
-                </div>
-              </div>
-            ) : null}
-            {leadCons ? (
-              <div className="f1-leader-divider">
-                <div className="f1-muted f1-note-small">Лидер Кубка конструкторов</div>
-                <div className="f1-inline f1-leader-team">
-                  <TeamDot color={teamColor(leadCons.Constructor.constructorId)} />
-                  <b className="f1-strong">{leadCons.Constructor.name}</b>
-                </div>
-                <div className="f1-kv f1-kv--tight">
-                  <span>
-                    Очки: <b>{leadCons.points ?? '—'}</b>
-                  </span>
-                  <span>
-                    Победы: <b>{leadCons.wins ?? '—'}</b>
-                  </span>
-                </div>
-              </div>
-            ) : null}
-            <div className="f1-muted f1-note-tight">Пилотов в чемпионате: {rule}</div>
-            <SourceBar
-              source={dStand.source}
-              fetchedAt={dStand.fetchedAt}
-              stale={dStand.stale}
-              onRefresh={dStand.reload}
-              refreshing={dStand.loading}
-            />
-            <SourceBar
-              source={cStand.source}
-              fetchedAt={cStand.fetchedAt}
-              stale={cStand.stale}
-              onRefresh={cStand.reload}
-              refreshing={cStand.loading}
-            />
-          </div>
-        </div>
+        </Panel>
       </div>
-      <div className="f1-grid f1-overview-favorites">
-        <div className="f1-card">
-          <div className="f1-card-head">
-            <div className="f1-eyebrow">Пилоты избранных команд и избранные пилоты</div>
-            <CalendarClock size={16} className="f1-icon-muted" aria-hidden="true" />
-          </div>
-          <div className="f1-muted f1-note-tight">
-            {latestHasResults && latestLabel ? (
-              <span>
-                Текущий состав по последней проверенной гонке:{' '}
-                <b className="f1-strong">{latestLabel}</b>. Избранные команды:{' '}
-                {favTeams.length > 0
-                  ? favTeams
-                      .map(
-                        (id) =>
-                          constructorStandings.find((c) => c.Constructor.constructorId === id)
-                            ?.Constructor.name ?? id,
-                      )
-                      .join(', ')
-                  : 'не выбраны'}
-                .
+
+      <div className="f1-overview-grid f1-overview-favorites">
+        <Panel className="f1-overview-panel" aria-label="Чемпионат">
+          <PanelHeader
+            title="Чемпионат"
+            action={
+              onOpenStandings ? (
+                <Button variant="quiet" small onClick={onOpenStandings}>
+                  Все зачёты
+                </Button>
+              ) : undefined
+            }
+          />
+          {dStand.loading && !dStand.data ? (
+            <State kind="loading" title="Загрузка чемпионата…" />
+          ) : null}
+          {dStand.error && !dStand.data ? (
+            <State
+              kind="error"
+              title="Таблица пилотов недоступна"
+              action={<RetryButton onClick={dStand.reload} details={dStand.error} />}
+            />
+          ) : null}
+          {dStand.data && topFive.length === 0 ? (
+            <State kind="empty" title="Нет данных чемпионата" />
+          ) : null}
+          {topFive.length > 0 ? (
+            <TopFiveTable
+              standings={topFive}
+              leaderPoints={leaderPoints}
+              favoriteDrivers={favDrivers}
+            />
+          ) : null}
+          {leadConstructor ? (
+            <div className="f1-constructor-leader">
+              <span className="f1-muted">Кубок конструкторов:</span>
+              <span className="f1-constructor-leader-team">
+                <TeamDot color={teamColor(leadConstructor.Constructor.constructorId)} />
+                <span>{leadConstructor.Constructor.name ?? DASH}</span>
+                <span className="f1-muted">, {leadConstructor.points ?? DASH} очков</span>
               </span>
-            ) : (
-              <span>
-                Результаты последней гонки недоступны — состав избранных команд не может быть
-                подтверждён. Показаны только избранные пилоты из таблицы чемпионата.
-              </span>
-            )}
-          </div>
+            </div>
+          ) : null}
+        </Panel>
+
+        <Panel className="f1-overview-panel" aria-label="Избранные пилоты">
+          <PanelHeader
+            title="Избранные пилоты"
+            action={
+              showLineupWarning ? (
+                <Tooltip label="Состав команд не подтверждён последней гонкой.">
+                  <span tabIndex={0}>
+                    <Badge variant="warning">неполные данные</Badge>
+                  </span>
+                </Tooltip>
+              ) : undefined
+            }
+          />
+          {favTeams.length > 0 ? (
+            <span className="f1-muted">Пилоты избранных команд тоже здесь.</span>
+          ) : null}
           {latestHasResults && roster.rows.length === 0 ? (
-            <State kind="empty" title="В последней гонке нет пилотов избранных команд">
-              Ни один пилот с избранными командами не найден в результатах. Проверьте избранные
-              команды и обновите данные.
-            </State>
+            <State
+              kind="empty"
+              title="Нет пилотов избранных команд"
+              message="Проверьте избранное."
+            />
           ) : null}
           {!latestHasResults && roster.rows.length === 0 ? (
-            <State kind="empty" title="Нет данных для избранных пилотов">
-              Отметьте пилотов и команды ★ во вкладке «Зачёты».
-            </State>
+            <State
+              kind="empty"
+              title="Нет избранных пилотов"
+              message="Отметьте пилотов в «Зачётах»."
+            />
           ) : null}
-          {showLineupWarning ? (
-            <div>
-              <Badge variant="warning">
-                Состав избранных команд не подтверждён последней гонкой
-              </Badge>
-            </div>
+          {roster.rows.length > 0 ? (
+            <FavoriteDriversTable
+              rows={roster.rows}
+              leaderPoints={leaderPoints}
+              latestRound={latestData?.round ?? null}
+              latestRaceName={latestData?.race?.title ?? null}
+              latestByDriver={latestByDriver}
+            />
           ) : null}
-          <div className="f1-stack">
-            {roster.rows.map(({ standing, currentTeam }) => {
-              const entry = latestByDriver.get(standing.Driver.driverId) ?? null;
-              return (
-                <FavoriteDriverCard
-                  key={standing.Driver.driverId}
-                  standing={standing}
-                  currentTeam={currentTeam}
-                  lineupSourceLabel={latestHasResults && currentTeam ? latestLabel : null}
-                  latestRound={latestData?.round ?? null}
-                  latestRaceName={latestData?.race?.title ?? null}
-                  latestEntry={entry}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="f1-card">
-          <div className="f1-eyebrow">Избранные команды</div>
-          {favTeams.length === 0 ? (
-            <State kind="empty" title="Нет избранных команд">
-              Отметьте команды в таблице конструкторов.
-            </State>
-          ) : favConstructorRows.length === 0 && cStand.data ? (
-            <div className="f1-muted f1-note-small">
-              Избранные команды отсутствуют в таблице сезона {year}.
-            </div>
-          ) : (
-            <div className="f1-list">
-              {favConstructorRows.map((c) => (
-                <div key={c.Constructor.constructorId} className="f1-row">
-                  <span className="f1-pos">{c.position ?? '—'}</span>
-                  <TeamDot color={teamColor(c.Constructor.constructorId)} />
-                  <span className="f1-row-name">{c.Constructor.name}</span>
-                  <span className="f1-points">{c.points ?? '—'}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          <FavoriteTeams rows={favConstructorRows} onToggle={toggleFavTeam} />
+          {favTeams.length > 0 && favConstructorRows.length === 0 && cStand.data ? (
+            <span className="f1-muted">Нет в таблице сезона {year}.</span>
+          ) : null}
+        </Panel>
       </div>
+
+      <SourceBar
+        source={schedule.source}
+        fetchedAt={schedule.fetchedAt}
+        stale={schedule.stale}
+        onRefresh={schedule.reload}
+        refreshing={schedule.loading}
+      />
+      <SourceBar
+        source={latest.source}
+        fetchedAt={latest.fetchedAt}
+        stale={latest.stale}
+        onRefresh={latest.reload}
+        refreshing={latest.loading}
+      />
+      <SourceBar
+        source={dStand.source}
+        fetchedAt={dStand.fetchedAt}
+        stale={dStand.stale}
+        onRefresh={dStand.reload}
+        refreshing={dStand.loading}
+      />
+      <SourceBar
+        source={cStand.source}
+        fetchedAt={cStand.fetchedAt}
+        stale={cStand.stale}
+        onRefresh={cStand.reload}
+        refreshing={cStand.loading}
+      />
     </>
   );
 }

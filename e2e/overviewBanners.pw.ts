@@ -12,7 +12,7 @@ test('overviews have useful headings without slogan banners', async ({ page }, t
   const rail = page.getByRole('navigation', { name: 'Разделы' });
   await rail.getByRole('button', { name: 'Формула 1', exact: true }).click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }).click();
-  await expect(page.locator('.f1-root h2.screen-title')).toHaveText('Ваш гоночный уикенд');
+  await expect(page.locator('.f1-root h2.screen-title')).toHaveText('Обзор');
 
   await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
   await page.locator('.competition-switcher-trigger').click();

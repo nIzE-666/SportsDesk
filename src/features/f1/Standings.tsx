@@ -1,11 +1,11 @@
 import { ChevronDown, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useViewState } from '../../lib/useViewState';
-import { IconButton, Tabs } from '../../kit';
+import { Badge, IconButton, Panel, PanelHeader, Tabs } from '../../kit';
 import { useApiResource } from './api';
 import { parseConstructorStandings, parseDriverStandings } from './parsing';
 import { useSeason } from './SeasonContext';
-import { DriverName, SourceBar, State, TeamDot } from './shared';
+import { DriverName, RetryButton, SourceBar, State, TeamDot } from './shared';
 import { teamColor } from './teamColors';
 import type { JolpicaConstructorStanding, JolpicaDriverStanding } from './types';
 import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
@@ -40,7 +40,10 @@ function DriverRow({ s }: { s: JolpicaDriverStanding }) {
   const fav = favs.includes(s.Driver.driverId);
   return (
     <>
-      <tr className={`f1-clickable${fav ? ' is-fav' : ''}`} onClick={() => setOpen((v) => !v)}>
+      <tr
+        className={`f1-clickable${fav ? ' ui-table__favorite' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <td className="f1-col-toggle">{open ? <ChevronDown size={14} /> : null}</td>
         <td className="f1-cell-position">{s.position ?? '—'}</td>
         <td>
@@ -84,9 +87,7 @@ function DriverRow({ s }: { s: JolpicaDriverStanding }) {
                 </span>
               </div>
               {(s.Constructors ?? []).length > 1 ? (
-                <div className="f1-muted f1-note-tight">
-                  Несколько команд за сезон: показана последняя.
-                </div>
+                <div className="f1-muted f1-note-tight">Показана последняя.</div>
               ) : null}
             </div>
           </td>
@@ -102,7 +103,10 @@ function ConstructorRow({ s }: { s: JolpicaConstructorStanding }) {
   const fav = favs.includes(s.Constructor.constructorId);
   return (
     <>
-      <tr className={`f1-clickable${fav ? ' is-fav' : ''}`} onClick={() => setOpen((v) => !v)}>
+      <tr
+        className={`f1-clickable${fav ? ' ui-table__favorite' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <td className="f1-col-toggle">{open ? <ChevronDown size={14} /> : null}</td>
         <td className="f1-cell-position">{s.position ?? '—'}</td>
         <td>
@@ -129,7 +133,6 @@ function ConstructorRow({ s }: { s: JolpicaConstructorStanding }) {
                 <span>
                   Национальность: <b>{s.Constructor.nationality ?? '—'}</b>
                 </span>
-                <span className="f1-muted">ID: {s.Constructor.constructorId}</span>
               </div>
             </div>
           </td>
@@ -195,23 +198,25 @@ export function Standings() {
   const rows = tab === 'drivers' ? sortedDrivers : sortedTeams;
 
   return (
-    <div className="f1-card">
-      <div className="f1-toolbar">
-        <Tabs
-          ariaLabel="Зачёты сезона"
-          active={tab}
-          onChange={(id) => setTab(id as StandingsTab)}
-          items={STANDINGS_TABS}
-          className="f1-standings-tabs"
-        />
-        <span className="sep" />
-        {d.data?.round ? <span className="f1-muted">После раунда {d.data.round}</span> : null}
-      </div>
+    <Panel className="f1-standings" aria-label="Зачёты сезона">
+      <PanelHeader
+        title="Зачёты сезона"
+        action={d.data?.round ? <Badge>После раунда {d.data.round}</Badge> : undefined}
+      />
+      <Tabs
+        ariaLabel="Зачёты сезона"
+        active={tab}
+        onChange={(id) => setTab(id as StandingsTab)}
+        items={STANDINGS_TABS}
+        className="f1-standings-tabs"
+      />
       {active.loading && !active.data ? <State kind="loading" title="Загрузка таблицы…" /> : null}
       {active.error && !active.data ? (
-        <State kind="error" title="Таблица недоступна">
-          {active.error}
-        </State>
+        <State
+          kind="error"
+          title="Таблица недоступна"
+          action={<RetryButton onClick={active.reload} details={active.error} />}
+        />
       ) : null}
       {active.data && rows.length === 0 ? (
         <State kind="empty" title="Нет данных для этого сезона" />
@@ -265,6 +270,6 @@ export function Standings() {
         onRefresh={active.reload}
         refreshing={active.loading}
       />
-    </div>
+    </Panel>
   );
 }

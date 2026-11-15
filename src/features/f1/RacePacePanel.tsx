@@ -15,7 +15,7 @@ import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useNow } from '../../lib/useNow';
 import { countRu, LAP_PAIRS, LAPS, pluralRu } from '../../lib/plural';
-import { Badge, Button, StatTile } from '../../kit';
+import { Badge, Button, Panel, PanelHeader, StatTile } from '../../kit';
 import { sessionNameLabel } from './analysisLabels';
 import { SourceBar, tyreClass, type F1Style } from './shared';
 import { useSourceSummaryAvailable } from './SourceSummary';
@@ -37,6 +37,15 @@ const seconds = (n: number | null | undefined) =>
   n == null
     ? '—'
     : `${n > 0 ? '+' : ''}${n.toLocaleString('ru-RU', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} с`;
+const compoundName = (compound: string | null | undefined) => {
+  const value = (compound ?? '').toLowerCase();
+  if (value === 'soft') return 'Мягкие';
+  if (value === 'medium') return 'Средние';
+  if (value === 'hard') return 'Жёсткие';
+  if (value === 'intermediate') return 'Промежуточные';
+  if (value === 'wet') return 'Дождевые';
+  return 'Состав неизвестен';
+};
 function segments(comparison: RacePaceComparison, side: 'a' | 'b') {
   const out: { start: number; end: number; compound: string; stint: number | null }[] = [];
   for (const row of comparison.rows) {
@@ -137,25 +146,25 @@ export function RacePacePanel({
   const pits =
     comparison?.rows.filter((r) => r.a.pitIn || r.a.pitOut || r.b.pitIn || r.b.pitOut) ?? [];
   return (
-    <section className="f1-card race-pace-panel" aria-label="Сравнение гоночного темпа">
-      <div className="section-title">
-        <div>
-          <h2>
+    <Panel className="race-pace-panel" aria-label="Сравнение гоночного темпа">
+      <PanelHeader
+        title={
+          <>
             <Gauge size={19} /> Сравнение темпа по кругам
-          </h2>
-          <p className="analysis-subtitle">
-            {sessionPlace ? `${sessionName} · ${sessionPlace}` : sessionName}
-          </p>
-        </div>
-        <span>
-          {available ? (
+          </>
+        }
+        action={
+          available ? (
             <Badge>Исторические данные</Badge>
           ) : (
             <Badge variant="warning">Данные ещё недоступны</Badge>
-          )}
-        </span>
-      </div>
-      <p className="analysis-description">Два пилота, одна сессия: круги, шины и пит-стопы.</p>
+          )
+        }
+      />
+      <span className="f1-muted f1-analysis-current">
+        {sessionPlace ? `${sessionName} · ${sessionPlace}` : sessionName}
+      </span>
+      <p className="analysis-description">Круги, шины и пит-стопы.</p>
       <div className="pace-driver-selectors">
         {(
           [
@@ -165,7 +174,7 @@ export function RacePacePanel({
         ).map(({ driver, side, label }) => (
           <div className={`pace-driver-selector ${side}`} key={side}>
             <PersonAvatar name={driverName(driver)} src={driver?.headshot_url} size={50} />
-            <label>
+            <div className="pace-driver-field">
               <span>{label}</span>
               <select
                 aria-label={`${label} для темпа`}
@@ -187,7 +196,7 @@ export function RacePacePanel({
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           </div>
         ))}
       </div>
@@ -198,7 +207,7 @@ export function RacePacePanel({
             checked={excludePits}
             onChange={(e) => setExcludePits(e.target.checked)}
           />{' '}
-          Исключать круги заезда и выезда из боксов
+          Без кругов пит-лейна
         </label>
         <Button
           variant="primary"
@@ -209,24 +218,30 @@ export function RacePacePanel({
           {busy ? 'Загружаем круги…' : raw ? 'Обновить сравнение' : 'Сравнить темп'}
         </Button>
       </div>
-      {!available && <p className="muted small">Круги появляются через 30 минут после сессии.</p>}
-      {drivers.length < 2 && <p className="muted small">Нужны данные хотя бы двух пилотов.</p>}
+      {!available && (
+        <p className="muted small" title="Круги появляются через 30 минут после сессии.">
+          Круги появляются через 30 минут.
+        </p>
+      )}
+      {drivers.length < 2 && <p className="muted small">Нужны данные двух пилотов.</p>}
       {busy && (
         <p role="status" className="muted small">
-          Загружаем круги и пит-стопы…
+          Загружаем круги…
         </p>
       )}
       {error && (
-        <p className="season-error" role="alert">
-          {error}
+        <p className="season-error" role="alert" title={error}>
+          Сравнение недоступно.
         </p>
       )}
       {comparison && (
         <>
           {!!comparison.warnings.length && (
             <div className="pace-warnings" role="status">
-              {comparison.warnings.map((w, i) => (
-                <p key={i}>{w}</p>
+              {comparison.warnings.map((warning, index) => (
+                <Badge key={index} variant="warning">
+                  {warning}
+                </Badge>
               ))}
             </div>
           )}
@@ -242,10 +257,10 @@ export function RacePacePanel({
                 value={duration(value.medianSeconds)}
                 note={
                   <>
-                    Медиана · {countRu(value.validLapCount, LAPS)} с временем
+                    Медиана · {countRu(value.validLapCount, LAPS)}
                     <br />
-                    Среднее: {duration(value.meanSeconds)} · пит-кругов исключено:{' '}
-                    {value.excludedPitLapCount}
+                    Среднее {duration(value.meanSeconds)} · без {value.excludedPitLapCount}{' '}
+                    пит-кругов
                   </>
                 }
               />
@@ -258,8 +273,6 @@ export function RacePacePanel({
                 <>
                   Среднее A − B · {comparison.paired.lapCount}{' '}
                   {pluralRu(comparison.paired.lapCount, LAP_PAIRS)} кругов
-                  <br />
-                  Минус — быстрее {nameA}; плюс — {nameB}
                 </>
               }
             />
@@ -338,7 +351,7 @@ export function RacePacePanel({
                     <span
                       key={i}
                       className={`f1-tyre f1-tyre--${tyreClass(s.compound)}`}
-                      title={`${s.compound} · круги ${s.start}–${s.end}`}
+                      title={`${compoundName(s.compound)} · круги ${s.start}–${s.end}`}
                       style={
                         {
                           '--stint-grid': `${s.start} / span ${s.end - s.start + 1}`,
@@ -352,10 +365,7 @@ export function RacePacePanel({
               </div>
             ))}
           </div>
-          <p className="muted small">
-            S — мягкие, M — средние, H — жёсткие, I — промежуточные, W — дождевые. Пунктир на
-            графике отмечает пит-заезд или выезд.
-          </p>
+          <span className="muted small">Пунктир — пит-лейн.</span>
           <details className="pace-lap-details">
             <summary>Покруговые данные, шины и пит-стопы</summary>
             <div className="ui-table-scroll">
@@ -396,7 +406,9 @@ export function RacePacePanel({
             </div>
           </details>
           <div className="analysis-footer">
-            <span>Темп не скорректирован на трафик, SC/VSC, топливо и возраст шин.</span>
+            <span title="Темп не скорректирован на трафик, SC/VSC, топливо и возраст шин.">
+              Без поправок на трафик и шины.
+            </span>
             {!aggregated && (
               <Button small busy={busy} onClick={() => void load(true)}>
                 <RefreshCw size={13} /> Перезагрузить данные
@@ -412,6 +424,6 @@ export function RacePacePanel({
           />
         </>
       )}
-    </section>
+    </Panel>
   );
 }

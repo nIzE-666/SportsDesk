@@ -2,7 +2,7 @@ import { AlertTriangle, Inbox, Loader2 } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { sourceLabel } from '../../lib/sourceLabels';
 import { formatUpdatedAt, getUserTimezone } from '../football/storage';
-import { Badge, Button, EmptyState } from '../../kit';
+import { Badge, Button, EmptyState, Tooltip } from '../../kit';
 import { DriverPortrait } from './DriverPortraits';
 import { useSourceRegistration } from './SourceSummary';
 
@@ -62,12 +62,19 @@ export function SourceBar(props: {
 export function State({
   kind,
   title,
+  message,
   children,
+  action,
 }: {
   kind: 'loading' | 'empty' | 'error';
   title: string;
+  /** One short sentence: the reason or the next step. */
+  message?: ReactNode;
   children?: ReactNode;
+  /** At most one action, usually «Повторить». */
+  action?: ReactNode;
 }) {
+  const text = message ?? children;
   if (kind === 'loading')
     return (
       <EmptyState
@@ -82,18 +89,38 @@ export function State({
         className="f1-state"
         tone="error"
         title={title}
-        message={children}
+        message={text}
+        action={action}
         icon={<AlertTriangle size={20} aria-hidden="true" />}
       />
     );
   return (
     <EmptyState
       className="f1-state"
-      title={children ? title : undefined}
-      message={children ?? title}
+      title={text ? title : undefined}
+      message={text ?? title}
+      action={action}
       icon={<Inbox size={20} aria-hidden="true" />}
     />
   );
+}
+
+/** A retry action for an error state; the technical details stay in a tooltip. */
+export function RetryButton({
+  onClick,
+  details,
+  busy,
+}: {
+  onClick: () => void;
+  details?: string | null;
+  busy?: boolean;
+}) {
+  const button = (
+    <Button small busy={busy} onClick={onClick}>
+      Повторить
+    </Button>
+  );
+  return details ? <Tooltip label={details}>{button}</Tooltip> : button;
 }
 
 export function TeamDot({ color }: { color: string }) {
@@ -102,10 +129,19 @@ export function TeamDot({ color }: { color: string }) {
   );
 }
 
-export function DriverName({ givenName, familyName }: { givenName: string; familyName: string }) {
+export function DriverName({
+  givenName,
+  familyName,
+  size = 36,
+}: {
+  givenName: string;
+  familyName: string;
+  /** Portrait size; tables use a smaller one. */
+  size?: number;
+}) {
   return (
     <span className="f1-driver-identity">
-      <DriverPortrait name={`${givenName} ${familyName}`} />
+      <DriverPortrait name={`${givenName} ${familyName}`} size={size} />
       <span>
         <span className="f1-driver-given">{givenName} </span>
         <b className="f1-driver-family">{familyName}</b>

@@ -15,7 +15,7 @@ import { countRu, STAGES } from '../../lib/plural';
 import { formatDateTime, getTimeZone } from './time';
 import { weekendSchedule } from './weekendSchedule';
 import type { JolpicaRace } from './types';
-import { Badge, Button, EmptyState, Panel, SegmentedControl } from '../../kit';
+import { Badge, Button, EmptyState, Panel, PanelHeader, SegmentedControl } from '../../kit';
 import './calendar.css';
 
 type Filter = 'upcoming' | 'past' | 'all';
@@ -63,32 +63,34 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
   return (
     <div className="calendar-board">
       {next && (
-        <section className="calendar-next" aria-label="Ближайший Гран-при">
-          <div className="calendar-next-title">
-            <span className="calendar-country" title={next.Circuit.Location?.country}>
-              {racePresentation(next).flag}
-            </span>
-            <div>
-              <span className="eyebrow">БЛИЖАЙШИЙ ГРАН-ПРИ · ЭТАП {next.round}</span>
-              <h2>{racePresentation(next).title}</h2>
-              <p>{next.Circuit.circuitName}</p>
-            </div>
-          </div>
-          <div className="calendar-next-sessions">
-            {upcoming.map((s) => (
-              <div key={s.id}>
-                <span>{s.label}</span>
-                <strong>{formatDateTime(s.start, timezone)}</strong>
+        <Panel className="calendar-next" aria-label="Ближайший Гран-при">
+          <PanelHeader title="Ближайший Гран-при" action={<Badge>Этап {next.round}</Badge>} />
+          <div className="calendar-next-body">
+            <div className="calendar-next-title">
+              <span className="calendar-country" title={next.Circuit.Location?.country}>
+                {racePresentation(next).flag}
+              </span>
+              <div>
+                <strong className="ui-section-title">{racePresentation(next).title}</strong>
+                <p>{next.Circuit.circuitName}</p>
               </div>
-            ))}
-            {!upcoming.length && (
-              <p>Расписание уточняется · {formatHumanDate(next.date, timezone)}</p>
-            )}
+            </div>
+            <div className="calendar-next-sessions">
+              {upcoming.map((s) => (
+                <div key={s.id}>
+                  <span>{s.label}</span>
+                  <strong>{formatDateTime(s.start, timezone)}</strong>
+                </div>
+              ))}
+              {!upcoming.length && (
+                <p>Расписание уточняется · {formatHumanDate(next.date, timezone)}</p>
+              )}
+            </div>
+            <Button variant="primary" onClick={jumpToNext}>
+              Открыть уикенд <ChevronRight size={16} />
+            </Button>
           </div>
-          <Button variant="primary" onClick={jumpToNext}>
-            Открыть уикенд <ChevronRight size={16} />
-          </Button>
-        </section>
+        </Panel>
       )}
       <div className="calendar-heading">
         <div>
@@ -179,19 +181,12 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
                           : `${formatHumanDate(race.date, timezone)} · время уточняется`}
                       </span>
                       <span className="calendar-stage-tags">
-                        {next?.round === race.round && (
-                          <span className="calendar-stage-tag calendar-stage-tag--next">
-                            Ближайший
-                          </span>
-                        )}
+                        {next?.round === race.round && <Badge>Ближайший</Badge>}
                         {race.Sprint && (
-                          <span className="calendar-stage-tag">
+                          <Badge>
                             <Zap size={11} aria-hidden="true" /> Спринт
-                          </span>
+                          </Badge>
                         )}
-                        <span className="calendar-stage-tag">
-                          {calendarPhase(race, now) === 'past' ? 'Прошедший этап' : 'По расписанию'}
-                        </span>
                       </span>
                     </span>
                     <ChevronRight size={15} aria-hidden="true" />
@@ -203,20 +198,12 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
         </Panel>
         <div className="calendar-detail" aria-live="polite">
           {selectedRace ? (
-            <>
-              <div className="calendar-detail-heading">
-                <span className="eyebrow">ВЫБРАННЫЙ ЭТАП · {selectedRace.round}</span>
-                <h2>
-                  {racePresentation(selectedRace).flag} {racePresentation(selectedRace).title}
-                </h2>
-              </div>
-              <RaceWeekend key={`${year}.${selectedRace.round}`} race={selectedRace} />
-            </>
+            <RaceWeekend key={`${year}.${selectedRace.round}`} race={selectedRace} />
           ) : (
             <Panel className="calendar-empty-detail">
               <EmptyState
                 icon={<CalendarClock size={20} aria-hidden="true" />}
-                message="Выберите этап. Откройте весь сезон или измените фильтр."
+                message="Выберите этап."
               />
             </Panel>
           )}

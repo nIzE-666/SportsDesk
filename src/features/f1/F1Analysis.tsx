@@ -6,7 +6,7 @@ import { F1_ANALYSIS_MODES, type F1AnalysisMode } from './f1Tabs';
 import { useSeason } from './SeasonContext';
 import { Session } from './Session';
 import { useAnalysisSelection } from './useAnalysisSelection';
-import { Tabs } from '../../kit';
+import { Panel, Tabs } from '../../kit';
 
 export function F1Analysis({
   mode,
@@ -45,7 +45,7 @@ export function F1Analysis({
         className="f1-analysis-modes"
       />
 
-      <div className="f1-analysis-choice">
+      <Panel className="f1-analysis-choice" aria-label="Этап и сессия">
         <div className="f1-muted f1-analysis-field">
           <span>Гран-при</span>
           <select
@@ -94,7 +94,7 @@ export function F1Analysis({
         {analysis.meeting ? (
           <span className="f1-muted f1-analysis-current">{meetingLabel(analysis.meeting)}</span>
         ) : null}
-      </div>
+      </Panel>
 
       {analysis.notice ? (
         <p className="f1-analysis-note" role="status">

@@ -177,7 +177,7 @@ it('recomputes pit filtering locally, preserves null gaps in plotted laps, and r
   vi.mocked(loadRacePace).mockResolvedValue(fixture());
   await act(async () => root.render(<RacePacePanel session={session} drivers={drivers} />));
   await act(async () => button('Сравнить темп').click());
-  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('2 круга с временем');
+  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('Медиана · 2 круга');
   expect(host.querySelector('.pace-summary')?.textContent).toContain('2 пары кругов');
   expect(plotRows().map((row) => row.a.paceSeconds)).toEqual([null, 90, null, null, null, 92]);
   expect(
@@ -187,7 +187,7 @@ it('recomputes pit filtering locally, preserves null gaps in plotted laps, and r
   ).toEqual(['false', 'false']);
   await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
   expect(loadRacePace).toHaveBeenCalledTimes(1);
-  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('4 круга с временем');
+  expect(host.querySelector('.pace-summary > div')?.textContent).toContain('Медиана · 4 круга');
   expect(host.querySelector('.pace-summary')?.textContent).toContain('4 пары кругов');
   expect(plotRows().map((row) => row.a.paceSeconds)).toEqual([null, 90, 120, 110, null, 92]);
   expect(plotRows()[4]?.deltaSeconds).toBeNull();
@@ -263,7 +263,7 @@ it.each([
     root.render(<RacePacePanel session={{ ...session, date_end: end }} drivers={drivers} />),
   );
   expect(button('Сравнить темп').disabled).toBe(true);
-  expect(host.textContent).toContain('после сессии');
+  expect(host.textContent).toContain('30 минут');
   expect(loadRacePace).not.toHaveBeenCalled();
 });
 
@@ -272,12 +272,12 @@ it('requires two session drivers before offering a comparison', async () => {
     root.render(<RacePacePanel session={session} drivers={drivers.slice(0, 1)} />),
   );
   expect(button('Сравнить темп').disabled).toBe(true);
-  expect(host.textContent).toContain('хотя бы двух пилотов');
+  expect(host.textContent).toContain('двух пилотов');
 });
 
 it('shows the Russian session name and joins a known place with one separator', async () => {
   await act(async () => root.render(<RacePacePanel session={session} drivers={drivers} />));
-  expect(host.querySelector('.analysis-subtitle')?.textContent).toBe('Гонка · Test Circuit');
+  expect(host.querySelector('.f1-analysis-current')?.textContent).toBe('Гонка · Test Circuit');
 });
 
 it('omits the separator when the session has no place', async () => {
@@ -289,5 +289,5 @@ it('omits the separator when the session has no place', async () => {
       />,
     ),
   );
-  expect(host.querySelector('.analysis-subtitle')?.textContent).toBe('Гонка');
+  expect(host.querySelector('.f1-analysis-current')?.textContent).toBe('Гонка');
 });

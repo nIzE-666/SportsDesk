@@ -174,7 +174,7 @@ function AnalysisHarness({ initial = 'compare' }: { initial?: F1AnalysisMode }) 
 it('shows the overview and three analysis modes', async () => {
   await act(async () => root.render(<F1View tab="overview" onTabChange={vi.fn()} />));
   await settle();
-  expect(host.querySelector('.screen-title')?.textContent).toBe('Ваш гоночный уикенд');
+  expect(host.querySelector('.screen-title')?.textContent).toBe('Обзор');
   await act(async () => root.render(<F1View tab="compare" onTabChange={vi.fn()} />));
   await settle();
   expect(host.querySelector('.screen-title')?.textContent).toBe('Анализ');
@@ -229,7 +229,7 @@ it('uses a local fallback for a mode that needs one weekend, without changing th
 
   await click(modeTabs()[1]!);
   expect(host.querySelector('.f1-analysis-note')?.textContent).toBe(
-    'Для этого режима нужен один этап — показан последний завершённый.',
+    'Показан последний завершённый этап.',
   );
   expect(select('Гран-при').value).toBe('season');
   expect(select('Сессия').value).toBe('5202');

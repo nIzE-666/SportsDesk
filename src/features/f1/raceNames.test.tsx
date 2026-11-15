@@ -143,10 +143,12 @@ it('names the OpenF1 meetings of the session centre in Russian', async () => {
     host.querySelector('select[aria-label="Сессия"] option:checked')?.textContent,
   ).not.toContain('Race');
   expect(host.querySelector('.f1-analysis-note')?.textContent).toBe(
-    'Для этого режима нужен один этап — показан последний завершённый.',
+    'Показан последний завершённый этап.',
   );
   expect(host.querySelector('.f1-meta-row span')?.textContent).toBe('Гран-при Лас-Вегаса');
-  expect(host.querySelector('.session-details .f1-title')?.textContent).toBe('Гран-при Лас-Вегаса');
+  expect(host.querySelector('.session-details .ui-panel__title')?.textContent).toBe(
+    'Гран-при Лас-Вегаса',
+  );
   expect(host.textContent).not.toContain('Grand Prix');
   expect(host.textContent).not.toContain('HEINEKEN');
 });

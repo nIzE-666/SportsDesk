@@ -23,7 +23,9 @@ export function ComparisonChart({
     <section className="panel">
       <div className="section-title">
         <h2>Каждый этап сезона</h2>
-        <span className="muted small">Позиции в гонках: меньше — выше</span>
+        <span className="muted small" title="Позиции в гонках: меньше — выше">
+          Меньше — выше.
+        </span>
       </div>
       <div className="season-chart">
         <ResponsiveContainer width="100%" height={260}>
@@ -72,7 +74,7 @@ export function ComparisonChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="muted small">Разрыв линии — нет финиша или результата.</p>
+      <p className="muted small">Разрыв линии — нет результата.</p>
     </section>
   );
 }

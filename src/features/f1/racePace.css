@@ -27,14 +27,14 @@
   border-top-color: var(--color-chart-1);
 }
 
-.pace-driver-selector label {
+.pace-driver-field {
   display: grid;
   flex: 1;
   gap: var(--space-8);
   min-width: 0;
 }
 
-.pace-driver-selector label > span {
+.pace-driver-field > span {
   color: var(--color-text-secondary);
   font-size: var(--text-12);
 }

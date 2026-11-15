@@ -2,13 +2,13 @@ import { DriverPortrait } from './DriverPortraits';
 import { ArrowLeftRight, Trophy } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useViewState } from '../../lib/useViewState';
-import { Button, IconButton, StatTile } from '../../kit';
+import { Badge, IconButton, Panel, PanelHeader, StatTile, Tooltip } from '../../kit';
 import { useApiResource } from './api';
 import { grandPrixTitle } from './calendarModel';
 import { ComparisonChart } from './ComparisonChart';
 import { parseDriverStandings } from './parsing';
 import { useSeason } from './SeasonContext';
-import { SourceBar, State, TeamDot } from './shared';
+import { RetryButton, SourceBar, State, TeamDot } from './shared';
 import { teamColor } from './teamColors';
 import { useWeekendSeason } from './useWeekendSeason';
 import type { WeekendSeason } from './weekendData';
@@ -86,20 +86,14 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
   );
   const driverA = drivers.find((driver) => driver.id === a),
     driverB = drivers.find((driver) => driver.id === b);
-  if (busy && !data)
-    return (
-      <State kind="loading" title="Собираем уикенды сезона…">
-        Это займёт несколько секунд.
-      </State>
-    );
+  if (busy && !data) return <State kind="loading" title="Собираем уикенды сезона…" />;
   if (error && !data)
     return (
-      <State kind="error" title="Сравнение недоступно">
-        {error}{' '}
-        <Button variant="quiet" small onClick={reload}>
-          Повторить
-        </Button>
-      </State>
+      <State
+        kind="error"
+        title="Сравнение недоступно"
+        action={<RetryButton onClick={reload} details={error} />}
+      />
     );
   if (!drivers.length) return <State kind="empty" title="Результаты ещё не опубликованы" />;
   const metrics = [
@@ -115,7 +109,7 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
   ] as const;
   return (
     <div className="season-comparison">
-      <div className="panel comparison-picker">
+      <Panel className="comparison-picker" aria-label="Пилоты сравнения">
         <ArrowLeftRight size={18} />
         <select aria-label="Первый пилот" value={a} onChange={(event) => setA(event.target.value)}>
           {drivers.map((driver) => (
@@ -139,26 +133,27 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
             </option>
           ))}
         </select>
-      </div>
+      </Panel>
       {roundUnavailable && all.series.length > 0 ? (
-        <p className="f1-analysis-note">Для этого этапа нет данных — показан весь сезон.</p>
+        <p className="f1-analysis-note" title="Для этого этапа нет данных сессий.">
+          Показан весь сезон.
+        </p>
       ) : null}
       {error && (
-        <p className="f1-analysis-note" role="alert">
-          {error} Показана предыдущая загрузка.{' '}
-          <Button variant="quiet" small onClick={reload}>
-            Повторить
-          </Button>
+        <p className="f1-analysis-note" role="alert" title={error}>
+          Показана предыдущая загрузка. <RetryButton onClick={reload} />
         </p>
       )}
-      {data?.issues.map((issue) => (
-        <p className="f1-analysis-note" role="status" key={issue}>
-          {issue}{' '}
-          <Button variant="quiet" small onClick={reload}>
-            Повторить
-          </Button>
-        </p>
-      ))}
+      {data?.issues.length ? (
+        <div role="status" className="f1-analysis-issues">
+          <Tooltip label={data.issues.join(' ')}>
+            <span tabIndex={0}>
+              <Badge variant="warning">неполные данные</Badge>
+            </span>
+          </Tooltip>
+          <RetryButton onClick={reload} />
+        </div>
+      ) : null}
       <div className="versus-grid">
         {[
           { driver: driverA, total: comparison.a },
@@ -171,7 +166,7 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
           const officialPoints =
             official !== undefined && Number.isFinite(Number(official)) ? Number(official) : null;
           return (
-            <section key={side} className={`panel versus-driver ${side}`}>
+            <Panel key={side} className={`versus-driver ${side}`}>
               <DriverPortrait name={driver?.name ?? 'Пилот'} size={76} />
               <div>
                 <span className="eyebrow">ПИЛОТ {index === 0 ? 'A' : 'B'}</span>
@@ -181,14 +176,14 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
                   {driver?.team ?? '—'}
                 </p>
                 {selectedRound === 'season' && (
-                  <p className="muted small">
-                    В опубликованном зачёте: {number(officialPoints)} очков
+                  <p className="muted small" title="В опубликованном зачёте очки могут отличаться.">
+                    Зачёт: {number(officialPoints)}
                     {officialPoints !== null &&
                     total.points !== null &&
                     Math.abs(officialPoints - total.points) > 0.001 ? (
                       <span className="points-difference">
                         {' '}
-                        · отличается на {number(officialPoints - total.points)}
+                        · разница {number(officialPoints - total.points)}
                       </span>
                     ) : null}
                   </p>
@@ -198,21 +193,25 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
                 <strong className={`versus-points-value ${side}`}>{number(total.points)}</strong>
                 <small>гонки + спринты</small>
               </div>
-            </section>
+            </Panel>
           );
         })}
       </div>
-      <section className="panel">
-        <div className="section-title">
-          <h2>
-            <Trophy size={16} /> Уикенды в цифрах
-          </h2>
-          <span className="muted small">
-            {selectedRound === 'season'
-              ? `Сезон ${year}`
-              : grandPrixTitle(comparison.series[0]?.name ?? '').title}
-          </span>
-        </div>
+      <Panel className="comparison-numbers" aria-label="Уикенды в цифрах">
+        <PanelHeader
+          title={
+            <>
+              <Trophy size={16} /> Уикенды в цифрах
+            </>
+          }
+          action={
+            <span className="muted small">
+              {selectedRound === 'season'
+                ? `Сезон ${year}`
+                : grandPrixTitle(comparison.series[0]?.name ?? '').title}
+            </span>
+          }
+        />
         <div className="f1-comparison-metrics">
           {metrics.map((metric) => (
             <StatTile
@@ -231,10 +230,10 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
         </div>
         <div className="h2h-line">
           <span>{comparison.headToHead.a}</span>
-          <p>
-            Выше на финише гонки
-            <small>Оба финишировали в {comparison.headToHead.compared} гонках</small>
-          </p>
+          <div className="f1-h2h-text">
+            <span>Выше на финише</span>
+            <small>Оба финишировали: {comparison.headToHead.compared}</small>
+          </div>
           <span>{comparison.headToHead.b}</span>
         </div>
         {data?.qualifying === null ? (
@@ -242,39 +241,45 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
         ) : (
           <div className="h2h-line">
             <span>{comparison.qualifyingHeadToHead.a}</span>
-            <p>
-              Выше в квалификации
-              <small>
-                Парных результатов: {comparison.qualifyingHeadToHead.compared}. Штрафы на стартовой
-                решётке сюда не входят.
+            <div className="f1-h2h-text">
+              <span>Выше в квалификации</span>
+              <small title="Штрафы на стартовой решётке сюда не входят.">
+                Парных результатов: {comparison.qualifyingHeadToHead.compared}
               </small>
-            </p>
+            </div>
             <span>{comparison.qualifyingHeadToHead.b}</span>
           </div>
         )}
         <p className="muted small" title="В опубликованном зачёте очки могут отличаться.">
-          Очки — по результатам гонок и спринтов.
+          Гонки и спринты.
         </p>
-      </section>
+      </Panel>
       <ComparisonChart
         series={comparison.series}
         a={driverA?.name ?? 'Пилот A'}
         b={driverB?.name ?? 'Пилот B'}
       />
-      <section className="panel comparison-races">
-        <h3>Каждый этап крупным планом</h3>
-        <p className="muted small">К — квалификация, Г — финиш гонки.</p>
+      <Panel className="comparison-races" aria-label="Каждый этап">
+        <PanelHeader title="Каждый этап крупным планом" />
         <div className="ui-table-scroll">
           <table className="ui-table">
             <thead>
               <tr>
                 <th>Этап</th>
-                <th>{driverA?.code || '—'} · К</th>
-                <th>Г</th>
+                <th>
+                  {driverA?.code || '—'} · <abbr title="Квалификация">К</abbr>
+                </th>
+                <th>
+                  <abbr title="Финиш гонки">Г</abbr>
+                </th>
                 <th>Гонка / спринт</th>
                 <th>Всего</th>
-                <th>{driverB?.code || '—'} · К</th>
-                <th>Г</th>
+                <th>
+                  {driverB?.code || '—'} · <abbr title="Квалификация">К</abbr>
+                </th>
+                <th>
+                  <abbr title="Финиш гонки">Г</abbr>
+                </th>
                 <th>Гонка / спринт</th>
                 <th>Всего</th>
               </tr>
@@ -302,7 +307,7 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
       <SourceBar
         source="Jolpica"
         fetchedAt={data?.fetchedAt ?? null}

@@ -1,8 +1,8 @@
 import { useViewState } from '../../lib/useViewState';
-import { Button, Tabs } from '../../kit';
+import { Button, Panel, PanelHeader, StatTile, Tabs } from '../../kit';
 import { useApiResource } from './api';
 import { parseQualifying, parseRaceResults } from './parsing';
-import { SourceBar, State } from './shared';
+import { RetryButton, SourceBar, State } from './shared';
 import { formatHumanDate } from '../../lib/humanDate';
 import { formatDateTime, getTimeZone } from './time';
 import type { JolpicaRace } from './types';
@@ -57,40 +57,40 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
   );
   const active = tab === 'qualifying' ? qualifying : tab === 'sprint' ? sprint : results;
   const sessions = weekendSchedule(race);
-  const rows = tab === 'qualifying' ? qualifying.data : sprint.data;
   const refresh = () => {
     results.reload();
     qualifying.reload();
     if (hasSprint) sprint.reload();
   };
   return (
-    <section className="f1-card race-weekend" aria-label={`Уикенд ${racePresentation(race).title}`}>
-      <div className="f1-card-head">
-        <div>
-          <div className="f1-eyebrow">ВЕСЬ УИКЕНД · РАУНД {race.round}</div>
-          <h2 className="f1-title">{racePresentation(race).title}</h2>
-          <span className="f1-muted">
-            {race.Circuit.circuitName} · {getTimeZone()}
-          </span>
-        </div>
-        {!aggregated && <Button onClick={refresh}>Обновить уикенд</Button>}
-      </div>
+    <Panel className="race-weekend" aria-label={`Уикенд ${racePresentation(race).title}`}>
+      <PanelHeader
+        title={`${racePresentation(race).flag} ${racePresentation(race).title}`}
+        action={
+          !aggregated ? (
+            <Button small variant="quiet" onClick={refresh}>
+              Обновить уикенд
+            </Button>
+          ) : undefined
+        }
+      />
+      <span className="f1-muted">
+        {race.Circuit.circuitName} · Этап {race.round} · {getTimeZone()}
+      </span>
       <div className="weekend-schedule">
         {sessions.map((session) => (
-          <div
+          <StatTile
             key={session.id}
-            className={session.id === 'race' ? 'weekend-session main-session' : 'weekend-session'}
-          >
-            <small>{session.label}</small>
-            <strong>
-              {session.start
+            label={session.label}
+            value={
+              session.start
                 ? formatDateTime(session.start)
                 : session.date
                   ? formatHumanDate(session.date, getTimeZone())
-                  : 'Дата не объявлена'}
-            </strong>
-            {!session.start && <span className="muted small">Время не объявлено</span>}
-          </div>
+                  : undefined
+            }
+            note={!session.start && session.date ? 'Время не объявлено' : undefined}
+          />
         ))}
       </div>
       <DiaryMarkButton
@@ -109,12 +109,16 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             <p className="muted small">Обновляем результаты…</p>
           )}
           {(results.error || sprint.error) && (
-            <State kind="error" title="Часть очков недоступна">
-              {results.error ?? sprint.error}{' '}
-              <Button variant="quiet" small onClick={refresh}>
-                Повторить
-              </Button>
-            </State>
+            <State
+              kind="error"
+              title="Часть очков недоступна"
+              action={
+                <RetryButton
+                  onClick={refresh}
+                  details={results.error ?? sprint.error ?? undefined}
+                />
+              }
+            />
           )}
           {results.data?.length || sprint.data?.length ? (
             <WeekendPointsTable
@@ -137,17 +141,18 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             <State kind="loading" title="Загружаем результаты сессии…" />
           )}
           {active.error && (
-            <State kind="error" title="Результаты недоступны">
-              {active.error}{' '}
-              <Button variant="quiet" small onClick={active.reload}>
-                Повторить
-              </Button>
-            </State>
+            <State
+              kind="error"
+              title="Результаты недоступны"
+              action={<RetryButton onClick={active.reload} details={active.error} />}
+            />
           )}
           {active.data && !active.data.length && !active.loading && (
-            <State kind="empty" title="Результаты пока не опубликованы">
-              Итоги появятся после сессии.
-            </State>
+            <State
+              kind="empty"
+              title="Результаты пока не опубликованы"
+              message="Итоги появятся после сессии."
+            />
           )}
           {tab === 'qualifying' && qualifying.data?.length ? (
             <QualifyingResultsTable rows={qualifying.data} />
@@ -179,6 +184,6 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
           refreshing={sprint.loading}
         />
       )}
-    </section>
+    </Panel>
   );
 }

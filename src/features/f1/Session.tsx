@@ -7,8 +7,8 @@ import { RacePacePanel } from './RacePacePanel';
 import { isCompleted, isMeetingCompleted, pickDefaultSession } from './analysisChoice';
 import { meetingTitle, sessionNameLabel, sessionShortDate } from './analysisLabels';
 import { useApiResource } from './api';
-import { SourceBar, State, tyreClass, type F1Style } from './shared';
-import { Badge } from '../../kit';
+import { RetryButton, SourceBar, State, tyreClass, type F1Style } from './shared';
+import { Badge, Panel, PanelHeader } from '../../kit';
 import { openF1Color } from './teamColors';
 import { formatDate, parseUtc } from './time';
 import { parseOpenF1Drivers, parseOpenF1Laps, parseOpenF1Pits, parseOpenF1Stints } from './openf1';
@@ -37,6 +37,13 @@ function driverName(d: OpenF1Driver): string {
   if (d.full_name) return d.full_name;
   const parts = [d.first_name, d.last_name].filter((p): p is string => !!p);
   return parts.length ? parts.join(' ') : `№${d.driver_number}`;
+}
+
+function statusLabel(value?: string): string | null {
+  const status = (value ?? '').toLowerCase();
+  if (status === 'finalised' || status === 'finalized' || status === 'finished') return 'завершена';
+  if (status === 'started' || status === 'running') return 'идёт';
+  return null;
 }
 
 export function Session({
@@ -158,19 +165,12 @@ export function Session({
 
   return (
     <div className="f1-session">
-      <div className="f1-card">
-        <div className="f1-card-head">
-          <div>
-            <div className="f1-eyebrow">Сессии · исторические данные</div>
-            <div className="f1-title f1-session-title">
-              {mode === 'pace' ? 'Темп пилотов внутри гонки' : 'Обзор гоночных сессий'}
-            </div>
-          </div>
-          {liveNote}
-        </div>
-        <div className="f1-muted f1-session-note">
-          Данные с 2023 года, через 30 минут после сессии.
-        </div>
+      <Panel className="f1-session-overview" aria-label="Гоночные сессии">
+        <PanelHeader
+          title={mode === 'pace' ? 'Темп пилотов внутри гонки' : 'Обзор гоночных сессий'}
+          action={liveNote}
+        />
+        <div className="f1-muted f1-session-note">Данные с 2023 года.</div>
         {mode !== 'pace' ? (
           <div className="f1-toolbar">
             <div className="f1-muted f1-analysis-field">
@@ -198,14 +198,18 @@ export function Session({
           <State kind="loading" title="Загрузка календаря…" />
         ) : null}
         {meetings.error && !meetings.data ? (
-          <State kind="error" title="Не удалось загрузить список Гран-при">
-            {meetings.error}
-          </State>
+          <State
+            kind="error"
+            title="Не удалось загрузить Гран-при"
+            action={<RetryButton onClick={meetings.reload} details={meetings.error} />}
+          />
         ) : null}
         {!meetings.loading && !meetings.error && meetingList.length === 0 ? (
-          <State kind="empty" title={`Нет данных за ${selectedYear}`}>
-            Данные о сессиях есть только с 2023 года.
-          </State>
+          <State
+            kind="empty"
+            title={`Нет данных за ${selectedYear}`}
+            message="Данные с 2023 года."
+          />
         ) : null}
 
         {selectedMeeting ? (
@@ -252,20 +256,20 @@ export function Session({
             refreshing={drivers.loading}
           />
         )}
-      </div>
+      </Panel>
 
       {sessions.error && !sessions.data ? (
-        <State kind="error" title="Не удалось загрузить сессии">
-          {sessions.error}
-        </State>
+        <State
+          kind="error"
+          title="Не удалось загрузить сессии"
+          action={<RetryButton onClick={sessions.reload} details={sessions.error} />}
+        />
       ) : null}
       {sessionsEmptyForMeeting ? (
         <State kind="empty" title="Для этого Гран-при сессий нет" />
       ) : null}
       {noCompletedSession && !selectedSession ? (
-        <State kind="empty" title="Нет завершённых сессий">
-          Завершённых сессий в этом уик-энде ещё нет.
-        </State>
+        <State kind="empty" title="Нет завершённых сессий" />
       ) : null}
 
       {mode === 'pace' && selectedSession && (
@@ -278,33 +282,29 @@ export function Session({
       )}
       <div className="session-details" hidden={mode === 'pace'}>
         {selectedSession ? (
-          <div className="f1-card">
-            <div className="f1-card-head">
-              <div>
-                <div className="f1-eyebrow">
-                  {sessionNameLabel(selectedSession.session_name) ?? 'Сессия'}
-                </div>
-                <div className="f1-title f1-session-card-title">
-                  {(selectedMeeting && meetingTitle(selectedMeeting)) ?? 'Гран-при'}
-                </div>
-                <div className="f1-muted">
-                  {sessionShortDate(selectedSession) ?? '—'}
-                  {selectedSession.status ? ` · Статус: ${selectedSession.status}` : ''}
-                  {isCompleted(selectedSession, Date.now()) ? '' : ' · сессия ещё не завершена'}
-                </div>
-              </div>
-              <Timer size={18} color="var(--color-text-secondary)" aria-hidden="true" />
+          <Panel className="f1-session-panel" aria-label="Сессия">
+            <PanelHeader
+              title={(selectedMeeting && meetingTitle(selectedMeeting)) ?? 'Гран-при'}
+              action={<Timer size={18} color="var(--color-text-secondary)" aria-hidden="true" />}
+            />
+            <div className="f1-muted f1-session-card-title">
+              {sessionNameLabel(selectedSession.session_name) ?? 'Сессия'}
+              {sessionShortDate(selectedSession) ? ` · ${sessionShortDate(selectedSession)}` : ''}
+              {statusLabel(selectedSession.status)
+                ? ` · ${statusLabel(selectedSession.status)}`
+                : ''}
+              {isCompleted(selectedSession, Date.now()) ? '' : ' · сессия ещё не завершена'}
             </div>
 
             {drivers.error && !drivers.data ? (
-              <State kind="error" title="Не удалось загрузить пилотов">
-                {drivers.error}
-              </State>
+              <State
+                kind="error"
+                title="Не удалось загрузить пилотов"
+                action={<RetryButton onClick={drivers.reload} details={drivers.error} />}
+              />
             ) : null}
             {!drivers.loading && !drivers.error && driverList.length === 0 ? (
-              <State kind="empty" title="Список пилотов недоступен">
-                Пилотов для этой сессии нет.
-              </State>
+              <State kind="empty" title="Список пилотов недоступен" />
             ) : null}
 
             {selectedDriver ? (
@@ -346,14 +346,14 @@ export function Session({
 
             {laps.loading && !laps.data ? <State kind="loading" title="Загрузка кругов…" /> : null}
             {laps.error && !laps.data ? (
-              <State kind="error" title="Не удалось загрузить круги">
-                {laps.error}
-              </State>
+              <State
+                kind="error"
+                title="Не удалось загрузить круги"
+                action={<RetryButton onClick={laps.reload} details={laps.error} />}
+              />
             ) : null}
             {laps.data && lapRows.length === 0 ? (
-              <State kind="empty" title="Круговые данные недоступны">
-                Для этой сессии и пилота кругов нет.
-              </State>
+              <State kind="empty" title="Круговые данные недоступны" message="Кругов нет." />
             ) : null}
 
             {fastestLaps.length > 0 ? (
@@ -372,12 +372,12 @@ export function Session({
                   <tbody>
                     {fastestLaps.map((l, i) => (
                       <tr key={`${l.driver_number}-${l.lap_number ?? i}`}>
-                        <td className="f1-num">{l.lap_number ?? '—'}</td>
-                        <td className="f1-num-strong">{fmtLap(l.lap_duration)}</td>
-                        <td className="f1-num">{fmtLap(l.duration_sector_1)}</td>
-                        <td className="f1-num">{fmtLap(l.duration_sector_2)}</td>
-                        <td className="f1-num">{fmtLap(l.duration_sector_3)}</td>
-                        <td className="f1-num">{l.st_speed ?? '—'}</td>
+                        <td className="ui-table__num">{l.lap_number ?? '—'}</td>
+                        <td className="ui-table__num f1-num-strong">{fmtLap(l.lap_duration)}</td>
+                        <td className="ui-table__num">{fmtLap(l.duration_sector_1)}</td>
+                        <td className="ui-table__num">{fmtLap(l.duration_sector_2)}</td>
+                        <td className="ui-table__num">{fmtLap(l.duration_sector_3)}</td>
+                        <td className="ui-table__num">{l.st_speed ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -385,9 +385,7 @@ export function Session({
               </div>
             ) : null}
             {lapRows.length > 8 ? (
-              <div className="f1-muted f1-note-small">
-                Показаны 8 самых быстрых кругов из {lapRows.length}.
-              </div>
+              <div className="f1-muted f1-note-small">8 из {lapRows.length}</div>
             ) : null}
 
             <SourceBar
@@ -397,22 +395,26 @@ export function Session({
               onRefresh={laps.reload}
               refreshing={laps.loading}
             />
-          </div>
+          </Panel>
         ) : null}
 
         {selectedSession && selectedDriver ? (
-          <div className="f1-card">
-            <div className="f1-card-head">
-              <div className="f1-eyebrow">Отрезки и пит-стопы</div>
-              <CircleDot size={16} color="var(--color-text-secondary)" aria-hidden="true" />
-            </div>
+          <Panel className="f1-session-panel" aria-label="Отрезки и пит-стопы">
+            <PanelHeader
+              title="Отрезки и пит-стопы"
+              action={
+                <CircleDot size={16} color="var(--color-text-secondary)" aria-hidden="true" />
+              }
+            />
             {stints.loading && !stints.data ? (
               <State kind="loading" title="Загрузка отрезков…" />
             ) : null}
             {stints.error && !stints.data ? (
-              <State kind="error" title="Отрезки недоступны">
-                {stints.error}
-              </State>
+              <State
+                kind="error"
+                title="Отрезки недоступны"
+                action={<RetryButton onClick={stints.reload} details={stints.error} />}
+              />
             ) : null}
             {stints.data && stintRows.length === 0 ? (
               <State kind="empty" title="Нет отрезков" />
@@ -439,23 +441,23 @@ export function Session({
                 <div className="f1-legend">
                   <span>
                     <i className="f1-tyre f1-tyre--soft" />
-                    Soft
+                    Мягкие
                   </span>
                   <span>
                     <i className="f1-tyre f1-tyre--medium" />
-                    Medium
+                    Средние
                   </span>
                   <span>
                     <i className="f1-tyre f1-tyre--hard" />
-                    Hard
+                    Жёсткие
                   </span>
                   <span>
                     <i className="f1-tyre f1-tyre--inter" />
-                    Intermediate
+                    Промежуточные
                   </span>
                   <span>
                     <i className="f1-tyre f1-tyre--wet" />
-                    Wet
+                    Дождевые
                   </span>
                   {stintTotal > 0 ? <span className="f1-muted">до {stintTotal} круга</span> : null}
                 </div>
@@ -466,9 +468,11 @@ export function Session({
               <State kind="loading" title="Загрузка пит-стопов…" />
             ) : null}
             {pits.error && !pits.data ? (
-              <State kind="error" title="Пит-стопы недоступны">
-                {pits.error}
-              </State>
+              <State
+                kind="error"
+                title="Пит-стопы недоступны"
+                action={<RetryButton onClick={pits.reload} details={pits.error} />}
+              />
             ) : null}
             {pits.data && pitRows.length === 0 ? (
               <div className="f1-muted f1-note-small">Пит-стопы не зафиксированы.</div>
@@ -485,8 +489,8 @@ export function Session({
                   <tbody>
                     {pitRows.map((p, i) => (
                       <tr key={`${p.lap_number ?? i}-${i}`}>
-                        <td className="f1-num">{p.lap_number ?? '—'}</td>
-                        <td className="f1-num">
+                        <td className="ui-table__num">{p.lap_number ?? '—'}</td>
+                        <td className="ui-table__num">
                           {p.pit_duration !== null && p.pit_duration !== undefined
                             ? `${p.pit_duration.toFixed(1)} с`
                             : '—'}
@@ -512,7 +516,7 @@ export function Session({
               onRefresh={pits.reload}
               refreshing={pits.loading}
             />
-          </div>
+          </Panel>
         ) : null}
       </div>
       {!selectedSession &&

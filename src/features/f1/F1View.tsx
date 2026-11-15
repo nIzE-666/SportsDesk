@@ -22,9 +22,7 @@ function F1Shell({ tab, onTabChange }: { tab: TabId; onTabChange: (tab: TabId) =
       <div className="f1-root">
         <div className="f1-toolbar">
           <div className="broadcast-f1-heading">
-            <h2 className="screen-title">
-              {tab === 'overview' ? 'Ваш гоночный уикенд' : activeTab.label}
-            </h2>
+            <h2 className="screen-title">{activeTab.label}</h2>
           </div>
           <label className="f1-muted f1-season">
             Сезон
@@ -51,6 +49,7 @@ function F1Shell({ tab, onTabChange }: { tab: TabId; onTabChange: (tab: TabId) =
               viewState.write(`f1.${year}.calendar.filter`, 'all');
               setTab('calendar');
             }}
+            onOpenStandings={() => setTab('standings')}
           />
         ) : null}
         {tab === 'calendar' ? <Calendar /> : null}

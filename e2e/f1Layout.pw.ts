@@ -15,9 +15,9 @@ test('F1 headings, season and layout', async ({ page }, testInfo) => {
     .getByRole('button', { name: 'Формула 1', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }).click();
-  await expect(page.locator('.f1-overview-grid')).toBeVisible();
-  const overview = page.locator('.f1-overview-grid');
+  const overview = page.locator('.f1-overview-grid').first();
   const favoriteGrid = page.locator('.f1-overview-favorites');
+  await expect(overview).toBeVisible();
   await expect(favoriteGrid).toContainText('Пилоты избранных команд');
   expect((await favoriteGrid.boundingBox())!.y).toBeGreaterThan((await overview.boundingBox())!.y);
   await expect(overview).toContainText('Гран-при Китая');

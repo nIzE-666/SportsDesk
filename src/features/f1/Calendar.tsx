@@ -1,9 +1,8 @@
 import { useApiResource } from './api';
 import { parseSchedule } from './parsing';
 import { useSeason } from './SeasonContext';
-import { SourceBar, State } from './shared';
+import { RetryButton, SourceBar, State } from './shared';
 import { CalendarBoard } from './CalendarBoard';
-import { Button } from '../../kit';
 
 export function Calendar() {
   const { year } = useSeason();
@@ -12,12 +11,11 @@ export function Calendar() {
     <div className="calendar-page">
       {schedule.loading && !schedule.data && <State kind="loading" title="Загрузка календаря…" />}
       {schedule.error && !schedule.data && (
-        <State kind="error" title="Календарь недоступен">
-          {schedule.error}
-          <Button small onClick={schedule.reload}>
-            Повторить
-          </Button>
-        </State>
+        <State
+          kind="error"
+          title="Календарь недоступен"
+          action={<RetryButton onClick={schedule.reload} details={schedule.error} />}
+        />
       )}
       {schedule.data && <CalendarBoard races={schedule.data.races} year={year} />}
       <SourceBar

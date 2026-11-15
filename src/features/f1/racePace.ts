@@ -189,10 +189,7 @@ async function loadDriver(
   }
   const warnings: string[] = [];
   if (stints.status === 'rejected') warnings.push(`№${driverNumber}: составы шин недоступны.`);
-  if (pits.status === 'rejected')
-    warnings.push(
-      `№${driverNumber}: пит-лейн недоступен; круги заезда нельзя полностью исключить.`,
-    );
+  if (pits.status === 'rejected') warnings.push(`№${driverNumber}: пит-лейн недоступен.`);
   const replies = [
     laps.value,
     ...(stints.status === 'fulfilled' ? [stints.value] : []),

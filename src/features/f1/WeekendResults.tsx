@@ -9,7 +9,7 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
       <table className="ui-table">
         <thead>
           <tr>
-            <th>Поз.</th>
+            <th className="ui-table__num">Поз.</th>
             <th>Пилот</th>
             <th>Команда</th>
             <th>Очки</th>
@@ -19,7 +19,7 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.Driver.driverId}>
-              <td>{positionText(row.positionText ?? row.position)}</td>
+              <td className="ui-table__num">{positionText(row.positionText ?? row.position)}</td>
               <td>
                 <DriverName givenName={row.Driver.givenName} familyName={row.Driver.familyName} />
               </td>
@@ -29,7 +29,7 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
                   {row.Constructor.name}
                 </span>
               </td>
-              <td className="f1-num">{row.points ?? '—'}</td>
+              <td className="ui-table__num">{row.points ?? '—'}</td>
               <td>
                 {row.status ?? '—'}
                 {row.Time?.time ? ` · ${row.Time.time}` : ''}
@@ -47,7 +47,7 @@ export function QualifyingResultsTable({ rows }: { rows: JolpicaQualifyingEntry[
       <table className="ui-table">
         <thead>
           <tr>
-            <th>Поз.</th>
+            <th className="ui-table__num">Поз.</th>
             <th>Пилот</th>
             <th>Команда</th>
             <th>Q1</th>
@@ -58,7 +58,7 @@ export function QualifyingResultsTable({ rows }: { rows: JolpicaQualifyingEntry[
         <tbody>
           {rows.map((row) => (
             <tr key={row.Driver.driverId}>
-              <td>{row.position ?? '—'}</td>
+              <td className="ui-table__num">{row.position ?? '—'}</td>
               <td>
                 <DriverName givenName={row.Driver.givenName} familyName={row.Driver.familyName} />
               </td>
@@ -68,9 +68,9 @@ export function QualifyingResultsTable({ rows }: { rows: JolpicaQualifyingEntry[
                   {row.Constructor.name}
                 </span>
               </td>
-              <td className="f1-num">{row.Q1 ?? '—'}</td>
-              <td className="f1-num">{row.Q2 ?? '—'}</td>
-              <td className="f1-num">{row.Q3 ?? '—'}</td>
+              <td className="ui-table__num">{row.Q1 ?? '—'}</td>
+              <td className="ui-table__num">{row.Q2 ?? '—'}</td>
+              <td className="ui-table__num">{row.Q3 ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -110,9 +110,9 @@ export function WeekendPointsTable({
                 <td>
                   <DriverName givenName={driver.givenName} familyName={driver.familyName} />
                 </td>
-                <td className="f1-num">{r ?? '—'}</td>
-                <td>{sprintScheduled ? (s ?? '—') : 'Нет спринта'}</td>
-                <td className="f1-num">
+                <td className="ui-table__num">{r ?? '—'}</td>
+                <td className="ui-table__num">{sprintScheduled ? (s ?? '—') : 'Нет спринта'}</td>
+                <td className="ui-table__num">
                   <strong>{r === null && s === null ? '—' : (r ?? 0) + (s ?? 0)}</strong>
                 </td>
               </tr>

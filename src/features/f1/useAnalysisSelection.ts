@@ -86,14 +86,8 @@ export function useAnalysisSelection(year: number, mode: F1AnalysisMode): Analys
   let notice: string | null = null;
   if (needsMeeting && !selectedMeeting && meetingList.length > 0) {
     const missingRound = choice.round !== 'season';
-    if (fallbackMeeting)
-      notice = missingRound
-        ? 'Для этого этапа нет данных сессий — показан последний завершённый.'
-        : 'Для этого режима нужен один этап — показан последний завершённый.';
-    else
-      notice = missingRound
-        ? 'Для этого этапа нет данных сессий.'
-        : 'Для этого режима нужен один завершённый этап.';
+    if (fallbackMeeting) notice = 'Показан последний завершённый этап.';
+    else notice = missingRound ? 'Нет данных сессий.' : 'Нужен завершённый этап.';
   }
 
   return {
