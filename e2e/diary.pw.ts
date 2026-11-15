@@ -106,7 +106,7 @@ for (const scheme of ['dark', 'light'])
         content:
           '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
       });
-      await expect(feature).toHaveScreenshot(`broadcast-${scheme}-${width}-diary.png`);
+      await expect(feature).toHaveScreenshot(`${scheme}-${width}-diary.png`);
       await capture.evaluate((el) => el.parentNode?.removeChild(el));
       await page.getByLabel('Фильтр по спорту', { exact: true }).selectOption('f1');
       await expect(feature.locator('.diary-entry')).toHaveCount(1);

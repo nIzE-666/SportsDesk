@@ -123,10 +123,29 @@ for (const scheme of ['dark', 'light'])
       await page.evaluate(() => document.fonts.ready);
       const feature = page.locator('.match-analysis');
       await expect(page.locator('.app-root')).toHaveAttribute('data-scheme', scheme);
-      await expect(feature).toHaveCSS(
-        '--analysis-away',
-        scheme === 'light' ? '#8a3db4' : '#b364d9',
+      const awayColours = await feature.evaluate(
+        (element, otherScheme) => {
+          const read = () => {
+            const style = getComputedStyle(element);
+            return {
+              away: style.getPropertyValue('--analysis-away').trim(),
+              chart: style.getPropertyValue('--color-chart-4').trim(),
+            };
+          };
+          const root = document.querySelector('.app-root');
+          if (!root) throw new Error('app root is missing');
+          const activeScheme = root.getAttribute('data-scheme') ?? '';
+          const current = read();
+          root.setAttribute('data-scheme', otherScheme);
+          const other = read();
+          root.setAttribute('data-scheme', activeScheme);
+          return { current, other };
+        },
+        scheme === 'light' ? 'dark' : 'light',
       );
+      expect(awayColours.current.away).toBe(awayColours.current.chart);
+      expect(awayColours.other.away).toBe(awayColours.other.chart);
+      expect(awayColours.current.away).not.toBe(awayColours.other.away);
       await expect(feature.locator('.analysis-shot')).toHaveCount(5);
       await expect(feature).toContainText('Неполная кривая xG');
       await expect(page.getByRole('tab', { name: 'Разбор матча' })).toHaveAttribute(
@@ -142,7 +161,7 @@ for (const scheme of ['dark', 'light'])
         content:
           '.app-root { height: auto; min-height: 100vh; overflow: visible; } .shell, .content { overflow: visible; }',
       });
-      await expect(feature).toHaveScreenshot(`broadcast-${scheme}-${width}-analysis.png`);
+      await expect(feature).toHaveScreenshot(`${scheme}-${width}-analysis.png`);
       await captureStyle.evaluate((element) => element.parentNode?.removeChild(element));
       await page.getByLabel('Команда', { exact: true }).selectOption(home.id);
       await page.getByLabel('Период', { exact: true }).selectOption('FirstHalf');

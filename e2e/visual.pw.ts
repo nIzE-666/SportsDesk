@@ -14,7 +14,7 @@ for (const scheme of ['dark', 'light'])
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         ).toBe(true);
-        await expect(page).toHaveScreenshot(`broadcast-${scheme}-${width}-${name}.png`, {
+        await expect(page).toHaveScreenshot(`${scheme}-${width}-${name}.png`, {
           fullPage: true,
         });
       };
@@ -73,7 +73,7 @@ test('keyboard search, events and match viewing', async ({ page }) => {
   await page.keyboard.press('Control+k');
   const dialog = page.getByRole('dialog', { name: 'Поиск' });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveScreenshot('broadcast-search.png');
+  await expect(dialog).toHaveScreenshot('search.png');
   const overlay = await page.locator('.ui-dialog-scrim').boundingBox();
   expect(overlay?.height).toBe(900);
   await page.getByRole('combobox').fill('Arsenal Chelsea');
@@ -95,7 +95,7 @@ test('keyboard search, events and match viewing', async ({ page }) => {
     .getByRole('button', { name: 'События', exact: true })
     .click();
   await expect(page.locator('.event-entry.unread')).toHaveCount(1);
-  await expect(page.locator('.event-center')).toHaveScreenshot('broadcast-events.png');
+  await expect(page.locator('.event-center')).toHaveScreenshot('events.png');
   await page.getByRole('button', { name: 'Прочитать все', exact: true }).click();
   await expect(page.locator('.event-entry.unread')).toHaveCount(0);
   await page.getByRole('button', { name: 'Открыть матч', exact: true }).click();
