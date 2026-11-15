@@ -136,7 +136,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
     <section className="diary-view" aria-label="Дневник просмотра">
       <header className="diary-heading">
         <div>
-          <h1>Дневник просмотра</h1>
+          <h2 className="screen-title">Дневник просмотра</h2>
           <p className="muted">Ваши отметки и заметки хранятся на этом компьютере.</p>
         </div>
         <div className="diary-actions">

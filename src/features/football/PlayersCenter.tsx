@@ -496,7 +496,7 @@ export function PlayersCenter({
     <div className="players-view">
       <div className="dashboard-head">
         <div>
-          <h1>Игроки</h1>
+          <h2 className="screen-title">Игроки</h2>
           <p className="muted small">Избранные футболисты и сравнение.</p>
         </div>
       </div>

@@ -9,8 +9,10 @@ import { useHiddenCompetitionRedirect } from './competitionRouting';
 import { NavRail } from './NavRail';
 import { PageHeader } from './PageHeader';
 import { RouteContent } from './RouteContent';
+import { headerTabs } from './shellModel';
 import type { FrameProps } from './frame';
 import './shell.css';
+import './focus.css';
 
 const TODAY: ShellRoute = { kind: 'today', mode: 'today' };
 
@@ -87,6 +89,8 @@ export function AppShell(props: FrameProps) {
           : leagueTheme
         : 'neutral';
   const contentSport = pageRoute.kind === 'f1' ? 'f1' : 'football';
+  // The header tab strip controls this panel, so it names and owns the page content.
+  const activeTab = headerTabs(pageRoute).find((tab) => tab.active);
 
   useHiddenCompetitionRedirect(route, navigate);
 
@@ -130,7 +134,12 @@ export function AppShell(props: FrameProps) {
             onOpenMini={openMini}
           />
           <main className="content shell-content" tabIndex={-1}>
-            <div className="content-inner">
+            <div
+              className="content-inner"
+              id="shell-page-panel"
+              role={activeTab ? 'tabpanel' : undefined}
+              aria-labelledby={activeTab ? `shell-tab-${activeTab.key}` : undefined}
+            >
               <RouteContent
                 route={pageRoute}
                 sport={contentSport}

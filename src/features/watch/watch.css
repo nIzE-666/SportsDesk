@@ -123,7 +123,7 @@
   gap: 10px;
   text-align: center;
 }
-.watch-signedout-hero h1 {
+.watch-signedout-hero .screen-title {
   margin: 0;
   font-size: 26px;
   letter-spacing: -0.02em;
@@ -327,7 +327,6 @@
   font-size: 14px;
 }
 .watch-rail-search input:focus {
-  outline: none;
   border-color: var(--accent, #b5f268);
 }
 .watch-search-clear {
@@ -907,4 +906,11 @@
   .watch-topbar {
     flex-wrap: wrap;
   }
+}
+
+.app-root[data-theme] .watch-signedout-hero .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }

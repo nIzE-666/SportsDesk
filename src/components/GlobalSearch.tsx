@@ -79,7 +79,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
           if (!document.querySelector('[aria-modal="true"]')) setOpen(true);
         }}
       >
-        <Search size={18} />
+        <Search size={18} aria-hidden="true" />
       </button>
       {open &&
         createPortal(
@@ -98,7 +98,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
               tabIndex={-1}
             >
               <div className="command-input">
-                <Search size={20} />
+                <Search size={20} aria-hidden="true" />
                 <input
                   aria-label="Поиск команд, игроков, матчей, разделов и настроек"
                   placeholder="Команда, игрок, матч, раздел или настройка"
@@ -131,7 +131,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
                   aria-label="Закрыть поиск"
                   onClick={() => setOpen(false)}
                 >
-                  <X size={18} />
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
               <p className="command-hint">
@@ -142,6 +142,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
                 id="global-search-results"
                 role="listbox"
                 aria-label="Результаты поиска"
+                tabIndex={-1}
               >
                 {results.map((item, i) => (
                   <button

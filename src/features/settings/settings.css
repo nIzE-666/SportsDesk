@@ -5,7 +5,7 @@
   max-width: 1120px;
 }
 
-.settings-view h1 {
+.settings-view .screen-title {
   font-size: 22px;
   margin: 0 0 4px;
   letter-spacing: 0.2px;
@@ -375,4 +375,11 @@
 }
 .update-notice > span {
   flex: 1;
+}
+
+.app-root[data-theme] .settings-view .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }

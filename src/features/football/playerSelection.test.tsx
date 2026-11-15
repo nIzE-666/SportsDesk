@@ -260,7 +260,7 @@ it('lists ten favourites with the comparison picker and no zero or idle element'
       <PlayersCenter data={data} onOpenMatch={() => {}} />
     </FavoritesProvider>,
   );
-  expect(host.querySelector('h2')?.textContent).toBe('Избранные игроки · 10');
+  expect(host.querySelector('.players-view > h2')?.textContent).toBe('Избранные игроки · 10');
   expect(host.querySelectorAll('.pc-card')).toHaveLength(10);
   expect(host.querySelectorAll('.pc-picker select')).toHaveLength(2);
   expect(host.querySelector('.state-block.empty')).toBeNull();

@@ -334,12 +334,6 @@ main.shell-content {
   overflow-x: hidden;
 }
 
-.shell-frame button:focus-visible,
-.shell-frame [role='tab']:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
-}
-
 .events-drawer-backdrop {
   position: absolute;
   inset: 0;
@@ -407,7 +401,7 @@ main.shell-content {
   margin-bottom: 0;
 }
 
-.events-drawer .event-center > .section-heading h1 {
+.events-drawer .event-center > .section-heading .screen-title {
   display: none;
 }
 

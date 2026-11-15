@@ -98,7 +98,7 @@ it('starts the club directory with favorite teams and opens the chosen club', as
   await render(
     <TeamView teamId={null} data={makeData([])} onSelectTeam={select} onOpenMatch={vi.fn()} />,
   );
-  expect(host.querySelector('h1')?.textContent).toBe('Клубы');
+  expect(host.querySelector('.screen-title')?.textContent).toBe('Клубы');
   const favorite = host.querySelector<HTMLButtonElement>('.team-favorites button')!;
   expect(favorite.textContent).toContain('Atlético F.C.');
   expect(host.querySelector('#team-picker-select')).not.toBeNull();

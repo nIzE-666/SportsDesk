@@ -15,7 +15,7 @@
     radial-gradient(ellipse at 100% 0%, rgba(var(--accent-rgb), 0.14), transparent 65%),
     var(--panel);
 }
-.planner-hero h1 {
+.planner-hero .screen-title {
   margin: 12px 0;
   font-size: clamp(27px, 2.8vw, 37px);
   letter-spacing: -0.025em;
@@ -267,4 +267,11 @@
     border-left: 0;
     border-top: 1px solid var(--line);
   }
+}
+
+.app-root[data-theme] .planner-hero .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }

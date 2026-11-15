@@ -108,11 +108,11 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
   return (
     <div className="event-center">
       <div className="section-heading">
-        <h1>
-          <Bell size={24} /> Центр событий
-        </h1>
+        <h2 className="screen-title">
+          <Bell size={24} aria-hidden="true" /> Центр событий
+        </h2>
         <button className="ghost-btn" onClick={() => setTick((n) => n + 1)}>
-          <RefreshCw size={15} />
+          <RefreshCw size={15} aria-hidden="true" />
           Обновить
         </button>
       </div>
@@ -146,7 +146,7 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
               disabled={saving}
               onClick={() => void acknowledge(unread.map((e) => e.id))}
             >
-              <CheckCheck size={15} />
+              <CheckCheck size={15} aria-hidden="true" />
               Прочитать все
             </button>
           )}

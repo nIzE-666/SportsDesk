@@ -54,7 +54,7 @@ export function SettingsView({ category, onCategoryChange }: SettingsViewProps =
   return (
     <div className="settings-view">
       <div className="dashboard-head">
-        <h1>Настройки</h1>
+        <h2 className="screen-title">Настройки</h2>
       </div>
       <div className="settings-layout">
         <nav aria-label="Категории настроек" className="settings-categories">

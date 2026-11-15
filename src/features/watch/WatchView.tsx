@@ -414,7 +414,7 @@ export function WatchView({
             <span className="watch-hero-icon">
               <MonitorPlay size={30} aria-hidden />
             </span>
-            <h1>Kino Live</h1>
+            <h2 className="screen-title">Kino Live</h2>
             <p className="watch-muted">Подключите аккаунт Kino один раз.</p>
           </div>
           <SplitAuthPanel

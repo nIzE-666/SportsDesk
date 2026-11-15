@@ -16,9 +16,11 @@ export function useModalFocus(
     const focusable = () =>
       [
         ...panel.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),[tabindex="0"]',
+          'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex]',
         ),
-      ].filter((e) => !e.closest('[hidden]'));
+      ].filter(
+        (e) => e.getAttribute('tabindex') !== '-1' && !e.closest('[hidden],[aria-hidden="true"]'),
+      );
     const initial = () => {
       (focusable()[0] ?? panel).focus();
     };

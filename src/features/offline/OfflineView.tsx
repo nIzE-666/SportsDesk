@@ -160,7 +160,7 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
       {!embedded && (
         <header>
           <p className="eyebrow">ЛОКАЛЬНАЯ БИБЛИОТЕКА</p>
-          <h1>Офлайн-сезоны</h1>
+          <h2 className="screen-title">Офлайн-сезоны</h2>
           <p className="muted">Сезоны для просмотра без сети.</p>
         </header>
       )}

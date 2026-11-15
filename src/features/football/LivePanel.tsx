@@ -146,9 +146,9 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
     <div className="live-view">
       <div className="dashboard-head">
         <div>
-          <h1>
+          <h2 className="screen-title">
             <Radio size={18} /> Счёт и события
-          </h1>
+          </h2>
           <p className="muted small">Ваши клубы и турниры.</p>
         </div>
         <div className="dashboard-head-actions">

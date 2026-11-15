@@ -68,6 +68,7 @@ export function MatchStatsTab({
       className="match-statistics panel"
       aria-label={`Сравнение статистики: ${home.name} и ${away.name}`}
     >
+      <h2 className="visually-hidden">Статистика матча</h2>
       <div className="stats-context">
         <div className="stats-period-nav" role="tablist" aria-label="Период статистики">
           {periods.map((p) => (

@@ -40,6 +40,7 @@ import type { BracketData, BracketTie, UclKnockoutRound } from './bracket';
 import type { MatchSummary } from '../football/types';
 import { openExternal } from '../../lib/bridge';
 import { useDataRecovery } from '../../lib/useDataRecovery';
+import { useModalFocus } from '../../lib/useModalFocus';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import './ucl.css';
 
@@ -106,6 +107,8 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
   );
   const [selectedPlayer, setSelectedPlayer] = useState<UclScorer | null>(null);
   const [playerInfo, setPlayerInfo] = useState<Record<string, unknown> | null>(null);
+  const playerPanel = useRef<HTMLElement>(null);
+  useModalFocus(playerPanel, !!selectedPlayer, () => setSelectedPlayer(null));
   usePageScroll(`${viewScope}.${season}.${selectedMatch ? `match.${selectedMatch}` : tab}`);
   const previousContext = useRef(`${tab}.${season}`);
   useEffect(() => {
@@ -200,14 +203,6 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       active = false;
     };
   }, [selectedPlayer]);
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedPlayer(null);
-    };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
-  }, [selectedPlayer]);
   const matches = data?.matches ?? [];
   const played = matches.filter((m) => classifyMatchStatus(m.status, m.status_text) === 'finished');
   const totalGoals = played.reduce((n, m) => n + (m.score_home ?? 0) + (m.score_away ?? 0), 0);
@@ -270,10 +265,10 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       <div className="section-heading">
         <div>
           <span className="eyebrow">CHAMPIONS LEAGUE / EUROPE</span>
-          <h1>
+          <h2 className="screen-title">
             {TITLES[tab]}
             <span className="heading-dot">.</span>
-          </h1>
+          </h2>
         </div>
         <div className="ucl-season">
           <label htmlFor="ucl-season">СЕЗОН</label>
@@ -580,6 +575,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       {selectedPlayer && (
         <div className="player-modal-scrim" onClick={() => setSelectedPlayer(null)}>
           <section
+            ref={playerPanel}
             className="panel ucl-player-modal"
             role="dialog"
             aria-modal="true"
@@ -592,7 +588,7 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               onClick={() => setSelectedPlayer(null)}
               aria-label="Закрыть профиль игрока"
             >
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
             <span className="eyebrow">CHAMPIONS LEAGUE / {current}</span>
             <TeamBadge

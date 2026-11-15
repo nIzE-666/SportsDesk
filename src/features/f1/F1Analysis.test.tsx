@@ -174,10 +174,10 @@ function AnalysisHarness({ initial = 'compare' }: { initial?: F1AnalysisMode }) 
 it('shows the overview and three analysis modes', async () => {
   await act(async () => root.render(<F1View tab="overview" onTabChange={vi.fn()} />));
   await settle();
-  expect(host.querySelector('h1')?.textContent).toBe('Ваш гоночный уикенд');
+  expect(host.querySelector('.screen-title')?.textContent).toBe('Ваш гоночный уикенд');
   await act(async () => root.render(<F1View tab="compare" onTabChange={vi.fn()} />));
   await settle();
-  expect(host.querySelector('h1')?.textContent).toBe('Анализ');
+  expect(host.querySelector('.screen-title')?.textContent).toBe('Анализ');
   expect(modeTabs().map((tab) => tab.textContent?.trim())).toEqual([
     'Сравнение пилотов',
     'Темп по кругам',

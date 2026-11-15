@@ -70,7 +70,7 @@ export function StandingsView({
     <div className="standings-view">
       <div className="dashboard-head">
         <div>
-          <h1>Текущая таблица</h1>
+          <h2 className="screen-title">Текущая таблица</h2>
           <p className="muted small">
             {LEAGUES.find((l) => l.id === data.selectedLeagueId)?.label ??
               standings?.competition ??

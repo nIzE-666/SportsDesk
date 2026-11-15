@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import {
   AlertTriangle,
   ExternalLink,
@@ -10,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 
+import { useModalFocus } from '../../lib/useModalFocus';
 import type { AuthPhase } from './watchShared';
 import { formatRemaining } from './watchShared';
 export function SplitAuthPanel({
@@ -113,6 +115,8 @@ export function LogoutConfirm({
   onConfirm: () => void;
   busy: boolean;
 }) {
+  const panel = useRef<HTMLDivElement>(null);
+  useModalFocus(panel, true, onCancel);
   return (
     <div
       className="watch-modal-backdrop"
@@ -120,7 +124,7 @@ export function LogoutConfirm({
       aria-modal="true"
       aria-label="Выйти из аккаунта"
     >
-      <div className="watch-modal">
+      <div ref={panel} className="watch-modal">
         <h3>Выйти из Kino в SportsDesk?</h3>
         <p className="watch-muted">Сессии в браузере и на телевизоре не затрагиваются.</p>
         <div className="watch-modal-actions">

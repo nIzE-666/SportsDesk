@@ -10,7 +10,7 @@
   display: grid;
   gap: 24px;
 }
-.diary-view h1 {
+.diary-view .screen-title {
   font-size: 24px;
   line-height: 32px;
   margin: 0;
@@ -194,4 +194,11 @@
   .diary-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.app-root[data-theme] .diary-view .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }

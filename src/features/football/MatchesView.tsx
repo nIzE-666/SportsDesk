@@ -63,7 +63,7 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
     <div className="matches-view">
       <div className="dashboard-head">
         <div>
-          <h1>Матчи</h1>
+          <h2 className="screen-title">Матчи</h2>
           <p className="muted small">
             {data.leagueName(data.selectedLeagueId)} · сезон {data.season ?? '—'} ·{' '}
             {countRu(data.matches.length, MATCHES)} · {timezone}

@@ -688,3 +688,16 @@
 .f1-driver-identity > span:last-child {
   min-width: 0;
 }
+
+/* The screen title is h2 under the frame's single h1 and keeps its former look. */
+.broadcast-f1-heading .screen-title {
+  margin: 0;
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.app-root[data-theme] .broadcast-f1-heading .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+}

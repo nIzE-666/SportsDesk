@@ -278,10 +278,10 @@ function Inner({
       <div className="section-heading">
         <div>
           <span className="eyebrow">{competition.eyebrow}</span>
-          <h1>
+          <h2 className="screen-title">
             {competition.title}
             <span className="heading-dot">.</span>
-          </h1>
+          </h2>
         </div>
         <div className="ucl-season">
           <label htmlFor={`cup-season-${competition.id}`}>СЕЗОН</label>

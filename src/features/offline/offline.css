@@ -6,7 +6,7 @@
     Manrope,
     sans-serif;
 }
-.offline-view h1 {
+.offline-view .screen-title {
   margin: 0;
   font-size: 24px;
   line-height: 32px;
@@ -184,4 +184,11 @@
 
 .offline-view .primary-btn:not(:disabled):hover {
   filter: brightness(1.08);
+}
+
+.app-root[data-theme] .offline-view .screen-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }

@@ -527,3 +527,8 @@
     grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
   }
 }
+
+/* The screen title is h2 under the frame's single h1 and keeps its former look. */
+.app-root[data-theme] .section-heading .screen-title {
+  margin-top: 0;
+}

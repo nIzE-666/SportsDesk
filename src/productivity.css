@@ -95,7 +95,7 @@
   margin: 0;
   max-width: 65ch;
 }
-.event-center h1 {
+.event-center .screen-title {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -172,4 +172,8 @@
 .command-input input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.app-root[data-theme] .event-center .screen-title {
+  margin: 0;
 }

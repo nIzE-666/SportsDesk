@@ -178,7 +178,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       <section className="planner-hero">
         <div>
           <span className="eyebrow">ФУТБОЛ + ФОРМУЛА-1 · {tz}</span>
-          <h1>Мой спортивный вечер</h1>
+          <h2 className="screen-title">Мой спортивный вечер</h2>
           <p>Отметьте, что хотите смотреть, — пересечения подсветятся.</p>
         </div>
         <CalendarClock size={52} />

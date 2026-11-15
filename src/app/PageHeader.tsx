@@ -1,10 +1,11 @@
 import { ChevronLeft, Pin } from 'lucide-react';
+import { useRef, type KeyboardEvent } from 'react';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { AmbientToggle } from '../features/atmosphere/AmbientToggle';
 import type { ShellRoute } from '../lib/navigation';
 import type { SearchTarget } from '../lib/searchIndex';
 import { CompetitionSwitcher } from './CompetitionSwitcher';
-import { headerTabs, lastAnalysisMode, pageTitle } from './shellModel';
+import { headerTabs, lastAnalysisMode, pageTitle, type HeaderTab } from './shellModel';
 
 interface PageHeaderProps {
   route: ShellRoute;
@@ -30,6 +31,29 @@ export function PageHeader({
 }: PageHeaderProps) {
   const tabs = headerTabs(route);
   const football = route.kind === 'football' || route.kind === 'football-match';
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+  const openTab = (tab: HeaderTab) => {
+    onNavigate(
+      tab.key === 'analysis' && route.kind === 'f1'
+        ? { kind: 'f1', tab: lastAnalysisMode() }
+        : tab.route,
+    );
+  };
+  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const last = tabs.length - 1;
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? last
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const target = tabs[next];
+    if (!target) return;
+    tabRefs.current.get(target.key)?.focus();
+    openTab(target);
+  };
   return (
     <header className="shell-header">
       <div className="shell-header-bar">
@@ -73,20 +97,22 @@ export function PageHeader({
       </div>
       {tabs.length > 0 && (
         <div className="shell-tabs" role="tablist" aria-label="Разделы страницы">
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <button
               key={tab.key}
+              ref={(element) => {
+                if (element) tabRefs.current.set(tab.key, element);
+                else tabRefs.current.delete(tab.key);
+              }}
+              id={`shell-tab-${tab.key}`}
               type="button"
               role="tab"
               className="shell-tab"
               aria-selected={tab.active}
-              onClick={() =>
-                onNavigate(
-                  tab.key === 'analysis' && route.kind === 'f1'
-                    ? { kind: 'f1', tab: lastAnalysisMode() }
-                    : tab.route,
-                )
-              }
+              aria-controls="shell-page-panel"
+              tabIndex={tab.active ? 0 : -1}
+              onKeyDown={(event) => onTabKeyDown(event, index)}
+              onClick={() => openTab(tab)}
             >
               {tab.label}
             </button>

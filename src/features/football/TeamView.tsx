@@ -229,7 +229,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
       <div className="panel team-header">
         {catalogueTeam && <TeamBadge name={teamName} imageUrl={teamImage} size={56} />}
         <div className="team-header-body">
-          <h1>{catalogueTeam?.name ?? 'Клубы'}</h1>
+          <h2 className="screen-title">{catalogueTeam?.name ?? 'Клубы'}</h2>
           {catalogueTeam && <p className="muted small">{catalogueTeam.leagueName}</p>}
           <div className="team-header-actions">
             {teamId && (
