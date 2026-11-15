@@ -6,6 +6,7 @@ import { F1_ANALYSIS_MODES, type F1AnalysisMode } from './f1Tabs';
 import { useSeason } from './SeasonContext';
 import { Session } from './Session';
 import { useAnalysisSelection } from './useAnalysisSelection';
+import { Tabs } from '../../kit';
 
 export function F1Analysis({
   mode,
@@ -32,21 +33,17 @@ export function F1Analysis({
 
   return (
     <div className="f1-analysis">
-      <div className="f1-tabs f1-analysis-modes" role="tablist" aria-label="Режим анализа">
-        {F1_ANALYSIS_MODES.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={mode === id}
-            className="f1-tab"
-            onClick={() => onModeChange(id)}
-          >
-            <Icon size={14} aria-hidden="true" />
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={F1_ANALYSIS_MODES.map(({ id, label, icon: Icon }) => ({
+          id,
+          label,
+          icon: <Icon size={14} aria-hidden="true" />,
+        }))}
+        ariaLabel="Режим анализа"
+        active={mode}
+        onChange={(id) => onModeChange(id as F1AnalysisMode)}
+        className="f1-analysis-modes"
+      />
 
       <div className="f1-analysis-choice">
         <div className="f1-muted f1-analysis-field">

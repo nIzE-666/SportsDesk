@@ -7,22 +7,13 @@ import { RacePacePanel } from './RacePacePanel';
 import { isCompleted, isMeetingCompleted, pickDefaultSession } from './analysisChoice';
 import { meetingTitle, sessionNameLabel, sessionShortDate } from './analysisLabels';
 import { useApiResource } from './api';
-import { SourceBar, State } from './shared';
+import { SourceBar, State, tyreClass, type F1Style } from './shared';
+import { Badge } from '../../kit';
 import { openF1Color } from './teamColors';
 import { formatDate, parseUtc } from './time';
 import { parseOpenF1Drivers, parseOpenF1Laps, parseOpenF1Pits, parseOpenF1Stints } from './openf1';
 import type { AnalysisSelection } from './useAnalysisSelection';
 import type { OpenF1Driver } from './types';
-
-function compoundColor(compound: string | null | undefined): string {
-  const c = (compound ?? '').toLowerCase();
-  if (c === 'soft') return '#ff4d4d';
-  if (c === 'medium') return '#ffd24d';
-  if (c === 'hard') return '#e6e6e6';
-  if (c === 'intermediate') return '#4ddd78';
-  if (c === 'wet') return '#3d9bff';
-  return '#6b7280';
-}
 
 function compoundLabel(compound: string | null | undefined): string {
   const c = (compound ?? '').toLowerCase();
@@ -158,9 +149,11 @@ export function Session({
     pickDefaultSession(sessionList, Date.now()) === null;
 
   const liveNote = (
-    <div className="f1-pill warn" title="Живые данные недоступны: только история">
-      <Radio size={12} aria-hidden="true" /> Прямая телеметрия недоступна
-    </div>
+    <span title="Живые данные недоступны: только история">
+      <Badge variant="warning">
+        <Radio size={12} aria-hidden="true" /> Прямая телеметрия недоступна
+      </Badge>
+    </span>
   );
 
   return (
@@ -219,7 +212,7 @@ export function Session({
           <div className="f1-meta-row">
             <span>{meetingTitle(selectedMeeting) ?? 'Гран-при'}</span>
             {selectedMeeting.circuit_short_name ? (
-              <span className="f1-pill">{selectedMeeting.circuit_short_name}</span>
+              <Badge>{selectedMeeting.circuit_short_name}</Badge>
             ) : null}
             {selectedMeeting.country_name ? (
               <span className="f1-muted">{selectedMeeting.country_name}</span>
@@ -230,7 +223,7 @@ export function Session({
               </span>
             ) : null}
             {!isMeetingCompleted(selectedMeeting, Date.now()) ? (
-              <span className="f1-pill warn">Уик-энд не завершён · неполные данные</span>
+              <Badge variant="warning">Уик-энд не завершён · неполные данные</Badge>
             ) : null}
           </div>
         ) : null}
@@ -326,11 +319,16 @@ export function Session({
                   <div className="f1-muted f1-session-driver-team">
                     <span
                       className="f1-team-dot"
-                      style={{ background: openF1Color(selectedDriver.team_colour) ?? '#6b7280' }}
+                      style={
+                        {
+                          '--dot-color':
+                            openF1Color(selectedDriver.team_colour) ?? 'var(--color-text-tertiary)',
+                        } as F1Style
+                      }
                       aria-hidden="true"
                     />
                     {selectedDriver.team_name ?? 'Команда не указана'}
-                    <span className="f1-pill">№{selectedDriver.driver_number}</span>
+                    <Badge>№{selectedDriver.driver_number}</Badge>
                   </div>
                 </div>
                 <div className="f1-kv f1-session-stats">
@@ -359,8 +357,8 @@ export function Session({
             ) : null}
 
             {fastestLaps.length > 0 ? (
-              <div className="f1-scroll">
-                <table className="f1-table">
+              <div className="ui-table-scroll">
+                <table className="ui-table">
                   <thead>
                     <tr>
                       <th>Круг</th>
@@ -429,8 +427,8 @@ export function Session({
                     return (
                       <div
                         key={`${s.stint_number ?? start}-${i}`}
-                        className="f1-stint-seg"
-                        style={{ background: compoundColor(s.compound), flex: `${width} 0 0` }}
+                        className={`f1-stint-seg f1-tyre f1-tyre--${tyreClass(s.compound)}`}
+                        style={{ '--stint-grow': width } as F1Style}
                         title={`${s.compound ?? 'Compound?'} · круги ${start}–${end}`}
                       >
                         {compoundLabel(s.compound)}
@@ -440,23 +438,23 @@ export function Session({
                 </div>
                 <div className="f1-legend">
                   <span>
-                    <i className="f1-legend-soft" />
+                    <i className="f1-tyre f1-tyre--soft" />
                     Soft
                   </span>
                   <span>
-                    <i className="f1-legend-medium" />
+                    <i className="f1-tyre f1-tyre--medium" />
                     Medium
                   </span>
                   <span>
-                    <i className="f1-legend-hard" />
+                    <i className="f1-tyre f1-tyre--hard" />
                     Hard
                   </span>
                   <span>
-                    <i className="f1-legend-intermediate" />
+                    <i className="f1-tyre f1-tyre--inter" />
                     Intermediate
                   </span>
                   <span>
-                    <i className="f1-legend-wet" />
+                    <i className="f1-tyre f1-tyre--wet" />
                     Wet
                   </span>
                   {stintTotal > 0 ? <span className="f1-muted">до {stintTotal} круга</span> : null}
@@ -476,8 +474,8 @@ export function Session({
               <div className="f1-muted f1-note-small">Пит-стопы не зафиксированы.</div>
             ) : null}
             {pitRows.length > 0 ? (
-              <div className="f1-scroll">
-                <table className="f1-table">
+              <div className="ui-table-scroll">
+                <table className="ui-table">
                   <thead>
                     <tr>
                       <th>Круг</th>

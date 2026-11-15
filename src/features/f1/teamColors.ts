@@ -17,7 +17,7 @@ const COLORS: Record<string, string> = {
   cadillac: '#d4af37',
 };
 
-const FALLBACK_COLOR = '#6b7280';
+const FALLBACK_COLOR = 'var(--color-text-tertiary)';
 
 export function teamColor(id?: string | null): string {
   if (!id) return FALLBACK_COLOR;
@@ -32,16 +32,4 @@ export function openF1Color(raw?: string | null): string | undefined {
   if (/^[0-9a-fA-F]{6}$/.test(v)) return '#' + v.toLowerCase();
   if (/^[0-9a-fA-F]{3}$/.test(v)) return '#' + v.toLowerCase();
   return undefined;
-}
-
-export function withAlpha(hex: string, alpha: number): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
-  const hexBody = m?.[1];
-  if (!hexBody) return `rgba(255,59,59,${alpha})`;
-  const int = parseInt(hexBody, 16);
-  if (!Number.isFinite(int)) return `rgba(255,59,59,${alpha})`;
-  const r = (int >> 16) & 255;
-  const g = (int >> 8) & 255;
-  const b = int & 255;
-  return `rgba(${r},${g},${b},${alpha})`;
 }

@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { sourceLabels } from '../../lib/sourceLabels';
 import { formatUpdatedAt, getUserTimezone } from '../football/storage';
+import { Badge, Button } from '../../kit';
 
 interface SourceEntry {
   source: string;
@@ -83,14 +84,13 @@ export function SourceRefresh() {
   if (!refreshable.length) return null;
   const refreshing = refreshable.some((entry) => entry.refreshing);
   return (
-    <button
-      className="ghost-btn"
+    <Button
       type="button"
-      disabled={refreshing}
+      busy={refreshing}
       onClick={() => refreshable.forEach((entry) => entry.refresh?.())}
     >
       {refreshing ? 'Обновление…' : 'Обновить данные'}
-    </button>
+    </Button>
   );
 }
 
@@ -112,7 +112,7 @@ export function SourceSummary() {
         {time ? ` · обновлено не ранее ${time}` : ''}
       </span>
       {entries.some((entry) => entry.stale) && (
-        <span className="f1-pill warn">Есть устаревшие данные</span>
+        <Badge variant="warning">Есть устаревшие данные</Badge>
       )}
     </div>
   );

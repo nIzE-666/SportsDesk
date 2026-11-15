@@ -1,4 +1,5 @@
 import { useViewState } from '../../lib/useViewState';
+import { Button, Tabs } from '../../kit';
 import { useApiResource } from './api';
 import { parseQualifying, parseRaceResults } from './parsing';
 import { SourceBar, State } from './shared';
@@ -13,6 +14,12 @@ import { f1DiaryEvent } from '../diary/diaryModel';
 import { useSourceSummaryAvailable } from './SourceSummary';
 
 type Tab = 'qualifying' | 'sprint' | 'race' | 'points';
+const WEEKEND_TABS = [
+  { id: 'qualifying', label: 'Квалификация' },
+  { id: 'sprint', label: 'Спринт' },
+  { id: 'race', label: 'Гонка' },
+  { id: 'points', label: 'Очки уикенда' },
+] as const;
 function sprintRows(payload: unknown) {
   const data = payload as { MRData?: { RaceTable?: { Races?: Array<Record<string, unknown>> } } };
   return (
@@ -66,11 +73,7 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
             {race.Circuit.circuitName} · {getTimeZone()}
           </span>
         </div>
-        {!aggregated && (
-          <button className="ghost-btn" onClick={refresh}>
-            Обновить уикенд
-          </button>
-        )}
+        {!aggregated && <Button onClick={refresh}>Обновить уикенд</Button>}
       </div>
       <div className="weekend-schedule">
         {sessions.map((session) => (
@@ -94,26 +97,12 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
         event={{ ...f1DiaryEvent(race), title: `${racePresentation(race).title} · гонка` }}
         label="Отметить просмотр гонки"
       />
-      <div className="f1-tabs" role="tablist" aria-label="Результаты уикенда">
-        {(
-          [
-            { id: 'qualifying', label: 'Квалификация' },
-            { id: 'sprint', label: 'Спринт' },
-            { id: 'race', label: 'Гонка' },
-            { id: 'points', label: 'Очки уикенда' },
-          ] as const
-        ).map((item) => (
-          <button
-            className="f1-tab"
-            role="tab"
-            key={item.id}
-            aria-selected={tab === item.id}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={WEEKEND_TABS}
+        ariaLabel="Результаты уикенда"
+        active={tab}
+        onChange={(id) => setTab(id as Tab)}
+      />
       {tab === 'points' ? (
         <>
           {(results.loading || sprint.loading) && (
@@ -122,9 +111,9 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
           {(results.error || sprint.error) && (
             <State kind="error" title="Часть очков недоступна">
               {results.error ?? sprint.error}{' '}
-              <button className="text-link" onClick={refresh}>
+              <Button variant="quiet" small onClick={refresh}>
                 Повторить
-              </button>
+              </Button>
             </State>
           )}
           {results.data?.length || sprint.data?.length ? (
@@ -150,9 +139,9 @@ export function RaceWeekend({ race }: { race: JolpicaRace }) {
           {active.error && (
             <State kind="error" title="Результаты недоступны">
               {active.error}{' '}
-              <button className="text-link" onClick={active.reload}>
+              <Button variant="quiet" small onClick={active.reload}>
                 Повторить
-              </button>
+              </Button>
             </State>
           )}
           {active.data && !active.data.length && !active.loading && (

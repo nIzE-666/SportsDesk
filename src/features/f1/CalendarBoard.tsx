@@ -15,6 +15,7 @@ import { countRu, STAGES } from '../../lib/plural';
 import { formatDateTime, getTimeZone } from './time';
 import { weekendSchedule } from './weekendSchedule';
 import type { JolpicaRace } from './types';
+import { Badge, Button, EmptyState, Panel, SegmentedControl } from '../../kit';
 import './calendar.css';
 
 type Filter = 'upcoming' | 'past' | 'all';
@@ -84,9 +85,9 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
               <p>Расписание уточняется · {formatHumanDate(next.date, timezone)}</p>
             )}
           </div>
-          <button className="primary-btn" onClick={jumpToNext}>
+          <Button variant="primary" onClick={jumpToNext}>
             Открыть уикенд <ChevronRight size={16} />
-          </button>
+          </Button>
         </section>
       )}
       <div className="calendar-heading">
@@ -96,42 +97,56 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
           </h2>
           <p>Время: {timezone}.</p>
         </div>
-        <span className="chip">{countRu(ordered.length, STAGES)}</span>
+        <Badge>{countRu(ordered.length, STAGES)}</Badge>
       </div>
-      <div className="calendar-filters" role="group" aria-label="Фильтр этапов">
-        {(
-          [
-            ['upcoming', 'Предстоящие'],
-            ['past', 'Прошедшие'],
-            ['all', 'Все этапы'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            className={filter === id ? 'ghost-btn active' : 'ghost-btn'}
-            aria-pressed={filter === id}
-            onClick={() => setFilter(id)}
-          >
-            {label}
-            <span>
-              {id === 'all'
-                ? ordered.length
-                : ordered.filter((r) => calendarPhase(r, now) === id).length}
-            </span>
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel="Фильтр этапов"
+        value={filter}
+        onChange={(id) => setFilter(id as Filter)}
+        className="f1-calendar-filters"
+        items={[
+          {
+            id: 'upcoming',
+            label: (
+              <>
+                Предстоящие
+                <span className="calendar-filter-count">
+                  {ordered.filter((r) => calendarPhase(r, now) === 'upcoming').length}
+                </span>
+              </>
+            ),
+          },
+          {
+            id: 'past',
+            label: (
+              <>
+                Прошедшие
+                <span className="calendar-filter-count">
+                  {ordered.filter((r) => calendarPhase(r, now) === 'past').length}
+                </span>
+              </>
+            ),
+          },
+          {
+            id: 'all',
+            label: (
+              <>
+                Все этапы
+                <span className="calendar-filter-count">{ordered.length}</span>
+              </>
+            ),
+          },
+        ]}
+      />
       <div className="calendar-layout">
-        <section className="panel calendar-stage-panel" aria-label="Этапы сезона">
+        <Panel className="calendar-stage-panel" aria-label="Этапы сезона">
           <div className="calendar-stage-list" ref={list}>
             {!visible.length && (
-              <div className="calendar-no-stages">
-                <Flag size={25} />
-                <h3>Этапов по этому фильтру нет</h3>
-                <button className="ghost-btn" onClick={() => setFilter('all')}>
-                  Показать весь сезон
-                </button>
-              </div>
+              <EmptyState
+                icon={<Flag size={20} aria-hidden="true" />}
+                message="Этапов по этому фильтру нет"
+                action={<Button onClick={() => setFilter('all')}>Показать весь сезон</Button>}
+              />
             )}
             {visible.map((race, i) => {
               const presentation = racePresentation(race),
@@ -142,9 +157,10 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
                   {(i === 0 || calendarMonth(visible[i - 1]!, timezone) !== month) && (
                     <h3 className="calendar-month">{month}</h3>
                   )}
-                  <button
+                  <Button
                     ref={chosen ? activeButton : undefined}
-                    className={`calendar-stage ${chosen ? 'selected' : ''}`}
+                    variant="quiet"
+                    className={`calendar-stage${chosen ? ' selected' : ''}`}
                     aria-pressed={chosen}
                     aria-label={`Открыть ${presentation.title}, этап ${race.round}`}
                     onClick={() => setSelected(Number(race.round))}
@@ -157,32 +173,34 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
                       </span>
                       <span className="calendar-stage-track">{race.Circuit.circuitName}</span>
                       <span className="calendar-stage-date">
-                        <Clock3 size={12} />
+                        <Clock3 size={12} aria-hidden="true" />
                         {raceStart(race)
                           ? formatDateTime(raceStart(race), timezone)
                           : `${formatHumanDate(race.date, timezone)} · время уточняется`}
                       </span>
                       <span className="calendar-stage-tags">
                         {next?.round === race.round && (
-                          <small className="next-tag">Ближайший</small>
+                          <span className="calendar-stage-tag calendar-stage-tag--next">
+                            Ближайший
+                          </span>
                         )}
                         {race.Sprint && (
-                          <small>
-                            <Zap size={11} /> Спринт
-                          </small>
+                          <span className="calendar-stage-tag">
+                            <Zap size={11} aria-hidden="true" /> Спринт
+                          </span>
                         )}
-                        <small>
+                        <span className="calendar-stage-tag">
                           {calendarPhase(race, now) === 'past' ? 'Прошедший этап' : 'По расписанию'}
-                        </small>
+                        </span>
                       </span>
                     </span>
-                    <ChevronRight size={15} />
-                  </button>
+                    <ChevronRight size={15} aria-hidden="true" />
+                  </Button>
                 </div>
               );
             })}
           </div>
-        </section>
+        </Panel>
         <div className="calendar-detail" aria-live="polite">
           {selectedRace ? (
             <>
@@ -195,11 +213,12 @@ export function CalendarBoard({ races, year }: { races: JolpicaRace[]; year: num
               <RaceWeekend key={`${year}.${selectedRace.round}`} race={selectedRace} />
             </>
           ) : (
-            <section className="panel calendar-empty-detail">
-              <CalendarClock size={32} />
-              <h2>Выберите этап</h2>
-              <p>Откройте весь сезон или измените фильтр.</p>
-            </section>
+            <Panel className="calendar-empty-detail">
+              <EmptyState
+                icon={<CalendarClock size={20} aria-hidden="true" />}
+                message="Выберите этап. Откройте весь сезон или измените фильтр."
+              />
+            </Panel>
           )}
         </div>
       </div>

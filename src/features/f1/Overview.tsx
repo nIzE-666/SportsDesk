@@ -18,10 +18,11 @@ import type {
   JolpicaConstructor,
 } from './types';
 import { parseUtc, formatDateTime, formatShort } from './time';
-import { teamColor, withAlpha } from './teamColors';
+import { teamColor } from './teamColors';
 import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
 import { useSeason } from './SeasonContext';
-import { SourceBar, State, TeamDot, DriverName } from './shared';
+import { SourceBar, State, TeamDot, DriverName, type F1Style } from './shared';
+import { Badge, Button } from '../../kit';
 import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
 import { grandPrixTitle, racePresentation } from './calendarModel';
@@ -71,7 +72,7 @@ function SessionRow({ label, d }: { label: string; d?: { date?: string; time?: s
   return (
     <div className="f1-session-row">
       <span className="f1-muted">{label}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(dt)}</span>
+      <span className="f1-num">{formatDateTime(dt)}</span>
     </div>
   );
 }
@@ -99,23 +100,21 @@ function WeekendCard({ race }: { race: JolpicaRace }) {
           <div className="f1-eyebrow">
             {racePresentation(race).title} · Раунд {race.round}
           </div>
-          <h2 className="f1-title" style={{ marginTop: 4 }}>
-            Расписание уикенда
-          </h2>
-          <div className="f1-muted" style={{ marginTop: 3 }}>
+          <h2 className="f1-title f1-title--tight">Расписание уикенда</h2>
+          <div className="f1-muted f1-muted--tight">
             {circuit.circuitName}
             {loc?.locality ? ` · ${loc.locality}` : ''}
             {loc?.country ? `, ${loc.country}` : ''}
           </div>
         </div>
-        <Flag size={22} color="var(--accent,#ff3b3b)" aria-hidden="true" />
+        <Flag size={22} className="f1-icon-accent" aria-hidden="true" />
       </div>
       <div>
         {sessions.map((s) => (
           <SessionRow key={s.label} label={s.label} d={s.d} />
         ))}
       </div>
-      <div className="f1-muted" style={{ fontSize: 11.5 }}>
+      <div className="f1-muted f1-note-small">
         Время в вашем часовом поясе (настраивается в параметрах приложения).
       </div>
     </div>
@@ -160,7 +159,7 @@ function LatestRaceCard({
           <div className="f1-eyebrow">
             Последняя гонка{roundLabel ? ` · Раунд ${roundLabel}` : ''}
           </div>
-          <div className="f1-title" style={{ marginTop: 4, fontSize: 17 }}>
+          <div className="f1-title f1-title--tight f1-title--race">
             {last.race ? last.race.title : 'Нет данных'}
           </div>
           {last.race ? (
@@ -172,7 +171,7 @@ function LatestRaceCard({
             </div>
           ) : null}
         </div>
-        <Trophy size={20} color="var(--accent,#ff3b3b)" aria-hidden="true" />
+        <Trophy size={20} className="f1-icon-accent" aria-hidden="true" />
       </div>
 
       {!last.race && fallbackRound === null ? (
@@ -194,27 +193,12 @@ function LatestRaceCard({
       ) : null}
 
       {summary && last.race ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="f1-podium">
           {summary.podium.map(({ place, entry }) => {
             if (!entry) return null;
             return (
-              <div
-                key={entry.Driver.driverId}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '26px minmax(0,1fr) auto',
-                  gap: 10,
-                  alignItems: 'center',
-                  fontSize: 13.5,
-                }}
-              >
-                <span
-                  className="f1-big"
-                  style={{
-                    fontSize: 22,
-                    color: place === 1 ? 'var(--text,#fff)' : 'var(--muted,#8b9099)',
-                  }}
-                >
+              <div key={entry.Driver.driverId} className="f1-podium-row">
+                <span className={place === 1 ? 'f1-podium-place is-first' : 'f1-podium-place'}>
                   {place}
                 </span>
                 <div>
@@ -224,23 +208,16 @@ function LatestRaceCard({
                       familyName={entry.Driver.familyName}
                     />
                   </div>
-                  <div
-                    className="f1-muted"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
+                  <div className="f1-muted f1-inline">
                     <TeamDot color={teamColor(entry.Constructor.constructorId)} />
                     {entry.Constructor.name}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div className="f1-podium-right">
                   {place === 1 ? (
-                    <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
-                      Победитель
-                    </div>
+                    <div className="f1-num f1-note-small">Победитель</div>
                   ) : entry.Time?.time ? (
-                    <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
-                      {entry.Time.time}
-                    </div>
+                    <div className="f1-num f1-note-small">{entry.Time.time}</div>
                   ) : null}
                   {entry.FastestLap?.rank === '1' && entry.FastestLap.Time?.time ? (
                     <div className="f1-muted">БК {entry.FastestLap.Time.time}</div>
@@ -249,7 +226,7 @@ function LatestRaceCard({
               </div>
             );
           })}
-          <div className="f1-kv" style={{ marginTop: 6 }}>
+          <div className="f1-kv f1-kv--spaced">
             <span>
               Финишировали: <b>{summary.finishedCount}</b>
             </span>
@@ -294,62 +271,48 @@ function FavoriteDriverCard({
   const isFavTeam = displayTeam ? favTeams.includes(displayTeam.constructorId) : false;
 
   return (
-    <div className="f1-card" style={{ gap: 10 }}>
+    <div className="f1-card f1-card--driver">
       <div className="f1-driver-head">
-        <div
-          className="f1-big"
-          style={{ fontSize: 34, color: 'var(--accent,#ff3b3b)', minWidth: 40 }}
-        >
-          {standing.position ?? '—'}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15 }}>
+        <div className="f1-big f1-big--position">{standing.position ?? '—'}</div>
+        <div className="f1-driver-main">
+          <div className="f1-driver-name">
             <DriverName
               givenName={standing.Driver.givenName}
               familyName={standing.Driver.familyName}
             />
           </div>
-          <div
-            className="f1-muted"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
-          >
+          <div className="f1-muted f1-driver-team">
             {displayTeam ? (
-              <button
+              <Button
                 type="button"
-                className="f1-chip"
+                variant="quiet"
+                small
+                className="f1-team-chip"
                 onClick={() => toggleTeam(displayTeam.constructorId)}
                 title="Отметить команду избранной"
-                style={{
-                  background: withAlpha(teamColor(displayTeam.constructorId), 0.12),
-                  borderColor: withAlpha(teamColor(displayTeam.constructorId), 0.5),
-                }}
+                style={
+                  {
+                    '--team-color': teamColor(displayTeam.constructorId),
+                  } as F1Style
+                }
               >
                 <TeamDot color={teamColor(displayTeam.constructorId)} />
                 {displayTeam.name}
-                {isFavTeam ? (
-                  <Star
-                    size={11}
-                    fill="currentColor"
-                    aria-hidden="true"
-                    style={{ marginLeft: 2 }}
-                  />
-                ) : null}
-              </button>
+                {isFavTeam ? <Star size={11} fill="currentColor" aria-hidden="true" /> : null}
+              </Button>
             ) : (
               <span>Команда не указана</span>
             )}
-            {standing.Driver.code ? <span className="f1-pill">{standing.Driver.code}</span> : null}
+            {standing.Driver.code ? <Badge>{standing.Driver.code}</Badge> : null}
           </div>
           {teamIsFromLatest && lineupSourceLabel ? (
-            <div className="f1-muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+            <div className="f1-muted f1-note-tight">
               Текущая команда по составу: {lineupSourceLabel}
             </div>
           ) : null}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div className="f1-points" style={{ fontSize: 22 }}>
-            {standing.points ?? '—'}
-          </div>
+        <div className="f1-driver-points">
+          <div className="f1-points f1-points--big">{standing.points ?? '—'}</div>
           <div className="f1-muted">очков</div>
         </div>
       </div>
@@ -358,24 +321,26 @@ function FavoriteDriverCard({
           Победы: <b>{standing.wins ?? '—'}</b>
         </span>
         {displayTeam && (standing.Constructors?.length ?? 0) > 1 ? (
-          <span className="f1-pill warn" title="В таблице указано несколько команд в сезоне">
-            Команд в сезоне: {standing.Constructors?.length}
+          <span title="В таблице указано несколько команд в сезоне">
+            <Badge variant="warning">Команд в сезоне: {standing.Constructors?.length}</Badge>
           </span>
         ) : null}
       </div>
-      <button
+      <Button
         type="button"
-        className="f1-btn is-ghost"
+        variant="quiet"
+        small
+        className="f1-expand-button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
         {expanded ? 'Скрыть последний результат' : 'Показать последний результат'}
-      </button>
+      </Button>
       {expanded ? (
         <div>
           {latestEntry && latestRaceName ? (
-            <div className="f1-kv" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div className="f1-muted" style={{ fontSize: 12 }}>
+            <div className="f1-kv f1-kv--column">
+              <div className="f1-muted f1-note-small">
                 {latestRaceName}
                 {latestRound !== null ? ` · Раунд ${latestRound}` : ''}
               </div>
@@ -558,9 +523,9 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
             <p>{coverRace.Circuit.circuitName}</p>
             <div className="event-cover-actions">
               {onOpenCalendar && (
-                <button className="primary-btn" onClick={() => onOpenCalendar(coverRace.round)}>
+                <Button variant="primary" onClick={() => onOpenCalendar(coverRace.round)}>
                   Открыть уикенд <CalendarClock size={16} />
-                </button>
+                </Button>
               )}
               <span className="event-cover-status">
                 {next ? 'Ближайшая гонка' : 'Последний прошедший этап'}
@@ -576,7 +541,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
         )}
       </EventCover>
       <div className="f1-grid f1-overview-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+        <div className="f1-overview-column">
           <SourceBar
             source={schedule.source}
             fetchedAt={schedule.fetchedAt}
@@ -627,11 +592,11 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
           ) : null}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+        <div className="f1-overview-column">
           <div className="f1-card">
             <div className="f1-card-head">
               <div className="f1-eyebrow">Чемпионат · Сезон {year}</div>
-              <Users size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
+              <Users size={16} className="f1-icon-muted" aria-hidden="true" />
             </div>
             {dStand.loading && !dStand.data ? (
               <State kind="loading" title="Загрузка лидеров…" />
@@ -642,21 +607,16 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               </State>
             ) : null}
             {leadDriver ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="f1-stack">
                 <div>
-                  <div className="f1-muted" style={{ fontSize: 11 }}>
-                    Лидер пилотов
-                  </div>
-                  <div style={{ fontSize: 16, marginTop: 2 }}>
+                  <div className="f1-muted f1-note-small">Лидер пилотов</div>
+                  <div className="f1-leader-name">
                     <DriverName
                       givenName={leadDriver.Driver.givenName}
                       familyName={leadDriver.Driver.familyName}
                     />
                   </div>
-                  <div
-                    className="f1-muted"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
+                  <div className="f1-muted f1-inline">
                     {leadDriver.Constructors?.[0] ? (
                       <TeamDot color={teamColor(leadDriver.Constructors[0].constructorId)} />
                     ) : null}
@@ -674,15 +634,13 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               </div>
             ) : null}
             {leadCons ? (
-              <div style={{ borderTop: '1px solid var(--line,#26282e)', paddingTop: 10 }}>
-                <div className="f1-muted" style={{ fontSize: 11 }}>
-                  Лидер Кубка конструкторов
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+              <div className="f1-leader-divider">
+                <div className="f1-muted f1-note-small">Лидер Кубка конструкторов</div>
+                <div className="f1-inline f1-leader-team">
                   <TeamDot color={teamColor(leadCons.Constructor.constructorId)} />
-                  <b style={{ color: 'var(--text,#fff)' }}>{leadCons.Constructor.name}</b>
+                  <b className="f1-strong">{leadCons.Constructor.name}</b>
                 </div>
-                <div className="f1-kv" style={{ marginTop: 4 }}>
+                <div className="f1-kv f1-kv--tight">
                   <span>
                     Очки: <b>{leadCons.points ?? '—'}</b>
                   </span>
@@ -692,9 +650,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
                 </div>
               </div>
             ) : null}
-            <div className="f1-muted" style={{ fontSize: 11.5 }}>
-              Пилотов в чемпионате: {rule}
-            </div>
+            <div className="f1-muted f1-note-tight">Пилотов в чемпионате: {rule}</div>
             <SourceBar
               source={dStand.source}
               fetchedAt={dStand.fetchedAt}
@@ -716,13 +672,13 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
         <div className="f1-card">
           <div className="f1-card-head">
             <div className="f1-eyebrow">Пилоты избранных команд и избранные пилоты</div>
-            <CalendarClock size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
+            <CalendarClock size={16} className="f1-icon-muted" aria-hidden="true" />
           </div>
-          <div className="f1-muted" style={{ fontSize: 11.5 }}>
+          <div className="f1-muted f1-note-tight">
             {latestHasResults && latestLabel ? (
               <span>
                 Текущий состав по последней проверенной гонке:{' '}
-                <b style={{ color: 'var(--text,#fff)' }}>{latestLabel}</b>. Избранные команды:{' '}
+                <b className="f1-strong">{latestLabel}</b>. Избранные команды:{' '}
                 {favTeams.length > 0
                   ? favTeams
                       .map(
@@ -753,11 +709,13 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
             </State>
           ) : null}
           {showLineupWarning ? (
-            <div className="f1-pill warn">
-              Состав избранных команд не подтверждён последней гонкой
+            <div>
+              <Badge variant="warning">
+                Состав избранных команд не подтверждён последней гонкой
+              </Badge>
             </div>
           ) : null}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="f1-stack">
             {roster.rows.map(({ standing, currentTeam }) => {
               const entry = latestByDriver.get(standing.Driver.driverId) ?? null;
               return (
@@ -782,7 +740,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               Отметьте команды в таблице конструкторов.
             </State>
           ) : favConstructorRows.length === 0 && cStand.data ? (
-            <div className="f1-muted" style={{ fontSize: 12 }}>
+            <div className="f1-muted f1-note-small">
               Избранные команды отсутствуют в таблице сезона {year}.
             </div>
           ) : (
@@ -791,16 +749,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
                 <div key={c.Constructor.constructorId} className="f1-row">
                   <span className="f1-pos">{c.position ?? '—'}</span>
                   <TeamDot color={teamColor(c.Constructor.constructorId)} />
-                  <span
-                    style={{
-                      minWidth: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.Constructor.name}
-                  </span>
+                  <span className="f1-row-name">{c.Constructor.name}</span>
                   <span className="f1-points">{c.points ?? '—'}</span>
                 </div>
               ))}

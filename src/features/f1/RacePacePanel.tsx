@@ -15,8 +15,9 @@ import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useNow } from '../../lib/useNow';
 import { countRu, LAP_PAIRS, LAPS, pluralRu } from '../../lib/plural';
+import { Badge, Button, StatTile } from '../../kit';
 import { sessionNameLabel } from './analysisLabels';
-import { SourceBar } from './shared';
+import { SourceBar, tyreClass, type F1Style } from './shared';
 import { useSourceSummaryAvailable } from './SourceSummary';
 import {
   buildRacePaceComparison,
@@ -36,13 +37,6 @@ const seconds = (n: number | null | undefined) =>
   n == null
     ? '—'
     : `${n > 0 ? '+' : ''}${n.toLocaleString('ru-RU', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} с`;
-const TYRE_COLORS: Record<string, string> = {
-  SOFT: '#fa6868',
-  MEDIUM: '#e7c64b',
-  HARD: '#c7d0dc',
-  INTERMEDIATE: '#5bd290',
-  WET: '#5aabff',
-};
 function segments(comparison: RacePaceComparison, side: 'a' | 'b') {
   const out: { start: number; end: number; compound: string; stint: number | null }[] = [];
   for (const row of comparison.rows) {
@@ -153,7 +147,13 @@ export function RacePacePanel({
             {sessionPlace ? `${sessionName} · ${sessionPlace}` : sessionName}
           </p>
         </div>
-        <span className="chip">{available ? 'Исторические данные' : 'Данные ещё недоступны'}</span>
+        <span>
+          {available ? (
+            <Badge>Исторические данные</Badge>
+          ) : (
+            <Badge variant="warning">Данные ещё недоступны</Badge>
+          )}
+        </span>
       </div>
       <p className="analysis-description">Два пилота, одна сессия: круги, шины и пит-стопы.</p>
       <div className="pace-driver-selectors">
@@ -200,14 +200,14 @@ export function RacePacePanel({
           />{' '}
           Исключать круги заезда и выезда из боксов
         </label>
-        <button
-          className="primary-btn"
+        <Button
+          variant="primary"
           disabled={busy || !available || !a || !b}
           onClick={() => void load(!!raw)}
+          icon={<ArrowLeftRight size={15} />}
         >
-          <ArrowLeftRight size={15} />
           {busy ? 'Загружаем круги…' : raw ? 'Обновить сравнение' : 'Сравнить темп'}
-        </button>
+        </Button>
       </div>
       {!available && <p className="muted small">Круги появляются через 30 минут после сессии.</p>}
       {drivers.length < 2 && <p className="muted small">Нужны данные хотя бы двух пилотов.</p>}
@@ -232,30 +232,37 @@ export function RacePacePanel({
           )}
           <div className="pace-summary">
             {[
-              { value: comparison.a, name: nameA, color: '#ff7771' },
-              { value: comparison.b, name: nameB, color: '#69b7ff' },
-            ].map(({ value, name, color }) => (
-              <div key={name} style={{ borderTopColor: color }}>
-                <span>{name}</span>
-                <strong>{duration(value.medianSeconds)}</strong>
-                <small>Медиана · {countRu(value.validLapCount, LAPS)} с временем</small>
-                <small>
-                  Среднее: {duration(value.meanSeconds)} · пит-кругов исключено:{' '}
-                  {value.excludedPitLapCount}
-                </small>
-              </div>
+              { value: comparison.a, name: nameA, side: 'a' },
+              { value: comparison.b, name: nameB, side: 'b' },
+            ].map(({ value, name, side }) => (
+              <StatTile
+                key={side}
+                className={`pace-summary__tile pace-summary__tile--${side}`}
+                label={name}
+                value={duration(value.medianSeconds)}
+                note={
+                  <>
+                    Медиана · {countRu(value.validLapCount, LAPS)} с временем
+                    <br />
+                    Среднее: {duration(value.meanSeconds)} · пит-кругов исключено:{' '}
+                    {value.excludedPitLapCount}
+                  </>
+                }
+              />
             ))}
-            <div>
-              <span>Разница на общих кругах</span>
-              <strong>{seconds(comparison.paired.meanDeltaSeconds)}</strong>
-              <small>
-                Среднее A − B · {comparison.paired.lapCount}{' '}
-                {pluralRu(comparison.paired.lapCount, LAP_PAIRS)} кругов
-              </small>
-              <small>
-                Минус — быстрее {nameA}; плюс — {nameB}
-              </small>
-            </div>
+            <StatTile
+              className="pace-summary__tile pace-summary__tile--delta"
+              label="Разница на общих кругах"
+              value={seconds(comparison.paired.meanDeltaSeconds)}
+              note={
+                <>
+                  Среднее A − B · {comparison.paired.lapCount}{' '}
+                  {pluralRu(comparison.paired.lapCount, LAP_PAIRS)} кругов
+                  <br />
+                  Минус — быстрее {nameA}; плюс — {nameB}
+                </>
+              }
+            />
           </div>
           <div className="pace-chart" role="img" aria-label={`Время кругов: ${nameA} и ${nameB}`}>
             <ResponsiveContainer width="100%" height={320}>
@@ -263,22 +270,25 @@ export function RacePacePanel({
                 data={comparison.rows}
                 margin={{ top: 18, right: 18, bottom: 10, left: 6 }}
               >
-                <CartesianGrid stroke="var(--line)" vertical={false} />
-                <XAxis dataKey="lapNumber" tick={{ fill: 'var(--muted)', fontSize: 12 }} />
+                <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                <XAxis
+                  dataKey="lapNumber"
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 'var(--text-12)' }}
+                />
                 <YAxis
                   domain={['auto', 'auto']}
                   width={68}
                   tickFormatter={duration}
-                  tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 'var(--text-12)' }}
                 />
                 <Tooltip
                   labelFormatter={(v) => `Круг ${v}`}
                   formatter={(v, name) => [duration(Number(v)), name]}
                   contentStyle={{
-                    background: 'var(--panel)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 10,
-                    color: 'var(--text)',
+                    background: 'var(--color-surface-1)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--color-text)',
                   }}
                 />
                 <Legend />
@@ -286,7 +296,7 @@ export function RacePacePanel({
                   <ReferenceLine
                     key={r.lapNumber}
                     x={r.lapNumber}
-                    stroke="var(--muted)"
+                    stroke="var(--color-text-secondary)"
                     strokeDasharray="3 6"
                     strokeOpacity={0.35}
                   />
@@ -294,7 +304,7 @@ export function RacePacePanel({
                 <Line
                   dataKey="a.paceSeconds"
                   name={nameA}
-                  stroke="#ff7771"
+                  stroke="var(--color-chart-7)"
                   strokeWidth={2.5}
                   dot={false}
                   connectNulls={false}
@@ -303,7 +313,7 @@ export function RacePacePanel({
                 <Line
                   dataKey="b.paceSeconds"
                   name={nameB}
-                  stroke="#69b7ff"
+                  stroke="var(--color-chart-1)"
                   strokeWidth={2.5}
                   dot={false}
                   connectNulls={false}
@@ -321,17 +331,19 @@ export function RacePacePanel({
                 <strong>{side === 'a' ? nameA : nameB}</strong>
                 <div
                   className="pace-tyre-track"
+                  style={{ '--lap-count': comparison.rows.length } as F1Style}
                   aria-label={`Шины: ${side === 'a' ? nameA : nameB}`}
                 >
                   {segments(comparison, side).map((s, i) => (
                     <span
                       key={i}
+                      className={`f1-tyre f1-tyre--${tyreClass(s.compound)}`}
                       title={`${s.compound} · круги ${s.start}–${s.end}`}
-                      style={{
-                        left: `${((s.start - 1) / comparison.rows.length) * 100}%`,
-                        width: `${((s.end - s.start + 1) / comparison.rows.length) * 100}%`,
-                        background: TYRE_COLORS[s.compound.toUpperCase()] ?? '#8190a2',
-                      }}
+                      style={
+                        {
+                          '--stint-grid': `${s.start} / span ${s.end - s.start + 1}`,
+                        } as F1Style
+                      }
                     >
                       {s.compound.slice(0, 1)}
                     </span>
@@ -346,8 +358,8 @@ export function RacePacePanel({
           </p>
           <details className="pace-lap-details">
             <summary>Покруговые данные, шины и пит-стопы</summary>
-            <div className="f1-scroll">
-              <table>
+            <div className="ui-table-scroll">
+              <table className="ui-table">
                 <thead>
                   <tr>
                     <th>Круг</th>
@@ -386,9 +398,9 @@ export function RacePacePanel({
           <div className="analysis-footer">
             <span>Темп не скорректирован на трафик, SC/VSC, топливо и возраст шин.</span>
             {!aggregated && (
-              <button className="ghost-btn" disabled={busy} onClick={() => void load(true)}>
+              <Button small busy={busy} onClick={() => void load(true)}>
                 <RefreshCw size={13} /> Перезагрузить данные
-              </button>
+              </Button>
             )}
           </div>
           <SourceBar

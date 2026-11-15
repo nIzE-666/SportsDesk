@@ -2,6 +2,7 @@ import { DriverPortrait } from './DriverPortraits';
 import { ArrowLeftRight, Trophy } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useViewState } from '../../lib/useViewState';
+import { Button, IconButton, StatTile } from '../../kit';
 import { useApiResource } from './api';
 import { grandPrixTitle } from './calendarModel';
 import { ComparisonChart } from './ComparisonChart';
@@ -95,9 +96,9 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
     return (
       <State kind="error" title="Сравнение недоступно">
         {error}{' '}
-        <button className="text-link" onClick={reload}>
+        <Button variant="quiet" small onClick={reload}>
           Повторить
-        </button>
+        </Button>
       </State>
     );
   if (!drivers.length) return <State kind="empty" title="Результаты ещё не опубликованы" />;
@@ -123,16 +124,14 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
             </option>
           ))}
         </select>
-        <button
-          className="icon-button"
+        <IconButton
+          icon={<ArrowLeftRight size={17} />}
           aria-label="Поменять пилотов местами"
           onClick={() => {
             setA(b);
             setB(a);
           }}
-        >
-          <ArrowLeftRight size={17} />
-        </button>
+        />
         <select aria-label="Второй пилот" value={b} onChange={(event) => setB(event.target.value)}>
           {drivers.map((driver) => (
             <option key={driver.id} value={driver.id}>
@@ -145,19 +144,19 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
         <p className="f1-analysis-note">Для этого этапа нет данных — показан весь сезон.</p>
       ) : null}
       {error && (
-        <p className="settings-note" role="alert">
+        <p className="f1-analysis-note" role="alert">
           {error} Показана предыдущая загрузка.{' '}
-          <button className="text-link" onClick={reload}>
+          <Button variant="quiet" small onClick={reload}>
             Повторить
-          </button>
+          </Button>
         </p>
       )}
       {data?.issues.map((issue) => (
-        <p className="settings-note" role="status" key={issue}>
+        <p className="f1-analysis-note" role="status" key={issue}>
           {issue}{' '}
-          <button className="text-link" onClick={reload}>
+          <Button variant="quiet" small onClick={reload}>
             Повторить
-          </button>
+          </Button>
         </p>
       ))}
       <div className="versus-grid">
@@ -214,13 +213,20 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
               : grandPrixTitle(comparison.series[0]?.name ?? '').title}
           </span>
         </div>
-        <div className="comparison-metrics">
+        <div className="f1-comparison-metrics">
           {metrics.map((metric) => (
-            <div key={metric.key}>
-              <strong>{number(comparison.a[metric.key])}</strong>
-              <span>{metric.label}</span>
-              <strong>{number(comparison.b[metric.key])}</strong>
-            </div>
+            <StatTile
+              key={metric.key}
+              label={metric.label}
+              value={
+                <span className="f1-comparison-pair">
+                  <span>{number(comparison.a[metric.key])}</span>
+                  <span className="f1-comparison-sep">—</span>
+                  <span>{number(comparison.b[metric.key])}</span>
+                </span>
+              }
+              note={`${driverA?.code || 'A'} — ${driverB?.code || 'B'}`}
+            />
           ))}
         </div>
         <div className="h2h-line">
@@ -258,8 +264,8 @@ export function Compare({ round = 'season' }: { round?: 'season' | number }) {
       <section className="panel comparison-races">
         <h3>Каждый этап крупным планом</h3>
         <p className="muted small">К — квалификация, Г — финиш гонки.</p>
-        <div className="f1-scroll">
-          <table>
+        <div className="ui-table-scroll">
+          <table className="ui-table">
             <thead>
               <tr>
                 <th>Этап</th>

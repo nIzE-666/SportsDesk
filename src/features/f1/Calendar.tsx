@@ -3,6 +3,7 @@ import { parseSchedule } from './parsing';
 import { useSeason } from './SeasonContext';
 import { SourceBar, State } from './shared';
 import { CalendarBoard } from './CalendarBoard';
+import { Button } from '../../kit';
 
 export function Calendar() {
   const { year } = useSeason();
@@ -13,9 +14,9 @@ export function Calendar() {
       {schedule.error && !schedule.data && (
         <State kind="error" title="Календарь недоступен">
           {schedule.error}
-          <button className="ghost-btn" onClick={schedule.reload}>
+          <Button small onClick={schedule.reload}>
             Повторить
-          </button>
+          </Button>
         </State>
       )}
       {schedule.data && <CalendarBoard races={schedule.data.races} year={year} />}

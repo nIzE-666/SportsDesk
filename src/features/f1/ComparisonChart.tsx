@@ -28,10 +28,10 @@ export function ComparisonChart({
       <div className="season-chart">
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={series} margin={{ top: 15, right: 20, bottom: 10, left: -20 }}>
-            <CartesianGrid stroke="var(--line)" vertical={false} />
+            <CartesianGrid stroke="var(--color-border)" vertical={false} />
             <XAxis
               dataKey="round"
-              tick={{ fill: 'var(--muted)', fontSize: 11 }}
+              tick={{ fill: 'var(--color-text-secondary)', fontSize: 'var(--text-12)' }}
               axisLine={false}
               tickLine={false}
             />
@@ -39,24 +39,24 @@ export function ComparisonChart({
               reversed
               domain={[1, 'dataMax']}
               allowDecimals={false}
-              tick={{ fill: 'var(--muted)', fontSize: 11 }}
+              tick={{ fill: 'var(--color-text-secondary)', fontSize: 'var(--text-12)' }}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
               labelFormatter={(value) => `Этап ${value}`}
               contentStyle={{
-                background: 'var(--panel)',
-                border: '1px solid var(--line)',
-                borderRadius: 10,
-                fontSize: 12,
+                background: 'var(--color-surface-1)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--text-12)',
               }}
             />
-            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 15 }} />
+            <Legend wrapperStyle={{ fontSize: 'var(--text-12)', paddingTop: 15 }} />
             <Line
               name={a}
               dataKey="aPosition"
-              stroke="#ff6763"
+              stroke="var(--color-chart-7)"
               strokeWidth={2.5}
               connectNulls={false}
               dot={{ r: 3 }}
@@ -64,7 +64,7 @@ export function ComparisonChart({
             <Line
               name={b}
               dataKey="bPosition"
-              stroke="#71b9ff"
+              stroke="var(--color-chart-1)"
               strokeWidth={2.5}
               connectNulls={false}
               dot={{ r: 3 }}

@@ -1,11 +1,10 @@
 import { useViewState } from '../../lib/useViewState';
 import { usePageScroll } from '../../lib/usePageScroll';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { CalendarDays, ChevronRight, GitBranch, Search, Trophy, X } from 'lucide-react';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
-import { MatchRow } from '../../components/MatchRow';
-import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
+import { Badge, Button, EmptyState, IconButton, SegmentedControl } from '../../kit';
 import { SourceLine } from '../../components/SourceLine';
 import { CompetitionInsights } from './CompetitionInsights';
 import { MatchDetailView } from '../football/MatchDetailView';
@@ -25,6 +24,8 @@ import {
 import { fetchBracketFor } from './bracket';
 import type { BracketData, BracketTie, UclKnockoutRound } from './bracket';
 import type { MatchSummary } from '../football/types';
+import { UclError, UclLoading } from './uclStates';
+import { UclMatchRow } from './UclMatchRow';
 import './ucl.css';
 
 /**
@@ -294,9 +295,9 @@ function Inner({
               <option key={s}>{s}</option>
             ))}
           </select>
-          <button className="ghost-btn" disabled={loading} onClick={() => setRefresh((x) => x + 1)}>
+          <Button small disabled={loading} onClick={() => setRefresh((x) => x + 1)}>
             Обновить
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -315,38 +316,35 @@ function Inner({
         </>
       )}
 
-      {loading && <LoadingBlock label="Загружаем турнир…" rows={4} />}
+      {loading && <UclLoading label="Загружаем турнир…" rows={4} />}
       {error && (
-        <ErrorBlock
+        <UclError
           title="Турнир временно недоступен"
           message={error}
           onRetry={() => setRefresh((x) => x + 1)}
         />
       )}
       {data?.stale && (
-        <span className="chip stale-chip">Сохранённые данные · обновление временно недоступно</span>
+        <Badge variant="warning">Сохранённые данные · обновление временно недоступно</Badge>
       )}
 
       {tab === 'overview' && data && (
         <>
           <div className="editorial-grid">
-            <section className="panel">
+            <section className="panel ucl-match-list">
               <div className="section-title">
                 <h2>
-                  <CalendarDays size={16} /> Ближайшие противостояния
+                  <CalendarDays size={16} aria-hidden="true" /> Ближайшие противостояния
                 </h2>
-                <button className="text-link" onClick={() => chooseTab('matches')}>
-                  Все матчи <ChevronRight size={13} />
-                </button>
+                <Button variant="quiet" small onClick={() => chooseTab('matches')}>
+                  Все матчи <ChevronRight size={13} aria-hidden="true" />
+                </Button>
               </div>
               {upcoming.slice(0, 6).map((m) => (
-                <MatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
+                <UclMatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
               ))}
               {!upcoming.length && (
-                <EmptyBlock
-                  title="Розыгрыш завершён"
-                  message="Результаты — в разделе «Все матчи»."
-                />
+                <EmptyState message="Розыгрыш завершён. Результаты — в разделе «Все матчи»." />
               )}
             </section>
             <section className="panel">
@@ -356,10 +354,16 @@ function Inner({
               </div>
               <div className="ucl-logo-wall">
                 {teams.map((t) => (
-                  <button key={t.id} onClick={() => teamMatches(t.name)} title={t.name}>
+                  <Button
+                    key={t.id}
+                    variant="quiet"
+                    className="ucl-team-chip"
+                    onClick={() => teamMatches(t.name)}
+                    title={t.name}
+                  >
                     <TeamBadge name={t.name} imageUrl={t.image_url} size={31} />
                     <span>{t.name}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -370,14 +374,11 @@ function Inner({
       {tab === 'table' && (
         <section className="panel">
           {season && currentSeason && season !== currentSeason ? (
-            <EmptyBlock
-              title="Архивная таблица недоступна"
-              message="Таблица есть только для текущего сезона."
-            />
+            <EmptyState message="Архивная таблица недоступна. Таблица есть только для текущего сезона." />
           ) : !competition.sportscoreSlug ? (
-            <EmptyBlock title="Таблица не предоставлена" message="Для этого турнира таблицы нет." />
+            <EmptyState message="Таблица не предоставлена. Для этого турнира таблицы нет." />
           ) : tableError ? (
-            <ErrorBlock
+            <UclError
               title="Таблица недоступна"
               message={tableError}
               onRetry={() => setRefresh((x) => x + 1)}
@@ -385,7 +386,7 @@ function Inner({
           ) : rows.length ? (
             <CupTable rows={rows} onTeam={teamMatches} />
           ) : (
-            <LoadingBlock label="Загрузка таблицы…" rows={8} />
+            <UclLoading label="Загрузка таблицы…" rows={8} />
           )}
         </section>
       )}
@@ -393,19 +394,18 @@ function Inner({
       {tab === 'matches' && data && (
         <>
           <div className="panel filters-bar">
-            <div className="segmented">
-              {(['all', 'upcoming', 'finished'] as const).map((s) => (
-                <button
-                  key={s}
-                  className={status === s ? 'active' : ''}
-                  onClick={() => setStatus(s)}
-                >
-                  {s === 'all' ? 'Все матчи' : s === 'upcoming' ? 'Предстоящие' : 'Результаты'}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              ariaLabel="Статус матчей"
+              value={status}
+              onChange={(id) => setStatus(id as 'all' | 'finished' | 'upcoming')}
+              items={[
+                { id: 'all', label: 'Все матчи' },
+                { id: 'upcoming', label: 'Предстоящие' },
+                { id: 'finished', label: 'Результаты' },
+              ]}
+            />
             <div className="input-wrap grow">
-              <Search size={15} />
+              <Search size={15} aria-hidden="true" />
               <input
                 aria-label="Поиск матчей"
                 value={query}
@@ -413,23 +413,21 @@ function Inner({
                 placeholder="Найти команду"
               />
               {query && (
-                <button
-                  className="icon-button"
+                <IconButton
+                  icon={<X size={14} aria-hidden="true" />}
                   onClick={() => setQuery('')}
                   aria-label="Очистить поиск"
-                >
-                  <X size={14} />
-                </button>
+                />
               )}
             </div>
             <span className="muted small">{countRu(filtered.length, MATCHES)}</span>
           </div>
           <section className="panel ucl-match-list">
             {filtered.map((m) => (
-              <MatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
+              <UclMatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
             ))}
             {!filtered.length && (
-              <EmptyBlock title="Совпадений нет" message="Измените команду или статус матча." />
+              <EmptyState message="Совпадений нет. Измените команду или статус матча." />
             )}
           </section>
         </>
@@ -438,13 +436,13 @@ function Inner({
       {tab === 'bracket' && (
         <>
           <div className="bracket-intro">
-            <GitBranch size={19} />
+            <GitBranch size={19} aria-hidden="true" />
             <p>Откройте пару, чтобы увидеть её матчи.</p>
-            <span className="chip">{season}</span>
+            <Badge>{season}</Badge>
           </div>
-          {bracketBusy && <LoadingBlock label="Собираем подтверждённые пары…" rows={3} />}
+          {bracketBusy && <UclLoading label="Собираем подтверждённые пары…" rows={3} />}
           {bracketError && (
-            <ErrorBlock
+            <UclError
               title="Не удалось загрузить сетку"
               message={bracketError}
               onRetry={() => setRefresh((x) => x + 1)}
@@ -455,7 +453,7 @@ function Inner({
               <div className="knockout-scroll">
                 <div
                   className="knockout-board"
-                  style={{ gridTemplateColumns: `repeat(${rounds.length},minmax(220px,1fr))` }}
+                  style={{ '--rounds': rounds.length } as CSSProperties}
                 >
                   {rounds.map((r, index) => (
                     <section className={`knockout-stage stage-${r.id}`} key={r.id}>
@@ -471,11 +469,11 @@ function Inner({
                             <CupTieCard key={t.id} tie={t} onOpen={openMatch} />
                           ))}
                         {!bracket.ties.some((t) => t.round === r.id) && (
-                          <div className="tie-placeholder">
-                            <Trophy size={18} />
-                            <strong>Пары ещё не определены</strong>
-                            <small>Появятся после жеребьёвки.</small>
-                          </div>
+                          <EmptyState
+                            className="ucl-stage-empty"
+                            icon={<Trophy size={20} aria-hidden="true" />}
+                            message="Пары ещё не определены. Появятся после жеребьёвки."
+                          />
                         )}
                       </div>
                     </section>
@@ -502,42 +500,49 @@ function Inner({
 
 function CupTable({ rows, onTeam }: { rows: CupTableRow[]; onTeam: (name: string) => void }) {
   return (
-    <div className="ucl-table-scroll">
-      <table className="ucl-table">
+    <div className="ui-table-scroll">
+      <table className="ui-table ucl-standings">
         <thead>
           <tr>
-            <th>#</th>
+            <th className="ui-table__num">#</th>
             <th>Команда</th>
-            <th>И</th>
-            <th>В</th>
-            <th>Н</th>
-            <th>П</th>
-            <th>ЗМ</th>
-            <th>ПМ</th>
-            <th>РМ</th>
-            <th>О</th>
+            <th className="ui-table__num">И</th>
+            <th className="ui-table__num">В</th>
+            <th className="ui-table__num">Н</th>
+            <th className="ui-table__num">П</th>
+            <th className="ui-table__num">ЗМ</th>
+            <th className="ui-table__num">ПМ</th>
+            <th className="ui-table__num">РМ</th>
+            <th className="ui-table__num">О</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.slug ?? r.position}>
-              <td>
-                <span>{r.position}</span>
+              <td className="ui-table__num">
+                <span className="ucl-standings__position">{r.position}</span>
               </td>
               <td>
-                <button onClick={() => onTeam(r.team)}>
+                <Button
+                  variant="quiet"
+                  small
+                  className="ucl-team-button"
+                  onClick={() => onTeam(r.team)}
+                >
                   <TeamBadge name={r.team} imageUrl={r.logo} size={23} />
                   <strong>{r.team}</strong>
-                </button>
+                </Button>
               </td>
-              <td>{r.played ?? '—'}</td>
-              <td>{r.wins ?? '—'}</td>
-              <td>{r.draws ?? '—'}</td>
-              <td>{r.losses ?? '—'}</td>
-              <td>{r.gf ?? '—'}</td>
-              <td>{r.ga ?? '—'}</td>
-              <td>{r.gd != null ? (r.gd > 0 ? `+${r.gd}` : r.gd) : '—'}</td>
-              <td>
+              <td className="ui-table__num">{r.played ?? '—'}</td>
+              <td className="ui-table__num">{r.wins ?? '—'}</td>
+              <td className="ui-table__num">{r.draws ?? '—'}</td>
+              <td className="ui-table__num">{r.losses ?? '—'}</td>
+              <td className="ui-table__num">{r.gf ?? '—'}</td>
+              <td className="ui-table__num">{r.ga ?? '—'}</td>
+              <td className="ui-table__num">
+                {r.gd != null ? (r.gd > 0 ? `+${r.gd}` : r.gd) : '—'}
+              </td>
+              <td className="ui-table__num">
                 <b>{r.points ?? '—'}</b>
               </td>
             </tr>
@@ -550,38 +555,53 @@ function CupTable({ rows, onTeam }: { rows: CupTableRow[]; onTeam: (name: string
 
 function CupTieCard({ tie: t, onOpen }: { tie: BracketTie; onOpen: (id: string) => void }) {
   const [open, setOpen] = useState(false);
+  const legCount = t.legs.length === 1 ? 'Один матч' : `${t.legs.length} матча`;
   return (
-    <div className={`bracket-tie ${t.round === 'final' ? 'final-tie' : ''}`}>
-      <button className="tie-main" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <small>
-          {t.legs.length === 1 ? 'Один матч' : `${t.legs.length} матча`}
-          <ChevronRight size={12} />
-        </small>
-        {[
-          { team: t.home, score: t.aggregateHome },
-          { team: t.away, score: t.aggregateAway },
-        ].map(({ team, score }) => (
-          <span key={team.id} className={t.winnerId === team.id ? 'tie-winner' : ''}>
-            <TeamBadge name={team.name} imageUrl={team.image_url} size={24} />
-            <strong>{team.name}</strong>
-            <b>{score ?? '—'}</b>
-          </span>
-        ))}
-        {t.complete && !t.winnerId && <em>Итоговый победитель не указан источником</em>}
-      </button>
+    <div className={`bracket-tie${t.round === 'final' ? ' final-tie' : ''}`}>
+      <UclMatchRow
+        size="compact"
+        match={{
+          id: t.id,
+          status: t.complete ? 'finished' : 'scheduled',
+          home_team: { id: t.home.id, name: t.home.name, image_url: t.home.image_url ?? undefined },
+          away_team: { id: t.away.id, name: t.away.name, image_url: t.away.image_url ?? undefined },
+          score_home: t.aggregateHome,
+          score_away: t.aggregateAway,
+        }}
+        time={null}
+        competition={legCount}
+        onClick={() => setOpen(!open)}
+      />
+      {t.complete && !t.winnerId && (
+        <em className="bracket-tie__note">Итоговый победитель не указан источником</em>
+      )}
       {open && (
-        <div className="tie-legs">
+        <div className="bracket-tie__legs">
           {t.legs.map((l, i) => (
-            <button key={l.id} onClick={() => onOpen(l.id)}>
-              <span>
-                Матч {i + 1}
-                <small>{formatHumanDateTime(l.date, getUserTimezone())}</small>
-              </span>
-              <b>
-                {l.homeScore ?? '—'} : {l.awayScore ?? '—'}
-              </b>
-              <ChevronRight size={12} />
-            </button>
+            <UclMatchRow
+              key={l.id}
+              size="compact"
+              match={{
+                id: l.id,
+                status: l.status,
+                time_utc: l.date,
+                home_team: {
+                  id: l.realHome.id,
+                  name: l.realHome.name,
+                  image_url: l.realHome.image_url ?? undefined,
+                },
+                away_team: {
+                  id: l.realAway.id,
+                  name: l.realAway.name,
+                  image_url: l.realAway.image_url ?? undefined,
+                },
+                score_home: l.realHomeScore,
+                score_away: l.realAwayScore,
+              }}
+              time={formatHumanDateTime(l.date, getUserTimezone())}
+              competition={`Матч ${i + 1}`}
+              onClick={() => onOpen(l.id)}
+            />
           ))}
         </div>
       )}

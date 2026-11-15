@@ -5,8 +5,8 @@ import type { JolpicaQualifyingEntry, JolpicaResultEntry } from './types';
 
 export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
   return (
-    <div className="f1-scroll">
-      <table className="f1-table">
+    <div className="ui-table-scroll">
+      <table className="ui-table">
         <thead>
           <tr>
             <th>Поз.</th>
@@ -24,9 +24,12 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
                 <DriverName givenName={row.Driver.givenName} familyName={row.Driver.familyName} />
               </td>
               <td>
-                <TeamDot color={teamColor(row.Constructor.constructorId)} /> {row.Constructor.name}
+                <span className="f1-team-inline">
+                  <TeamDot color={teamColor(row.Constructor.constructorId)} />
+                  {row.Constructor.name}
+                </span>
               </td>
-              <td>{row.points ?? '—'}</td>
+              <td className="f1-num">{row.points ?? '—'}</td>
               <td>
                 {row.status ?? '—'}
                 {row.Time?.time ? ` · ${row.Time.time}` : ''}
@@ -40,8 +43,8 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
 }
 export function QualifyingResultsTable({ rows }: { rows: JolpicaQualifyingEntry[] }) {
   return (
-    <div className="f1-scroll">
-      <table className="f1-table">
+    <div className="ui-table-scroll">
+      <table className="ui-table">
         <thead>
           <tr>
             <th>Поз.</th>
@@ -60,11 +63,14 @@ export function QualifyingResultsTable({ rows }: { rows: JolpicaQualifyingEntry[
                 <DriverName givenName={row.Driver.givenName} familyName={row.Driver.familyName} />
               </td>
               <td>
-                <TeamDot color={teamColor(row.Constructor.constructorId)} /> {row.Constructor.name}
+                <span className="f1-team-inline">
+                  <TeamDot color={teamColor(row.Constructor.constructorId)} />
+                  {row.Constructor.name}
+                </span>
               </td>
-              <td>{row.Q1 ?? '—'}</td>
-              <td>{row.Q2 ?? '—'}</td>
-              <td>{row.Q3 ?? '—'}</td>
+              <td className="f1-num">{row.Q1 ?? '—'}</td>
+              <td className="f1-num">{row.Q2 ?? '—'}</td>
+              <td className="f1-num">{row.Q3 ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -85,8 +91,8 @@ export function WeekendPointsTable({
   const points = (value: string | undefined) =>
     value !== undefined && value.trim() && Number.isFinite(Number(value)) ? Number(value) : null;
   return (
-    <div className="f1-scroll">
-      <table className="f1-table">
+    <div className="ui-table-scroll">
+      <table className="ui-table">
         <thead>
           <tr>
             <th>Пилот</th>
@@ -104,9 +110,9 @@ export function WeekendPointsTable({
                 <td>
                   <DriverName givenName={driver.givenName} familyName={driver.familyName} />
                 </td>
-                <td>{r ?? '—'}</td>
+                <td className="f1-num">{r ?? '—'}</td>
                 <td>{sprintScheduled ? (s ?? '—') : 'Нет спринта'}</td>
-                <td>
+                <td className="f1-num">
                   <strong>{r === null && s === null ? '—' : (r ?? 0) + (s ?? 0)}</strong>
                 </td>
               </tr>

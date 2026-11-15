@@ -12,8 +12,15 @@ import {
 } from 'lucide-react';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
-import { MatchRow } from '../../components/MatchRow';
-import { ErrorBlock, LoadingBlock, EmptyBlock } from '../../components/StateViews';
+import {
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  IconButton,
+  SegmentedControl,
+  StatTile,
+} from '../../kit';
 import { SourceLine } from '../../components/SourceLine';
 import { CompetitionInsights, statSummaryTiles, type StatTileId } from './CompetitionInsights';
 const STAT_CAPTIONS: Record<StatTileId, string> = {
@@ -40,8 +47,9 @@ import type { BracketData, BracketTie, UclKnockoutRound } from './bracket';
 import type { MatchSummary } from '../football/types';
 import { openExternal } from '../../lib/bridge';
 import { useDataRecovery } from '../../lib/useDataRecovery';
-import { useModalFocus } from '../../lib/useModalFocus';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
+import { UclError, UclLoading } from './uclStates';
+import { UclMatchRow } from './UclMatchRow';
 import './ucl.css';
 
 export type UclTab = 'overview' | 'table' | 'bracket' | 'matches' | 'stats';
@@ -107,8 +115,6 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
   );
   const [selectedPlayer, setSelectedPlayer] = useState<UclScorer | null>(null);
   const [playerInfo, setPlayerInfo] = useState<Record<string, unknown> | null>(null);
-  const playerPanel = useRef<HTMLElement>(null);
-  useModalFocus(playerPanel, !!selectedPlayer, () => setSelectedPlayer(null));
   usePageScroll(`${viewScope}.${season}.${selectedMatch ? `match.${selectedMatch}` : tab}`);
   const previousContext = useRef(`${tab}.${season}`);
   useEffect(() => {
@@ -284,9 +290,9 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               <option key={s}>{s}</option>
             ))}
           </select>
-          <button className="ghost-btn" disabled={loading} onClick={() => setRefresh((x) => x + 1)}>
+          <Button small disabled={loading} onClick={() => setRefresh((x) => x + 1)}>
             Обновить
-          </button>
+          </Button>
         </div>
       </div>
       {tab === 'overview' && (
@@ -303,47 +309,44 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
           <CompetitionInsights teams={teams.length} played={played.length} goals={totalGoals} />
         </>
       )}
-      {loading && <LoadingBlock label="Загружаем европейский футбол…" rows={4} />}
+      {loading && <UclLoading label="Загружаем европейский футбол…" rows={4} />}
       {error && (
-        <ErrorBlock
+        <UclError
           title="Турнир временно недоступен"
           message={error}
           onRetry={() => setRefresh((x) => x + 1)}
         />
       )}
       {data?.stale && (
-        <span className="chip stale-chip">Сохранённые данные · обновление временно недоступно</span>
+        <Badge variant="warning">Сохранённые данные · обновление временно недоступно</Badge>
       )}
       {tab === 'overview' && data && (
         <>
           <div className="editorial-grid">
-            <section className="panel">
+            <section className="panel ucl-match-list">
               <div className="section-title">
                 <h2>
-                  <CalendarDays size={16} /> Ближайшие противостояния
+                  <CalendarDays size={16} aria-hidden="true" /> Ближайшие противостояния
                 </h2>
-                <button className="text-link" onClick={() => chooseTab('matches')}>
-                  Все матчи <ChevronRight size={13} />
-                </button>
+                <Button variant="quiet" small onClick={() => chooseTab('matches')}>
+                  Все матчи <ChevronRight size={13} aria-hidden="true" />
+                </Button>
               </div>
               {upcoming.slice(0, 6).map((m) => (
-                <MatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
+                <UclMatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
               ))}
               {!upcoming.length && (
-                <EmptyBlock
-                  title="Розыгрыш завершён"
-                  message="Результаты — в разделе «Все матчи»."
-                />
+                <EmptyState message="Розыгрыш завершён. Результаты — в разделе «Все матчи»." />
               )}
             </section>
             <section className="panel">
               <div className="section-title">
                 <h2>
-                  <Trophy size={16} /> На вершине таблицы
+                  <Trophy size={16} aria-hidden="true" /> На вершине таблицы
                 </h2>
-                <button className="text-link" onClick={() => chooseTab('table')}>
-                  Все команды <ChevronRight size={13} />
-                </button>
+                <Button variant="quiet" small onClick={() => chooseTab('table')}>
+                  Все команды <ChevronRight size={13} aria-hidden="true" />
+                </Button>
               </div>
               {season === current ? (
                 <>
@@ -355,17 +358,23 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               )}
             </section>
           </div>
-          <section className="ucl-teams panel">
+          <section className="panel ucl-teams">
             <div className="section-title">
               <h2>Клубы этого сезона</h2>
               <span className="muted small">Эмблема открывает матчи команды</span>
             </div>
             <div className="ucl-logo-wall">
               {teams.map((t) => (
-                <button key={t.id} onClick={() => teamMatches(t.name)} title={t.name}>
+                <Button
+                  key={t.id}
+                  variant="quiet"
+                  className="ucl-team-chip"
+                  onClick={() => teamMatches(t.name)}
+                  title={t.name}
+                >
                   <TeamBadge name={t.name} imageUrl={t.image_url} size={31} />
                   <span>{t.name}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </section>
@@ -374,12 +383,9 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       {tab === 'table' && (
         <section className="panel">
           {season !== current ? (
-            <EmptyBlock
-              title="Архивная таблица не предоставлена"
-              message="Таблица есть только для текущего сезона."
-            />
+            <EmptyState message="Архивная таблица не предоставлена. Таблица есть только для текущего сезона." />
           ) : tableError ? (
-            <ErrorBlock
+            <UclError
               title="Таблица недоступна"
               message={tableError}
               onRetry={() => setRefresh((x) => x + 1)}
@@ -388,11 +394,11 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
             <>
               <div className="table-legend">
                 <span>
-                  <i />
+                  <i className="ucl-standings__dot ucl-standings__dot--direct" />
                   Места 1–8
                 </span>
                 <span>
-                  <i />
+                  <i className="ucl-standings__dot ucl-standings__dot--playoff" />
                   Места 9–24
                 </span>
                 <small>Участники плей-офф определятся после завершения этапа.</small>
@@ -400,26 +406,25 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
               <Table rows={rows} onTeam={teamMatches} />
             </>
           ) : (
-            <LoadingBlock label="Загрузка общей таблицы…" rows={8} />
+            <UclLoading label="Загрузка общей таблицы…" rows={8} />
           )}
         </section>
       )}
       {tab === 'matches' && data && (
         <>
           <div className="panel filters-bar">
-            <div className="segmented">
-              {(['all', 'upcoming', 'finished'] as const).map((s) => (
-                <button
-                  key={s}
-                  className={status === s ? 'active' : ''}
-                  onClick={() => setStatus(s)}
-                >
-                  {s === 'all' ? 'Все матчи' : s === 'upcoming' ? 'Предстоящие' : 'Результаты'}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              ariaLabel="Статус матчей"
+              value={status}
+              onChange={(id) => setStatus(id as 'all' | 'finished' | 'upcoming')}
+              items={[
+                { id: 'all', label: 'Все матчи' },
+                { id: 'upcoming', label: 'Предстоящие' },
+                { id: 'finished', label: 'Результаты' },
+              ]}
+            />
             <div className="input-wrap grow">
-              <Search size={15} />
+              <Search size={15} aria-hidden="true" />
               <input
                 aria-label="Поиск матчей Лиги чемпионов"
                 value={query}
@@ -427,23 +432,21 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                 placeholder="Найти свою команду"
               />
               {query && (
-                <button
-                  className="icon-button"
+                <IconButton
+                  icon={<X size={14} aria-hidden="true" />}
                   onClick={() => setQuery('')}
                   aria-label="Очистить поиск"
-                >
-                  <X size={14} />
-                </button>
+                />
               )}
             </div>
             <span className="muted small">{countRu(filtered.length, MATCHES)}</span>
           </div>
           <section className="panel ucl-match-list">
             {filtered.map((m) => (
-              <MatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
+              <UclMatchRow key={m.id} match={m} onClick={() => openMatch(m.id)} />
             ))}
             {!filtered.length && (
-              <EmptyBlock title="Совпадений нет" message="Измените команду или статус матча." />
+              <EmptyState message="Совпадений нет. Измените команду или статус матча." />
             )}
           </section>
         </>
@@ -451,18 +454,18 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       {tab === 'bracket' && (
         <>
           <div className="bracket-intro">
-            <GitBranch size={19} />
+            <GitBranch size={19} aria-hidden="true" />
             <p>Откройте пару, чтобы увидеть её матчи.</p>
-            <span className="chip">{season}</span>
+            <Badge>{season}</Badge>
           </div>
           {bracketBusy && (
-            <LoadingBlock
+            <UclLoading
               label={`Собираем подтверждённые пары${progress[1] ? `: ${progress[0]} / ${progress[1]}` : ''}…`}
               rows={3}
             />
           )}{' '}
           {bracketError && (
-            <ErrorBlock
+            <UclError
               title="Не удалось загрузить сетку"
               message={bracketError}
               onRetry={() => setRefresh((x) => x + 1)}
@@ -486,11 +489,11 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                             <TieCard key={t.id} tie={t} onOpen={openMatch} />
                           ))}
                         {!bracket.ties.some((t) => t.round === r.id) && (
-                          <div className="tie-placeholder">
-                            <Trophy size={18} />
-                            <strong>Пары ещё не определены</strong>
-                            <small>Появятся после жеребьёвки.</small>
-                          </div>
+                          <EmptyState
+                            className="ucl-stage-empty"
+                            icon={<Trophy size={20} aria-hidden="true" />}
+                            message="Пары ещё не определены. Появятся после жеребьёвки."
+                          />
                         )}
                       </div>
                     </section>
@@ -511,35 +514,27 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
           {statTiles.length > 0 && (
             <div className="ucl-stat-summary">
               {statTiles.map(({ id, value }) => (
-                <div className="panel" key={id}>
-                  <small>{STAT_CAPTIONS[id]}</small>
-                  <strong>{value}</strong>
-                </div>
+                <StatTile key={id} label={STAT_CAPTIONS[id]} value={value} />
               ))}
             </div>
           )}
           <section className="panel">
             <div className="section-title">
               <h2>Главные действующие лица</h2>
-              <div className="segmented">
-                <button
-                  className={ranking === 'goals' ? 'active' : ''}
-                  onClick={() => setRanking('goals')}
-                >
-                  Бомбардиры
-                </button>
-                <button
-                  className={ranking === 'assists' ? 'active' : ''}
-                  onClick={() => setRanking('assists')}
-                >
-                  Ассистенты
-                </button>
-              </div>
+              <SegmentedControl
+                ariaLabel="Рейтинг игроков"
+                value={ranking}
+                onChange={(id) => setRanking(id as 'goals' | 'assists')}
+                items={[
+                  { id: 'goals', label: 'Бомбардиры' },
+                  { id: 'assists', label: 'Ассистенты' },
+                ]}
+              />
             </div>
             {season !== current ? (
               <p className="muted small">Рейтинг игроков есть только для текущего розыгрыша.</p>
             ) : scorerError ? (
-              <ErrorBlock
+              <UclError
                 title="Рейтинг недоступен"
                 message={scorerError}
                 onRetry={() => setRefresh((x) => x + 1)}
@@ -547,8 +542,9 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
             ) : scorers.length ? (
               <div className="scorer-grid">
                 {scorers.map((p) => (
-                  <button
+                  <Button
                     key={p.slug ?? p.name}
+                    variant="quiet"
                     className="scorer-card"
                     onClick={() => setSelectedPlayer(p)}
                   >
@@ -562,82 +558,80 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
                       {ranking === 'goals' ? (p.goals ?? '—') : (p.assists ?? '—')}
                       <small>{ranking === 'goals' ? 'голов' : 'ассистов'}</small>
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
-              <LoadingBlock label="Загружаем рейтинг игроков…" rows={4} />
+              <UclLoading label="Загружаем рейтинг игроков…" rows={4} />
             )}
           </section>
         </>
       )}
       <SourceLine sources={['pitch', 'sportscore']} fetchedAt={data?.fetchedAt} />
-      {selectedPlayer && (
-        <div className="player-modal-scrim" onClick={() => setSelectedPlayer(null)}>
-          <section
-            ref={playerPanel}
-            className="panel ucl-player-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Статистика ${selectedPlayer.name}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="icon-button modal-close"
-              autoFocus
-              onClick={() => setSelectedPlayer(null)}
-              aria-label="Закрыть профиль игрока"
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
+      <Dialog
+        open={!!selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+        title={selectedPlayer?.name ?? ''}
+        closeLabel="Закрыть профиль игрока"
+        footer={
+          selectedPlayer ? (
+            <>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const name = selectedPlayer.team;
+                  setSelectedPlayer(null);
+                  teamMatches(name);
+                }}
+              >
+                Матчи команды <ChevronRight size={14} aria-hidden="true" />
+              </Button>
+              {selectedPlayer.slug && (
+                <Button
+                  variant="quiet"
+                  onClick={() =>
+                    openExternal(`https://sportscore.com/football/player/${selectedPlayer.slug}/`)
+                  }
+                >
+                  Профиль на сайте источника <ArrowUpRight size={14} aria-hidden="true" />
+                </Button>
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        {selectedPlayer && (
+          <div className="ucl-player">
             <span className="eyebrow">CHAMPIONS LEAGUE / {current}</span>
-            <TeamBadge
-              name={selectedPlayer.name}
-              imageUrl={selectedPlayer.photo || selectedPlayer.teamLogo}
-              size={90}
-            />
-            <h2>{selectedPlayer.name}</h2>
-            <p className="muted">{selectedPlayer.team}</p>
-            <div className="ucl-player-metrics">
+            <div className="ucl-player__badge">
+              <TeamBadge
+                name={selectedPlayer.name}
+                imageUrl={selectedPlayer.photo || selectedPlayer.teamLogo}
+                size={90}
+              />
+            </div>
+            <p className="ucl-player__team">{selectedPlayer.team}</p>
+            <div className="ucl-player__metrics">
               {[
                 { label: 'Голы', value: selectedPlayer.goals },
                 { label: 'Ассисты', value: selectedPlayer.assists },
                 { label: 'Матчи', value: selectedPlayer.matches },
                 { label: 'Минуты', value: selectedPlayer.minutes },
-              ].map((s) => (
-                <div key={s.label}>
-                  <strong>{s.value ?? '—'}</strong>
-                  <small>{s.label}</small>
-                </div>
+              ].map((metric) => (
+                <StatTile
+                  key={metric.label}
+                  label={metric.label}
+                  value={metric.value ?? undefined}
+                />
               ))}
             </div>
             {playerInfo && typeof playerInfo.nationality === 'string' && (
-              <p className="muted small">{playerInfo.nationality}</p>
+              <p className="ucl-player__note">{playerInfo.nationality}</p>
             )}
-            <p className="muted small">Подробности — в статистике матча.</p>
-            <button
-              className="primary-btn"
-              onClick={() => {
-                const name = selectedPlayer.team;
-                setSelectedPlayer(null);
-                teamMatches(name);
-              }}
-            >
-              Матчи команды <ChevronRight size={14} />
-            </button>
-            {selectedPlayer.slug && (
-              <button
-                className="text-link"
-                onClick={() =>
-                  openExternal(`https://sportscore.com/football/player/${selectedPlayer.slug}/`)
-                }
-              >
-                Профиль на сайте источника <ArrowUpRight size={14} />
-              </button>
-            )}
-          </section>
-        </div>
-      )}
+            <p className="ucl-player__note">Подробности — в статистике матча.</p>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
@@ -652,53 +646,66 @@ function Table({
   compact?: boolean;
 }) {
   return (
-    <div className="ucl-table-scroll">
-      <table className={`ucl-table ${compact ? 'compact' : ''}`}>
+    <div className="ui-table-scroll">
+      <table className={`ui-table ucl-standings${compact ? ' ucl-standings--compact' : ''}`}>
         <thead>
           <tr>
-            <th>#</th>
+            <th className="ui-table__num">#</th>
             <th>Команда</th>
-            <th>И</th>
+            <th className="ui-table__num">И</th>
             {!compact && (
               <>
-                <th>В</th>
-                <th>Н</th>
-                <th>П</th>
-                <th>ЗМ</th>
-                <th>ПМ</th>
-                <th>РМ</th>
+                <th className="ui-table__num">В</th>
+                <th className="ui-table__num">Н</th>
+                <th className="ui-table__num">П</th>
+                <th className="ui-table__num">ЗМ</th>
+                <th className="ui-table__num">ПМ</th>
+                <th className="ui-table__num">РМ</th>
               </>
             )}
-            <th>О</th>
+            <th className="ui-table__num">О</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr
-              className={r.position <= 8 ? 'direct' : r.position <= 24 ? 'playoff' : ''}
+              className={
+                r.position <= 8
+                  ? 'ucl-standings__direct'
+                  : r.position <= 24
+                    ? 'ucl-standings__playoff'
+                    : ''
+              }
               key={r.slug ?? r.position}
             >
-              <td>
-                <span>{r.position}</span>
+              <td className="ui-table__num">
+                <span className="ucl-standings__position">{r.position}</span>
               </td>
               <td>
-                <button onClick={() => onTeam(r.team)}>
+                <Button
+                  variant="quiet"
+                  small
+                  className="ucl-team-button"
+                  onClick={() => onTeam(r.team)}
+                >
                   <TeamBadge name={r.team} imageUrl={r.logo} size={23} />
                   <strong>{r.team}</strong>
-                </button>
+                </Button>
               </td>
-              <td>{r.played ?? '—'}</td>
+              <td className="ui-table__num">{r.played ?? '—'}</td>
               {!compact && (
                 <>
-                  <td>{r.wins ?? '—'}</td>
-                  <td>{r.draws ?? '—'}</td>
-                  <td>{r.losses ?? '—'}</td>
-                  <td>{r.gf ?? '—'}</td>
-                  <td>{r.ga ?? '—'}</td>
-                  <td>{r.gd != null ? (r.gd > 0 ? `+${r.gd}` : r.gd) : '—'}</td>
+                  <td className="ui-table__num">{r.wins ?? '—'}</td>
+                  <td className="ui-table__num">{r.draws ?? '—'}</td>
+                  <td className="ui-table__num">{r.losses ?? '—'}</td>
+                  <td className="ui-table__num">{r.gf ?? '—'}</td>
+                  <td className="ui-table__num">{r.ga ?? '—'}</td>
+                  <td className="ui-table__num">
+                    {r.gd != null ? (r.gd > 0 ? `+${r.gd}` : r.gd) : '—'}
+                  </td>
                 </>
               )}
-              <td>
+              <td className="ui-table__num">
                 <b>{r.points ?? '—'}</b>
               </td>
             </tr>
@@ -710,44 +717,60 @@ function Table({
 }
 function TieCard({ tie: t, onOpen }: { tie: BracketTie; onOpen: (id: string) => void }) {
   const [open, setOpen] = useState(false);
+  const legCount = t.legs.length === 1 ? 'Один матч' : `${t.legs.length} матча`;
   return (
-    <div className={`bracket-tie ${t.round === 'final' ? 'final-tie' : ''}`}>
-      <button className="tie-main" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <small>
-          {t.legs.length === 1 ? 'Один матч' : `${t.legs.length} матча`}
-          <ChevronRight size={12} />
-        </small>
-        {[
-          { team: t.home, score: t.aggregateHome },
-          { team: t.away, score: t.aggregateAway },
-        ].map(({ team, score }) => (
-          <span key={team.id} className={t.winnerId === team.id ? 'tie-winner' : ''}>
-            <TeamBadge name={team.name} imageUrl={team.image_url} size={24} />
-            <strong>{team.name}</strong>
-            <b>{score ?? '—'}</b>
-          </span>
-        ))}
-        {t.complete && !t.winnerId && <em>Итоговый победитель не указан источником</em>}
-      </button>
+    <div className={`bracket-tie${t.round === 'final' ? ' final-tie' : ''}`}>
+      <UclMatchRow
+        size="compact"
+        match={{
+          id: t.id,
+          status: t.complete ? 'finished' : 'scheduled',
+          home_team: { id: t.home.id, name: t.home.name, image_url: t.home.image_url ?? undefined },
+          away_team: { id: t.away.id, name: t.away.name, image_url: t.away.image_url ?? undefined },
+          score_home: t.aggregateHome,
+          score_away: t.aggregateAway,
+        }}
+        time={null}
+        competition={legCount}
+        onClick={() => setOpen(!open)}
+      />
+      {t.complete && !t.winnerId && (
+        <em className="bracket-tie__note">Итоговый победитель не указан источником</em>
+      )}
       {open && (
-        <div className="tie-legs">
+        <div className="bracket-tie__legs">
           {t.legs.map((l, i) => (
-            <button key={l.id} onClick={() => onOpen(l.id)}>
-              <span>
-                Матч {i + 1}
-                <small>{formatHumanDateTime(l.date, getUserTimezone())}</small>
-              </span>
-              <b>
-                {l.homeScore ?? '—'} : {l.awayScore ?? '—'}
-              </b>
-              <ChevronRight size={12} />
-            </button>
+            <UclMatchRow
+              key={l.id}
+              size="compact"
+              match={{
+                id: l.id,
+                status: l.status,
+                time_utc: l.date,
+                home_team: {
+                  id: l.realHome.id,
+                  name: l.realHome.name,
+                  image_url: l.realHome.image_url ?? undefined,
+                },
+                away_team: {
+                  id: l.realAway.id,
+                  name: l.realAway.name,
+                  image_url: l.realAway.image_url ?? undefined,
+                },
+                score_home: l.realHomeScore,
+                score_away: l.realAwayScore,
+              }}
+              time={formatHumanDateTime(l.date, getUserTimezone())}
+              competition={`Матч ${i + 1}`}
+              onClick={() => onOpen(l.id)}
+            />
           ))}
         </div>
       )}
     </div>
   );
 }
+
 export function ChampionsView(props: { tab: UclTab; onTabChange: (tab: UclTab) => void }) {
   return (
     <FavoritesProvider>

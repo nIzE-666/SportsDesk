@@ -1,12 +1,30 @@
-import { DriverPortrait } from './DriverPortraits';
-import type { ReactNode } from 'react';
+import { AlertTriangle, Inbox, Loader2 } from 'lucide-react';
+import type { CSSProperties, ReactNode } from 'react';
 import { sourceLabel } from '../../lib/sourceLabels';
 import { formatUpdatedAt, getUserTimezone } from '../football/storage';
+import { Badge, Button, EmptyState } from '../../kit';
+import { DriverPortrait } from './DriverPortraits';
 import { useSourceRegistration } from './SourceSummary';
 
 /**
  * Small shared presentational bits scoped to F1.
  */
+
+/** One CSS custom property for a value that comes from the data. */
+export type F1Style = CSSProperties & Record<`--${string}`, string | number>;
+
+export type TyreCompound = 'soft' | 'medium' | 'hard' | 'inter' | 'wet' | 'unknown';
+
+/** The colour of a tyre compound is data, so only the class name comes from it. */
+export function tyreClass(compound: string | null | undefined): TyreCompound {
+  const value = (compound ?? '').toLowerCase();
+  if (value === 'soft') return 'soft';
+  if (value === 'medium') return 'medium';
+  if (value === 'hard') return 'hard';
+  if (value === 'intermediate' || value === 'inter') return 'inter';
+  if (value === 'wet') return 'wet';
+  return 'unknown';
+}
 
 export function SourceBar(props: {
   source: string;
@@ -25,18 +43,17 @@ export function SourceBar(props: {
         Данные: {sourceLabel(props.source)}
         {updated && updated !== '—' ? ` · обновлено ${updated}` : ''}
       </span>
-      {props.stale ? <span className="f1-pill warn">Есть устаревшие данные</span> : null}
+      {props.stale ? <Badge variant="warning">Есть устаревшие данные</Badge> : null}
       {props.extra}
       {props.onRefresh ? (
-        <button
-          type="button"
-          className="f1-btn is-ghost"
+        <Button
+          small
+          busy={props.refreshing}
           onClick={props.onRefresh}
-          disabled={props.refreshing}
           aria-label="Обновить данные"
         >
           {props.refreshing ? 'Обновление…' : 'Обновить'}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -51,21 +68,44 @@ export function State({
   title: string;
   children?: ReactNode;
 }) {
-  return (
-    <div
-      className={`f1-state${kind === 'error' ? ' error' : ''}`}
-      role={kind === 'error' ? 'alert' : 'status'}
-    >
-      <div style={{ fontWeight: 600, color: kind === 'error' ? '#ffb3b3' : 'inherit' }}>
-        {title}
+  const message = children ? (
+    <>
+      <strong>{title}</strong> <span className="f1-state__text">{children}</span>
+    </>
+  ) : (
+    title
+  );
+  if (kind === 'loading')
+    return (
+      <EmptyState
+        className="f1-state"
+        message={title}
+        icon={<Loader2 size={20} className="f1-spin" aria-hidden="true" />}
+      />
+    );
+  if (kind === 'error')
+    return (
+      <div role="alert">
+        <EmptyState
+          className="f1-state f1-state--error"
+          message={message}
+          icon={<AlertTriangle size={20} aria-hidden="true" />}
+        />
       </div>
-      {children ? <div>{children}</div> : null}
-    </div>
+    );
+  return (
+    <EmptyState
+      className="f1-state"
+      message={message}
+      icon={<Inbox size={20} aria-hidden="true" />}
+    />
   );
 }
 
 export function TeamDot({ color }: { color: string }) {
-  return <span className="f1-team-dot" style={{ background: color }} aria-hidden="true" />;
+  return (
+    <span className="f1-team-dot" style={{ '--dot-color': color } as F1Style} aria-hidden="true" />
+  );
 }
 
 export function DriverName({ givenName, familyName }: { givenName: string; familyName: string }) {
@@ -73,8 +113,8 @@ export function DriverName({ givenName, familyName }: { givenName: string; famil
     <span className="f1-driver-identity">
       <DriverPortrait name={`${givenName} ${familyName}`} />
       <span>
-        <span style={{ color: 'var(--muted,#8b9099)' }}>{givenName} </span>
-        <b style={{ fontWeight: 600, color: 'var(--text,#fff)' }}>{familyName}</b>
+        <span className="f1-driver-given">{givenName} </span>
+        <b className="f1-driver-family">{familyName}</b>
       </span>
     </span>
   );

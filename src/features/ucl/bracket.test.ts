@@ -21,6 +21,29 @@ describe('Champions League stage and aggregate correctness', () => {
     expect(arsenal?.winnerId).toBe('t_1gkhxH');
     expect([arsenal?.aggregateHome, arsenal?.aggregateAway].sort()).toEqual([1, 2]);
   });
+  it('keeps the real home side of each leg next to the oriented aggregate values', () => {
+    const arsenal = groupBracket(details).find(
+      (t) => t.round === 'semi' && [t.home.id, t.away.id].includes('t_1gkhxH'),
+    );
+    expect([arsenal?.aggregateHome, arsenal?.aggregateAway]).toEqual([2, 1]);
+    const [first, second] = arsenal?.legs ?? [];
+    expect(first).toMatchObject({
+      realHome: { id: 't_3NIiXl' },
+      realAway: { id: 't_1gkhxH' },
+      realHomeScore: 1,
+      realAwayScore: 1,
+      homeId: 't_1gkhxH',
+      awayId: 't_3NIiXl',
+    });
+    expect(second).toMatchObject({
+      realHome: { id: 't_1gkhxH' },
+      realAway: { id: 't_3NIiXl' },
+      realHomeScore: 1,
+      realAwayScore: 0,
+      homeId: 't_1gkhxH',
+      awayId: 't_3NIiXl',
+    });
+  });
   it('does not invent a penalty winner from a drawn final score', () => {
     const final = groupBracket(details).find((t) => t.round === 'final');
     expect(final?.complete).toBe(true);

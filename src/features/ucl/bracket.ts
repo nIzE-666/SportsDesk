@@ -7,10 +7,16 @@ export type BracketFormat = 'two-leg' | 'single-leg';
 export interface BracketLeg {
   id: string;
   date?: string;
+  /** Oriented to the tie's first and second team; the aggregate uses these. */
   homeId: string;
   awayId: string;
   homeScore: number | null;
   awayScore: number | null;
+  /** The real sides from the source, for the leg row. */
+  realHome: BracketTeam;
+  realAway: BracketTeam;
+  realHomeScore: number | null;
+  realAwayScore: number | null;
   status: string;
 }
 
@@ -280,6 +286,10 @@ function orientLeg(leg: DetailLeg, firstTeamId: string, secondTeamId: string): B
     awayId,
     homeScore,
     awayScore,
+    realHome: leg.home,
+    realAway: leg.away,
+    realHomeScore: leg.homeScore,
+    realAwayScore: leg.awayScore,
     status: leg.status,
   };
 }
