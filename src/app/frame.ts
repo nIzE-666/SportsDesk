@@ -1,4 +1,3 @@
-import type { InterfaceDesign } from '../lib/interfaceDesign';
 import type { Location, Section, ShellRoute } from '../lib/navigation';
 import type { SearchTarget } from '../lib/searchIndex';
 import type { ReactNode } from 'react';
@@ -11,7 +10,6 @@ export interface FrameProps {
   route: ShellRoute;
   leagueId: string;
   cupId: string;
-  design: InterfaceDesign;
   scheme: 'dark' | 'light';
   density: 'default' | 'compact';
   canBack: boolean;

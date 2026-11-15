@@ -41,7 +41,6 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
   localStorage.clear();
   sessionStorage.clear();
-  localStorage.setItem('sportsdesk.design', 'broadcast');
   viewState.reset();
   host = document.createElement('div');
   document.body.append(host);

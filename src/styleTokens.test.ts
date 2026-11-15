@@ -41,7 +41,6 @@ export const PENDING_FILES: ReadonlySet<string> = new Set([
   'src/features/watch/watch.css',
   'src/productivity.css',
   'src/styles.css',
-  'src/themes/broadcast.css',
 ]);
 
 const NAMED_COLORS = new Set(

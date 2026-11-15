@@ -19,7 +19,6 @@ const TODAY: ShellRoute = { kind: 'today', mode: 'today' };
 const base: Omit<FrameProps, 'route' | 'navigate'> = {
   leagueId: 'l_4WFCIZ',
   cupId: 'l_38d9HA',
-  design: 'classic',
   scheme: 'dark',
   density: 'default',
   canBack: false,

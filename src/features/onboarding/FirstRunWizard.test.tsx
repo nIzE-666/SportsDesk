@@ -31,7 +31,6 @@ vi.mock('../../lib/bridge', () => ({
   isTauriRuntime: () => runtime.tauri,
 }));
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: vi.fn(async () => appInfo.version) }));
-vi.mock('../../components/DesignChooser', () => ({ DesignChooser: () => null }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -39,9 +39,9 @@ function longNameMatches() {
   });
 }
 
-async function openArsenalWithLongNames(page: Page, design: string, width: number) {
+async function openArsenalWithLongNames(page: Page, width: number) {
   await page.setViewportSize({ width, height: 900 });
-  await setupVisualFixture(page, design, 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.addInitScript(() => {
     sessionStorage.setItem(
       'sportsdesk.view.navigation2.football',
@@ -82,65 +82,59 @@ async function openArsenalWithLongNames(page: Page, design: string, width: numbe
   await expect(page.locator('.team-schedule .team-match-row')).toHaveCount(longNames.length * 4);
 }
 
-for (const design of ['classic', 'broadcast']) {
-  for (const width of [1100, 1290, 1440]) {
-    test(`${design} ${width}: club names in schedule and history are fully readable`, async ({
-      page,
-    }, testInfo) => {
-      await openArsenalWithLongNames(page, design, width);
-      await page.locator('.team-cols').scrollIntoViewIfNeeded();
-      await page.screenshot({ path: testInfo.outputPath(`team-columns-${design}-${width}.png`) });
-      const report = await page.evaluate((names) => {
-        const problems: string[] = [];
-        const found: Record<string, number> = {};
-        const sections = Array.from(document.querySelectorAll('.team-cols .team-schedule'));
-        sections.forEach((section, index) => {
-          const column = index === 0 ? 'schedule' : 'history';
-          for (const row of Array.from(section.querySelectorAll<HTMLElement>('.team-match-row'))) {
-            const rowBox = row.getBoundingClientRect();
-            const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
-            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-              const text = (node.textContent ?? '').trim();
-              if (!names.includes(text)) continue;
-              found[`${column}:${text}`] = (found[`${column}:${text}`] ?? 0) + 1;
-              const range = document.createRange();
-              range.selectNodeContents(node);
-              const box = range.getBoundingClientRect();
-              if (box.left < rowBox.left - 1 || box.right > rowBox.right + 1)
-                problems.push(`${column}: "${text}" sticks out of its row`);
-              for (let el = node.parentElement; el && el !== row; el = el.parentElement) {
-                const clip = el.getBoundingClientRect();
-                const hides = getComputedStyle(el).overflowX !== 'visible';
-                if (hides && (box.left < clip.left - 1 || box.right > clip.right + 1))
-                  problems.push(`${column}: "${text}" is cut by <${el.tagName.toLowerCase()}>`);
-                if (hides && el.scrollWidth > el.clientWidth + 1)
-                  problems.push(`${column}: "${text}" is shortened with an ellipsis`);
-              }
+for (const width of [1100, 1290, 1440]) {
+  test(`${width}: club names in schedule and history are fully readable`, async ({
+    page,
+  }, testInfo) => {
+    await openArsenalWithLongNames(page, width);
+    await page.locator('.team-cols').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath(`team-columns-broadcast-${width}.png`) });
+    const report = await page.evaluate((names) => {
+      const problems: string[] = [];
+      const found: Record<string, number> = {};
+      const sections = Array.from(document.querySelectorAll('.team-cols .team-schedule'));
+      sections.forEach((section, index) => {
+        const column = index === 0 ? 'schedule' : 'history';
+        for (const row of Array.from(section.querySelectorAll<HTMLElement>('.team-match-row'))) {
+          const rowBox = row.getBoundingClientRect();
+          const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const text = (node.textContent ?? '').trim();
+            if (!names.includes(text)) continue;
+            found[`${column}:${text}`] = (found[`${column}:${text}`] ?? 0) + 1;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            const box = range.getBoundingClientRect();
+            if (box.left < rowBox.left - 1 || box.right > rowBox.right + 1)
+              problems.push(`${column}: "${text}" sticks out of its row`);
+            for (let el = node.parentElement; el && el !== row; el = el.parentElement) {
+              const clip = el.getBoundingClientRect();
+              const hides = getComputedStyle(el).overflowX !== 'visible';
+              if (hides && (box.left < clip.left - 1 || box.right > clip.right + 1))
+                problems.push(`${column}: "${text}" is cut by <${el.tagName.toLowerCase()}>`);
+              if (hides && el.scrollWidth > el.clientWidth + 1)
+                problems.push(`${column}: "${text}" is shortened with an ellipsis`);
             }
           }
-        });
-        const scrollers: string[] = [];
-        for (
-          let el: Element | null = document.querySelector('.team-view');
-          el;
-          el = el.parentElement
-        )
-          if (el.scrollWidth > el.clientWidth + 1)
-            scrollers.push(`${el.tagName.toLowerCase()}.${el.className}`);
-        return { problems: [...new Set(problems)], found, scrollers };
-      }, longNames);
-      for (const column of ['schedule', 'history'])
-        for (const name of longNames)
-          expect(report.found[`${column}:${name}`], `${column} shows ${name}`).toBe(2);
-      expect(report.problems).toEqual([]);
-      expect(report.scrollers, 'no horizontal scrolling').toEqual([]);
-    });
-  }
+        }
+      });
+      const scrollers: string[] = [];
+      for (let el: Element | null = document.querySelector('.team-view'); el; el = el.parentElement)
+        if (el.scrollWidth > el.clientWidth + 1)
+          scrollers.push(`${el.tagName.toLowerCase()}.${el.className}`);
+      return { problems: [...new Set(problems)], found, scrollers };
+    }, longNames);
+    for (const column of ['schedule', 'history'])
+      for (const name of longNames)
+        expect(report.found[`${column}:${name}`], `${column} shows ${name}`).toBe(2);
+    expect(report.problems).toEqual([]);
+    expect(report.scrollers, 'no horizontal scrolling').toEqual([]);
+  });
 }
 
 test('long away team names start inside the schedule cell', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'broadcast', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.route('**/bridge/api**', async (route) => {
     const url = new URL(route.request().url());
     const path = url.searchParams.get('path') ?? '';

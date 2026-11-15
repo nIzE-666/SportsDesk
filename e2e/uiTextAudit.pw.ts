@@ -63,7 +63,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   test.skip(!output, 'Set SPORTSDESK_TEXT_OUTPUT to write the text list.');
   test.setTimeout(480000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'broadcast', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await addMatchDetails(page);
   await page.addInitScript(() => {
     const teams = [
@@ -253,7 +253,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   // Мини-окно: отдельная страница #mini; тестовые данные дают пустое состояние без матчей.
   const mini = await context.newPage();
   await mini.setViewportSize({ width: 360, height: 520 });
-  await setupVisualFixture(mini, 'broadcast', 'dark', true);
+  await setupVisualFixture(mini, 'dark', true);
   await mini.goto('/#mini');
   await expect(mini.locator('.mini-root')).toBeVisible();
   await dump('Мини-окно без матчей', {

@@ -2,7 +2,6 @@ import { useViewState } from '../../lib/useViewState';
 import { usePageScroll } from '../../lib/usePageScroll';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, GitBranch, Search, Trophy, X } from 'lucide-react';
-import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
@@ -67,7 +66,6 @@ function Inner({
   onTabChange: (tab: CupTab) => void;
 }) {
   const storageKey = `sportsdesk.cup.${competition.id}.season`;
-  const broadcast = useInterfaceDesign() === 'broadcast';
   const [season, setSeason] = useState<string>(() => getString(storageKey) || '');
   const [currentSeason, setCurrentSeason] = useState('');
   const rounds =
@@ -304,17 +302,15 @@ function Inner({
 
       {tab === 'overview' && (
         <>
-          {broadcast && (
-            <FeaturedMatchCover
-              sport="ucl"
-              match={selectFeaturedMatch(matches)}
-              league={competition.title}
-              season={season}
-              loading={loading}
-              onOpenMatch={openMatch}
-              onSeeAllMatches={() => chooseTab('matches')}
-            />
-          )}
+          <FeaturedMatchCover
+            sport="ucl"
+            match={selectFeaturedMatch(matches)}
+            league={competition.title}
+            season={season}
+            loading={loading}
+            onOpenMatch={openMatch}
+            onSeeAllMatches={() => chooseTab('matches')}
+          />
           <CompetitionInsights teams={teams.length} played={played.length} goals={totalGoals} />
         </>
       )}

@@ -32,7 +32,7 @@ const tactics = { version: 1 as const, schemes: [scheme] };
 
 async function openMy(page: Page, modules?: Record<string, boolean>) {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'classic', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.addInitScript(
     ({ player, prediction, tactics, modules, diary }) => {
       localStorage.setItem(

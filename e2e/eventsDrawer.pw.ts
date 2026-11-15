@@ -27,9 +27,9 @@ const eventAt = (id: string, read: boolean, hoursAgo: number): DrawerEvent => ({
   leagueId: 'l_4WFCIZ',
 });
 
-async function openShell(page: Page, design: string) {
+async function openShell(page: Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
-  const errors = await setupVisualFixture(page, design, 'dark', true);
+  const errors = await setupVisualFixture(page, 'dark', true);
   const state = { events: [eventAt('drawer-unread', false, 2), eventAt('drawer-read', true, 20)] };
   await page.route('**/bridge/command', async (route) => {
     const { command, args = {} } = route.request().postDataJSON();
@@ -47,68 +47,62 @@ async function openShell(page: Page, design: string) {
   return { rail: page.getByRole('navigation', { name: 'Разделы' }), errors };
 }
 
-for (const design of ['classic', 'broadcast']) {
-  test(`${design}: the bell opens the events drawer, keeps focus inside and closes on Escape`, async ({
-    page,
-  }) => {
-    const { rail, errors } = await openShell(page, design);
-    await expect(page.locator('.nav-rail-badge')).toHaveText('1');
+test(`the bell opens the events drawer, keeps focus inside and closes on Escape`, async ({
+  page,
+}) => {
+  const { rail, errors } = await openShell(page);
+  await expect(page.locator('.nav-rail-badge')).toHaveText('1');
 
-    await rail.getByRole('button', { name: 'События', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'События' });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { name: 'События', exact: true })).toBeVisible();
-    await expect(dialog.locator('article')).toHaveCount(2);
-    await expect(dialog.getByText('Изменение счёта')).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Закрыть события' })).toBeFocused();
-    expect(
-      await page
-        .locator('.events-drawer')
-        .evaluate((element) => getComputedStyle(element).animationName),
-    ).toBe('none');
+  await rail.getByRole('button', { name: 'События', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'События' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading', { name: 'События', exact: true })).toBeVisible();
+  await expect(dialog.locator('article')).toHaveCount(2);
+  await expect(dialog.getByText('Изменение счёта')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Закрыть события' })).toBeFocused();
+  expect(
+    await page
+      .locator('.events-drawer')
+      .evaluate((element) => getComputedStyle(element).animationName),
+  ).toBe('none');
 
-    await page.keyboard.press('Shift+Tab');
-    expect(
-      await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]'))),
-    ).toBe(true);
-    await page.keyboard.press('Escape');
-    await expect(dialog).toHaveCount(0);
-    await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
-    await expect(page.locator('.nav-rail-badge')).toHaveText('1');
-    expect(errors).toEqual([]);
-  });
+  await page.keyboard.press('Shift+Tab');
+  expect(
+    await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]'))),
+  ).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
+  await expect(page.locator('.nav-rail-badge')).toHaveText('1');
+  expect(errors).toEqual([]);
+});
 
-  test(`${design}: a click outside closes the drawer and keeps the page underneath`, async ({
-    page,
-  }) => {
-    const { rail, errors } = await openShell(page, design);
-    await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
-    await rail.getByRole('button', { name: 'События', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'События' });
-    await expect(dialog).toBeVisible();
+test(`a click outside closes the drawer and keeps the page underneath`, async ({ page }) => {
+  const { rail, errors } = await openShell(page);
+  await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
+  await rail.getByRole('button', { name: 'События', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'События' });
+  await expect(dialog).toBeVisible();
 
-    await page.locator('.events-drawer-backdrop').click({ position: { x: 20, y: 20 } });
-    await expect(dialog).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
-    await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
-    expect(errors).toEqual([]);
-  });
+  await page.locator('.events-drawer-backdrop').click({ position: { x: 20, y: 20 } });
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
+  await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
+  expect(errors).toEqual([]);
+});
 
-  test(`${design}: opening an event closes the drawer, navigates and clears the badge`, async ({
-    page,
-  }) => {
-    const { rail, errors } = await openShell(page, design);
-    await rail.getByRole('button', { name: 'События', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'События' });
-    await expect(dialog).toBeVisible();
+test(`opening an event closes the drawer, navigates and clears the badge`, async ({ page }) => {
+  const { rail, errors } = await openShell(page);
+  await rail.getByRole('button', { name: 'События', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'События' });
+  await expect(dialog).toBeVisible();
 
-    await dialog.getByRole('button', { name: 'Открыть матч' }).first().click();
-    await expect(dialog).toHaveCount(0);
-    await expect(
-      page.getByRole('heading', { name: 'Premier League · Матч', exact: true }),
-    ).toBeVisible();
-    await expect(page.locator('.nav-rail-badge')).toHaveCount(0);
-    await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
-    expect(errors).toEqual([]);
-  });
-}
+  await dialog.getByRole('button', { name: 'Открыть матч' }).first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: 'Premier League · Матч', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.nav-rail-badge')).toHaveCount(0);
+  await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();
+  expect(errors).toEqual([]);
+});

@@ -9,7 +9,6 @@ import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
-import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { WatchEventButton } from '../../lib/watchIntent';
 import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
@@ -85,7 +84,6 @@ export function MatchDetailView({
   /** Local competition screens keep their own way back; the route match uses the header. */
   onBack?: () => void;
 }) {
-  const broadcast = useInterfaceDesign() === 'broadcast';
   const modules = useModules();
   const timezone = getUserTimezone();
   const [tab, setTab] = useViewState<TabKey>(`match.${matchId}.tab`, 'overview', (v) =>
@@ -380,7 +378,6 @@ export function MatchDetailView({
           <span className="muted small">
             {formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}
           </span>
-          {!broadcast && <MatchMetadata detail={detail} />}
         </div>
         <div className="md-team right">
           <span>{detail.away_team.name}</span>
@@ -388,7 +385,7 @@ export function MatchDetailView({
         </div>
       </div>
 
-      {broadcast && hasMetadata(detail) && (
+      {hasMetadata(detail) && (
         <div className="md-meta-strip">
           <MatchMetadata detail={detail} />
         </div>

@@ -72,7 +72,7 @@ const catchUp = {
 
 async function openToday(page: Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
-  const errors = await setupVisualFixture(page, 'classic', 'dark', true);
+  const errors = await setupVisualFixture(page, 'dark', true);
   await page.route('**/bridge/command', async (route) => {
     const body = route.request().postDataJSON();
     if (body.command === 'catchup_summary') return route.fulfill({ json: catchUp });

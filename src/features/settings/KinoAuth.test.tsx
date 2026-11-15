@@ -11,7 +11,6 @@ vi.mock('./NotificationPreferences', () => ({ NotificationPreferences: () => nul
 vi.mock('./BackupPanel', () => ({ BackupPanel: () => null }));
 vi.mock('./ShortcutControl', () => ({ ShortcutControl: () => null }));
 vi.mock('./DiagnosticsPanel', () => ({ DiagnosticsPanel: () => null }));
-vi.mock('../../components/DesignChooser', () => ({ DesignChooser: () => null }));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

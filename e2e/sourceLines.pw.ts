@@ -207,7 +207,7 @@ const screens: Screen[] = [
 // Повторный запуск с выводом таблицы: SPORTSDESK_AUDIT_VERBOSE=1 npx playwright test e2e/sourceLines.pw.ts
 test('every screen shows at most one data-source line and one refresh button', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'broadcast', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.goto('/');
   await expect(page.locator('.today-view')).toBeVisible();
 

@@ -20,7 +20,6 @@ export function AppShell(props: FrameProps) {
     route,
     leagueId,
     cupId,
-    design,
     scheme,
     density,
     canBack,
@@ -98,7 +97,6 @@ export function AppShell(props: FrameProps) {
       data-theme={appTheme}
       data-scheme={scheme}
       data-density={density}
-      data-design={design}
     >
       {children}
       <div className="shell-frame">

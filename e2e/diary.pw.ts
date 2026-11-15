@@ -11,7 +11,7 @@ import {
 import { tacticLineups } from '../src/test/fixtures/tactics';
 import { parseDiaryText } from '../src/features/diary/diaryModel';
 
-async function setup(page: Page, design: string, scheme: string, seed = true) {
+async function setup(page: Page, scheme: string, seed = true) {
   const errors: string[] = [],
     state = { offline: false };
   page.on('pageerror', (e) => errors.push(e.message));
@@ -61,15 +61,14 @@ async function setup(page: Page, design: string, scheme: string, seed = true) {
     return route.continue();
   });
   await page.addInitScript(
-    ({ design, scheme, seed, diary }) => {
-      localStorage.setItem('sportsdesk.design', design);
+    ({ scheme, seed, diary }) => {
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
       if (seed && localStorage.getItem('sportsdesk.view.diary') === null)
         localStorage.setItem('sportsdesk.view.diary', JSON.stringify(diary));
     },
-    { design, scheme, seed, diary: diaryFixture },
+    { scheme, seed, diary: diaryFixture },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return { errors, state };
@@ -89,62 +88,61 @@ const openMatch = async (page: Page) => {
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
   await page.locator(`[data-match-id="${diaryMatch.id}"] .fixture-club`).first().click();
 };
-for (const design of ['classic', 'broadcast'])
-  for (const scheme of ['dark', 'light'])
-    for (const width of [1100, 1440]) {
-      test(`${design} ${scheme} ${width}: viewing diary`, async ({ page }) => {
-        await page.setViewportSize({ width, height: 1000 });
-        const { errors } = await setup(page, design, scheme);
-        await page.goto('/');
-        await openDiary(page);
-        await page.evaluate(() => document.fonts.ready);
-        const feature = page.getByRole('region', { name: 'Дневник просмотра', exact: true });
-        await expect(feature.locator('.diary-entry')).toHaveCount(2);
-        await expect(
-          feature.getByRole('heading', { name: 'Дневник просмотра', exact: true }),
-        ).toBeVisible();
-        await expect(feature.locator('.diary-summary')).toContainText('8,5');
-        const capture = await page.addStyleTag({
-          content:
-            '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
-        });
-        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-diary.png`);
-        await capture.evaluate((el) => el.parentNode?.removeChild(el));
-        await page.getByLabel('Фильтр по спорту', { exact: true }).selectOption('f1');
-        await expect(feature.locator('.diary-entry')).toHaveCount(1);
-        await page.getByLabel('Просмотрено по', { exact: true }).fill('2026-11-08');
-        await expect(feature.locator('.diary-entry')).toHaveCount(0);
-        await page.getByRole('button', { name: 'Сбросить фильтры', exact: true }).click();
-        const football = feature.getByRole('article').filter({
-          has: page.getByRole('heading', { name: diaryFootballEntry.event.title, exact: true }),
-        });
-        await football.getByRole('button', { name: 'Открыть событие', exact: true }).click();
-        await expect(page.locator('.md-score')).toContainText('1 : 1');
-        await expect(
-          page.getByRole('button', { name: 'Изменить запись о просмотре', exact: true }),
-        ).toBeVisible();
-        await openDiary(page);
-        const race = feature.getByRole('article').filter({
-          has: page.getByRole('heading', { name: diaryRaceEntry.event.title, exact: true }),
-        });
-        await race.getByRole('button', { name: 'Открыть событие', exact: true }).click();
-        await expect(page.locator('.race-weekend')).toContainText('Suzuka Circuit');
-        expect(
-          await page.evaluate(
-            () => JSON.parse(localStorage.getItem('sportsdesk.view.diary')!).entries.length,
-          ),
-        ).toBe(2);
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-          true,
-        );
-        expect(errors).toEqual([]);
+for (const scheme of ['dark', 'light'])
+  for (const width of [1100, 1440]) {
+    test(`${scheme} ${width}: viewing diary`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const { errors } = await setup(page, scheme);
+      await page.goto('/');
+      await openDiary(page);
+      await page.evaluate(() => document.fonts.ready);
+      const feature = page.getByRole('region', { name: 'Дневник просмотра', exact: true });
+      await expect(feature.locator('.diary-entry')).toHaveCount(2);
+      await expect(
+        feature.getByRole('heading', { name: 'Дневник просмотра', exact: true }),
+      ).toBeVisible();
+      await expect(feature.locator('.diary-summary')).toContainText('8,5');
+      const capture = await page.addStyleTag({
+        content:
+          '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
       });
-    }
+      await expect(feature).toHaveScreenshot(`broadcast-${scheme}-${width}-diary.png`);
+      await capture.evaluate((el) => el.parentNode?.removeChild(el));
+      await page.getByLabel('Фильтр по спорту', { exact: true }).selectOption('f1');
+      await expect(feature.locator('.diary-entry')).toHaveCount(1);
+      await page.getByLabel('Просмотрено по', { exact: true }).fill('2026-11-08');
+      await expect(feature.locator('.diary-entry')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Сбросить фильтры', exact: true }).click();
+      const football = feature.getByRole('article').filter({
+        has: page.getByRole('heading', { name: diaryFootballEntry.event.title, exact: true }),
+      });
+      await football.getByRole('button', { name: 'Открыть событие', exact: true }).click();
+      await expect(page.locator('.md-score')).toContainText('1 : 1');
+      await expect(
+        page.getByRole('button', { name: 'Изменить запись о просмотре', exact: true }),
+      ).toBeVisible();
+      await openDiary(page);
+      const race = feature.getByRole('article').filter({
+        has: page.getByRole('heading', { name: diaryRaceEntry.event.title, exact: true }),
+      });
+      await race.getByRole('button', { name: 'Открыть событие', exact: true }).click();
+      await expect(page.locator('.race-weekend')).toContainText('Suzuka Circuit');
+      expect(
+        await page.evaluate(
+          () => JSON.parse(localStorage.getItem('sportsdesk.view.diary')!).entries.length,
+        ),
+      ).toBe(2);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      expect(errors).toEqual([]);
+    });
+  }
 
 test('explicit marks, export, conflict-aware import and offline records', async ({
   page,
 }, info) => {
-  const { state } = await setup(page, 'classic', 'dark', false);
+  const { state } = await setup(page, 'dark', false);
   await page.goto('/');
   await openMatch(page);
   await expect(page.locator('.md-score')).toContainText('1 : 1');

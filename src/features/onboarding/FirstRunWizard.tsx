@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Compass, X } from 'lucide-react';
-import { DesignChooser } from '../../components/DesignChooser';
 import { isTauriRuntime } from '../../lib/bridge';
 import { useModalFocus } from '../../lib/useModalFocus';
 import { LEAGUES } from '../../lib/navigationMetadata';
@@ -462,7 +461,6 @@ function AppearanceStep() {
   };
   return (
     <>
-      <DesignChooser />
       <fieldset className="onboarding-choice">
         <legend>Тема</legend>
         <div className="onboarding-options">

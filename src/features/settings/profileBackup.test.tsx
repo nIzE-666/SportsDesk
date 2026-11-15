@@ -452,3 +452,22 @@ it('closes the journal after a successful restore', async () => {
     'finish_backup_restore',
   ]);
 });
+
+it('restores an old profile with the removed design choice without errors', async () => {
+  localStorage.setItem('sportsdesk.scheme', 'dark');
+  vi.mocked(rpc).mockImplementation(async (name) => {
+    if (name === 'prepare_backup_restore')
+      return {
+        id: 10,
+        profile: {
+          settings: { 'sportsdesk.scheme': 'light', 'sportsdesk.design': 'classic' },
+        },
+        safetyFile: 'safe.json',
+      };
+  });
+  await expect(restoreFullBackup('old-profile.json')).resolves.toBeUndefined();
+  expect(localStorage.getItem('sportsdesk.scheme')).toBe('light');
+  expect(localStorage.getItem('sportsdesk.design')).toBe('classic');
+  expect(vi.mocked(rpc)).toHaveBeenCalledWith('commit_backup_restore', { id: 10 });
+  expect(vi.mocked(rpc)).toHaveBeenCalledWith('finish_backup_restore', { id: 10 });
+});

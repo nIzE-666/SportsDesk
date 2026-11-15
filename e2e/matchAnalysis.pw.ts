@@ -45,7 +45,7 @@ const shots = {
   ],
 };
 
-async function setup(page: Page, design: string, scheme: string, unavailable = false) {
+async function setup(page: Page, scheme: string, unavailable = false) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/*', async (route) => {
@@ -91,14 +91,13 @@ async function setup(page: Page, design: string, scheme: string, unavailable = f
     return route.continue();
   });
   await page.addInitScript(
-    ({ design, scheme, matchId }) => {
-      localStorage.setItem('sportsdesk.design', design);
+    ({ scheme, matchId }) => {
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
       sessionStorage.setItem(`sportsdesk.view.match.${matchId}.tab`, JSON.stringify('analysis'));
     },
-    { design, scheme, matchId: match.id },
+    { scheme, matchId: match.id },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return errors;
@@ -114,59 +113,57 @@ async function openMatch(page: import('@playwright/test').Page) {
   await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
 }
 
-for (const design of ['classic', 'broadcast'])
-  for (const scheme of ['dark', 'light'])
-    for (const width of [1100, 1440]) {
-      test(`${design} ${scheme} ${width}: analysis and filters`, async ({ page }) => {
-        await page.setViewportSize({ width, height: 1000 });
-        const errors = await setup(page, design, scheme);
-        await page.goto('/');
-        await openMatch(page);
-        await page.evaluate(() => document.fonts.ready);
-        const feature = page.locator('.match-analysis');
-        await expect(page.locator('.app-root')).toHaveAttribute('data-design', design);
-        await expect(page.locator('.app-root')).toHaveAttribute('data-scheme', scheme);
-        await expect(feature).toHaveCSS(
-          '--analysis-away',
-          scheme === 'light' ? '#8a3db4' : '#b364d9',
-        );
-        await expect(feature.locator('.analysis-shot')).toHaveCount(5);
-        await expect(feature).toContainText('Неполная кривая xG');
-        await expect(page.getByRole('tab', { name: 'Разбор матча' })).toHaveAttribute(
-          'aria-selected',
-          'true',
-        );
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-          true,
-        );
-        // Expand scroll ancestors only for capture: Chromium clips a long element
-        // screenshot at the app's internal scroll viewport otherwise.
-        const captureStyle = await page.addStyleTag({
-          content:
-            '.app-root { height: auto; min-height: 100vh; overflow: visible; } .shell, .content { overflow: visible; }',
-        });
-        await expect(feature).toHaveScreenshot(`${design}-${scheme}-${width}-analysis.png`);
-        await captureStyle.evaluate((element) => element.parentNode?.removeChild(element));
-        await page.getByLabel('Команда', { exact: true }).selectOption(home.id);
-        await page.getByLabel('Период', { exact: true }).selectOption('FirstHalf');
-        await expect(feature.locator('.analysis-shot')).toHaveCount(2);
-        await expect(feature.locator('.analysis-shots tbody tr')).toHaveCount(2);
-        await expect(feature.locator('.analysis-total.home')).toContainText('0,78');
-        await page
-          .getByRole('button', { name: 'Показать удар: Bukayo Saka, 11′', exact: true })
-          .focus();
-        await page.keyboard.press('Enter');
-        await expect(feature.locator('.analysis-shot.selected')).toHaveCount(1);
-        await page.getByRole('tab', { name: 'Сводка', exact: true }).click();
-        await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
-        await expect(page.getByLabel('Команда', { exact: true })).toHaveValue(home.id);
-        await expect(feature.locator('.analysis-shots tbody tr')).toHaveCount(2);
-        expect(errors).toEqual([]);
+for (const scheme of ['dark', 'light'])
+  for (const width of [1100, 1440]) {
+    test(`${scheme} ${width}: analysis and filters`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const errors = await setup(page, scheme);
+      await page.goto('/');
+      await openMatch(page);
+      await page.evaluate(() => document.fonts.ready);
+      const feature = page.locator('.match-analysis');
+      await expect(page.locator('.app-root')).toHaveAttribute('data-scheme', scheme);
+      await expect(feature).toHaveCSS(
+        '--analysis-away',
+        scheme === 'light' ? '#8a3db4' : '#b364d9',
+      );
+      await expect(feature.locator('.analysis-shot')).toHaveCount(5);
+      await expect(feature).toContainText('Неполная кривая xG');
+      await expect(page.getByRole('tab', { name: 'Разбор матча' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      // Expand scroll ancestors only for capture: Chromium clips a long element
+      // screenshot at the app's internal scroll viewport otherwise.
+      const captureStyle = await page.addStyleTag({
+        content:
+          '.app-root { height: auto; min-height: 100vh; overflow: visible; } .shell, .content { overflow: visible; }',
       });
-    }
+      await expect(feature).toHaveScreenshot(`broadcast-${scheme}-${width}-analysis.png`);
+      await captureStyle.evaluate((element) => element.parentNode?.removeChild(element));
+      await page.getByLabel('Команда', { exact: true }).selectOption(home.id);
+      await page.getByLabel('Период', { exact: true }).selectOption('FirstHalf');
+      await expect(feature.locator('.analysis-shot')).toHaveCount(2);
+      await expect(feature.locator('.analysis-shots tbody tr')).toHaveCount(2);
+      await expect(feature.locator('.analysis-total.home')).toContainText('0,78');
+      await page
+        .getByRole('button', { name: 'Показать удар: Bukayo Saka, 11′', exact: true })
+        .focus();
+      await page.keyboard.press('Enter');
+      await expect(feature.locator('.analysis-shot.selected')).toHaveCount(1);
+      await page.getByRole('tab', { name: 'Сводка', exact: true }).click();
+      await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
+      await expect(page.getByLabel('Команда', { exact: true })).toHaveValue(home.id);
+      await expect(feature.locator('.analysis-shots tbody tr')).toHaveCount(2);
+      expect(errors).toEqual([]);
+    });
+  }
 
 test('unavailable analytics preserve the score and other match tabs', async ({ page }) => {
-  await setup(page, 'classic', 'dark', true);
+  await setup(page, 'dark', true);
   await page.goto('/');
   await openMatch(page);
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал удары');

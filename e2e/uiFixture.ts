@@ -75,12 +75,7 @@ const races = ['2026-10-01', '2026-11-01', '2026-11-08'].map((date, i) => ({
   },
 }));
 
-export async function setupVisualFixture(
-  page: Page,
-  design: string,
-  scheme: string,
-  scenarioData = false,
-) {
+export async function setupVisualFixture(page: Page, scheme: string, scenarioData = false) {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -208,8 +203,7 @@ export async function setupVisualFixture(
     return route.continue();
   });
   await page.addInitScript(
-    ({ design, scheme }) => {
-      localStorage.setItem('sportsdesk.design', design);
+    ({ scheme }) => {
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.sport', 'football');
       localStorage.setItem('sportsdesk.league', 'l_4WFCIZ');
@@ -226,7 +220,7 @@ export async function setupVisualFixture(
       sessionStorage.setItem('sportsdesk.view.navigation.f1.tab', JSON.stringify('calendar'));
       sessionStorage.setItem('sportsdesk.view.f1.year', JSON.stringify(2026));
     },
-    { design, scheme },
+    { scheme },
   );
   await page.clock.setFixedTime(
     new Date(scenarioData ? '2026-10-22T00:00:00Z' : '2026-10-25T00:00:00Z'),

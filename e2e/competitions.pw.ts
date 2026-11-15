@@ -8,7 +8,7 @@ async function openFootball(
   options: { modules?: Record<string, boolean>; saved?: unknown } = {},
 ) {
   await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'classic', 'dark');
+  await setupVisualFixture(page, 'dark');
   await page.addInitScript(
     ({ modules, saved }) => {
       if (modules)

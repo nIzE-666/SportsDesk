@@ -7,7 +7,7 @@ test('measure user journeys from launch', async ({ page }) => {
   test.skip(!output, 'Set SPORTSDESK_SCENARIOS_OUTPUT to write the measurements.');
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'classic', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.addInitScript(() => {
     localStorage.setItem(
       'sportsdesk.football.favorites.teams',

@@ -10,7 +10,7 @@ test('source information and settings remain clear when saved data is stale', as
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'broadcast', 'dark');
+  await setupVisualFixture(page, 'dark');
   await page.clock.setFixedTime(new Date('2026-11-08T10:00:00Z'));
   await page.route('**/bridge/api**', async (route) => {
     const url = new URL(route.request().url());

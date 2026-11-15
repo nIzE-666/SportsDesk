@@ -7,7 +7,7 @@ import {
   type OfflineSeason,
 } from '../src/features/offline/offlineModel';
 
-async function setup(page: Page, design = 'classic', scheme = 'dark', seed = true) {
+async function setup(page: Page, scheme = 'dark', seed = true) {
   const complete = completeOfflineSeason();
   complete.season = '2025/2026';
   const unknown = {
@@ -116,8 +116,7 @@ async function setup(page: Page, design = 'classic', scheme = 'dark', seed = tru
     return route.continue();
   });
   await page.addInitScript(
-    ({ design, scheme }) => {
-      localStorage.setItem('sportsdesk.design', design);
+    ({ scheme }) => {
       localStorage.setItem('sportsdesk.scheme', scheme);
       localStorage.setItem('sportsdesk.onboarding', 'done');
       localStorage.setItem(
@@ -129,7 +128,7 @@ async function setup(page: Page, design = 'classic', scheme = 'dark', seed = tru
         JSON.stringify({ kind: 'football', section: 'matches' }),
       );
     },
-    { design, scheme },
+    { scheme },
   );
   await page.clock.setFixedTime(new Date('2026-11-09T00:00:00Z'));
   return { state, packages };
@@ -144,48 +143,47 @@ const open = async (page: Page) => {
     .getByRole('button', { name: 'Данные', exact: true })
     .click();
 };
-for (const design of ['classic', 'broadcast'])
-  for (const scheme of ['dark', 'light'])
-    for (const width of [1100, 1440])
-      test(`${design} ${scheme} ${width}: offline season library`, async ({ page }) => {
-        await page.setViewportSize({ width, height: 1000 });
-        const { state } = await setup(page, design, scheme);
-        await page.goto('/');
-        await open(page);
-        await page.evaluate(() => document.fonts.ready);
-        const feature = page.locator('.offline-view');
-        await expect(feature.locator('.offline-package')).toHaveCount(3);
-        await expect(feature).toContainText('Полный календарь · 380 из 380');
-        await expect(feature).toContainText('Частичный календарь · 2 из 380');
-        await expect(feature).toContainText('Полнота не проверена · 2');
-        const capture = await page.addStyleTag({
-          content:
-            '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
-        });
-        await expect(feature).toHaveScreenshot(`offline-${design}-${scheme}-${width}.png`);
-        await capture.evaluate((el) => el.parentNode?.removeChild(el));
-        state.offline = true;
-        const partial = feature
-          .locator('.offline-package')
-          .filter({ hasText: 'Частичный календарь' });
-        await partial.getByRole('button', { name: 'Открыть без сети', exact: true }).click();
-        const reader = page.getByRole('region', { name: 'Офлайн-календарь', exact: true });
-        await expect(reader).toContainText('Arsenal — Chelsea');
-        await expect(reader).toContainText('2 : 1');
-        await expect(reader).toContainText('время уточняется');
-        await expect(reader).toContainText('— : —');
-        await reader.getByLabel('Поиск команды').fill('Неизвестная команда');
-        await expect(reader).toContainText('Матчи по этим условиям не найдены');
-        await expect(page.locator('.offline-view')).toBeVisible();
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-          true,
-        );
-        expect(state.errors).toEqual([]);
+for (const scheme of ['dark', 'light'])
+  for (const width of [1100, 1440])
+    test(`${scheme} ${width}: offline season library`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      const { state } = await setup(page, scheme);
+      await page.goto('/');
+      await open(page);
+      await page.evaluate(() => document.fonts.ready);
+      const feature = page.locator('.offline-view');
+      await expect(feature.locator('.offline-package')).toHaveCount(3);
+      await expect(feature).toContainText('Полный календарь · 380 из 380');
+      await expect(feature).toContainText('Частичный календарь · 2 из 380');
+      await expect(feature).toContainText('Полнота не проверена · 2');
+      const capture = await page.addStyleTag({
+        content:
+          '.app-root{height:auto;min-height:100vh;overflow:visible}.shell,.content{overflow:visible}',
       });
+      await expect(feature).toHaveScreenshot(`offline-broadcast-${scheme}-${width}.png`);
+      await capture.evaluate((el) => el.parentNode?.removeChild(el));
+      state.offline = true;
+      const partial = feature
+        .locator('.offline-package')
+        .filter({ hasText: 'Частичный календарь' });
+      await partial.getByRole('button', { name: 'Открыть без сети', exact: true }).click();
+      const reader = page.getByRole('region', { name: 'Офлайн-календарь', exact: true });
+      await expect(reader).toContainText('Arsenal — Chelsea');
+      await expect(reader).toContainText('2 : 1');
+      await expect(reader).toContainText('время уточняется');
+      await expect(reader).toContainText('— : —');
+      await reader.getByLabel('Поиск команды').fill('Неизвестная команда');
+      await expect(reader).toContainText('Матчи по этим условиям не найдены');
+      await expect(page.locator('.offline-view')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      expect(state.errors).toEqual([]);
+    });
 test('pauses a request, resumes after reload, preserves a good package on errors and deletes only after unpinning', async ({
   page,
 }) => {
-  const { state, packages } = await setup(page, 'classic', 'dark', false);
+  const { state, packages } = await setup(page, 'dark', false);
   await page.goto('/');
   await open(page);
   const feature = page.locator('.offline-view'),

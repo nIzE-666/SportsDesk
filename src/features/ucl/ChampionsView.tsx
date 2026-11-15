@@ -10,7 +10,6 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { FeaturedMatchCover, selectFeaturedMatch } from '../football/FeaturedMatchCover';
 import TeamBadge from '../../components/TeamBadge';
 import { MatchRow } from '../../components/MatchRow';
@@ -67,7 +66,6 @@ function normalizeTeam(s: string) {
 }
 
 function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) => void }) {
-  const broadcast = useInterfaceDesign() === 'broadcast';
   const current = currentUclSeason();
   const [season, setSeason] = useState(() => getString('sportsdesk.ucl.season') || current);
   const [data, setData] = useState<UclSeasonData | null>(null);
@@ -298,17 +296,15 @@ function Inner({ tab, onTabChange }: { tab: UclTab; onTabChange: (tab: UclTab) =
       </div>
       {tab === 'overview' && (
         <>
-          {broadcast && (
-            <FeaturedMatchCover
-              sport="ucl"
-              match={selectFeaturedMatch(matches)}
-              league="Лига чемпионов"
-              season={season}
-              loading={loading}
-              onOpenMatch={openMatch}
-              onSeeAllMatches={() => chooseTab('matches')}
-            />
-          )}
+          <FeaturedMatchCover
+            sport="ucl"
+            match={selectFeaturedMatch(matches)}
+            league="Лига чемпионов"
+            season={season}
+            loading={loading}
+            onOpenMatch={openMatch}
+            onSeeAllMatches={() => chooseTab('matches')}
+          />
           <CompetitionInsights teams={teams.length} played={played.length} goals={totalGoals} />
         </>
       )}

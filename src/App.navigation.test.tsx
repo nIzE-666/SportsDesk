@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
-import { readInterfaceDesign, setInterfaceDesign } from './lib/interfaceDesign';
 import { diaryFootballEntry, diaryFixture } from './test/fixtures/diary';
 import { schemeFromLineups } from './features/tactics/tacticsModel';
 import { tacticLineups, tacticMatch } from './test/fixtures/tactics';
@@ -296,25 +295,7 @@ it('opens a match from «Матчи» and leaves only the header back button', a
   expect(host.querySelectorAll('.shell-header-bar [aria-label="Назад"]')).toHaveLength(1);
 });
 
-it('switches designs in place and keeps the selected match tab', async () => {
-  await renderApp();
-  await click(railButton('Футбол'));
-  await click(headerTab('Матчи'));
-  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .fixture-club')!);
-  await click(button('Статистика'));
-  const requests = vi.mocked(api).mock.calls.length;
-  await act(async () => setInterfaceDesign('broadcast'));
-  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('broadcast');
-  expect(readInterfaceDesign()).toBe('broadcast');
-  expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-  expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
-  expect(vi.mocked(api).mock.calls).toHaveLength(requests);
-  await act(async () => setInterfaceDesign('classic'));
-  expect(host.querySelector('.app-root')?.getAttribute('data-design')).toBe('classic');
-});
-
 it('opens the F1 cover weekend in its actual season and round', async () => {
-  localStorage.setItem('sportsdesk.design', 'broadcast');
   viewState.write('f1.year', 2025);
   viewState.write('navigation2.f1', { kind: 'f1', tab: 'overview' });
   await renderApp();

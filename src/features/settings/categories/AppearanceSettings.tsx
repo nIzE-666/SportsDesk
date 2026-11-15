@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Moon, Rows3, Sun } from 'lucide-react';
 import { getString, setString } from '../../football/storage';
-import { DesignChooser } from '../../../components/DesignChooser';
 import { useAtmosphere, writeAtmosphere, type MotionMode } from '../../atmosphere/atmosphereStore';
 
 export function AppearanceSettings() {
@@ -27,7 +26,6 @@ export function AppearanceSettings() {
 
   return (
     <section className="panel settings-section">
-      <DesignChooser />
       <div className="settings-actions">
         <button className="ghost-btn" onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}>
           {lightTheme ? <Moon size={14} /> : <Sun size={14} />}

@@ -22,7 +22,6 @@ import { isCompetitionVisible } from './lib/modules';
 import { isTauriRuntime, rpc } from './lib/bridge';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { viewState } from './lib/viewState';
-import { useInterfaceDesign } from './lib/interfaceDesign';
 import type { SearchTarget } from './lib/searchIndex';
 import { WatchActionContext } from './lib/watchIntent';
 import { startOfflineRunner } from './features/offline/offlineQueue';
@@ -48,7 +47,6 @@ export default function App() {
 
 function MainApp() {
   useEffect(startOfflineRunner, []);
-  const design = useInterfaceDesign();
   const navigation = useShellNavigation();
   const { cupId, route, leagueId, navigate, back, canBack } = navigation;
   const [scheme, setScheme] = useState<'dark' | 'light'>(() =>
@@ -59,13 +57,11 @@ function MainApp() {
   );
   useEffect(() => setString('sportsdesk.scheme', scheme), [scheme]);
   useEffect(() => {
-    document.documentElement.dataset.design = design;
     document.documentElement.dataset.scheme = scheme;
     document.documentElement.style.colorScheme = scheme;
-    document.documentElement.style.backgroundColor =
-      scheme === 'light' ? '#f3f6fb' : design === 'broadcast' ? '#181818' : '#0b101c';
+    document.documentElement.style.backgroundColor = scheme === 'light' ? '#f3f6fb' : '#181818';
     if (isTauriRuntime()) void rpc('apply_window_appearance', { scheme }).catch(() => {});
-  }, [scheme, design]);
+  }, [scheme]);
   useEffect(() => setString('sportsdesk.density', density), [density]);
   // Appearance (theme/density) changes from the settings without a reload.
   useEffect(() => {
@@ -215,7 +211,6 @@ function MainApp() {
     route,
     leagueId,
     cupId,
-    design,
     scheme,
     density,
     canBack,

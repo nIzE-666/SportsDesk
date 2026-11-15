@@ -22,7 +22,6 @@ import { teamColor, withAlpha } from './teamColors';
 import { useFavoriteDrivers, useFavoriteTeams } from './useFavorites';
 import { useSeason } from './SeasonContext';
 import { SourceBar, State, TeamDot, DriverName } from './shared';
-import { useInterfaceDesign } from '../../lib/interfaceDesign';
 import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
 import { grandPrixTitle, racePresentation } from './calendarModel';
@@ -77,7 +76,7 @@ function SessionRow({ label, d }: { label: string; d?: { date?: string; time?: s
   );
 }
 
-function WeekendCard({ race, broadcast = false }: { race: JolpicaRace; broadcast?: boolean }) {
+function WeekendCard({ race }: { race: JolpicaRace }) {
   const sessions: Array<{ label: string; d?: { date?: string; time?: string } }> = [];
   if (race.FirstPractice) sessions.push({ label: 'Практика 1', d: race.FirstPractice });
   if (race.SprintQualifying || race.SprintShootout)
@@ -98,10 +97,10 @@ function WeekendCard({ race, broadcast = false }: { race: JolpicaRace; broadcast
       <div className="f1-card-head">
         <div>
           <div className="f1-eyebrow">
-            {broadcast ? racePresentation(race).title : 'Следующий Гран-при'} · Раунд {race.round}
+            {racePresentation(race).title} · Раунд {race.round}
           </div>
           <h2 className="f1-title" style={{ marginTop: 4 }}>
-            {broadcast ? 'Расписание уикенда' : racePresentation(race).title}
+            Расписание уикенда
           </h2>
           <div className="f1-muted" style={{ marginTop: 3 }}>
             {circuit.circuitName}
@@ -421,7 +420,6 @@ interface RosterRow {
  * that Constructors[] season history is the current roster.
  */
 export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) => void } = {}) {
-  const broadcast = useInterfaceDesign() === 'broadcast';
   const { year } = useSeason();
   const schedule = useApiResource(
     `${year}-overview-schedule`,
@@ -549,36 +547,34 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
 
   return (
     <>
-      {broadcast && (
-        <EventCover
-          sport="f1"
-          eyebrow={`Формула 1 · Сезон ${year}${coverRace ? ` · Этап ${coverRace.round}` : ''}`}
-        >
-          <h2>{coverRace ? racePresentation(coverRace).title : `Календарь сезона ${year}`}</h2>
-          {coverRace ? (
-            <>
-              <strong>{formatDateTime(parseUtc(coverRace.date, coverRace.time))}</strong>
-              <p>{coverRace.Circuit.circuitName}</p>
-              <div className="event-cover-actions">
-                {onOpenCalendar && (
-                  <button className="primary-btn" onClick={() => onOpenCalendar(coverRace.round)}>
-                    Открыть уикенд <CalendarClock size={16} />
-                  </button>
-                )}
-                <span className="event-cover-status">
-                  {next ? 'Ближайшая гонка' : 'Последний прошедший этап'}
-                </span>
-              </div>
-            </>
-          ) : (
-            <p>
-              {schedule.loading
-                ? 'Загружаем календарь и расписание сессий.'
-                : 'Календарь недоступен.'}
-            </p>
-          )}
-        </EventCover>
-      )}
+      <EventCover
+        sport="f1"
+        eyebrow={`Формула 1 · Сезон ${year}${coverRace ? ` · Этап ${coverRace.round}` : ''}`}
+      >
+        <h2>{coverRace ? racePresentation(coverRace).title : `Календарь сезона ${year}`}</h2>
+        {coverRace ? (
+          <>
+            <strong>{formatDateTime(parseUtc(coverRace.date, coverRace.time))}</strong>
+            <p>{coverRace.Circuit.circuitName}</p>
+            <div className="event-cover-actions">
+              {onOpenCalendar && (
+                <button className="primary-btn" onClick={() => onOpenCalendar(coverRace.round)}>
+                  Открыть уикенд <CalendarClock size={16} />
+                </button>
+              )}
+              <span className="event-cover-status">
+                {next ? 'Ближайшая гонка' : 'Последний прошедший этап'}
+              </span>
+            </div>
+          </>
+        ) : (
+          <p>
+            {schedule.loading
+              ? 'Загружаем календарь и расписание сессий.'
+              : 'Календарь недоступен.'}
+          </p>
+        )}
+      </EventCover>
       <div className="f1-grid f1-overview-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           <SourceBar
@@ -613,7 +609,7 @@ export function Overview({ onOpenCalendar }: { onOpenCalendar?: (round: string) 
               Все гонки сезона уже прошли.
             </State>
           ) : null}
-          {next ? <WeekendCard race={next} broadcast={broadcast} /> : null}
+          {next ? <WeekendCard race={next} /> : null}
 
           {latest.loading && !latestData ? (
             <State kind="loading" title="Загрузка результатов последней гонки…" />

@@ -3,7 +3,7 @@ import { setupVisualFixture } from './uiFixture';
 
 async function openShell(page: Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'classic', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
 }
@@ -18,7 +18,7 @@ async function search(page: Page, query: string) {
 
 test('an old offline link opens «Настройки → Данные»', async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 720 });
-  await setupVisualFixture(page, 'classic', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.addInitScript(() =>
     localStorage.setItem(
       'sportsdesk.search.index',

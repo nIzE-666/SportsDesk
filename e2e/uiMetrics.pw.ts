@@ -7,7 +7,7 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
   const output = process.env.SPORTSDESK_METRICS_OUTPUT;
   test.skip(!output, 'Set SPORTSDESK_METRICS_OUTPUT to write the measurements.');
   await page.setViewportSize({ width: 1440, height: 900 });
-  await setupVisualFixture(page, 'classic', 'dark', true);
+  await setupVisualFixture(page, 'dark', true);
   await page.addInitScript(() => {
     const teams = Array.from({ length: 10 }, (_, index) => ({
       id: index === 0 ? 'arsenal' : `team-${index}`,
@@ -110,7 +110,6 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
     JSON.stringify(
       {
         viewport: '1440x900',
-        design: 'classic',
         scheme: 'dark',
         fixture: 'e2e/uiFixture.ts',
         screens: results,

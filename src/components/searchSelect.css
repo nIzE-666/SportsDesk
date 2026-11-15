@@ -159,16 +159,16 @@
   text-align: center;
 }
 
-.app-root[data-design='broadcast'] .search-select-field {
+.search-select-field {
   border-radius: 8px;
   background: var(--bg);
 }
 
-.app-root[data-design='broadcast'] .search-select-option {
+.search-select-option {
   border-radius: 6px;
 }
 
-.app-root[data-design='broadcast'] .search-select-popup {
+.search-select-popup {
   border-radius: 8px;
   box-shadow: 0 10px 24px #0000002e;
 }
