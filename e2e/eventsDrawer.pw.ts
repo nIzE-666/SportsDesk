@@ -84,7 +84,7 @@ test(`a click outside closes the drawer and keeps the page underneath`, async ({
   const dialog = page.getByRole('dialog', { name: 'События' });
   await expect(dialog).toBeVisible();
 
-  await page.locator('.events-drawer-backdrop').click({ position: { x: 20, y: 20 } });
+  await page.locator('.ui-dialog-scrim').click({ position: { x: 20, y: 20 } });
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
   await expect(rail.getByRole('button', { name: 'События', exact: true })).toBeFocused();

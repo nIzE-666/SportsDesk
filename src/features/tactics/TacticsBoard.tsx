@@ -1,4 +1,12 @@
-import { useId, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import {
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
+import { Button, Panel } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import type { LineupsPayload, MatchDetail } from '../football/types';
 import {
@@ -142,8 +150,8 @@ export function TacticsBoard({
           <h2>Мои схемы</h2>
           <p className="muted">Расставляйте игроков и рисуйте передачи.</p>
         </div>
-        <button
-          className="ghost-btn"
+        <Button
+          small
           disabled={loading || !payload}
           onClick={() =>
             requestReplace('Создать новую доску без сохранения изменений?', () =>
@@ -152,7 +160,7 @@ export function TacticsBoard({
           }
         >
           {loading ? 'Загружаем состав…' : 'Создать из состава'}
-        </button>
+        </Button>
       </header>
       {sourceError && <p className="tactics-notice">{sourceError} · Сохранённые схемы доступны.</p>}
       {saved.error && (
@@ -171,11 +179,11 @@ export function TacticsBoard({
         </p>
       )}
       {pending && (
-        <div className="panel tactics-confirm" role="alert">
+        <Panel className="tactics-confirm" role="alert">
           <p>{pending.label}</p>
           <div className="tactics-actions">
-            <button
-              className="ghost-btn"
+            <Button
+              small
               onClick={() => {
                 const action = pending.run;
                 setPending(null);
@@ -183,21 +191,21 @@ export function TacticsBoard({
               }}
             >
               Продолжить
-            </button>
-            <button className="ghost-btn" onClick={() => setPending(null)}>
+            </Button>
+            <Button small variant="quiet" onClick={() => setPending(null)}>
               Остаться на доске
-            </button>
+            </Button>
           </div>
-        </div>
+        </Panel>
       )}
       {!draft ? (
-        <div className="panel">
+        <Panel>
           <h3>Разберите свою расстановку</h3>
           <p>Создайте схему из состава или откройте сохранённую.</p>
-        </div>
+        </Panel>
       ) : (
         <>
-          <section className="panel tactics-editor" aria-label="Редактор схемы">
+          <Panel className="tactics-editor" aria-label="Редактор схемы">
             <div className="tactics-properties">
               <label>
                 Название схемы
@@ -245,8 +253,9 @@ export function TacticsBoard({
               <p className="muted">Это ваша копия: исходный состав не меняется.</p>
             </div>
             <div className="tactics-actions">
-              <button
-                className="ghost-btn"
+              <Button
+                small
+                variant="quiet"
                 disabled={!past.length || compare}
                 onClick={() => {
                   const previous = past.at(-1);
@@ -258,16 +267,18 @@ export function TacticsBoard({
                 }}
               >
                 Отменить действие
-              </button>
-              <button
-                className="ghost-btn"
+              </Button>
+              <Button
+                small
+                variant="quiet"
                 disabled={compare}
                 onClick={() => change(resetScheme(draft))}
               >
                 Сбросить доску
-              </button>
-              <button
-                className="ghost-btn"
+              </Button>
+              <Button
+                small
+                variant="quiet"
                 aria-pressed={compare}
                 onClick={() => {
                   setCompare(!compare);
@@ -277,9 +288,10 @@ export function TacticsBoard({
                 }}
               >
                 {compare ? 'Вернуться к моей схеме' : 'Сравнить с исходной'}
-              </button>
-              <button
-                className="ghost-btn"
+              </Button>
+              <Button
+                small
+                variant="quiet"
                 disabled={compare}
                 aria-pressed={mode === 'arrow'}
                 onClick={() => {
@@ -288,21 +300,22 @@ export function TacticsBoard({
                 }}
               >
                 Рисовать стрелки
-              </button>
-              <button
-                className="ghost-btn"
+              </Button>
+              <Button
+                small
                 disabled={!saved.writable || !draft.title.trim()}
                 onClick={() => save()}
               >
                 Сохранить схему
-              </button>
-              <button
-                className="ghost-btn"
+              </Button>
+              <Button
+                small
+                variant="quiet"
                 disabled={!saved.writable || !draft.title.trim()}
                 onClick={() => save(true)}
               >
                 Сохранить копию
-              </button>
+              </Button>
             </div>
             <p className="tactics-state" role="status">
               {compare
@@ -402,7 +415,11 @@ export function TacticsBoard({
                       <button
                         key={p.key}
                         className={`tactics-player ${p.teamId === draft.source.home.id ? 'home' : 'away'} ${selected === p.key ? 'selected' : ''}`}
-                        style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+                        style={
+                          {
+                            '--player-position': `${point.y * 100}% auto auto ${point.x * 100}%`,
+                          } as CSSProperties
+                        }
                         aria-label={`Игрок ${p.name}, ${p.teamId === draft.source.home.id ? draft.source.home.name : draft.source.away.name}`}
                         aria-pressed={selected === p.key}
                         onClick={(e) => {
@@ -511,20 +528,22 @@ export function TacticsBoard({
                       ))}
                     </div>
                     <div className="tactics-actions">
-                      <button
-                        className="ghost-btn"
+                      <Button
+                        small
+                        variant="quiet"
                         disabled={compare}
                         onClick={() => change(movePlayer(draft, player.key, { x: 0.5, y: 0.5 }))}
                       >
                         Разместить в центре
-                      </button>
-                      <button
-                        className="ghost-btn"
+                      </Button>
+                      <Button
+                        small
+                        variant="quiet"
                         disabled={compare || !player.position}
                         onClick={() => change(movePlayer(draft, player.key, null))}
                       >
                         Убрать с поля
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -554,8 +573,8 @@ export function TacticsBoard({
                   </label>
                 ))}
               </div>
-              <button
-                className="ghost-btn"
+              <Button
+                small
                 disabled={compare}
                 onClick={() =>
                   attempt(() => {
@@ -582,14 +601,15 @@ export function TacticsBoard({
                 }
               >
                 Добавить стрелку по координатам
-              </button>
+              </Button>
               <ol>
                 {draft.arrows.map((a, i) => (
                   <li key={a.id}>
                     Стрелка {i + 1}: {percent(a.from.x)}, {percent(a.from.y)} → {percent(a.to.x)},{' '}
                     {percent(a.to.y)} %{' '}
-                    <button
-                      className="ghost-btn"
+                    <Button
+                      small
+                      variant="quiet"
                       disabled={compare}
                       aria-label={`Удалить стрелку ${i + 1}`}
                       onClick={() =>
@@ -597,7 +617,7 @@ export function TacticsBoard({
                       }
                     >
                       Удалить
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ol>
@@ -605,17 +625,17 @@ export function TacticsBoard({
             <p className="muted small">
               {dirty ? 'Есть несохранённые изменения.' : 'Эта версия схемы сохранена.'}
             </p>
-          </section>
+          </Panel>
         </>
       )}
-      <section className="panel tactics-library" aria-label="Сохранённые схемы">
+      <Panel className="tactics-library" aria-label="Сохранённые схемы">
         <div className="tactics-heading">
           <h3>
             {showAll ? 'Все сохранённые схемы' : 'Схемы этого матча и команд'} · {library.length}
           </h3>
-          <button className="ghost-btn" aria-pressed={showAll} onClick={() => setShowAll(!showAll)}>
+          <Button small variant="quiet" aria-pressed={showAll} onClick={() => setShowAll(!showAll)}>
             {showAll ? 'Только этот матч и команды' : 'Показать все сохранённые схемы'}
-          </button>
+          </Button>
         </div>
         {!library.length && <p className="muted">Сохранённых схем пока нет.</p>}
         <ul>
@@ -629,8 +649,8 @@ export function TacticsBoard({
                 </small>
               </div>
               <div className="tactics-actions">
-                <button
-                  className="ghost-btn"
+                <Button
+                  small
                   onClick={() =>
                     requestReplace('Открыть другую схему без сохранения изменений?', () =>
                       replace(s),
@@ -638,9 +658,10 @@ export function TacticsBoard({
                   }
                 >
                   Открыть {s.title}
-                </button>
-                <button
-                  className="ghost-btn"
+                </Button>
+                <Button
+                  small
+                  variant="quiet"
                   onClick={() =>
                     setPending({
                       label: `Удалить сохранённую схему «${s.title}»?`,
@@ -656,12 +677,12 @@ export function TacticsBoard({
                   }
                 >
                   Удалить {s.title}
-                </button>
+                </Button>
               </div>
             </li>
           ))}
         </ul>
-      </section>
+      </Panel>
     </section>
   );
 }

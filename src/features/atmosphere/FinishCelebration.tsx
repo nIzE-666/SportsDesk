@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from '../../kit';
 import { isTauriRuntime } from '../../lib/bridge';
 import { grandPrixTitle } from '../f1/calendarModel';
 import { teamColor } from '../f1/teamColors';
@@ -36,7 +37,7 @@ function FlagWave() {
     <svg className="finish-flag" viewBox="-8 -8 256 160" aria-hidden="true">
       <rect x={-8} y={-8} width={6} height={160} rx={3} className="pole" />
       {Array.from({ length: COLUMNS }, (_, column) => (
-        <g key={column} className="finish-flag-col" style={{ animationDelay: `${column * 0.07}s` }}>
+        <g key={column} className="finish-flag-col">
           {Array.from({ length: ROWS }, (_, row) => (
             <rect
               key={row}
@@ -121,9 +122,12 @@ export function FinishCelebration() {
               {title} · {payload.label}
             </span>
           </div>
-          <button className="ghost-btn" aria-label="Закрыть" onClick={() => setShown(null)}>
-            <X size={14} />
-          </button>
+          <IconButton
+            small
+            aria-label="Закрыть"
+            icon={<X size={14} aria-hidden="true" />}
+            onClick={() => setShown(null)}
+          />
         </header>
         <div className="finish-podium">
           {PODIUM_ORDER.map((position) => {

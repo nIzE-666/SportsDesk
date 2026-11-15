@@ -71,10 +71,10 @@ test('keyboard search, events and match viewing', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.today-view')).toBeVisible();
   await page.keyboard.press('Control+k');
-  const dialog = page.getByRole('dialog', { name: 'Глобальный поиск' });
+  const dialog = page.getByRole('dialog', { name: 'Поиск' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveScreenshot('broadcast-search.png');
-  const overlay = await page.locator('.command-backdrop').boundingBox();
+  const overlay = await page.locator('.ui-dialog-scrim').boundingBox();
   expect(overlay?.height).toBe(900);
   await page.getByRole('combobox').fill('Arsenal Chelsea');
   await expect(page.getByRole('option')).toHaveCount(1);

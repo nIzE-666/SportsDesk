@@ -1,4 +1,5 @@
 import { Eye, EyeOff } from 'lucide-react';
+import { Button } from '../../kit';
 import { hideResult, revealResult, useResultHidden, type SpoilerKind } from './spoilerStore';
 
 /** Кнопка «Без спойлеров» / «Показать результат» для конкретного события. */
@@ -17,19 +18,20 @@ export function SpoilerToggle({
 }) {
   const hidden = useResultHidden(kind, id);
   return (
-    <button
-      type="button"
-      className={`spoiler-toggle ${hidden ? 'is-hidden' : ''} ${compact ? 'compact' : ''}`}
+    <Button
+      small
+      variant="quiet"
+      className={`spoiler-toggle${compact ? ' spoiler-toggle--compact' : ''}`}
       aria-pressed={hidden}
       title={hidden ? 'Результат скрыт до явного показа' : 'Скрыть результат этого события'}
+      icon={hidden ? <Eye size={14} /> : <EyeOff size={14} />}
       onClick={(e) => {
         e.stopPropagation();
         if (hidden) revealResult(kind, id);
         else hideResult({ kind, id, label, eventTime });
       }}
     >
-      {hidden ? <Eye size={14} /> : <EyeOff size={14} />}
-      <span>{hidden ? 'Показать результат' : 'Без спойлеров'}</span>
-    </button>
+      {hidden ? 'Показать результат' : 'Без спойлеров'}
+    </Button>
   );
 }

@@ -1,6 +1,7 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { Component, Fragment } from 'react';
+import { Button } from '../kit';
 import { recordUiError, type UiError } from '../lib/diagnostics';
 
 interface Props {
@@ -43,16 +44,16 @@ export class SectionBoundary extends Component<Props, State> {
             открыть через меню.
           </p>
           <div className="settings-actions">
-            <button
-              className="primary-btn"
+            <Button
+              variant="primary"
+              icon={<RefreshCw size={15} />}
               onClick={() =>
                 this.setState((state) => ({ failed: false, attempt: state.attempt + 1 }))
               }
             >
-              <RefreshCw size={15} /> Повторить
-            </button>
-            <button
-              className="ghost-btn"
+              Повторить
+            </Button>
+            <Button
               onClick={async (event) => {
                 const button = event.currentTarget;
                 try {
@@ -64,12 +65,8 @@ export class SectionBoundary extends Component<Props, State> {
               }}
             >
               Скопировать детали ошибки
-            </button>
-            {this.props.onBack && (
-              <button className="ghost-btn" onClick={this.props.onBack}>
-                Вернуться назад
-              </button>
-            )}
+            </Button>
+            {this.props.onBack && <Button onClick={this.props.onBack}>Вернуться назад</Button>}
           </div>
         </section>
       );

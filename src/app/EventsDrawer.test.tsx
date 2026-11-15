@@ -57,7 +57,7 @@ it('opens as a labelled modal dialog and closes on Escape and on a click outside
   await render();
   await act(async () => bell().click());
   expect(dialog()?.getAttribute('aria-modal')).toBe('true');
-  expect(host.querySelector('#events-drawer-title')?.textContent).toBe('События');
+  expect(dialog()?.querySelector('h2')?.textContent).toBe('События');
   expect(document.activeElement).toBe(closeButton());
 
   await act(async () =>
@@ -67,7 +67,7 @@ it('opens as a labelled modal dialog and closes on Escape and on a click outside
   expect(document.activeElement).toBe(bell());
 
   await act(async () => bell().click());
-  await act(async () => host.querySelector<HTMLElement>('.events-drawer-backdrop')!.click());
+  await act(async () => host.querySelector<HTMLElement>('.ui-dialog-scrim')!.click());
   expect(dialog()).toBeNull();
 });
 

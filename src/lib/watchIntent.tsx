@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import { Tv } from 'lucide-react';
+import { Button } from '../kit';
 import { useModules } from './modules';
 export interface WatchIntent {
   sport: 'football' | 'f1';
@@ -12,9 +13,8 @@ export function WatchEventButton({ intent }: { intent: WatchIntent }) {
   const watch = useModules().watch;
   if (!watch) return null;
   return open ? (
-    <button className="ghost-btn" onClick={() => open(intent)}>
-      <Tv size={15} />
+    <Button small icon={<Tv size={15} />} onClick={() => open(intent)}>
       Смотреть
-    </button>
+    </Button>
   ) : null;
 }

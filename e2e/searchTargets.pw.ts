@@ -10,7 +10,7 @@ async function openShell(page: Page) {
 
 async function search(page: Page, query: string) {
   await page.getByRole('button', { name: 'Поиск · Ctrl+K' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Глобальный поиск' });
+  const dialog = page.getByRole('dialog', { name: 'Поиск' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('combobox').fill(query);
   return dialog;

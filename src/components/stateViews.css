@@ -1,0 +1,25 @@
+/* Shared loading and empty blocks keep the transitional `.state-block` hook
+   that screen specs already look for, while their body is the kit. */
+.state-block.ui-empty {
+  align-items: center;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.state-block.ui-empty .ui-empty__text strong {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+}
+
+.state-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+}
+
+.state-skeleton-row {
+  height: var(--space-12);
+}

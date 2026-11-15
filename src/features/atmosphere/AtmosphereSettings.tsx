@@ -1,3 +1,4 @@
+import { Button } from '../../kit';
 import { useState } from 'react';
 import { getString, setString } from '../football/storage';
 import { F1_RADIO_KEY, F1_RADIO_NAME_KEY, RADIO_NAME_MAX } from './teamRadio';
@@ -137,30 +138,33 @@ export function AtmosphereSettings() {
       </label>
       <p className="muted small">Реплики вымышлены.</p>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          small
+          variant="quiet"
           disabled={!s.celebrations}
           onClick={() => window.dispatchEvent(new Event(CELEBRATE_PREVIEW_EVENT))}
         >
           Показать праздник гола
-        </button>
-        <button
-          className="ghost-btn"
+        </Button>
+        <Button
+          small
+          variant="quiet"
           disabled={!s.celebrations}
           onClick={() => window.dispatchEvent(new Event(FINISH_PREVIEW_EVENT))}
         >
           Показать клетчатый флаг
-        </button>
-        <button
-          className="ghost-btn"
+        </Button>
+        <Button
+          small
+          variant="quiet"
           disabled={!s.sounds}
           onClick={() => playGoalHorn({ preview: true })}
         >
           Проверить рог
-        </button>
-        <button className="ghost-btn" disabled={!s.ambient} onClick={() => toggleAmbient()}>
+        </Button>
+        <Button small variant="quiet" disabled={!s.ambient} onClick={() => toggleAmbient()}>
           {ambient.kind ? 'Остановить фон' : 'Прослушать фон'}
-        </button>
+        </Button>
       </div>
     </fieldset>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '../../kit';
 import { formatHumanDate } from '../../lib/humanDate';
 import { useModules } from '../../lib/modules';
 import { getUserTimezone } from '../football/storage';
@@ -43,8 +44,8 @@ function DiaryMarkState({
   return (
     <div className="diary-mark">
       <div className="diary-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          small
           disabled={hidden || !writable || !!editing}
           onClick={() => {
             setMessage('');
@@ -55,7 +56,7 @@ function DiaryMarkState({
           }}
         >
           {existing ? 'Изменить запись о просмотре' : label}
-        </button>
+        </Button>
         {existing && !hidden && (
           <span className="muted small">
             Просмотрено · {formatHumanDate(existing.watchedOn, getUserTimezone())}

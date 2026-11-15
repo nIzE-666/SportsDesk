@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
+import { Badge, Button, Panel } from '../../kit';
 import { formatHumanDateTime } from '../../lib/humanDate';
 import { getUserTimezone } from '../football/storage';
 import type { SportsEvent } from './EventCenter';
@@ -117,8 +118,8 @@ export function CatchUpPanel({
     }
   };
   return (
-    <section
-      className={block ? 'panel catchup-panel today-block' : 'panel catchup-panel'}
+    <Panel
+      className={block ? 'catchup-panel today-block' : 'catchup-panel'}
       data-block={block ? 'catchup' : undefined}
       aria-label="Пока вас не было"
     >
@@ -127,9 +128,9 @@ export function CatchUpPanel({
           <History size={20} /> Пока вас не было
           {headingCount ? ` · ${summary.items.length}` : ''}
         </h2>
-        <button className="ghost-btn" disabled={busy} onClick={() => void dismiss()}>
+        <Button small variant="quiet" disabled={busy} onClick={() => void dismiss()}>
           Скрыть
-        </button>
+        </Button>
       </div>
       <p className="muted small">
         {when(summary.from)} — {when(summary.to)}
@@ -146,20 +147,20 @@ export function CatchUpPanel({
         <ul className="catchup-list">
           {summary.items.map((e) => (
             <li key={e.id}>
-              <span className="chip">{e.sport === 'f1' ? 'Формула 1' : 'Футбол'}</span>{' '}
+              <Badge>{e.sport === 'f1' ? 'Формула 1' : 'Футбол'}</Badge>{' '}
               <time dateTime={new Date(e.occurredAt).toISOString()}>{when(e.occurredAt)}</time>
               <div>
                 <b>{e.title}</b> · {spoilerSafeBody(spoilers, e)}
               </div>
               {onOpen && (e.matchId || (e.season && e.round)) && (
-                <button className="text-link" onClick={() => onOpen(e)}>
+                <Button small variant="quiet" onClick={() => onOpen(e)}>
                   {e.sport === 'f1' ? 'Открыть уикенд' : 'Открыть матч'}
-                </button>
+                </Button>
               )}
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }

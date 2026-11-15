@@ -1,0 +1,44 @@
+/* The search dialog body: the kit dialog around the existing command layout. */
+.ui-dialog-scrim:has(.command-dialog) {
+  align-items: start;
+  padding-top: 80px;
+}
+
+.command-dialog.ui-dialog {
+  width: min(680px, 100%);
+  max-width: 680px;
+  max-height: calc(100vh - 160px);
+  height: auto;
+  gap: var(--space-8);
+  padding: 0 var(--space-24) var(--space-24);
+}
+
+.command-dialog .ui-dialog__header {
+  padding-top: var(--space-16);
+}
+
+.command-dialog .ui-dialog__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--color-text);
+}
+
+.command-dialog .command-results {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.command-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}

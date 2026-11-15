@@ -16,7 +16,7 @@
 | ------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `Button`           | `variant`: `default`, `primary`, `quiet`; `danger`, `small`, `busy`, `icon`                                   |
 | `IconButton`       | `icon`, обязательный `aria-label`, `variant`, `small`, `busy`, `danger`                                       |
-| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`                                              |
+| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`, `panelId`; у пункта `domId`, `title`, `ref` |
 | `SegmentedControl` | `items`, `value`, `onChange`, `ariaLabel`                                                                     |
 | `MatchRow`         | `home`, `away`, `time`, `status`, `minute`, `score`, `hideScore`, `competition`, `actions`, `size`, `onClick` |
 | `Panel`            | свойства `section` и `children`                                                                               |

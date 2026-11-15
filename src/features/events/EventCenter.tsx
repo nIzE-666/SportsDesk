@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bell, CheckCheck, RefreshCw } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
+import { Badge, Button, SegmentedControl } from '../../kit';
 import { formatHumanDateTime } from '../../lib/humanDate';
 import { getUserTimezone } from '../football/storage';
 import { CatchUpPanel } from './CatchUpPanel';
@@ -111,10 +112,14 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
         <h2 className="screen-title">
           <Bell size={24} aria-hidden="true" /> Центр событий
         </h2>
-        <button className="ghost-btn" onClick={() => setTick((n) => n + 1)}>
-          <RefreshCw size={15} aria-hidden="true" />
+        <Button
+          small
+          variant="quiet"
+          icon={<RefreshCw size={15} aria-hidden="true" />}
+          onClick={() => setTick((n) => n + 1)}
+        >
           Обновить
-        </button>
+        </Button>
       </div>
       <p className="muted">События за последние 30 дней, пока приложение запущено.</p>
       <CatchUpPanel
@@ -127,28 +132,26 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
       {(choices.length > 0 || unread.length > 0) && (
         <div className="event-toolbar">
           {choices.length > 0 && (
-            <div role="group" aria-label="Фильтр событий">
-              {choices.map((id) => (
-                <button
-                  className={`ghost-btn ${filter === id ? 'active' : ''}`}
-                  aria-pressed={filter === id}
-                  key={id}
-                  onClick={() => setFilter(id)}
-                >
-                  {id === 'unread' ? `Непрочитанные · ${unread.length}` : FILTER_LABELS[id]}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              ariaLabel="Фильтр событий"
+              value={filter}
+              onChange={(id) => setFilter(id as EventFilter)}
+              items={choices.map((id) => ({
+                id,
+                label: id === 'unread' ? `Непрочитанные · ${unread.length}` : FILTER_LABELS[id],
+              }))}
+            />
           )}
           {unread.length > 0 && (
-            <button
-              className="ghost-btn"
+            <Button
+              small
+              variant="quiet"
+              icon={<CheckCheck size={15} aria-hidden="true" />}
               disabled={saving}
               onClick={() => void acknowledge(unread.map((e) => e.id))}
             >
-              <CheckCheck size={15} aria-hidden="true" />
               Прочитать все
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -174,19 +177,19 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
       )}
       {!loading && !!events.length && !shown.length && !error && (
         <EmptyBlock title={filter === 'unread' ? 'Всё прочитано' : 'Таких событий нет'}>
-          <button className="ghost-btn" onClick={() => setFilter('all')}>
+          <Button small onClick={() => setFilter('all')}>
             Показать все события
-          </button>
+          </Button>
         </EmptyBlock>
       )}
       <div className="event-list">
         {shown.map((e) => (
           <article className={`panel event-entry ${e.read ? '' : 'unread'}`} key={e.id}>
             <div>
-              <span className="chip">
+              <Badge>
                 {e.sport === 'f1' ? 'Формула 1' : 'Футбол'}
                 {!e.read ? ' · Новое' : ''}
-              </span>
+              </Badge>
               <time dateTime={new Date(e.occurredAt).toISOString()}>
                 {formatHumanDateTime(e.occurredAt, getUserTimezone())}
               </time>
@@ -195,24 +198,25 @@ export function EventCenter({ onOpen }: { onOpen: (event: SportsEvent) => void }
             <p>{spoilerSafeBody(spoilers, e)}</p>
             <div className="event-actions">
               {(e.matchId || (e.season && e.round)) && (
-                <button
-                  className="ghost-btn"
+                <Button
+                  small
                   onClick={() => {
                     void acknowledge([e.id]);
                     onOpen(e);
                   }}
                 >
                   {e.sport === 'f1' ? 'Открыть уикенд' : 'Открыть матч'}
-                </button>
+                </Button>
               )}
               {!e.read && (
-                <button
-                  className="text-link"
+                <Button
+                  small
+                  variant="quiet"
                   disabled={saving}
                   onClick={() => void acknowledge([e.id])}
                 >
                   Отметить прочитанным
-                </button>
+                </Button>
               )}
             </div>
           </article>

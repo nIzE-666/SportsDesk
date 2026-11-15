@@ -3,6 +3,7 @@ import { Flag, LayoutGrid, Star } from 'lucide-react';
 import TeamBadge from '../../components/TeamBadge';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { Button, MatchRow } from '../../kit';
 import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
 import { isCompetitionVisible, useModules } from '../../lib/modules';
 import { teamMatchesFavorite } from '../../lib/sportsIdentity';
@@ -97,23 +98,24 @@ function EventRow({
         <small>{formatHumanDate(event.start, tz, now)}</small>
       </span>
       <span className="today-event-body">
-        <button className="today-event-title" onClick={() => onOpen(event)}>
+        <Button variant="quiet" className="today-event-title" onClick={() => onOpen(event)}>
           {eventTitle(event)}
-        </button>
+        </Button>
         <small className="muted">
           {event.kind === 'f1' ? 'Формула 1' : league}
           {event.liveExtended ? ' · окончание уточняется' : ''}
         </small>
       </span>
-      <button
-        className={watching ? 'ghost-btn active' : 'ghost-btn'}
+      <Button
+        variant="quiet"
+        small
         aria-pressed={watching}
         aria-label={`${watching ? 'Убрать из плана' : 'Буду смотреть'}: ${eventTitle(event)}`}
+        icon={<Star size={14} fill={watching ? 'currentColor' : 'none'} />}
         onClick={() => onToggle(event.id)}
       >
-        <Star size={14} fill={watching ? 'currentColor' : 'none'} />
         {watching ? 'В плане' : 'Буду смотреть'}
-      </button>
+      </Button>
     </li>
   );
 }
@@ -275,35 +277,36 @@ function LiveNowBlock({
         {matches.map((match) => {
           const minute = minuteLabel(match.minute);
           const pitchMatchId = findPitchMatchId(match, pitchMatches);
-          const score = `${match.score.home ?? '—'} : ${match.score.away ?? '—'}`;
           return (
-            <li className="today-live-row" key={match.id}>
-              <span className={minute ? 'chip live-chip' : 'chip'}>{minute ?? 'В игре'}</span>
-              <span className="today-live-teams">
-                <TeamBadge name={match.home.name} size={20} />
-                <strong>{match.home.name}</strong>
-                <b className="today-live-score">{score}</b>
-                <strong>{match.away.name}</strong>
-                <TeamBadge name={match.away.name} size={20} />
-              </span>
-              <span className="muted small today-live-competition">{competitionLabel(match)}</span>
-              <span className="today-row-actions">
-                {pitchMatchId && (
-                  <button
-                    className="ghost-btn"
-                    onClick={() => onOpenMatch(pitchMatchId, match.leagueId ?? undefined)}
-                  >
-                    Открыть
-                  </button>
-                )}
-                <WatchEventButton
-                  intent={{
-                    sport: 'football',
-                    key: match.id,
-                    title: `${match.home.name} — ${match.away.name}`,
-                  }}
-                />
-              </span>
+            <li key={match.id}>
+              <MatchRow
+                size="compact"
+                status="live"
+                minute={minute}
+                home={{ name: match.home.name }}
+                away={{ name: match.away.name }}
+                score={{ home: match.score.home, away: match.score.away }}
+                competition={competitionLabel(match)}
+                actions={
+                  <>
+                    {pitchMatchId && (
+                      <Button
+                        small
+                        onClick={() => onOpenMatch(pitchMatchId, match.leagueId ?? undefined)}
+                      >
+                        Открыть
+                      </Button>
+                    )}
+                    <WatchEventButton
+                      intent={{
+                        sport: 'football',
+                        key: match.id,
+                        title: `${match.home.name} — ${match.away.name}`,
+                      }}
+                    />
+                  </>
+                }
+              />
             </li>
           );
         })}
@@ -343,7 +346,12 @@ function ClubTile({
     ? `${formatHumanDateTime(next.time_utc ?? next.date ?? null, tz, now)} · ${opponentName(next, team.id)}`
     : '—';
   return (
-    <button className="today-team-tile" onClick={onOpen} aria-label={`Открыть ${team.name}`}>
+    <Button
+      variant="quiet"
+      className="today-team-tile"
+      onClick={onOpen}
+      aria-label={`Открыть ${team.name}`}
+    >
       <span className="today-team-logo">
         <TeamBadge name={team.name} imageUrl={team.image_url} size={34} />
       </span>
@@ -351,7 +359,7 @@ function ClubTile({
       <span className="today-team-place">{place ? `${place}-е` : '—'}</span>
       <span className="today-team-line">{lastText}</span>
       <span className="today-team-line muted">Далее · {nextText}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -399,7 +407,8 @@ function MyTeamsBlock({
           />
         ))}
         {f1TeamIds.map((id) => (
-          <button
+          <Button
+            variant="quiet"
             className="today-team-tile today-team-f1"
             key={`f1-${id}`}
             onClick={onOpenF1}
@@ -410,7 +419,7 @@ function MyTeamsBlock({
             </span>
             <span className="today-team-name">{f1TeamName(id)}</span>
             <span className="today-team-line muted">Формула 1</span>
-          </button>
+          </Button>
         ))}
       </div>
     </section>
@@ -485,13 +494,15 @@ function TodayOverview({
   return (
     <div className="today-overview">
       <div className="today-toolbar today-toolbar-end">
-        <button
-          className="ghost-btn"
+        <Button
+          variant="quiet"
+          small
+          icon={<LayoutGrid size={14} />}
           aria-expanded={editing}
           onClick={() => setEditing((value) => !value)}
         >
-          <LayoutGrid size={14} /> Настроить
-        </button>
+          Настроить
+        </Button>
       </div>
       {editing && (
         <HomeLayoutEditor design="classic" scope="today" onClose={() => setEditing(false)} />

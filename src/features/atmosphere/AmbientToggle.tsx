@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { IconButton, Toast } from '../../kit';
 import { useModules } from '../../lib/modules';
 import {
   getAmbientState,
@@ -52,20 +53,16 @@ export function AmbientToggle({ sport }: { sport: string }) {
     : 'Включить фоновый звук';
   return (
     <span className="ambient-toggle-wrap">
-      <button
-        type="button"
-        className={`icon-button ambient-toggle${playing ? ' playing' : ''}${motionReduced(settings) ? ' calm' : ''}`}
+      <IconButton
+        className={`ambient-toggle${playing ? ' playing' : ''}${motionReduced(settings) ? ' calm' : ''}`}
         aria-label="Фоновый звук"
         aria-pressed={playing}
         title={title}
+        icon={playing ? <Volume2 size={18} /> : <VolumeX size={18} />}
         onClick={click}
-      >
-        {playing ? <Volume2 size={18} /> : <VolumeX size={18} />}
-      </button>
+      />
       {note && (
-        <span className="ambient-note" role="status">
-          {note}
-        </span>
+        <Toast message={note} onDismiss={() => setNote(null)} dismissLabel="Закрыть уведомление" />
       )}
     </span>
   );

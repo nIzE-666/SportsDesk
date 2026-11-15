@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
+import { EmptyState, Button, Panel } from '../../kit';
 import { formatHumanDate } from '../../lib/humanDate';
 import type { MyTab, SettingsCategory } from '../../lib/navigation';
 import { viewState } from '../../lib/viewState';
@@ -99,14 +100,16 @@ function FavoritesTab({
         <h2>
           <Star size={16} aria-hidden="true" /> Избранное
         </h2>
-        <button className="ghost-btn" type="button" onClick={edit}>
+        <Button small variant="quiet" type="button" onClick={edit}>
           Изменить
-        </button>
+        </Button>
       </header>
       {empty ? (
-        <p className="muted my-empty">
-          Здесь появятся клубы, игроки и команды Формулы 1, которые вы отметите.
-        </p>
+        <EmptyState
+          className="my-empty"
+          icon={<Star size={20} aria-hidden="true" />}
+          message="Здесь появятся клубы, игроки и команды Формулы 1, которые вы отметите."
+        />
       ) : (
         <>
           {clubs.length > 0 && (
@@ -114,15 +117,16 @@ function FavoritesTab({
               <h3>Клубы</h3>
               <div className="my-tile-grid">
                 {clubs.map((club) => (
-                  <button
+                  <Button
                     key={club.id}
+                    variant="quiet"
                     className="my-tile"
                     type="button"
                     onClick={() => onOpenClub(club.id, club.leagueId)}
                   >
                     <strong>{club.name}</strong>
                     {club.leagueName && <span className="muted small">{club.leagueName}</span>}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -132,15 +136,16 @@ function FavoritesTab({
               <h3>Игроки</h3>
               <div className="my-row-list">
                 {favoritePlayers.map((player) => (
-                  <button
+                  <Button
                     key={player.id}
+                    variant="quiet"
                     className="my-row"
                     type="button"
                     onClick={() => onOpenPlayer(player)}
                   >
                     <strong>{player.name}</strong>
                     <span className="muted small">{player.teamName ?? '—'}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -148,16 +153,30 @@ function FavoritesTab({
           {(favoriteTeams.length > 0 || favoriteDrivers.length > 0) && (
             <section className="my-group" aria-label="Избранное в Формуле 1">
               <h3>Формула 1</h3>
-              <div className="my-chip-row">
+              <div className="my-favorite-row">
                 {favoriteTeams.map((id) => (
-                  <button key={id} className="my-chip" type="button" onClick={onOpenF1}>
+                  <Button
+                    key={id}
+                    small
+                    variant="quiet"
+                    className="my-favorite"
+                    type="button"
+                    onClick={onOpenF1}
+                  >
                     {f1TeamName(id)}
-                  </button>
+                  </Button>
                 ))}
                 {favoriteDrivers.map((id) => (
-                  <button key={id} className="my-chip" type="button" onClick={onOpenF1}>
+                  <Button
+                    key={id}
+                    small
+                    variant="quiet"
+                    className="my-favorite"
+                    type="button"
+                    onClick={onOpenF1}
+                  >
                     {f1DriverName(id)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -204,44 +223,47 @@ function SchemesTab({ onOpenMatch }: Pick<MyViewProps, 'onOpenMatch'>) {
         </p>
       )}
       {schemes.length === 0 ? (
-        <p className="muted">Сохранённых схем пока нет.</p>
+        <EmptyState message="Сохранённых схем пока нет." />
       ) : (
         <ul className="my-scheme-list">
           {schemes.map((scheme) => (
-            <li className="panel my-scheme" key={scheme.id}>
-              <div className="my-scheme-main">
-                <strong>{scheme.title}</strong>
-                <span className="muted small">
-                  {schemePlace(scheme)} · {formatHumanDate(scheme.updatedAt, timezone)}
-                </span>
-              </div>
-              <div className="my-actions">
-                <button className="ghost-btn" type="button" onClick={() => open(scheme)}>
-                  Открыть
-                </button>
-                {saved.writable && (
-                  <button
-                    className="ghost-btn"
-                    type="button"
-                    onClick={() => setDeleting(scheme.id)}
-                  >
-                    Удалить
-                  </button>
-                )}
-              </div>
-              {deleting === scheme.id && (
-                <div className="my-notice" role="alert">
-                  <p>Удалить схему «{scheme.title}»?</p>
-                  <div className="my-actions">
-                    <button className="ghost-btn" type="button" onClick={() => remove(scheme.id)}>
-                      Подтвердить удаление
-                    </button>
-                    <button className="ghost-btn" type="button" onClick={() => setDeleting(null)}>
-                      Оставить
-                    </button>
-                  </div>
+            <li className="my-scheme" key={scheme.id}>
+              <Panel>
+                <div className="my-scheme-main">
+                  <strong>{scheme.title}</strong>
+                  <span className="muted small">
+                    {schemePlace(scheme)} · {formatHumanDate(scheme.updatedAt, timezone)}
+                  </span>
                 </div>
-              )}
+                <div className="my-actions">
+                  <Button small type="button" onClick={() => open(scheme)}>
+                    Открыть
+                  </Button>
+                  {saved.writable && (
+                    <Button
+                      small
+                      variant="quiet"
+                      type="button"
+                      onClick={() => setDeleting(scheme.id)}
+                    >
+                      Удалить
+                    </Button>
+                  )}
+                </div>
+                {deleting === scheme.id && (
+                  <div className="my-notice" role="alert">
+                    <p>Удалить схему «{scheme.title}»?</p>
+                    <div className="my-actions">
+                      <Button small danger type="button" onClick={() => remove(scheme.id)}>
+                        Подтвердить удаление
+                      </Button>
+                      <Button small variant="quiet" type="button" onClick={() => setDeleting(null)}>
+                        Оставить
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Panel>
             </li>
           ))}
         </ul>

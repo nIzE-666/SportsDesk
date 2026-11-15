@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
-import { useModalFocus } from '../lib/useModalFocus';
-import { Sparkles, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { getString, setString } from '../features/football/storage';
-import { isTauriRuntime } from '../lib/bridge';
 import { onboardingBootDecision } from '../features/onboarding/onboarding';
+import { Button, Dialog } from '../kit';
+import { isTauriRuntime } from '../lib/bridge';
+import './whatsNew.css';
 
 /**
  * «Что нового»: после обновления приложения показывает сводку изменений
@@ -158,10 +159,8 @@ const WHATS_NEW: ChangeNotes[] = [
 const SEEN_KEY = 'sportsdesk.whatsnew.seen';
 
 export function WhatsNewDialog() {
-  const panel = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   const [current, setCurrent] = useState<ChangeNotes | null>(null);
-  useModalFocus(panel, visible && !!current, () => setVisible(false));
 
   useEffect(() => {
     if (!isTauriRuntime()) return;
@@ -190,37 +189,27 @@ export function WhatsNewDialog() {
   if (!visible || !current) return null;
 
   return (
-    <div className="whatsnew-scrim" onClick={() => setVisible(false)}>
-      <section
-        ref={panel}
-        tabIndex={-1}
-        className="panel whatsnew-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Что нового"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="icon-button modal-close"
-          onClick={() => setVisible(false)}
-          aria-label="Закрыть"
-        >
-          <X size={18} />
-        </button>
-        <span className="eyebrow">
-          <Sparkles size={13} /> ЧТО НОВОГО
-        </span>
-        <h2>SportsDesk {current.version}</h2>
-        <ul>
-          {current.notes.map((n) => (
-            <li key={n}>{n}</li>
-          ))}
-        </ul>
-        <button className="primary-btn" onClick={() => setVisible(false)}>
+    <Dialog
+      open
+      onClose={() => setVisible(false)}
+      title={`SportsDesk ${current.version}`}
+      closeLabel="Закрыть"
+      className="whatsnew-dialog"
+      footer={
+        <Button variant="primary" onClick={() => setVisible(false)}>
           Продолжить
-        </button>
-      </section>
-    </div>
+        </Button>
+      }
+    >
+      <span className="eyebrow">
+        <Sparkles size={13} /> ЧТО НОВОГО
+      </span>
+      <ul className="whatsnew-list">
+        {current.notes.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+    </Dialog>
   );
 }
 

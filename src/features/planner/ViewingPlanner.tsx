@@ -15,8 +15,9 @@ import { formatHumanDate } from '../../lib/humanDate';
 import { WatchEventButton } from '../../lib/watchIntent';
 import { useViewState } from '../../lib/useViewState';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
-import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
+import { Badge, Button, SegmentedControl, StatTile } from '../../kit';
+import TeamBadge from '../../components/TeamBadge';
 import { FavoritesProvider, useFavorites } from '../football/FavoritesProvider';
 import { getJson, getUserTimezone, setJson } from '../football/storage';
 import { useFootballData } from '../football/useFootballData';
@@ -186,33 +187,25 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
       {tiles.length > 0 && (
         <div className="planner-insights">
           {tiles.map((tile) => (
-            <div key={tile.id}>
-              <strong>{tile.value}</strong>
-              <span>{tileLabel(tile.id, tile.value)}</span>
-            </div>
+            <StatTile key={tile.id} label={tileLabel(tile.id, tile.value)} value={tile.value} />
           ))}
         </div>
       )}
       <section className="panel planner-toolbar">
         {!noEvents && (periodChoiceUseful(plan.events, tz) || range === 'day') && (
-          <div className="analysis-control-group" role="group" aria-label="Период плана">
-            <button
-              className={range === 'week' ? 'ghost-btn active' : 'ghost-btn'}
-              aria-pressed={range === 'week'}
-              onClick={() => setRange('week')}
-            >
-              Ближайшие 7 дней
-            </button>
-            <button
-              className={range === 'day' ? 'ghost-btn active' : 'ghost-btn'}
-              aria-pressed={range === 'day'}
-              onClick={() => {
-                setDay(today);
-                setRange('day');
+          <div className="planner-period">
+            <SegmentedControl
+              ariaLabel="Период плана"
+              value={range}
+              onChange={(value) => {
+                if (value === 'day') setDay(today);
+                setRange(value as 'week' | 'day');
               }}
-            >
-              Сегодня
-            </button>
+              items={[
+                { id: 'week', label: 'Ближайшие 7 дней' },
+                { id: 'day', label: 'Сегодня' },
+              ]}
+            />
             <label>
               <span>Выбрать день</span>
               <input
@@ -239,8 +232,8 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
             Только мой план
           </label>
         )}
-        <button
-          className="ghost-btn"
+        <Button
+          small
           disabled={football.matchesLoading || schedule.loading}
           onClick={() => {
             football.reload();
@@ -249,7 +242,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           }}
         >
           Обновить расписание
-        </button>
+        </Button>
       </section>
       {inRange.length > 0 && (
         <p className="planner-estimate">
@@ -308,16 +301,16 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
           )}
           {!noEvents && onlyPlan && (
             <EmptyBlock title="В плане пока ничего нет">
-              <button className="ghost-btn" onClick={() => setOnlyPlan(false)}>
+              <Button small onClick={() => setOnlyPlan(false)}>
                 Показать все события
-              </button>
+              </Button>
             </EmptyBlock>
           )}
           {!noEvents && !onlyPlan && range === 'day' && (
             <EmptyBlock title="В этот день событий нет">
-              <button className="ghost-btn" onClick={() => setRange('week')}>
+              <Button small onClick={() => setRange('week')}>
                 Показать ближайшие 7 дней
-              </button>
+              </Button>
             </EmptyBlock>
           )}
         </>
@@ -350,22 +343,20 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
                   </div>
                   <div className="planner-event-content">
                     <div className="planner-event-badges">
-                      <span className="chip">
+                      <Badge>
                         {event.kind === 'football' ? <Goal size={12} /> : <Flag size={12} />}{' '}
                         {event.kind === 'football' ? 'Футбол' : 'Формула-1'}
-                      </span>
+                      </Badge>
                       {event.state === 'underway' && (
-                        <span className="chip">
-                          {event.isLive ? 'Матч идёт' : 'Идёт по расписанию'}
-                        </span>
+                        <Badge>{event.isLive ? 'Матч идёт' : 'Идёт по расписанию'}</Badge>
                       )}
                       {watching && (
-                        <span className="chip">
+                        <Badge variant="win">
                           <Check size={12} /> Мой план
-                        </span>
+                        </Badge>
                       )}
                     </div>
-                    <button className="planner-title" onClick={() => open(event)}>
+                    <Button variant="quiet" className="planner-title" onClick={() => open(event)}>
                       {event.kind === 'football' && (
                         <span className="planner-crests" aria-hidden="true">
                           <TeamBadge
@@ -382,7 +373,7 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
                       )}
                       {title(event)}
                       <ChevronRight size={15} />
-                    </button>
+                    </Button>
                     <p>
                       {event.kind === 'f1'
                         ? event.race.Circuit.circuitName
@@ -399,15 +390,16 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
                       </div>
                     )}
                   </div>
-                  <button
-                    className={watching ? 'ghost-btn active' : 'ghost-btn'}
+                  <Button
+                    small
+                    variant="quiet"
                     aria-pressed={watching}
                     aria-label={`${watching ? 'Убрать из плана' : 'Буду смотреть'}: ${title(event)}`}
+                    icon={<Star size={15} fill={watching ? 'currentColor' : 'none'} />}
                     onClick={() => toggle(event)}
                   >
-                    <Star size={15} fill={watching ? 'currentColor' : 'none'} />
                     {watching ? 'В плане' : 'Буду смотреть'}
-                  </button>
+                  </Button>
                   <WatchEventButton
                     intent={{ sport: event.kind, key: event.id, title: title(event) }}
                   />

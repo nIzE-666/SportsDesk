@@ -1,6 +1,7 @@
 import { Bell, CalendarDays, Flag, Goal, Settings, Tv, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { RefObject } from 'react';
+import { Tabs } from '../kit';
 import { useModules } from '../lib/modules';
 import { sectionOfRoute, type Section, type ShellRoute } from '../lib/navigation';
 
@@ -11,6 +12,8 @@ const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: LucideIcon }> 
   { id: 'watch', label: 'Смотреть', icon: Tv },
   { id: 'my', label: 'Моё', icon: UserRound },
 ];
+
+type RailItem = Section | 'events' | 'settings';
 
 interface NavRailProps {
   route: ShellRoute;
@@ -39,65 +42,65 @@ export function NavRail({
   const modules = useModules();
   const section = sectionOfRoute(route);
   const sections = SECTIONS.filter(({ id }) => id !== 'watch' || modules.watch);
-  const service = (name: 'events' | 'settings') => {
-    if (name === 'events') return eventsOpen || route.kind === 'events';
-    return !eventsOpen && route.kind === 'settings';
+  const active: RailItem | undefined =
+    eventsOpen || route.kind === 'events'
+      ? 'events'
+      : route.kind === 'settings'
+        ? 'settings'
+        : section;
+  const items = [
+    ...sections.map(({ id, label, icon: Icon }) => ({
+      id,
+      domId: `rail-${id}`,
+      title: label,
+      label,
+      icon: <Icon size={20} aria-hidden="true" />,
+    })),
+    {
+      id: 'events' as const,
+      domId: 'rail-events',
+      title: unreadCount > 0 ? `События · непрочитанных: ${unreadCount}` : 'События',
+      icon: undefined,
+      ref: eventsButtonRef
+        ? (element: HTMLElement | null) => {
+            eventsButtonRef.current = element instanceof HTMLButtonElement ? element : null;
+          }
+        : undefined,
+      label: (
+        <>
+          <span className="nav-rail-icon">
+            <Bell size={20} aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span className="nav-rail-badge" aria-hidden="true">
+                {unreadCount}
+              </span>
+            )}
+          </span>
+          <span>События</span>
+        </>
+      ),
+    },
+    {
+      id: 'settings' as const,
+      domId: 'rail-settings',
+      title: 'Настройки',
+      icon: <Settings size={20} aria-hidden="true" />,
+      label: 'Настройки',
+    },
+  ];
+  const choose = (id: string) => {
+    if (id === 'events') onOpenEvents();
+    else if (id === 'settings') onOpenSettings();
+    else onChangeSection(id as Section);
   };
   return (
     <aside className="nav-rail">
       <div className="nav-rail-brand" aria-hidden="true">
         SD
       </div>
-      <nav className="nav-rail-nav" aria-label="Разделы">
-        <div className="nav-rail-group">
-          {sections.map(({ id, label, icon: Icon }) => {
-            const active = !eventsOpen && section === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                className="nav-rail-item"
-                title={label}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => onChangeSection(id)}
-              >
-                <Icon size={20} aria-hidden="true" />
-                <span>{label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="nav-rail-group nav-rail-bottom">
-          <button
-            ref={eventsButtonRef}
-            type="button"
-            className="nav-rail-item"
-            title={unreadCount > 0 ? `События · непрочитанных: ${unreadCount}` : 'События'}
-            aria-current={service('events') ? 'page' : undefined}
-            onClick={onOpenEvents}
-          >
-            <span className="nav-rail-icon">
-              <Bell size={20} aria-hidden="true" />
-              {unreadCount > 0 && (
-                <span className="nav-rail-badge" aria-hidden="true">
-                  {unreadCount}
-                </span>
-              )}
-            </span>
-            <span>События</span>
-          </button>
-          <button
-            type="button"
-            className="nav-rail-item"
-            title="Настройки"
-            aria-current={service('settings') ? 'page' : undefined}
-            onClick={onOpenSettings}
-          >
-            <Settings size={20} aria-hidden="true" />
-            <span>Настройки</span>
-          </button>
-        </div>
-      </nav>
+      <div className="nav-rail-nav">
+        <Tabs mode="nav" ariaLabel="Разделы" active={active} items={items} onChange={choose} />
+      </div>
     </aside>
   );
 }

@@ -264,7 +264,7 @@ it('shows several views of one sport without zero tiles or filters that change n
     manualEntry(2, { rating: 8, tags: ['друзья', 'вечер'] }),
     manualEntry(3, { rating: null, tags: ['друзья'] }),
   ]);
-  expect(tileTexts()).toEqual(['3Просмотров', '7,5Средняя личная оценка · оценено: 2']);
+  expect(tileTexts()).toEqual(['Просмотров3', 'Средняя личная оценка7,5оценено: 2']);
   expect(host.textContent).not.toContain('Формула 1');
   expect(filterLabels()).toEqual(['Фильтр по тегу', 'Поиск по дневнику']);
   expect(host.querySelector('.diary-season-stats')).toBeNull();
@@ -279,10 +279,10 @@ it('keeps a tag filter out of the way while every view carries the same tag', as
 it('shows matches and races with every tile and a split by season', async () => {
   await renderWith(diaryFixture.entries);
   expect(tileTexts()).toEqual([
-    '2Просмотров',
-    '1Футбол',
-    '1Формула 1',
-    '8,5Средняя личная оценка · оценено: 2',
+    'Просмотров2',
+    'Футбол1',
+    'Формула 11',
+    'Средняя личная оценка8,5оценено: 2',
   ]);
   expect(filterLabels()).toEqual([
     'Фильтр по спорту',

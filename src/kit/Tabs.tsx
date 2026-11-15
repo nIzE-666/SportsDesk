@@ -5,9 +5,15 @@ export interface TabItem {
   id: string;
   label: ReactNode;
   icon?: ReactNode;
+  /** DOM id of the tab; the key in `id` stays the change value. */
+  domId?: string;
+  /** Native tooltip of the tab. */
+  title?: string;
   /** Navigation strips may use a real link. */
   href?: string;
   disabled?: boolean;
+  /** Receives the button, or the link in the navigation mode. */
+  ref?: (element: HTMLElement | null) => void;
 }
 
 export interface TabsProps {
@@ -22,10 +28,20 @@ export interface TabsProps {
   /** Selected tab id, or the current page id in the navigation mode. */
   active?: string;
   onChange?: (id: string) => void;
+  /** Id of the panel controlled by the tabs; becomes `aria-controls` in the tabs mode. */
+  panelId?: string;
   className?: string;
 }
 
-export function Tabs({ items, ariaLabel, mode = 'tabs', active, onChange, className }: TabsProps) {
+export function Tabs({
+  items,
+  ariaLabel,
+  mode = 'tabs',
+  active,
+  onChange,
+  panelId,
+  className,
+}: TabsProps) {
   const refs = useRef(new Map<string, HTMLElement>());
   const enabled = items.filter((item) => !item.disabled);
   const currentId = active ?? enabled[0]?.id ?? '';
@@ -55,6 +71,7 @@ export function Tabs({ items, ariaLabel, mode = 'tabs', active, onChange, classN
     const setRef = (node: HTMLElement | null) => {
       if (node) refs.current.set(item.id, node);
       else refs.current.delete(item.id);
+      item.ref?.(node);
     };
 
     if (mode === 'nav') {
@@ -72,8 +89,10 @@ export function Tabs({ items, ariaLabel, mode = 'tabs', active, onChange, classN
         return (
           <a
             key={item.id}
+            id={item.domId}
             ref={setRef}
             href={item.href}
+            title={item.title}
             className="ui-tab"
             aria-current={selected ? 'page' : undefined}
             aria-disabled={item.disabled || undefined}
@@ -93,8 +112,10 @@ export function Tabs({ items, ariaLabel, mode = 'tabs', active, onChange, classN
       return (
         <button
           key={item.id}
+          id={item.domId}
           ref={setRef}
           type="button"
+          title={item.title}
           className="ui-tab"
           aria-current={selected ? 'page' : undefined}
           disabled={item.disabled}
@@ -108,11 +129,14 @@ export function Tabs({ items, ariaLabel, mode = 'tabs', active, onChange, classN
     return (
       <button
         key={item.id}
+        id={item.domId}
         ref={setRef}
         type="button"
         role="tab"
+        title={item.title}
         className="ui-tab"
         aria-selected={selected}
+        aria-controls={panelId}
         disabled={item.disabled}
         tabIndex={selected ? 0 : -1}
         onClick={() => onChange?.(item.id)}

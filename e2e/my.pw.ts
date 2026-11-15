@@ -75,8 +75,8 @@ test('shows fixture data in all four «Моё» tabs', async ({ page }) => {
   );
   await expect(page.locator('.my-tile').filter({ hasText: 'Arsenal' })).toBeVisible();
   await expect(page.locator('.my-row')).toContainText('Alex Morgan');
-  await expect(page.locator('.my-chip').filter({ hasText: 'Mercedes' })).toBeVisible();
-  await expect(page.locator('.my-chip').filter({ hasText: 'Макс Ферстаппен' })).toBeVisible();
+  await expect(page.locator('.my-favorite').filter({ hasText: 'Mercedes' })).toBeVisible();
+  await expect(page.locator('.my-favorite').filter({ hasText: 'Макс Ферстаппен' })).toBeVisible();
 
   await tabs.getByRole('tab', { name: 'Дневник', exact: true }).click();
   await expect(page.locator('.diary-view')).toBeVisible();

@@ -11,8 +11,6 @@ const SRC_DIR = join(ROOT, 'src');
 const TOKENS_FILE = 'src/tokens.css';
 
 export const PENDING_FILES: ReadonlySet<string> = new Set([
-  'src/features/atmosphere/atmosphere.css',
-  'src/features/diary/diary.css',
   'src/features/f1/calendar.css',
   'src/features/f1/f1.css',
   'src/features/f1/racePace.css',
@@ -23,16 +21,10 @@ export const PENDING_FILES: ReadonlySet<string> = new Set([
   'src/features/football/mini.css',
   'src/features/football/playerForm.css',
   'src/features/football/players.css',
-  'src/features/games/games.css',
-  'src/features/my/my.css',
   'src/features/offline/offline.css',
   'src/features/onboarding/onboarding.css',
-  'src/features/planner/planner.css',
   'src/features/settings/favoritesEditor.css',
   'src/features/settings/settings.css',
-  'src/features/spoilers/spoilers.css',
-  'src/features/tactics/tactics.css',
-  'src/features/today/today.css',
   'src/features/ucl/ucl.css',
   'src/features/watch/watch.css',
 ]);

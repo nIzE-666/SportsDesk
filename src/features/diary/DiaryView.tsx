@@ -8,6 +8,7 @@ import { settle, usePredictions } from '../games/predictions';
 import { DiaryEntryForm } from './DiaryEntryForm';
 import { diarySpoiler } from './DiaryMarkButton';
 import { EmptyBlock } from '../../components/StateViews';
+import { Button, StatTile } from '../../kit';
 import { deleteDiaryEntry, importDiary, useDiary } from './diaryStore';
 import {
   diaryFilterActive,
@@ -140,12 +141,12 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           <p className="muted">Ваши отметки и заметки хранятся на этом компьютере.</p>
         </div>
         <div className="diary-actions">
-          <button className="ghost-btn" disabled={!state.writable || !!editing} onClick={newEntry}>
+          <Button small disabled={!state.writable || !!editing} onClick={newEntry}>
             Добавить просмотр вручную
-          </button>
+          </Button>
           {state.store.entries.length > 0 && (
-            <button
-              className="ghost-btn"
+            <Button
+              small
               disabled={!state.writable || !state.store.entries.length}
               onClick={() =>
                 attempt(() => {
@@ -165,7 +166,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
               }
             >
               Экспортировать дневник
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -201,13 +202,14 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
       {tiles.length > 0 && (
         <div className="diary-summary" aria-label="Итоги просмотра">
           {tiles.map((tile) => (
-            <div key={tile.id}>
-              <strong>{number(tile.value)}</strong>
-              <span>
-                {tile.id === 'total' && filtered ? 'Просмотров по фильтру' : TILE_LABELS[tile.id]}
-                {tile.id === 'average' ? ` · оценено: ${summary.rated}` : ''}
-              </span>
-            </div>
+            <StatTile
+              key={tile.id}
+              label={
+                tile.id === 'total' && filtered ? 'Просмотров по фильтру' : TILE_LABELS[tile.id]
+              }
+              value={number(tile.value)}
+              note={tile.id === 'average' ? `оценено: ${summary.rated}` : undefined}
+            />
           ))}
         </div>
       )}
@@ -298,9 +300,9 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
             )}
           </div>
           {filtered && entries.length > 0 && (
-            <button className="ghost-btn" onClick={resetFilters}>
+            <Button small onClick={resetFilters}>
               Сбросить фильтры
-            </button>
+            </Button>
           )}
           {invalidDates && (
             <p className="diary-notice" role="alert">
@@ -325,9 +327,9 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           </div>
         ) : !entries.length ? (
           <EmptyBlock title="Таких просмотров нет">
-            <button className="ghost-btn" onClick={resetFilters}>
+            <Button small onClick={resetFilters}>
               Сбросить фильтры
-            </button>
+            </Button>
           </EmptyBlock>
         ) : (
           shown.map((entry) => {
@@ -355,14 +357,15 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   </div>
                   <div className="diary-actions">
                     {ref ? (
-                      <button className="ghost-btn" onClick={() => open(entry)}>
+                      <Button small onClick={() => open(entry)}>
                         Открыть событие
-                      </button>
+                      </Button>
                     ) : (
                       <span className="muted small">Без привязки к источнику</span>
                     )}
-                    <button
-                      className="ghost-btn"
+                    <Button
+                      small
+                      variant="quiet"
                       disabled={!!editing || !state.writable}
                       onClick={() => {
                         setEditing(entry);
@@ -370,14 +373,15 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                       }}
                     >
                       Изменить запись
-                    </button>
-                    <button
-                      className="ghost-btn"
+                    </Button>
+                    <Button
+                      small
+                      variant="quiet"
                       disabled={!state.writable}
                       onClick={() => setDeleting(entry.id)}
                     >
                       Удалить запись
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <EntryGate entry={entry}>
@@ -410,8 +414,9 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                   <div className="diary-notice" role="alert">
                     <p>Удалить эту личную запись? Данные события и прогноз останутся.</p>
                     <div className="diary-actions">
-                      <button
-                        className="ghost-btn"
+                      <Button
+                        small
+                        danger
                         onClick={() =>
                           attempt(() => {
                             deleteDiaryEntry(entry.id);
@@ -422,10 +427,10 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                         }
                       >
                         Подтвердить удаление записи
-                      </button>
-                      <button className="ghost-btn" onClick={() => setDeleting(null)}>
+                      </Button>
+                      <Button small variant="quiet" onClick={() => setDeleting(null)}>
                         Оставить запись
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -435,23 +440,19 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
         )}
         {pageCount > 1 && (
           <nav className="diary-actions" aria-label="Страницы дневника">
-            <button
-              className="ghost-btn"
-              disabled={activePage === 1}
-              onClick={() => setPage(activePage - 1)}
-            >
+            <Button small disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>
               Предыдущие записи
-            </button>
+            </Button>
             <span>
               {activePage} / {pageCount}
             </span>
-            <button
-              className="ghost-btn"
+            <Button
+              small
               disabled={activePage === pageCount}
               onClick={() => setPage(activePage + 1)}
             >
               Следующие записи
-            </button>
+            </Button>
           </nav>
         )}
       </section>
@@ -461,8 +462,8 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           <p className="muted small">
             Статистика по текущим фильтрам. Скрытые записи не участвуют в оценках и таблице сезонов.
           </p>
-          <div className="diary-table-wrap">
-            <table>
+          <div className="ui-table-scroll diary-table-wrap">
+            <table className="ui-table">
               <caption>Ваша история по сезонам</caption>
               <thead>
                 <tr>
@@ -494,13 +495,13 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
           Экспорт — только записи дневника. Полная копия профиля — в настройках.
         </p>
         <div className="diary-actions">
-          <button
-            className="ghost-btn"
+          <Button
+            small
             disabled={!state.writable || !!editing}
             onClick={() => fileInput.current?.click()}
           >
             Выбрать JSON-файл
-          </button>
+          </Button>
           <span className="muted small">JSON · до 190 КБ</span>
         </div>
         <input
@@ -548,8 +549,8 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
               </label>
             )}
             <div className="diary-actions">
-              <button
-                className="ghost-btn"
+              <Button
+                small
                 disabled={!!editing || !state.writable}
                 onClick={() =>
                   attempt(() => {
@@ -560,10 +561,10 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
                 }
               >
                 Подтвердить импорт дневника
-              </button>
-              <button className="ghost-btn" onClick={() => setPreview(null)}>
+              </Button>
+              <Button small variant="quiet" onClick={() => setPreview(null)}>
                 Отменить импорт
-              </button>
+              </Button>
             </div>
           </div>
         )}

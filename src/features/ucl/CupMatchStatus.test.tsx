@@ -71,7 +71,7 @@ afterEach(async () => {
 });
 
 function rowNames() {
-  return [...host.querySelectorAll('.game-row')].map((row) => row.textContent ?? '');
+  return [...host.querySelectorAll('.ui-match-row')].map((row) => row.textContent ?? '');
 }
 
 async function click(label: string) {

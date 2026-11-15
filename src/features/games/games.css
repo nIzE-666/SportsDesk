@@ -1,104 +1,79 @@
 .games-view {
   display: grid;
-  gap: 12px;
-}
-.games-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-12);
 }
 .start-lights {
   display: grid;
-  gap: 14px;
+  gap: var(--space-16);
   max-width: 760px;
 }
 .lights-pad {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  padding: 22px 16px;
-  border: 1px solid var(--line, #26382e);
-  border-radius: 16px;
-  background: var(--panel2, #1a2420);
-  color: var(--text, #edf4ef);
+  gap: var(--space-12);
+  padding: var(--space-24) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  color: var(--color-text);
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
 }
 .lights-pad:focus-visible {
-  outline: 2px solid var(--accent, #b5f268);
+  outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
 .lights-pad.go {
-  border-color: #22c55e;
-  background: color-mix(in srgb, #22c55e 22%, var(--panel2, #1a2420));
+  border-color: var(--color-win);
+  background: color-mix(in srgb, var(--color-win) 22%, var(--color-surface-2));
 }
 .lights-gantry {
   display: flex;
-  gap: 14px;
-  padding: 14px 20px;
-  border: 2px solid #26262c;
-  border-radius: 14px;
-  background: #0b0b0e;
+  gap: var(--space-12);
+  padding: var(--space-12) 20px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
 }
 .lamp {
   width: 44px;
   height: 44px;
-  border: 2px solid #3a1a1e;
-  border-radius: 50%;
-  background: #2a1215;
-  box-shadow: inset 0 0 8px rgb(0 0 0 / 70%);
+  border: 2px solid color-mix(in srgb, var(--color-live) 30%, var(--color-border));
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, var(--color-live) 18%, var(--color-bg));
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--color-bg) 70%, transparent);
 }
 .lamp.on {
-  border-color: #ff5a5a;
-  background: radial-gradient(circle at 35% 30%, #ff8b8b, #ef1c1c 55%, #8d0b0b);
-  box-shadow: 0 0 18px 4px rgb(239 28 28 / 65%);
+  border-color: var(--color-live);
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--color-live) 55%, var(--color-text)),
+    var(--color-live) 55%,
+    color-mix(in srgb, var(--color-live) 60%, var(--color-bg))
+  );
+  box-shadow: 0 0 18px 4px color-mix(in srgb, var(--color-live) 65%, transparent);
 }
 .lights-result {
-  font-size: 40px;
-  font-weight: 800;
+  font-size: var(--text-32);
+  font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: var(--line-heading);
 }
 .lights-result.lights-hint {
   opacity: 0.85;
 }
 .lights-status {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
   text-align: center;
-}
-.lights-badge {
-  margin: 0;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--accent, #b5f268);
-  color: #0b0f0e;
-  font-size: 13px;
-  font-weight: 700;
 }
 .lights-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-8);
   margin: 0;
-}
-.lights-stats > div {
-  padding: 10px 12px;
-  border: 1px solid var(--line, #26382e);
-  border-radius: 12px;
-  background: var(--panel, #141b18);
-}
-.lights-stats dt {
-  font-size: 12px;
-  opacity: 0.7;
-}
-.lights-stats dd {
-  margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 .lights-recent {
   margin: 0;
@@ -114,34 +89,34 @@
 }
 .prediction-panel {
   display: grid;
-  gap: 8px;
-  margin: 12px 0;
+  gap: var(--space-8);
+  margin: var(--space-12) 0;
 }
 .prediction-form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 10px;
+  gap: var(--space-8);
 }
 .prediction-form label {
   display: grid;
-  gap: 4px;
-  font-size: 12px;
+  gap: var(--space-4);
+  font-size: var(--text-12);
 }
 .prediction-form input[type='number'] {
   width: 72px;
-  padding: 8px;
-  font-size: 18px;
+  padding: var(--space-8);
+  font-size: var(--text-16);
   text-align: center;
 }
 .predictions-game {
   display: grid;
-  gap: 12px;
+  gap: var(--space-12);
   max-width: 860px;
 }
 .prediction-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -150,19 +125,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--line, #26382e);
-  border-radius: 12px;
-  background: var(--panel, #141b18);
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
 }
 .prediction-list li > div:first-child {
   display: grid;
-  gap: 2px;
+  gap: var(--space-4);
   min-width: 0;
 }
 .prediction-actions {
   display: flex;
   flex: none;
-  gap: 8px;
+  gap: var(--space-8);
 }

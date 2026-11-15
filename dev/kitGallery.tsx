@@ -146,15 +146,16 @@ export function KitGallery() {
           </p>
           <Tabs
             ariaLabel="Период"
+            panelId="kit-tabs-panel"
             active={tab}
             onChange={setTab}
             items={[
-              { id: 'today', label: 'Сегодня' },
-              { id: 'week', label: 'Неделя' },
-              { id: 'plan', label: 'Мой план' },
+              { id: 'today', domId: 'kit-tab-today', title: 'Сегодня', label: 'Сегодня' },
+              { id: 'week', domId: 'kit-tab-week', title: 'Неделя', label: 'Неделя' },
+              { id: 'plan', domId: 'kit-tab-plan', title: 'Мой план', label: 'Мой план' },
             ]}
           />
-          <p className="kit-gallery-note">
+          <p className="kit-gallery-note" id="kit-tabs-panel">
             {tab === 'today'
               ? 'Выбрано «Сегодня».'
               : tab === 'week'

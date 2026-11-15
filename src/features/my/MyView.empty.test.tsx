@@ -46,7 +46,7 @@ it('shows one sentence and the settings link without favorites', async () => {
   );
   expect(host.querySelector('.my-tile')).toBeNull();
   expect(host.querySelector('.my-row')).toBeNull();
-  expect(host.querySelector('.my-chip')).toBeNull();
+  expect(host.querySelector('.my-favorite')).toBeNull();
 
   const edit = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
     (item) => item.textContent?.trim() === 'Изменить',

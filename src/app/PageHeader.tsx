@@ -1,11 +1,11 @@
 import { ChevronLeft, Pin } from 'lucide-react';
-import { useRef, type KeyboardEvent } from 'react';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { AmbientToggle } from '../features/atmosphere/AmbientToggle';
+import { Button, IconButton, Tabs } from '../kit';
 import type { ShellRoute } from '../lib/navigation';
 import type { SearchTarget } from '../lib/searchIndex';
 import { CompetitionSwitcher } from './CompetitionSwitcher';
-import { headerTabs, lastAnalysisMode, pageTitle, type HeaderTab } from './shellModel';
+import { headerTabs, lastAnalysisMode, pageTitle } from './shellModel';
 
 interface PageHeaderProps {
   route: ShellRoute;
@@ -30,43 +30,27 @@ export function PageHeader({
   onOpenMini,
 }: PageHeaderProps) {
   const tabs = headerTabs(route);
-  const football = route.kind === 'football' || route.kind === 'football-match';
-  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
-  const openTab = (tab: HeaderTab) => {
+  const openByKey = (key: string) => {
+    const tab = tabs.find((item) => item.key === key);
+    if (!tab) return;
     onNavigate(
       tab.key === 'analysis' && route.kind === 'f1'
         ? { kind: 'f1', tab: lastAnalysisMode() }
         : tab.route,
     );
   };
-  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const last = tabs.length - 1;
-    const next =
-      event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? last
-          : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-    const target = tabs[next];
-    if (!target) return;
-    tabRefs.current.get(target.key)?.focus();
-    openTab(target);
-  };
+  const football = route.kind === 'football' || route.kind === 'football-match';
   return (
     <header className="shell-header">
       <div className="shell-header-bar">
         {canBack && (
-          <button
-            type="button"
-            className="shell-back icon-button"
+          <IconButton
+            className="shell-back"
             aria-label="Назад"
             title="Назад · Alt+←"
+            icon={<ChevronLeft size={20} aria-hidden="true" />}
             onClick={onBack}
-          >
-            <ChevronLeft size={20} aria-hidden="true" />
-          </button>
+          />
         )}
         {football ? (
           <h1 className="shell-page-title shell-page-title-switcher">
@@ -83,40 +67,32 @@ export function PageHeader({
         <div className="shell-header-actions">
           <GlobalSearch onNavigate={onSearchTarget} />
           <AmbientToggle sport={sport} />
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             className="watch-shortcut"
             aria-label="Live-мини"
             title="Мини-окно live-счёта поверх всех окон"
+            icon={<Pin size={15} aria-hidden="true" />}
             onClick={() => void onOpenMini()}
           >
-            <Pin size={15} aria-hidden="true" />
-            <span>Live-мини</span>
-          </button>
+            Live-мини
+          </Button>
         </div>
       </div>
       {tabs.length > 0 && (
-        <div className="shell-tabs" role="tablist" aria-label="Разделы страницы">
-          {tabs.map((tab, index) => (
-            <button
-              key={tab.key}
-              ref={(element) => {
-                if (element) tabRefs.current.set(tab.key, element);
-                else tabRefs.current.delete(tab.key);
-              }}
-              id={`shell-tab-${tab.key}`}
-              type="button"
-              role="tab"
-              className="shell-tab"
-              aria-selected={tab.active}
-              aria-controls="shell-page-panel"
-              tabIndex={tab.active ? 0 : -1}
-              onKeyDown={(event) => onTabKeyDown(event, index)}
-              onClick={() => openTab(tab)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="shell-tabs">
+          <Tabs
+            mode="tabs"
+            ariaLabel="Разделы страницы"
+            panelId="shell-page-panel"
+            active={tabs.find((tab) => tab.active)?.key}
+            items={tabs.map((tab) => ({
+              id: tab.key,
+              domId: `shell-tab-${tab.key}`,
+              label: tab.label,
+            }))}
+            onChange={openByKey}
+          />
         </div>
       )}
     </header>

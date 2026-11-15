@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { RotateCcw } from 'lucide-react';
+import { Badge, Button, StatTile } from '../../kit';
 import {
   GOAL_MS,
   LIGHT_COUNT,
@@ -272,33 +273,21 @@ export function StartLights({
           {status}
         </p>
         {badge && (
-          <p className="lights-badge">
+          <Badge variant="win" className="lights-badge">
             {badge === 'first' ? 'Первое время записано!' : 'Новый личный рекорд!'}
-          </p>
+          </Badge>
         )}
         {phase === 'done' && (
           <p className="muted small">Нажмите пробел или кликните, чтобы сыграть ещё раз.</p>
         )}
       </div>
 
-      <dl className="lights-stats" aria-label="Личная статистика">
-        <div>
-          <dt>Лучшее время</dt>
-          <dd>{stats.best ? `${stats.best.ms} мс` : '—'}</dd>
-        </div>
-        <div>
-          <dt>Среднее за 5</dt>
-          <dd>{average === null ? '—' : `${average} мс`}</dd>
-        </div>
-        <div>
-          <dt>Попыток</dt>
-          <dd>{stats.rounds}</dd>
-        </div>
-        <div>
-          <dt>Фальстартов</dt>
-          <dd>{stats.falseStarts}</dd>
-        </div>
-      </dl>
+      <div className="lights-stats" aria-label="Личная статистика">
+        <StatTile label="Лучшее время" value={stats.best ? `${stats.best.ms} мс` : '—'} />
+        <StatTile label="Среднее за 5" value={average === null ? '—' : `${average} мс`} />
+        <StatTile label="Попыток" value={stats.rounds} />
+        <StatTile label="Фальстартов" value={stats.falseStarts} />
+      </div>
       {recent.length > 0 && (
         <p className="lights-recent muted small">
           Последние попытки: {recent.map((attempt) => `${attempt.ms} мс`).join(' · ')}
@@ -308,8 +297,9 @@ export function StartLights({
         Время включает задержки экрана и устройства: сравнивайте только с собой, не с пилотами.
       </p>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          small
+          icon={<RotateCcw size={14} />}
           disabled={playing || (stats.rounds === 0 && !stats.best)}
           onClick={() => {
             if (!confirmReset) {
@@ -320,9 +310,8 @@ export function StartLights({
             resetStartLights();
           }}
         >
-          <RotateCcw size={14} />{' '}
           {confirmReset ? 'Точно сбросить статистику?' : 'Сбросить статистику'}
-        </button>
+        </Button>
       </div>
     </div>
   );

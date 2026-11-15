@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { Button, StatTile } from '../../kit';
 import { api } from '../../lib/bridge';
 import { useNow } from '../../lib/useNow';
 import { formatHumanDateTime } from '../../lib/humanDate';
@@ -118,24 +119,12 @@ export function PredictionsGame({
 
   return (
     <div className="predictions-game">
-      <dl className="lights-stats" aria-label="Итоги прогнозов">
-        <div>
-          <dt>Очки</dt>
-          <dd>{stats.points}</dd>
-        </div>
-        <div>
-          <dt>Оценено матчей</dt>
-          <dd>{stats.scored}</dd>
-        </div>
-        <div>
-          <dt>Точный счёт</dt>
-          <dd>{stats.exact}</dd>
-        </div>
-        <div>
-          <dt>Верный исход</dt>
-          <dd>{stats.outcome}</dd>
-        </div>
-      </dl>
+      <div className="lights-stats" aria-label="Итоги прогнозов">
+        <StatTile label="Очки" value={stats.points} />
+        <StatTile label="Оценено матчей" value={stats.scored} />
+        <StatTile label="Точный счёт" value={stats.exact} />
+        <StatTile label="Верный исход" value={stats.outcome} />
+      </div>
       <p className="muted small">
         {stats.scored > 0
           ? `Угадан исход или счёт в ${Math.round(((stats.exact + stats.outcome) / stats.scored) * 100)}% матчей, в среднем ${(
@@ -148,13 +137,14 @@ export function PredictionsGame({
         {stats.hidden > 0 && ` Скрыто режимом без спойлеров: ${stats.hidden} (не входят в итоги).`}
       </p>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          small
+          icon={<RefreshCw size={14} />}
           disabled={checking || due.length === 0}
           onClick={() => void check()}
         >
-          <RefreshCw size={14} /> {checking ? 'Проверяем…' : `Проверить результаты (${due.length})`}
-        </button>
+          {checking ? 'Проверяем…' : `Проверить результаты (${due.length})`}
+        </Button>
       </div>
       {note && (
         <p className="small" role="status">
@@ -186,17 +176,14 @@ export function PredictionsGame({
                 </div>
                 <div className="prediction-actions">
                   {onOpenMatch && (
-                    <button
-                      className="ghost-btn"
-                      onClick={() => onOpenMatch(item.matchId, item.leagueId)}
-                    >
+                    <Button small onClick={() => onOpenMatch(item.matchId, item.leagueId)}>
                       Открыть матч
-                    </button>
+                    </Button>
                   )}
                   {canRemove && (
-                    <button className="ghost-btn" onClick={() => removePrediction(item.matchId)}>
+                    <Button small variant="quiet" onClick={() => removePrediction(item.matchId)}>
                       Убрать
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>
@@ -212,8 +199,9 @@ export function PredictionsGame({
         </p>
       </details>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          small
+          variant="quiet"
           disabled={items.length === 0}
           onClick={() => {
             if (!confirmReset) {
@@ -225,7 +213,7 @@ export function PredictionsGame({
           }}
         >
           {confirmReset ? 'Точно стереть все прогнозы?' : 'Стереть все прогнозы'}
-        </button>
+        </Button>
       </div>
     </div>
   );

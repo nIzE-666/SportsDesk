@@ -89,7 +89,7 @@ test('empty planner hides filters while retaining a way to refresh', async ({ pa
   await expect(
     page.getByText('Когда расписание появится, события будут показаны здесь.'),
   ).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Период плана' })).toHaveCount(0);
+  await expect(page.getByRole('radiogroup', { name: 'Период плана' })).toHaveCount(0);
   await expect(page.locator('.planner-insights')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Обновить расписание' })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath('empty-planner.png') });
@@ -239,7 +239,7 @@ for (const width of [1100, 1440])
       await openPlannerPage(page);
       await expect(planner).toBeVisible();
     };
-    const period = planner.getByRole('group', { name: 'Период плана' });
+    const period = planner.getByRole('radiogroup', { name: 'Период плана' });
     const refresh = planner.getByRole('button', { name: 'Обновить расписание' });
 
     // Today only: one event, nothing to choose, count or filter.
@@ -259,10 +259,10 @@ for (const width of [1100, 1440])
     await expect(planner.locator('.planner-event')).toHaveCount(2);
     await expect(planner).not.toContainText('Ближайшие события —');
     await expect(period).toBeVisible();
-    await expect(planner.locator('.planner-insights')).toContainText('2события в периоде');
+    await expect(planner.locator('.planner-insights')).toContainText('события в периоде2');
     await expect(planner.locator('.planner-filter')).toHaveCount(0);
     await shoot(page, testInfo, `broadcast-${width}-planner-week`);
-    await period.getByRole('button', { name: 'Сегодня', exact: true }).click();
+    await period.getByRole('radio', { name: 'Сегодня', exact: true }).click();
     await expect(planner.locator('.state-block')).toHaveCount(1);
     await expect(planner.locator('.state-block')).toContainText('В этот день событий нет');
     await expect(planner.locator('.planner-insights')).toHaveCount(0);
@@ -271,7 +271,7 @@ for (const width of [1100, 1440])
     await expect(planner.locator('.planner-event')).toHaveCount(2);
     await planner.getByRole('button', { name: 'Буду смотреть: Arsenal — Chelsea' }).first().click();
     await expect(planner.locator('.planner-filter')).toBeVisible();
-    await expect(planner.locator('.planner-insights')).toContainText('1выбрано смотреть');
+    await expect(planner.locator('.planner-insights')).toContainText('выбрано смотреть1');
     await shoot(page, testInfo, `broadcast-${width}-planner-chosen`);
 
     // Beyond the week: the next events with their distance instead of "no events".
@@ -291,8 +291,8 @@ for (const width of [1100, 1440])
     );
     await expect(planner.locator('.planner-event')).toHaveCount(3);
     await expect(planner.locator('.planner-insights > div')).toHaveCount(2);
-    await expect(planner.locator('.planner-insights')).toContainText('3события в периоде');
-    await expect(planner.locator('.planner-insights')).toContainText('1группа пересечений');
+    await expect(planner.locator('.planner-insights')).toContainText('события в периоде3');
+    await expect(planner.locator('.planner-insights')).toContainText('группа пересечений1');
     await shoot(page, testInfo, `broadcast-${width}-planner-busy`);
     expect(await noOverflow(page)).toBe(true);
     expect(errors).toEqual([]);
@@ -345,7 +345,7 @@ for (const width of [1100, 1440])
       await rail(page).getByRole('button', { name: 'События', exact: true }).click();
       await expect(center).toBeVisible();
     };
-    const filters = center.getByRole('group', { name: 'Фильтр событий' });
+    const filters = center.getByRole('radiogroup', { name: 'Фильтр событий' });
 
     // One sport, all unread: nothing to filter, one action.
     await openCenter([
@@ -368,7 +368,7 @@ for (const width of [1100, 1440])
     );
     await expect(center.locator('.catchup-panel')).toBeVisible();
     await expect(center.locator('article')).toHaveCount(3);
-    await expect(filters.getByRole('button')).toHaveText([
+    await expect(filters.getByRole('radio')).toHaveText([
       'Все',
       'Непрочитанные · 2',
       'Футбол',
@@ -377,7 +377,7 @@ for (const width of [1100, 1440])
     await shoot(page, testInfo, `broadcast-${width}-events-mixed`);
 
     // The unread filter runs out: one phrase, one way back.
-    await filters.getByRole('button', { name: 'Непрочитанные · 2' }).click();
+    await filters.getByRole('radio', { name: 'Непрочитанные · 2' }).click();
     await expect(center.locator('article')).toHaveCount(2);
     await center.getByRole('button', { name: 'Прочитать все' }).click();
     await expect(center.locator('.state-block')).toHaveCount(1);
@@ -387,7 +387,7 @@ for (const width of [1100, 1440])
     await center.getByRole('button', { name: 'Показать все события' }).click();
     await expect(center.locator('article')).toHaveCount(3);
     // Everything is read: only the sport filters are left, no unread count, no "read all".
-    await expect(filters.getByRole('button')).toHaveText(['Все', 'Футбол', 'Формула 1']);
+    await expect(filters.getByRole('radio')).toHaveText(['Все', 'Футбол', 'Формула 1']);
     await expect(center.getByRole('button', { name: 'Прочитать все' })).toHaveCount(0);
     expect(await noOverflow(page)).toBe(true);
     expect(errors).toEqual([]);

@@ -82,6 +82,36 @@ describe('Tabs in the in-page mode', () => {
     expect(tabs()[2]?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs()[2]);
   });
+
+  it('passes per-item dom ids, titles, the panel id and refs to the buttons', async () => {
+    const seen = new Map<string, HTMLElement | null>();
+    await app.render(
+      <Tabs
+        ariaLabel="Период"
+        panelId="period-panel"
+        active="today"
+        items={[
+          {
+            id: 'today',
+            domId: 'tab-today',
+            label: 'Сегодня',
+            title: 'Сегодня · основное',
+            ref: (element) => seen.set('today', element),
+          },
+          { id: 'week', domId: 'tab-week', label: 'Неделя', title: 'Неделя' },
+          { id: 'plan', domId: 'tab-plan', label: 'Мой план' },
+        ]}
+      />,
+    );
+    expect(tabs().map((tab) => tab.id)).toEqual(['tab-today', 'tab-week', 'tab-plan']);
+    expect(tabs().map((tab) => tab.title)).toEqual(['Сегодня · основное', 'Неделя', '']);
+    expect(tabs().map((tab) => tab.getAttribute('aria-controls'))).toEqual([
+      'period-panel',
+      'period-panel',
+      'period-panel',
+    ]);
+    expect(seen.get('today')).toBe(tabs()[0]);
+  });
 });
 
 describe('Tabs in the navigation mode', () => {
@@ -104,8 +134,14 @@ describe('Tabs in the navigation mode', () => {
           mode="nav"
           active={active}
           items={[
-            { id: 'matches', label: 'Матчи', href: '#matches' },
-            { id: 'table', label: 'Таблица', href: '#table' },
+            {
+              id: 'matches',
+              domId: 'nav-matches',
+              label: 'Матчи',
+              title: 'Матчи',
+              href: '#matches',
+            },
+            { id: 'table', domId: 'nav-table', label: 'Таблица', href: '#table' },
           ]}
           onChange={setActive}
         />
@@ -114,6 +150,8 @@ describe('Tabs in the navigation mode', () => {
     await app.render(<LinkHarness />);
     const links = [...app.host.querySelectorAll('a')];
     expect(links).toHaveLength(2);
+    expect(links.map((link) => link.id)).toEqual(['nav-matches', 'nav-table']);
+    expect(links[0]?.getAttribute('title')).toBe('Матчи');
     expect(links[0]?.getAttribute('href')).toBe('#matches');
     expect(links[0]?.getAttribute('aria-current')).toBe('page');
     await click(links[1]!);

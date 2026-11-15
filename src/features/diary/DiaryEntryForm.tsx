@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '../../kit';
 import { isDiaryEntry, parseTags, type DiaryEntry } from './diaryModel';
 import { saveDiaryEntry } from './diaryStore';
 
@@ -157,12 +158,12 @@ export function DiaryEntryForm({
         <p className="diary-notice">Сохранение недоступно. Проверьте состояние дневника.</p>
       )}
       <div className="diary-actions">
-        <button className="ghost-btn" type="submit" disabled={!writable}>
+        <Button small type="submit" disabled={!writable}>
           Сохранить отметку
-        </button>
-        <button className="ghost-btn" type="button" onClick={onCancel}>
+        </Button>
+        <Button small variant="quiet" type="button" onClick={onCancel}>
           Отменить редактирование
-        </button>
+        </Button>
       </div>
     </form>
   );

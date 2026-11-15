@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import './teamBadge.css';
 
 interface TeamBadgeProps {
   name: string;
@@ -27,11 +28,13 @@ export function TeamBadge({ name, imageUrl, size = 28 }: TeamBadgeProps) {
     setBroken(false);
   }, [imageUrl]);
 
+  const geometry = { '--badge-size': `${size}px` } as CSSProperties;
+
   if (!imageUrl || broken) {
     return (
       <span
-        className="team-badge-fallback"
-        style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
+        className={`team-badge-fallback${size >= 32 ? ' team-badge-fallback--large' : ''}`}
+        style={geometry}
         aria-hidden
       >
         {initials(name)}
@@ -44,7 +47,7 @@ export function TeamBadge({ name, imageUrl, size = 28 }: TeamBadgeProps) {
       src={imageUrl}
       alt=""
       className="team-badge"
-      style={{ width: size, height: size }}
+      style={geometry}
       loading="lazy"
       onError={() => setBroken(true)}
     />

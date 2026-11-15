@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { CloudOff, History, RefreshCw } from 'lucide-react';
+import { Button } from '../kit';
 import { formatUpdatedAt, getUserTimezone } from '../features/football/storage';
 import {
   getHealthSnapshot,
@@ -38,14 +39,14 @@ export function ConnectivityBanner({ sources }: { sources?: readonly string[] })
         {saved ? 'Показаны сохранённые данные.' : 'Часть данных пока не загружена.'}
       </span>
       {saved && <small>Сохранено {formatUpdatedAt(saved, getUserTimezone())}</small>}
-      <button
-        className="ghost-btn"
+      <Button
+        small
+        icon={<RefreshCw size={13} className={health.retrying ? 'spin' : ''} />}
         disabled={health.retrying}
         onClick={() => retryFailedResources({ sources })}
       >
-        <RefreshCw size={13} className={health.retrying ? 'spin' : ''} />
         {health.retrying ? 'Повторяем…' : 'Повторить'}
-      </button>
+      </Button>
       <small>
         {health.autoRetryPending
           ? 'Повторяем автоматически.'

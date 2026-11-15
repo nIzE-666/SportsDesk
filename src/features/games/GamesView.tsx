@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { Gamepad2 } from 'lucide-react';
 import { EmptyBlock, LoadingBlock } from '../../components/StateViews';
+import { Panel, PanelHeader, Tabs } from '../../kit';
 import { useModules } from '../../lib/modules';
 import './games.css';
 
@@ -47,31 +48,26 @@ export function GamesView({
   }
   const current = available.find((item) => item.id === game) ?? available[0]!;
   return (
-    <section className="panel games-view" aria-label="Игры">
-      <div className="section-title">
-        <h2>
-          <Gamepad2 size={15} /> Игры
-        </h2>
-      </div>
-      <div className="games-tabs" role="tablist" aria-label="Выбор игры">
-        {available.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={item.id === current.id}
-            className={`ghost-btn${item.id === current.id ? ' active' : ''}`}
-            onClick={() => setGame(item.id)}
-          >
-            {item.title}
-          </button>
-        ))}
-      </div>
+    <Panel className="games-view" aria-label="Игры">
+      <PanelHeader
+        title={
+          <>
+            <Gamepad2 size={15} /> Игры
+          </>
+        }
+      />
+      <Tabs
+        mode="tabs"
+        ariaLabel="Выбор игры"
+        active={current.id}
+        items={available.map((item) => ({ id: item.id, label: item.title }))}
+        onChange={(id) => setGame(id as GameId)}
+      />
       <p className="muted small">{current.blurb}</p>
       <Suspense fallback={<LoadingBlock label="Открываем игру…" rows={2} />}>
         {current.id === 'start-lights' && <StartLights />}
         {current.id === 'predictions' && <PredictionsGame onOpenMatch={onOpenMatch} />}
       </Suspense>
-    </section>
+    </Panel>
   );
 }

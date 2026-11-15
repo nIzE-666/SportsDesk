@@ -1,6 +1,6 @@
 .today-view {
   display: grid;
-  gap: 18px;
+  gap: var(--space-16);
   min-width: 0;
 }
 
@@ -8,8 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 36px;
+  gap: var(--space-16);
+  min-height: var(--control-md);
 }
 
 .today-toolbar-end {
@@ -19,37 +19,37 @@
 .today-blocks,
 .today-week {
   display: grid;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 0;
 }
 
 .today-block {
   min-width: 0;
-  padding: 18px 20px;
+  padding: var(--space-16) 20px;
 }
 
 .today-block-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
+  gap: var(--space-12);
+  margin: 0 0 var(--space-12);
 }
 
 .today-block-heading h2 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-16);
+  font-weight: var(--weight-bold);
 }
 
 .today-block.catchup-panel .section-heading {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 
 /* The broadcast design styles every .section-heading h2 as a page title; a block heading stays small. */
 .app-root .today-block.catchup-panel .section-heading h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-16);
   letter-spacing: 0;
 }
 
@@ -60,7 +60,7 @@
 
 .today-events {
   display: grid;
-  gap: 2px;
+  gap: var(--space-4);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -70,9 +70,9 @@
   display: grid;
   grid-template-columns: 104px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  padding: 11px 0;
-  border-top: 1px solid var(--line);
+  gap: var(--space-12);
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-border);
 }
 
 .today-event:first-child {
@@ -81,112 +81,91 @@
 
 .today-event-time {
   display: grid;
-  gap: 2px;
+  gap: var(--space-4);
   align-self: start;
-  padding-top: 2px;
+  padding-top: var(--space-4);
 }
 
 .today-event-time strong {
-  font-size: 18px;
+  font-size: var(--text-16);
   font-variant-numeric: tabular-nums;
 }
 
 .today-event-time small {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
 
 .today-event-body {
   display: grid;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
-.today-event-title {
+.today-event-title.ui-button {
+  justify-content: flex-start;
+  height: auto;
+  min-height: 0;
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--text);
-  padding: 0;
+  color: var(--color-text);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+  white-space: normal;
   text-align: left;
-  font: inherit;
-  font-weight: 650;
-  line-height: 1.45;
 }
 
-.today-event-title:hover {
-  color: var(--accent);
+.today-event-title.ui-button:hover:not(:disabled) {
+  border-color: transparent;
+  background: none;
+  color: var(--color-accent);
 }
 
-.today-event .ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.today-event .ui-button {
   white-space: nowrap;
 }
 
 .today-next-note {
-  margin: -4px 0 10px;
+  margin: calc(-1 * var(--space-4)) 0 var(--space-8);
 }
 
 .today-live-list {
   display: grid;
-  gap: 4px;
+  gap: var(--space-8);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.today-live-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0;
-  border-top: 1px solid var(--line);
-}
-
-.today-live-row:first-child {
-  border-top: 0;
-}
-
-.today-live-teams {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.today-live-teams strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.today-live-score {
-  flex-shrink: 0;
-  padding: 0 3px;
-  font-variant-numeric: tabular-nums;
-}
-
-.today-live-competition {
-  white-space: nowrap;
-}
-
-.today-row-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
 .today-team-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 10px;
+  gap: var(--space-8);
 }
 
-.today-team-tile {
+.today-team-tile.ui-button {
+  display: block;
+  height: auto;
+  min-height: 0;
+  padding: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+}
+
+.today-team-tile.ui-button:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.today-team-tile .ui-button__label {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto;
   grid-template-areas:
@@ -194,25 +173,16 @@
     'logo last last'
     'logo next next';
   align-items: center;
-  gap: 2px 10px;
+  gap: var(--space-4) var(--space-8);
+  width: 100%;
   min-width: 0;
-  padding: 12px 13px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--panel);
-  color: var(--text);
-  text-align: left;
-}
-
-.today-team-tile:hover {
-  background: var(--panel2);
 }
 
 .today-team-logo {
   grid-area: logo;
   display: grid;
   place-items: center;
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .today-team-name {
@@ -220,14 +190,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--text-13);
+  font-weight: var(--weight-semibold);
 }
 
 .today-team-place {
   grid-area: place;
-  color: var(--accent);
-  font-size: 12px;
+  color: var(--color-accent);
+  font-size: var(--text-12);
   font-variant-numeric: tabular-nums;
 }
 
@@ -236,12 +206,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--text-12);
 }
 
 .today-team-line.muted {
   grid-area: next;
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 
 .today-team-f1 .today-team-line {
@@ -250,9 +220,9 @@
 
 .today-week-day {
   display: grid;
-  gap: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-4);
+  padding-bottom: var(--space-12);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .today-week-day:last-of-type {
@@ -261,7 +231,7 @@
 
 .today-week-day h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-16);
 }
 
 .today-week-day h2::first-letter {
@@ -269,10 +239,10 @@
 }
 
 .today-week-day .today-events {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--panel);
-  padding: 6px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-1);
+  padding: var(--space-8) var(--space-16);
 }
 
 @media (max-width: 900px) {
@@ -280,18 +250,9 @@
     grid-template-columns: 86px minmax(0, 1fr);
   }
 
-  .today-event > .ghost-btn {
+  .today-event > .ui-button {
     grid-column: 2;
     justify-self: start;
-  }
-
-  .today-live-row {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .today-live-competition,
-  .today-row-actions {
-    grid-column: 2;
   }
 }
 

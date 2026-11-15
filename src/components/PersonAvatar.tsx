@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import './personAvatar.css';
 
 /** Keep the same geometry when a provider has no photo or its CDN fails. */
@@ -20,10 +20,7 @@ export function PersonAvatar({
     .map((p) => p[0])
     .filter(Boolean);
   return (
-    <span
-      className="person-avatar"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.3) }}
-    >
+    <span className="person-avatar" style={{ '--avatar-size': `${size}px` } as CSSProperties}>
       {safeSrc && failed !== safeSrc ? (
         <img
           src={safeSrc}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Target } from 'lucide-react';
+import { Badge, Button, Panel } from '../../kit';
 import { useModules } from '../../lib/modules';
 import { useNow } from '../../lib/useNow';
 import type { MatchDetail } from '../football/types';
@@ -122,22 +123,24 @@ export function PredictionPanel({
   return (
     <div className={compact ? 'prediction-disclosure' : undefined}>
       {compact && (
-        <button
+        <Button
+          small
+          variant="quiet"
           type="button"
-          className="ghost-btn"
+          icon={<Target size={14} />}
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          <Target size={14} /> Мой прогноз
-        </button>
+          Мой прогноз
+        </Button>
       )}
       {(!compact || expanded) && (
-        <section className="panel prediction-panel" aria-label="Угадай счёт">
+        <Panel className="prediction-panel" aria-label="Угадай счёт">
           <div className="section-title">
             <h3>
               <Target size={14} /> Угадай счёт · мой прогноз
             </h3>
-            <span className="chip">основное время</span>
+            <Badge>основное время</Badge>
           </div>
           {open.open ? (
             <form
@@ -174,12 +177,13 @@ export function PredictionPanel({
                   aria-label={`Голы: ${detail.away_team.name}`}
                 />
               </label>
-              <button className="primary-btn" type="submit">
+              <Button variant="primary" type="submit">
                 {prediction ? 'Изменить прогноз' : 'Сохранить прогноз'}
-              </button>
+              </Button>
               {prediction && (
-                <button
-                  className="ghost-btn"
+                <Button
+                  small
+                  variant="quiet"
                   type="button"
                   onClick={() => {
                     removePrediction(detail.id);
@@ -187,7 +191,7 @@ export function PredictionPanel({
                   }}
                 >
                   Убрать
-                </button>
+                </Button>
               )}
             </form>
           ) : (
@@ -222,7 +226,7 @@ export function PredictionPanel({
           <p className="muted small">
             3 очка за точный счёт основного времени, 1 — за верный исход.
           </p>
-        </section>
+        </Panel>
       )}
     </div>
   );

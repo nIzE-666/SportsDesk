@@ -1,0 +1,14 @@
+.team-badge {
+  width: var(--badge-size);
+  height: var(--badge-size);
+}
+
+.team-badge-fallback {
+  width: var(--badge-size);
+  height: var(--badge-size);
+  font-size: var(--text-12);
+}
+
+.team-badge-fallback--large {
+  font-size: var(--text-14);
+}

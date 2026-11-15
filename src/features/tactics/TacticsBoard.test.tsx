@@ -70,17 +70,19 @@ it('moves by keyboard and numeric coordinates, undoes one action and resets to t
   await render();
   await click('Создать из состава');
   const p = host.querySelector<HTMLButtonElement>('.tactics-player')!;
-  const start = parseFloat(p.style.left);
+  const left = () =>
+    parseFloat(p.style.getPropertyValue('--player-position').split(/\s+/)[3] ?? '');
+  const start = left();
   await act(async () =>
     p.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })),
   );
-  expect(parseFloat(p.style.left)).toBeCloseTo(start + 2);
+  expect(left()).toBeCloseTo(start + 2);
   await click('Отменить действие');
-  expect(parseFloat(p.style.left)).toBeCloseTo(start);
+  expect(left()).toBeCloseTo(start);
   await input('Вдоль поля, %', '72');
-  expect(parseFloat(p.style.left)).toBe(72);
+  expect(left()).toBe(72);
   await click('Сбросить доску');
-  expect(parseFloat(p.style.left)).toBeCloseTo(start);
+  expect(left()).toBeCloseTo(start);
 });
 it('creates and removes arrows without pointer precision and supports undo', async () => {
   await render();
@@ -101,14 +103,19 @@ it('temporarily shows original positions without changing the draft', async () =
   await click('Игрок Bukayo Saka, Arsenal');
   await input('Вдоль поля, %', '70');
   await click('Сравнить с исходной');
-  expect(
-    parseFloat(host.querySelector<HTMLButtonElement>('.tactics-player')!.style.left),
-  ).toBeCloseTo(36.68);
+  const left = () =>
+    parseFloat(
+      host
+        .querySelector<HTMLButtonElement>('.tactics-player')!
+        .style.getPropertyValue('--player-position')
+        .split(/\s+/)[3] ?? '',
+    );
+  expect(left()).toBeCloseTo(36.68);
   expect(host.querySelector<HTMLInputElement>('input[aria-label="Вдоль поля, %"]')!.disabled).toBe(
     true,
   );
   await click('Вернуться к моей схеме');
-  expect(parseFloat(host.querySelector<HTMLButtonElement>('.tactics-player')!.style.left)).toBe(70);
+  expect(left()).toBe(70);
 });
 it('saves several named schemes, replaces the current ID and restores after remount', async () => {
   await render();

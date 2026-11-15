@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { EyeOff } from 'lucide-react';
+import { Button, EmptyState } from '../../kit';
 import { SPOILER_MASK, revealResult, useResultHidden, type SpoilerKind } from './spoilerStore';
 
 /** Показывает маску вместо счёта, пока результат события скрыт. */
@@ -36,15 +37,19 @@ export function SpoilerGate({
   const hidden = useResultHidden(kind, id);
   if (!hidden || bypass || !id) return <>{children}</>;
   return (
-    <div className="panel spoiler-gate" role="status">
-      <EyeOff size={18} />
-      <div>
-        <strong>Результат скрыт</strong>
-        <p className="muted small">События, статистика и оценки скрыты.</p>
-      </div>
-      <button type="button" className="ghost-btn" onClick={() => revealResult(kind, id)}>
-        Показать результат
-      </button>
-    </div>
+    <EmptyState
+      className="spoiler-gate"
+      icon={<EyeOff size={20} />}
+      message={
+        <>
+          <strong>Результат скрыт</strong> События, статистика и оценки скрыты.
+        </>
+      }
+      action={
+        <Button small onClick={() => revealResult(kind, id)}>
+          Показать результат
+        </Button>
+      }
+    />
   );
 }

@@ -35,34 +35,29 @@
   border: 1px solid var(--color-border);
   color: var(--color-text);
   font-size: var(--text-12);
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   letter-spacing: 1.2px;
+}
+
+.nav-rail .ui-tabs {
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-8);
+  min-height: 0;
+  overflow: visible;
+  border: 0;
 }
 
 .nav-rail-nav {
   display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: var(--space-8);
   min-height: 0;
 }
 
-.nav-rail-group {
-  display: flex;
+.nav-rail .ui-tab {
+  position: relative;
   flex-direction: column;
-  gap: var(--space-4);
-}
-
-.nav-rail-bottom {
-  margin-top: auto;
-  padding-top: var(--space-8);
-  border-top: 1px solid var(--color-border);
-}
-
-.nav-rail-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
   gap: var(--space-4);
   width: 100%;
@@ -70,16 +65,22 @@
   padding: var(--space-8) var(--space-4);
   border: 0;
   border-radius: var(--radius-md);
-  background: transparent;
   color: var(--color-text-tertiary);
   font-size: var(--text-12);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   line-height: 1.15;
   text-align: center;
   white-space: nowrap;
 }
 
-.nav-rail-item svg {
+.nav-rail .ui-tab:nth-last-child(2) {
+  margin-top: auto;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.nav-rail .ui-tab svg {
   flex-shrink: 0;
 }
 
@@ -99,17 +100,18 @@
   background: var(--color-text);
   color: var(--color-bg);
   font-size: var(--text-12);
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   line-height: 16px;
   text-align: center;
 }
 
-.nav-rail-item:hover {
+.nav-rail .ui-tab:hover {
   background: color-mix(in srgb, var(--color-text) 4%, transparent);
   color: var(--color-text);
 }
 
-.nav-rail-item[aria-current='page'] {
+.nav-rail .ui-tabs--nav .ui-tab[aria-current='page'] {
+  border-color: transparent;
   background: color-mix(in srgb, var(--color-text) 7%, transparent);
   color: var(--color-text);
   box-shadow: inset 2px 0 0 var(--color-text);
@@ -159,7 +161,7 @@
   overflow: hidden;
   color: var(--color-text);
   font-size: var(--text-20);
-  font-weight: 750;
+  font-weight: var(--weight-bold);
   letter-spacing: -0.3px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -178,19 +180,26 @@
   min-width: 0;
 }
 
-.competition-switcher-trigger {
-  display: inline-flex;
-  align-items: center;
+.competition-switcher-trigger.ui-button {
   gap: var(--space-4);
+  height: auto;
+  min-height: 0;
   min-width: 0;
-  padding: var(--space-4) var(--space-4);
+  padding: var(--space-4);
   border: 0;
-  border-radius: var(--radius-md);
   background: none;
   color: inherit;
   font: inherit;
-  letter-spacing: inherit;
+  font-size: var(--text-20);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.3px;
   white-space: nowrap;
+}
+
+.competition-switcher-trigger.ui-button:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--color-surface-2);
+  color: inherit;
 }
 
 .competition-switcher-trigger > span {
@@ -213,7 +222,7 @@
 
 .shell-page-context {
   color: var(--color-text-secondary);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .competition-menu {
@@ -235,34 +244,35 @@
   padding: var(--space-8) var(--space-8) var(--space-4);
   color: var(--color-text-secondary);
   font-size: var(--text-12);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
 
-.competition-menu-item {
-  display: flex;
-  align-items: center;
+.competition-menu-item.ui-button {
   justify-content: space-between;
   gap: var(--space-8);
   width: 100%;
+  height: auto;
+  min-height: 0;
   padding: var(--space-8);
   border: 0;
-  border-radius: var(--radius-md);
   background: none;
   color: var(--color-text);
   font-size: var(--text-13);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0;
   text-align: left;
 }
 
-.competition-menu-item:hover,
-.competition-menu-item:focus-visible {
+.competition-menu-item.ui-button:hover:not(:disabled),
+.competition-menu-item.ui-button:focus-visible {
+  border-color: transparent;
   background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
-.competition-menu-item[aria-checked='true'] {
+.competition-menu-item.ui-button[aria-checked='true'] {
   color: var(--color-accent);
 }
 
@@ -283,36 +293,11 @@
 }
 
 .shell-tabs {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-4);
   padding: 0 var(--space-16);
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
-.shell-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.shell-tab {
-  padding: var(--space-8) var(--space-12);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--color-text-secondary);
-  font-size: var(--text-13);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.shell-tab:hover {
-  color: var(--color-text);
-}
-
-.shell-tab[aria-selected='true'] {
-  color: var(--color-text);
-  border-bottom-color: var(--color-text);
+.shell-tabs .ui-tabs {
+  border-bottom: 0;
 }
 
 main.shell-content {
@@ -320,62 +305,50 @@ main.shell-content {
   overflow-x: hidden;
 }
 
-.events-drawer-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: var(--layer-drawer);
-  display: flex;
-  justify-content: flex-end;
-  background: color-mix(in srgb, var(--color-bg) 52%, transparent);
-  animation: events-backdrop-in var(--duration-page) var(--ease);
+/* The events drawer is the kit Dialog stretched to the right edge; the rail
+   stays clickable, as it was with the old in-frame backdrop. */
+.ui-dialog-scrim:has(.events-drawer) {
+  inset: 0 0 0 92px;
+  padding: 0;
 }
 
-.events-drawer {
-  display: flex;
-  flex-direction: column;
+.events-drawer.ui-dialog {
+  align-self: stretch;
+  justify-self: end;
   width: min(560px, 100%);
+  max-width: none;
   height: 100%;
+  max-height: none;
+  padding: 0;
+  gap: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
   background: var(--color-surface-1);
-  border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-2);
   animation: events-drawer-in var(--duration-page) var(--ease);
 }
 
-.events-drawer-head {
-  display: flex;
+.events-drawer .ui-dialog__header {
   flex-shrink: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-16);
-  padding: var(--space-16) 20px;
+  padding: var(--space-16) var(--space-24);
   border-bottom: 1px solid var(--color-border);
 }
 
-.events-drawer-head h2 {
-  margin: 0;
+.events-drawer .ui-dialog__title {
   font-size: var(--text-20);
-  font-weight: 750;
+  font-weight: var(--weight-bold);
   letter-spacing: -0.4px;
 }
 
-.events-drawer-close {
-  flex-shrink: 0;
-  width: var(--control-md);
-  height: var(--control-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-}
-
-.events-drawer-close:hover {
-  color: var(--color-text);
-}
-
-.events-drawer-body {
+.events-drawer .ui-dialog__body {
   flex: 1;
   min-height: 0;
   padding: var(--space-16) var(--space-24) var(--space-32);
   overflow-y: auto;
+  color: var(--color-text);
 }
 
 .events-drawer .event-center {
@@ -391,12 +364,6 @@ main.shell-content {
   display: none;
 }
 
-@keyframes events-backdrop-in {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes events-drawer-in {
   from {
     transform: translateX(40px);
@@ -405,8 +372,7 @@ main.shell-content {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .events-drawer-backdrop,
-  .events-drawer {
+  .events-drawer.ui-dialog {
     animation: none;
   }
 }
@@ -416,7 +382,11 @@ main.shell-content {
     grid-template-columns: 80px minmax(0, 1fr);
   }
 
-  .nav-rail-item {
+  .ui-dialog-scrim:has(.events-drawer) {
+    inset: 0 0 0 80px;
+  }
+
+  .nav-rail .ui-tab {
     min-height: 52px;
     padding-inline: 2px;
     font-size: var(--text-12);

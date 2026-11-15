@@ -262,20 +262,20 @@ describe('personal sports viewing planner', () => {
     await render();
     expect(articles()).toHaveLength(2);
     expect(host.querySelector('[aria-label="Период плана"]')).not.toBeNull();
-    expect(host.querySelector('.planner-insights')?.textContent).toBe('2события в периоде');
+    expect(host.querySelector('.planner-insights')?.textContent).toBe('события в периоде2');
   });
   it('counts only what exists: no zero tiles, and the figures say how many in Russian', async () => {
     await render();
     expect(
       [...host.querySelectorAll('.planner-insights > div')].map((el) => el.textContent),
-    ).toEqual(['3события в периоде', '1группа пересечений']);
+    ).toEqual(['события в периоде3', 'группа пересечений1']);
     expect(
       [...host.querySelectorAll('.planner-day-heading span')].map((el) => el.textContent),
     ).toEqual(['2 события', '1 событие']);
     await click(labelledButton('Буду смотреть: Barcelona — Villarreal'));
     expect(
       [...host.querySelectorAll('.planner-insights > div')].map((el) => el.textContent),
-    ).toEqual(['3события в периоде', '1выбрано смотреть', '1группа пересечений']);
+    ).toEqual(['события в периоде3', 'выбрано смотреть1', 'группа пересечений1']);
   });
   it('offers the personal plan filter only once some, not all, of the events are chosen', async () => {
     await render();

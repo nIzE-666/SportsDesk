@@ -1,0 +1,15 @@
+/* «Что нового»: the kit dialog is the card; only the release list needs its rhythm. */
+.whatsnew-dialog .ui-dialog__body {
+  color: var(--color-text);
+}
+
+.whatsnew-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0 0 var(--space-4) var(--space-16);
+  color: var(--color-text);
+  font-size: var(--text-13);
+  line-height: var(--line-body);
+}

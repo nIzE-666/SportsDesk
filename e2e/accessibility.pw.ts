@@ -420,10 +420,10 @@ test('the events drawer and the search dialog keep focus, close on Escape and re
 
   // Ctrl+K opens the search; Escape closes it.
   await page.keyboard.press('Control+k');
-  const search = page.getByRole('dialog', { name: 'Глобальный поиск' });
+  const search = page.getByRole('dialog', { name: 'Поиск' });
   await expect(search).toBeVisible();
   await settle(page);
-  await audit(page, 'Поиск', failures, { trap: '.command-panel' });
+  await audit(page, 'Поиск', failures, { trap: '.command-dialog' });
   await page.keyboard.press('Escape');
   await expect(search).toHaveCount(0);
   failures.push(

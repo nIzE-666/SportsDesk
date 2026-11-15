@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from '../../kit';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import type { SportsEvent } from '../events/EventCenter';
 import { getSpoilerSnapshot } from '../spoilers/spoilerStore';
@@ -125,9 +126,12 @@ export function GoalCelebration() {
           <b>{burst.title}</b>
           <span>{burst.detail}</span>
         </div>
-        <button className="ghost-btn" aria-label="Закрыть" onClick={() => setBurst(null)}>
-          <X size={14} />
-        </button>
+        <IconButton
+          small
+          aria-label="Закрыть"
+          icon={<X size={14} aria-hidden="true" />}
+          onClick={() => setBurst(null)}
+        />
       </div>
     </div>
   );

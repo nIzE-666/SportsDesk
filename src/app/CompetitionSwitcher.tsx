@@ -1,6 +1,7 @@
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { CUP_COMPETITIONS } from '../features/ucl/cups';
+import { Button } from '../kit';
 import { CHAMPIONS_LEAGUE_ID, defaultFootballTab, isValidFootballTab } from '../lib/navigation';
 import { LEAGUES } from '../lib/navigationMetadata';
 import { isCompetitionVisible, useModules } from '../lib/modules';
@@ -164,8 +165,9 @@ export function CompetitionSwitcher({
 
   return (
     <div className="competition-switcher" ref={rootRef}>
-      <button
+      <Button
         type="button"
+        variant="quiet"
         className="competition-switcher-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -176,7 +178,7 @@ export function CompetitionSwitcher({
       >
         <span>{competitionName(competitionId)}</span>
         <ChevronDown size={16} aria-hidden="true" />
-      </button>
+      </Button>
       {suffix && <span className="shell-page-context">{` · ${suffix}`}</span>}
       {open && (
         <div
@@ -202,9 +204,10 @@ export function CompetitionSwitcher({
                   const index = options.findIndex((item) => item.id === option.id);
                   const selected = option.id === competitionId;
                   return (
-                    <button
+                    <Button
                       key={option.id}
                       type="button"
+                      variant="quiet"
                       role="menuitemradio"
                       aria-checked={selected}
                       tabIndex={-1}
@@ -217,7 +220,7 @@ export function CompetitionSwitcher({
                     >
                       <span>{option.label}</span>
                       {selected && <Check size={14} aria-hidden="true" />}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

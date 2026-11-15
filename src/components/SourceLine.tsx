@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import { Fragment } from 'react';
+import { Button } from '../kit';
 import { formatUpdatedAt, getUserTimezone } from '../features/football/storage';
 import { openExternal } from '../lib/bridge';
 import { sourceLabels } from '../lib/sourceLabels';
@@ -40,13 +41,13 @@ export function SourceLine({
           <Fragment key={name}>
             {index > 0 && ', '}
             {name === 'SportScore' ? (
-              <button
-                type="button"
-                className="link-btn"
+              <Button
+                variant="quiet"
+                small
                 onClick={() => void openExternal('https://sportscore.com').catch(() => undefined)}
               >
                 Powered by SportScore <ExternalLink size={12} />
-              </button>
+              </Button>
             ) : (
               name
             )}

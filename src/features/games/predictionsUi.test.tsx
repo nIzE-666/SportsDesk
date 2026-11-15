@@ -251,7 +251,7 @@ describe('PredictionsGame', () => {
     );
     const opened: Array<[string, string | undefined]> = [];
     render(<PredictionsGame onOpenMatch={(id, league) => opened.push([id, league])} />);
-    const points = () => host?.querySelector('dl dd')?.textContent;
+    const points = () => host?.querySelector('.lights-stats .ui-stat__value')?.textContent;
     expect(points()).toBe('4'); // 3 + 1 очка
     expect(text()).toContain('Home a — Away a');
     expect(text()).toContain('итог 2 : 1 · 3 оч. (точный счёт)');

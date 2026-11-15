@@ -1,62 +1,43 @@
 .tactics-workspace {
   display: grid;
-  gap: 24px;
-  font:
-    14px/20px 'Manrope Variable',
-    Manrope,
-    sans-serif;
-  --tactic-home: var(--accent);
-  --tactic-away: #b364d9;
-}
-[data-scheme='light'] .tactics-workspace {
-  --tactic-away: #8a3db4;
+  gap: var(--space-24);
+  font-family: var(--font-family);
+  font-size: var(--text-14);
+  line-height: var(--line-body);
+  --tactic-away: var(--color-chart-4);
 }
 .tactics-workspace h2 {
   margin: 0;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: var(--text-20);
+  line-height: var(--line-heading);
 }
 .tactics-workspace h3 {
-  margin: 0 0 12px;
-  font-size: 18px;
-  line-height: 28px;
+  margin: 0 0 var(--space-12);
+  font-size: var(--text-16);
+  line-height: var(--line-heading);
 }
 .tactics-heading,
 .tactics-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .tactics-heading {
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-16);
 }
 .tactics-workspace p {
   text-wrap: pretty;
 }
-.tactics-workspace button {
-  font: inherit;
-  padding: 8px 12px;
-}
-.tactics-workspace button:not(:disabled):hover {
-  background: var(--panel2);
-}
-.tactics-workspace button:not(:disabled):active {
-  transform: scale(0.98);
-}
-.tactics-workspace button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.tactics-workspace :is(button, input, select, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+.tactics-workspace :is(input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 .tactics-properties,
 .tactics-coordinate-pair {
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
 }
 .tactics-properties > label {
@@ -65,43 +46,43 @@
 }
 .tactics-workspace label {
   display: grid;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .tactics-workspace :is(input, select) {
   min-width: 0;
   width: 100%;
   font: inherit;
-  color: var(--text);
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 12px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-12);
 }
 .tactics-source {
   display: grid;
-  gap: 4px;
-  padding: 16px 0;
+  gap: var(--space-4);
+  padding: var(--space-16) 0;
 }
 .tactics-source p {
-  margin: 4px 0;
+  margin: var(--space-4) 0;
 }
 .tactics-notice,
 .tactics-state {
-  background: var(--panel2);
-  padding: 12px 16px;
-  border-radius: 8px;
+  background: var(--color-surface-2);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-sm);
 }
 .tactics-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 24px;
+  gap: var(--space-24);
 }
 .tactics-pitch {
   position: relative;
   aspect-ratio: 105/68;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   touch-action: none;
   user-select: none;
 }
@@ -114,32 +95,33 @@
   pointer-events: none;
 }
 .tactics-field-lines {
-  stroke: var(--muted);
+  stroke: var(--color-text-secondary);
   stroke-width: 2;
 }
 .tactics-arrows {
-  stroke: var(--text);
+  stroke: var(--color-text);
   stroke-width: 3;
 }
 .tactics-arrows marker {
-  fill: var(--text);
+  fill: var(--color-text);
   stroke: none;
 }
 .tactics-arrows circle {
-  fill: var(--accent);
-  stroke: var(--text);
+  fill: var(--color-accent);
+  stroke: var(--color-text);
 }
 .tactics-workspace .tactics-player {
   position: absolute;
+  inset: var(--player-position);
   display: grid;
   justify-items: center;
-  gap: 2px;
+  gap: var(--space-4);
   width: 48px;
   padding: 0;
   border: 0;
   background: transparent;
   transform: translate(-50%, -50%);
-  color: var(--text);
+  color: var(--color-text);
   cursor: grab;
   touch-action: none;
 }
@@ -148,30 +130,28 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: var(--tactic-home);
-  color: var(--panel);
-  border: 2px solid var(--panel);
-  font-weight: 700;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 2px solid var(--color-surface-1);
+  font-weight: var(--weight-bold);
 }
 .tactics-workspace .tactics-player.away > span {
   background: var(--tactic-away);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 .tactics-workspace .tactics-player small {
-  font:
-    12px/16px 'Manrope Variable',
-    Manrope,
-    sans-serif;
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--panel2);
-  padding: 0 2px;
+  background: var(--color-surface-2);
+  padding: 0 var(--space-4);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
 }
 .tactics-workspace .tactics-player.selected > span {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
 .tactics-workspace .tactics-player:not(:disabled):active {
@@ -183,46 +163,46 @@
 }
 .tactics-placement {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
 }
 .tactics-coordinate-pair label {
   flex: 1;
   min-width: 80px;
 }
 .tactics-arrow-editor {
-  margin-top: 16px;
+  margin-top: var(--space-16);
 }
 .tactics-arrow-editor summary {
-  padding: 8px 0;
+  padding: var(--space-8) 0;
   cursor: pointer;
 }
-.tactics-arrow-editor > button {
-  margin-top: 12px;
+.tactics-arrow-editor > .ui-button {
+  margin-top: var(--space-12);
 }
 .tactics-arrow-editor li {
-  padding: 4px 0;
+  padding: var(--space-4) 0;
 }
 .tactics-library ul {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .tactics-library li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px;
-  background: var(--panel2);
-  border-radius: 8px;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
 }
 .tactics-library small {
   display: block;
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 @media (max-width: 1250px) {
   .tactics-layout {
@@ -232,7 +212,7 @@
     display: grid;
     align-items: start;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: var(--space-12);
   }
   .tactics-roster h3 {
     grid-column: 1/-1;
