@@ -142,6 +142,7 @@ const open = async (page: Page) => {
     .getByRole('navigation', { name: 'Категории настроек' })
     .getByRole('button', { name: 'Данные', exact: true })
     .click();
+  await page.locator('.settings-offline .ui-disclosure__trigger').click();
 };
 for (const scheme of ['dark', 'light'])
   for (const width of [1100, 1440])

@@ -84,6 +84,11 @@ describe('EmptyState', () => {
       'Турнир временно недоступен',
     );
   });
+
+  it('has a compact variant for a narrow panel', async () => {
+    await app.render(<EmptyState compact message="Сейчас нет матчей." />);
+    expect(app.host.querySelector('.ui-empty')?.classList.contains('ui-empty--compact')).toBe(true);
+  });
 });
 
 describe('Tooltip', () => {

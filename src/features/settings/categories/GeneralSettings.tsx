@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Clock, Minimize2 } from 'lucide-react';
+import { Clock, Minimize2, Sparkles } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
-import { Badge, Button, Panel, PanelHeader } from '../../../kit';
+import { Badge, Button, Field, Panel, PanelHeader, Switch } from '../../../kit';
 import { getString, setString, STORAGE_KEYS } from '../../football/storage';
 import { ShortcutControl } from '../ShortcutControl';
 import { openFirstRunWizard } from '../../onboarding/onboarding';
@@ -29,12 +29,11 @@ export function GeneralSettings() {
     setString(STORAGE_KEYS.timezone, value);
   };
 
-  const toggleTrayMode = async () => {
-    const next = !trayMode;
-    setTrayMode(next);
-    setString(STORAGE_KEYS.trayMode, next ? '1' : '0');
+  const setTray = async (enabled: boolean) => {
+    setTrayMode(enabled);
+    setString(STORAGE_KEYS.trayMode, enabled ? '1' : '0');
     try {
-      await rpc('set_tray_mode', { enabled: next });
+      await rpc('set_tray_mode', { enabled });
     } catch {
       /* dev bridge or non-Tauri: setting still persisted for native runs */
     }
@@ -42,7 +41,7 @@ export function GeneralSettings() {
 
   return (
     <>
-      <Panel className="settings-section">
+      <Panel>
         <PanelHeader
           title={
             <>
@@ -50,10 +49,7 @@ export function GeneralSettings() {
             </>
           }
         />
-        <div className="settings-row">
-          <label htmlFor="tz-select" className="muted small">
-            Часовой пояс
-          </label>
+        <Field label="Часовой пояс" htmlFor="tz-select" inline>
           <select
             id="tz-select"
             value={timezone}
@@ -65,10 +61,10 @@ export function GeneralSettings() {
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       </Panel>
 
-      <Panel className="settings-section">
+      <Panel>
         <PanelHeader
           title={
             <>
@@ -77,17 +73,20 @@ export function GeneralSettings() {
           }
           action={<Badge>{trayMode ? 'Закрытие в трей' : 'Закрытие — выход'}</Badge>}
         />
-        <div className="settings-actions">
-          <Button onClick={() => void toggleTrayMode()}>
-            {trayMode ? 'Закрывать приложение полностью' : 'Скрывать в трей при закрытии'}
-          </Button>
-        </div>
+        <Switch
+          label="Скрывать в трей при закрытии"
+          checked={trayMode}
+          onChange={(enabled) => void setTray(enabled)}
+        />
         <ShortcutControl />
       </Panel>
 
-      <Panel className="settings-section">
+      <Panel>
+        <PanelHeader title="Мастер настройки" />
         <div className="settings-actions">
-          <Button onClick={openFirstRunWizard}>Пройти мастер настройки</Button>
+          <Button icon={<Sparkles size={14} aria-hidden />} onClick={openFirstRunWizard}>
+            Пройти мастер настройки
+          </Button>
         </div>
       </Panel>
     </>

@@ -423,6 +423,13 @@ it('opens offline seasons in «Настройки → Данные» and never a
   await click(button('Данные'));
   expect(host.querySelector('.settings-category > h2')?.textContent).toBe('Данные');
   expect(host.querySelector('.settings-offline')).not.toBeNull();
+  expect(host.querySelector('.offline-view')).toBeNull();
+  const toggle = Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find((item) =>
+    item.textContent?.includes('Офлайн-сезоны'),
+  );
+  expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+  await click(toggle!);
+  expect(toggle?.getAttribute('aria-expanded')).toBe('true');
   expect(host.querySelector('.offline-view')).not.toBeNull();
   expect(host.querySelector('.shell-page-title')?.textContent).toBe('Настройки');
 });

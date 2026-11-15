@@ -29,14 +29,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.fav-editor-search {
-  display: grid;
-  gap: var(--space-4);
-}
-.fav-editor-search input {
-  width: 100%;
-  max-width: 420px;
-}
 .fav-editor-group {
   display: grid;
   gap: var(--space-4);

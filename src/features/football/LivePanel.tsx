@@ -19,9 +19,12 @@ import { clubKey } from './clubNames';
 import { useFavorites } from './FavoritesProvider';
 import { isFollowedCompetition } from './liveCompetitions';
 import { findPitchMatchId, useLiveMatches, type PitchMatchReference } from './liveData';
+import { minuteLabel } from './liveFeed';
 import type { LiveMatch, LiveState } from './liveSources';
 import { getUserTimezone } from './storage';
 import { MatchList } from './MatchList';
+
+export { minuteLabel } from './liveFeed';
 
 /** The same ten followed competitions the panel has always shown. */
 const LEAGUE_IDS = [
@@ -40,15 +43,6 @@ const COMPETITION_LABELS = new Map<string, string>([
   ...LEAGUES.map((league) => [league.id, league.label] as const),
   ...CUP_COMPETITIONS.map((cup) => [cup.id, cup.title] as const),
 ]);
-
-const NUMERIC_MINUTE = /^\d{1,3}(?:'\+\d{1,2}|\+\d{1,2}|)'$/;
-
-/** `HT` reads as a word; an unfamiliar live label is left out instead of shown raw. */
-export function minuteLabel(minute: string | null): string | null {
-  if (!minute) return null;
-  if (minute === 'HT') return 'Перерыв';
-  return NUMERIC_MINUTE.test(minute) ? minute : null;
-}
 
 export function competitionLabel(match: LiveMatch): string {
   const known = match.leagueId ? COMPETITION_LABELS.get(match.leagueId) : undefined;

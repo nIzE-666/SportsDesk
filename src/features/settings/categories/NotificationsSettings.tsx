@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { isTauri } from '@tauri-apps/api/core';
 import { notify } from '../../../lib/bridge';
-import { Badge, Button, Panel } from '../../../kit';
+import { Badge, Button, Panel, Switch } from '../../../kit';
 import { getString, setString } from '../../football/storage';
 import { readNotificationsEnabled, writeNotificationsEnabled } from '../../football/usePoller';
 import { NotificationPreferences } from '../NotificationPreferences';
@@ -67,51 +67,51 @@ export function NotificationsSettings() {
   };
 
   return (
-    <>
-      <Panel className="settings-section">
-        <div className="settings-status-row">
-          <Badge>
-            {notificationsEnabled ? <Bell size={14} /> : <BellOff size={14} />}
-            {notificationsEnabled ? 'Включены' : 'Выключены'}
-          </Badge>
-          <Button onClick={() => void toggleNotifications()}>
-            {notificationsEnabled ? 'Выключить уведомления' : 'Включить уведомления'}
-          </Button>
-        </div>
-        <label className="settings-f1-reminders">
-          <input
-            type="checkbox"
-            checked={f1Reminders}
-            disabled={!notificationsEnabled}
-            onChange={(event) => {
-              const enabled = event.target.checked;
-              setF1Reminders(enabled);
-              setString('sportsdesk.notifications.f1', enabled ? '1' : '0');
-              window.dispatchEvent(new Event('sportsdesk-favorites-changed'));
-            }}
-          />{' '}
-          Напоминать о сессиях Формулы-1
-        </label>
-        <NotificationPreferences />
-        <div className="settings-row settings-actions">
-          <Button
-            disabled={!notificationsEnabled}
-            onClick={async () => {
-              try {
-                await notify('SportsDesk', 'Проверка локальных уведомлений.');
-                setNotificationMessage('Тестовое уведомление отправлено.');
-              } catch (e) {
-                setNotificationMessage(
-                  e instanceof Error ? e.message : 'Системные уведомления недоступны.',
-                );
-              }
-            }}
-          >
-            Проверить уведомление
-          </Button>
-        </div>
-        {notificationMessage && <p className="settings-note">{notificationMessage}</p>}
-      </Panel>
-    </>
+    <Panel aria-label="Уведомления">
+      <div className="settings-status">
+        <Switch
+          label="Уведомления"
+          checked={notificationsEnabled}
+          onChange={() => void toggleNotifications()}
+        />
+        <Badge>
+          {notificationsEnabled ? (
+            <Bell size={14} aria-hidden />
+          ) : (
+            <BellOff size={14} aria-hidden />
+          )}
+          {notificationsEnabled ? 'Включены' : 'Выключены'}
+        </Badge>
+      </div>
+      <Switch
+        label="Напоминать о сессиях Формулы-1"
+        checked={f1Reminders}
+        disabled={!notificationsEnabled}
+        onChange={(enabled) => {
+          setF1Reminders(enabled);
+          setString('sportsdesk.notifications.f1', enabled ? '1' : '0');
+          window.dispatchEvent(new Event('sportsdesk-favorites-changed'));
+        }}
+      />
+      <NotificationPreferences disabled={!notificationsEnabled} />
+      <div className="settings-actions">
+        <Button
+          disabled={!notificationsEnabled}
+          onClick={async () => {
+            try {
+              await notify('SportsDesk', 'Проверка локальных уведомлений.');
+              setNotificationMessage('Тестовое уведомление отправлено.');
+            } catch (e) {
+              setNotificationMessage(
+                e instanceof Error ? e.message : 'Системные уведомления недоступны.',
+              );
+            }
+          }}
+        >
+          Проверить уведомление
+        </Button>
+      </div>
+      {notificationMessage && <p className="settings-note">{notificationMessage}</p>}
+    </Panel>
   );
 }

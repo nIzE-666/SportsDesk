@@ -9,7 +9,9 @@ import {
   Badge,
   Button,
   Dialog,
+  Disclosure,
   EmptyState,
+  Field,
   IconButton,
   MatchRow,
   Panel,
@@ -18,6 +20,7 @@ import {
   SegmentedControl,
   Skeleton,
   StatTile,
+  Switch,
   Tabs,
   Toast,
   Tooltip,
@@ -73,6 +76,7 @@ export function KitGallery() {
   );
   const [toastOpen, setToastOpen] = useState(true);
   const [player, setPlayer] = useState('arsenal');
+  const [switchOn, setSwitchOn] = useState(true);
 
   return (
     <div
@@ -129,6 +133,9 @@ export function KitGallery() {
             <Button danger>Удалить</Button>
             <Button small>Маленькая</Button>
             <Button disabled>Недоступна</Button>
+            <Button variant="primary" disabled>
+              Главная недоступна
+            </Button>
             <Button busy>Сохраняем</Button>
             <Button icon={<Star size={16} aria-hidden="true" />}>В избранное</Button>
             <Button aria-pressed="true" icon={<Star size={16} aria-hidden="true" />}>
@@ -180,6 +187,7 @@ export function KitGallery() {
             items={[
               { id: 'buttons', label: 'Кнопки', href: '#kit-buttons' },
               { id: 'tabs', label: 'Вкладки', href: '#kit-tabs' },
+              { id: 'controls', label: 'Поля', href: '#kit-controls' },
               { id: 'matches', label: 'Матчи', href: '#kit-matches' },
               { id: 'table', label: 'Таблица', href: '#kit-table' },
             ]}
@@ -201,6 +209,39 @@ export function KitGallery() {
               { id: 'plan', label: 'Мой план' },
             ]}
           />
+        </section>
+
+        <section className="kit-gallery-section" id="kit-controls">
+          <h2>Поля, переключатели и свёрнутые части</h2>
+          <p className="kit-gallery-note">
+            Поле — подпись, элемент и заметка. Переключатель — настоящий checkbox с дорожкой.
+            Свёрнутая часть открывается тихой кнопкой кита.
+          </p>
+          <Field label="Часовой пояс" htmlFor="kit-timezone" inline>
+            <select id="kit-timezone" defaultValue="Asia/Yakutsk">
+              <option value="Asia/Yakutsk">Asia/Yakutsk</option>
+              <option value="Europe/Moscow">Europe/Moscow</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </Field>
+          <Field label="Отключённое поле" htmlFor="kit-disabled-field">
+            <input id="kit-disabled-field" type="time" defaultValue="23:00" disabled />
+          </Field>
+          <Switch
+            label="Плотные таблицы"
+            description="Больше строк на экране."
+            checked={switchOn}
+            onChange={setSwitchOn}
+          />
+          <Switch
+            label="Недоступный переключатель"
+            checked={false}
+            disabled
+            onChange={() => undefined}
+          />
+          <Disclosure label="Настройки по клубам" hint="2">
+            <p className="kit-gallery-note">Арсенал и Челси.</p>
+          </Disclosure>
         </section>
 
         <section className="kit-gallery-section" id="kit-matches">
@@ -510,12 +551,17 @@ export function KitGallery() {
           <h2>Пустое состояние</h2>
           <p className="kit-gallery-note">
             Заголовок на отдельной строке, одна фраза, не больше одного действия. Ошибка объявляется
-            как alert, значок — цвета ошибки.
+            как alert, значок — цвета ошибки. `compact` уменьшает отступы для узкой панели.
           </p>
           <EmptyState
             icon={<Inbox size={20} aria-hidden="true" />}
             message="На сегодня матчей нет."
             action={<Button variant="quiet">Обновить</Button>}
+          />
+          <EmptyState
+            compact
+            icon={<Inbox size={20} aria-hidden="true" />}
+            message="Сейчас нет матчей избранных клубов."
           />
           <EmptyState
             title="Сезонов пока нет"

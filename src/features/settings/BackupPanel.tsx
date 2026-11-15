@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
-import { Button, Panel, PanelHeader } from '../../kit';
+import { Button, Panel, PanelHeader, Switch } from '../../kit';
 import { profileEntries, restoreFullBackup, withProfileMirrorPaused } from './profileBackup';
 interface Settings {
   enabled: boolean;
@@ -109,25 +109,21 @@ export function BackupPanel() {
           Восстановить копию
         </Button>
       </div>
-      <label className="settings-f1-reminders">
-        <input
-          type="checkbox"
-          checked={settings?.enabled ?? false}
-          disabled={busy || !settings?.folder}
-          onChange={(e) => {
-            const enabled = e.target.checked;
-            void run(async () =>
-              setSettings(
-                await rpc<Settings>('configure_backup', {
-                  enabled,
-                  folder: settings?.folder ?? null,
-                }),
-              ),
-            );
-          }}
-        />
-        Сохранять автоматически каждый день
-      </label>
+      <Switch
+        label="Сохранять автоматически каждый день"
+        checked={settings?.enabled ?? false}
+        disabled={busy || !settings?.folder}
+        onChange={(enabled) => {
+          void run(async () =>
+            setSettings(
+              await rpc<Settings>('configure_backup', {
+                enabled,
+                folder: settings?.folder ?? null,
+              }),
+            ),
+          );
+        }}
+      />
       <p className="muted small">
         Последняя копия:{' '}
         {settings?.lastAt ? new Date(settings.lastAt).toLocaleString('ru-RU') : 'ещё не создана'}

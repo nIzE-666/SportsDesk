@@ -69,6 +69,7 @@ export async function loadLiveFeed(automatic = false): Promise<LiveFeed> {
         home_score: m.score_home,
         away_score: m.score_away,
         status: m.status,
+        status_text: m.status_text,
         time: m.time_utc,
       });
     }
@@ -82,3 +83,12 @@ export async function loadLiveFeed(automatic = false): Promise<LiveFeed> {
 }
 export const isLiveFixture = (m: LiveMatch) =>
   classifyMatchStatus(m.status, m.status_text) === 'live';
+
+const NUMERIC_MINUTE = /^\d{1,3}(?:'\+\d{1,2}|\+\d{1,2}|)'$/;
+
+/** `HT` reads as a word; an unfamiliar live label is left out instead of shown raw. */
+export function minuteLabel(minute: string | null): string | null {
+  if (!minute) return null;
+  if (minute === 'HT') return 'Перерыв';
+  return NUMERIC_MINUTE.test(minute) ? minute : null;
+}

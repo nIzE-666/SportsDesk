@@ -87,20 +87,26 @@ test('measure user journeys from launch', async ({ page }) => {
   });
 
   await start();
+  await page.evaluate(() => localStorage.setItem('sportsdesk.notifications.enabled', '1'));
+  await page.reload();
+  await expect(page.locator('.today-view')).toBeVisible();
   await click(rail('Настройки'));
   await click(
     page
       .getByRole('navigation', { name: 'Категории настроек' })
       .getByRole('button', { name: 'Уведомления', exact: true }),
   );
-  await click(page.locator('summary').filter({ hasText: 'Настройки по клубам' }));
-  const team = page.locator('.notification-teams fieldset').filter({ hasText: 'Arsenal' });
+  await click(page.locator('.notification-preferences .ui-disclosure__trigger'));
+  const team = page.locator('.notification-teams .settings-team').filter({ hasText: 'Arsenal' });
   await click(team.getByLabel('Уведомления команды'));
   await expect(team.getByLabel('Уведомления команды')).not.toBeChecked();
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('sportsdesk.notifications.policy')))
     .toContain('arsenal');
-  save('Изменить уведомления клуба', 'Отключены уведомления Arsenal и проверено сохранение.');
+  save(
+    'Изменить уведомления клуба',
+    'Уведомления включены заранее; отключены уведомления Arsenal и проверено сохранение.',
+  );
 
   await start();
   await openMatch();

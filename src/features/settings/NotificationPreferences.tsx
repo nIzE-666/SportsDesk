@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { resolveFavoriteTeams } from '../football/usePoller';
 import { useFavorites } from '../football/FavoritesProvider';
+import { Disclosure, Field, SegmentedControl, Switch } from '../../kit';
 import {
   EVENTS,
   getUserTimezone,
@@ -9,13 +10,22 @@ import {
   type EventTypes,
   type NotificationPolicy,
 } from './notificationPolicy';
+
 const labels: Record<keyof EventTypes, string> = {
   goals: 'Голы и изменения счёта',
   start: 'Начало матча',
   end: 'Итог матча',
   reminder: 'Напоминания',
 };
-export function NotificationPreferences() {
+
+const REMINDER_MINUTES = [5, 10, 15, 30, 60, 120];
+
+interface NotificationPreferencesProps {
+  /** The master switch is off: keep the saved values but show them inactive. */
+  disabled?: boolean;
+}
+
+export function NotificationPreferences({ disabled = false }: NotificationPreferencesProps) {
   const [policy, setPolicy] = useState(readPolicy);
   // Подписка на общее избранное: список команд обновляется сразу после правки.
   useFavorites();
@@ -26,113 +36,114 @@ export function NotificationPreferences() {
   };
   return (
     <div className="notification-preferences">
-      <fieldset>
-        <legend>События</legend>
-        <div className="settings-checks">
-          {(Object.keys(labels) as (keyof EventTypes)[]).map((k) => (
-            <label key={k}>
-              <input
-                type="checkbox"
-                checked={policy.events[k]}
-                onChange={(e) =>
-                  update({ ...policy, events: { ...policy.events, [k]: e.target.checked } })
-                }
-              />
-              {labels[k]}
-            </label>
+      <section className="settings-group" aria-labelledby="notification-events">
+        <h3 id="notification-events" className="ui-panel__title">
+          События
+        </h3>
+        <div className="settings-switches">
+          {(Object.keys(labels) as (keyof EventTypes)[]).map((key) => (
+            <Switch
+              key={key}
+              label={labels[key]}
+              disabled={disabled}
+              checked={policy.events[key]}
+              onChange={(checked) =>
+                update({ ...policy, events: { ...policy.events, [key]: checked } })
+              }
+            />
           ))}
         </div>
-      </fieldset>
-      <div className="settings-row">
-        <label htmlFor="reminder-lead">Напоминать за</label>
-        <select
-          id="reminder-lead"
-          value={policy.reminderMinutes}
-          onChange={(e) => update({ ...policy, reminderMinutes: Number(e.target.value) })}
-        >
-          {[5, 10, 15, 30, 60, 120].map((n) => (
-            <option key={n} value={n}>
-              {n} мин.
-            </option>
-          ))}
-        </select>
-        <span className="muted small">Для футбола и сессий F1</span>
-      </div>
-      <fieldset>
-        <legend>Тихие часы · {getUserTimezone()}</legend>
-        <label>
-          <input
-            type="checkbox"
-            checked={policy.quietEnabled}
-            onChange={(e) => update({ ...policy, quietEnabled: e.target.checked })}
-          />
-          Приостановить уведомления в выбранные часы
-        </label>
-        <div className="settings-row">
-          <label>
-            С{' '}
+      </section>
+      <Field label="Напоминать за" hint="Для футбола и сессий Формулы-1">
+        <SegmentedControl
+          ariaLabel="Напоминать за"
+          value={String(policy.reminderMinutes)}
+          onChange={(value) => update({ ...policy, reminderMinutes: Number(value) })}
+          items={REMINDER_MINUTES.map((minutes) => ({
+            id: String(minutes),
+            label: `${minutes} мин.`,
+            disabled,
+          }))}
+        />
+      </Field>
+      <section className="settings-group" aria-labelledby="notification-quiet">
+        <h3 id="notification-quiet" className="ui-panel__title">
+          Тихие часы · {getUserTimezone()}
+        </h3>
+        <Switch
+          label="Приостановить уведомления в выбранные часы"
+          disabled={disabled}
+          checked={policy.quietEnabled}
+          onChange={(checked) => update({ ...policy, quietEnabled: checked })}
+        />
+        <div className="settings-pair">
+          <Field label="С" htmlFor="quiet-start">
             <input
-              aria-label="Начало тихих часов"
+              id="quiet-start"
               type="time"
               value={policy.quietStart}
+              disabled={disabled}
               onChange={(e) => update({ ...policy, quietStart: e.target.value })}
             />
-          </label>
-          <label>
-            До{' '}
+          </Field>
+          <Field label="До" htmlFor="quiet-end">
             <input
-              aria-label="Конец тихих часов"
+              id="quiet-end"
               type="time"
               value={policy.quietEnd}
+              disabled={disabled}
               onChange={(e) => update({ ...policy, quietEnd: e.target.value })}
             />
-          </label>
+          </Field>
         </div>
-      </fieldset>
-      <details>
-        <summary>Настройки по клубам · {teams.length}</summary>
+      </section>
+      <Disclosure label="Настройки по клубам" hint={`· ${teams.length}`}>
         <div className="notification-teams">
-          {teams.map((t) => {
-            const p = policy.teams[t.id] ?? { enabled: true, ...EVENTS };
+          {teams.map((team) => {
+            const teamPolicy = policy.teams[team.id] ?? { enabled: true, ...EVENTS };
             return (
-              <fieldset key={t.id}>
-                <legend>{t.name}</legend>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={p.enabled}
-                    onChange={(e) =>
-                      update({
-                        ...policy,
-                        teams: { ...policy.teams, [t.id]: { ...p, enabled: e.target.checked } },
-                      })
-                    }
-                  />
-                  Уведомления команды
-                </label>
-                <div className="settings-checks">
-                  {(Object.keys(labels) as (keyof EventTypes)[]).map((k) => (
-                    <label key={k}>
-                      <input
-                        type="checkbox"
-                        disabled={!p.enabled}
-                        checked={p[k]}
-                        onChange={(e) =>
-                          update({
-                            ...policy,
-                            teams: { ...policy.teams, [t.id]: { ...p, [k]: e.target.checked } },
-                          })
-                        }
-                      />
-                      {labels[k]}
-                    </label>
+              <section className="settings-team" key={team.id} aria-labelledby={`team-${team.id}`}>
+                <h4 id={`team-${team.id}`} className="settings-team-title">
+                  {team.name}
+                </h4>
+                <Switch
+                  label="Уведомления команды"
+                  disabled={disabled}
+                  checked={teamPolicy.enabled}
+                  onChange={(enabled) =>
+                    update({
+                      ...policy,
+                      teams: {
+                        ...policy.teams,
+                        [team.id]: { ...teamPolicy, enabled },
+                      },
+                    })
+                  }
+                />
+                <div className="settings-switches">
+                  {(Object.keys(labels) as (keyof EventTypes)[]).map((key) => (
+                    <Switch
+                      key={key}
+                      label={labels[key]}
+                      disabled={disabled || !teamPolicy.enabled}
+                      checked={teamPolicy[key]}
+                      onChange={(checked) =>
+                        update({
+                          ...policy,
+                          teams: {
+                            ...policy.teams,
+                            [team.id]: { ...teamPolicy, [key]: checked },
+                          },
+                        })
+                      }
+                    />
                   ))}
                 </div>
-              </fieldset>
+              </section>
             );
           })}
         </div>
-      </details>
+      </Disclosure>
     </div>
   );
 }

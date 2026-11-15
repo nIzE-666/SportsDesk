@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
-import { Badge, Button, Panel, PanelHeader, Toast } from '../../kit';
+import { Badge, Button, Field, Panel, PanelHeader, Toast } from '../../kit';
 import type { Update, DownloadEvent } from '@tauri-apps/plugin-updater';
 import packageInfo from '../../../package.json';
 
@@ -191,22 +191,24 @@ export function UpdatePanel() {
       {native && !u.source && (
         <p className="settings-note">Новые версии устанавливаются вручную.</p>
       )}
-      <label className="update-source-label" htmlFor="update-source">
-        HTTPS-адрес файла latest.json
-      </label>
-      <div className="update-source-row">
-        <input
-          id="update-source"
-          type="url"
-          placeholder="https://…/latest.json"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          disabled={!native || busy}
-        />
-        <Button onClick={() => void u.save(value)} disabled={!native || busy || value === u.source}>
-          Сохранить адрес
-        </Button>
-      </div>
+      <Field label="HTTPS-адрес файла latest.json" htmlFor="update-source">
+        <div className="settings-actions">
+          <input
+            id="update-source"
+            type="url"
+            placeholder="https://…/latest.json"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            disabled={!native || busy}
+          />
+          <Button
+            onClick={() => void u.save(value)}
+            disabled={!native || busy || value === u.source}
+          >
+            Сохранить адрес
+          </Button>
+        </div>
+      </Field>
       <div className="settings-actions">
         <Button
           icon={<RefreshCw size={14} className={u.phase === 'checking' ? 'spin' : ''} />}

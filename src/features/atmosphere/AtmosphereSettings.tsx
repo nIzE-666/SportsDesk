@@ -1,4 +1,4 @@
-import { Button } from '../../kit';
+import { Button, Field, Switch } from '../../kit';
 import { useState } from 'react';
 import { getString, setString } from '../football/storage';
 import { F1_RADIO_KEY, F1_RADIO_NAME_KEY, RADIO_NAME_MAX } from './teamRadio';
@@ -22,25 +22,18 @@ export function AtmosphereSettings() {
   const [radio, setRadio] = useState(() => getString(F1_RADIO_KEY) === '1');
   const [radioName, setRadioName] = useState(() => getString(F1_RADIO_NAME_KEY) ?? '');
   return (
-    <fieldset className="atmosphere-options module-options" aria-label="Эффекты и звуки">
-      <label className="atmosphere-row">
-        <input
-          type="checkbox"
-          checked={s.celebrations}
-          onChange={(e) => writeAtmosphere({ celebrations: e.target.checked })}
-        />
-        Конфетти гола и клетчатый флаг
-      </label>
-      <label className="atmosphere-row">
-        <input
-          type="checkbox"
-          checked={s.sounds}
-          onChange={(e) => writeAtmosphere({ sounds: e.target.checked })}
-        />
-        Звуки гола и радио
-      </label>
-      <label className="atmosphere-row">
-        Громкость сигналов
+    <fieldset className="atmosphere-options" aria-label="Эффекты и звуки">
+      <Switch
+        label="Конфетти гола и клетчатый флаг"
+        checked={s.celebrations}
+        onChange={(value) => writeAtmosphere({ celebrations: value })}
+      />
+      <Switch
+        label="Звуки гола и радио"
+        checked={s.sounds}
+        onChange={(value) => writeAtmosphere({ sounds: value })}
+      />
+      <Field label="Громкость сигналов" hint={`${Math.round(s.volume * 100)}%`}>
         <input
           type="range"
           min={0}
@@ -49,19 +42,14 @@ export function AtmosphereSettings() {
           value={Math.round(s.volume * 100)}
           onChange={(e) => writeAtmosphere({ volume: Number(e.target.value) / 100 })}
         />
-        <span className="muted small">{Math.round(s.volume * 100)}%</span>
-      </label>
-      <label className="atmosphere-row">
-        <input
-          type="checkbox"
-          checked={s.ambient}
-          onChange={(e) => writeAtmosphere({ ambient: e.target.checked })}
-        />
-        Фоновый звук стадиона и двигателя
-      </label>
+      </Field>
+      <Switch
+        label="Фоновый звук стадиона и двигателя"
+        checked={s.ambient}
+        onChange={(value) => writeAtmosphere({ ambient: value })}
+      />
       <fieldset className="atmosphere-subgroup" disabled={!s.ambient}>
-        <div className="atmosphere-row">
-          <label htmlFor="ambient-kind">Звук</label>
+        <Field label="Звук" htmlFor="ambient-kind">
           <select
             id="ambient-kind"
             value={s.ambientKind}
@@ -71,9 +59,8 @@ export function AtmosphereSettings() {
             <option value="stadium">Всегда стадион</option>
             <option value="engine">Всегда двигатель</option>
           </select>
-        </div>
-        <label className="atmosphere-row">
-          Громкость фона
+        </Field>
+        <Field label="Громкость фона" hint={`${Math.round(s.ambientVolume * 100)}%`}>
           <input
             type="range"
             min={0}
@@ -82,10 +69,8 @@ export function AtmosphereSettings() {
             value={Math.round(s.ambientVolume * 100)}
             onChange={(e) => writeAtmosphere({ ambientVolume: Number(e.target.value) / 100 })}
           />
-          <span className="muted small">{Math.round(s.ambientVolume * 100)}%</span>
-        </label>
-        <div className="atmosphere-row">
-          <label htmlFor="ambient-video">Пока играет видео со звуком</label>
+        </Field>
+        <Field label="Пока играет видео со звуком" htmlFor="ambient-video">
           <select
             id="ambient-video"
             value={s.ambientVideo}
@@ -96,9 +81,8 @@ export function AtmosphereSettings() {
             <option value="stop">Остановить фон</option>
             <option value="lower">Приглушить фон</option>
           </select>
-        </div>
-        <div className="atmosphere-row">
-          <label htmlFor="ambient-hidden">Когда окно скрыто в трей или свёрнуто</label>
+        </Field>
+        <Field label="Когда окно скрыто в трей или свёрнуто" htmlFor="ambient-hidden">
           <select
             id="ambient-hidden"
             value={s.ambientHidden}
@@ -109,22 +93,19 @@ export function AtmosphereSettings() {
             <option value="stop">Остановить фон</option>
             <option value="keep">Продолжать звучать</option>
           </select>
-        </div>
+        </Field>
       </fieldset>
-      <label className="atmosphere-row">
+      <Switch
+        label="Радио Формулы-1"
+        checked={radio}
+        onChange={(value) => {
+          setRadio(value);
+          setString(F1_RADIO_KEY, value ? '1' : '0');
+        }}
+      />
+      <Field label="Обращение в радио" htmlFor="radio-name" hint="Реплики вымышлены.">
         <input
-          type="checkbox"
-          checked={radio}
-          onChange={(e) => {
-            setRadio(e.target.checked);
-            setString(F1_RADIO_KEY, e.target.checked ? '1' : '0');
-          }}
-        />
-        Радио Формулы-1
-      </label>
-      <label className="atmosphere-row">
-        Обращение в радио
-        <input
+          id="radio-name"
           type="text"
           maxLength={RADIO_NAME_MAX}
           placeholder="например, Макс"
@@ -135,8 +116,7 @@ export function AtmosphereSettings() {
             setString(F1_RADIO_NAME_KEY, e.target.value);
           }}
         />
-      </label>
-      <p className="muted small">Реплики вымышлены.</p>
+      </Field>
       <div className="settings-actions">
         <Button
           small

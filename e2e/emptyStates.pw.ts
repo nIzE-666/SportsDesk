@@ -784,6 +784,7 @@ for (const width of [1100, 1440])
       );
       await page.reload();
       await openSettingsData(page);
+      await page.locator('.settings-offline .ui-disclosure__trigger').click();
       await expect(view).toBeVisible();
       await expect(page.locator('.settings-offline')).toContainText('Офлайн-сезоны');
     };

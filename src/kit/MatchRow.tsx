@@ -24,6 +24,8 @@ export interface MatchRowProps {
   away: MatchRowTeam;
   /** Already formatted kick-off or match date; the row formats nothing itself. */
   time?: string | null;
+  /** Replaces «Начало матча» under a scheduled kick-off, for example with the day. */
+  timeNote?: ReactNode;
   status?: MatchRowStatus;
   /** Live minute, a number becomes «67′». */
   minute?: string | number | null;
@@ -56,7 +58,8 @@ function whenLabel(
   time: string | null,
   status: MatchRowStatus,
   minute: string | null,
-): { primary: string; secondary: string | null } {
+  timeNote: ReactNode,
+): { primary: string; secondary: ReactNode | null } {
   if (status === 'live') {
     return { primary: minute ?? 'В игре', secondary: 'Идёт' };
   }
@@ -72,13 +75,17 @@ function whenLabel(
   if (status === 'unknown') {
     return { primary: 'Статус уточняется', secondary: null };
   }
-  return { primary: time ?? '—', secondary: time ? 'Начало матча' : null };
+  return {
+    primary: time ?? '—',
+    secondary: timeNote ?? (time ? 'Начало матча' : null),
+  };
 }
 
 export function MatchRow({
   home,
   away,
   time,
+  timeNote,
   status = 'scheduled',
   minute,
   score,
@@ -95,7 +102,7 @@ export function MatchRow({
   const cleanTime = time?.trim() ? time : null;
   const cleanMinute =
     typeof minute === 'number' ? `${minute}′` : minute?.trim() ? minute.trim() : null;
-  const when = whenLabel(cleanTime, status, cleanMinute);
+  const when = whenLabel(cleanTime, status, cleanMinute, timeNote);
   const badgeSize = size === 'compact' ? 20 : size === 'large' ? 36 : 28;
   const hidden = hideScore && (score?.home != null || score?.away != null);
   const hasCompetition = competition != null && competition !== '';

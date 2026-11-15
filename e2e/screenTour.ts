@@ -142,6 +142,7 @@ export async function screenTour(
     .getByRole('navigation', { name: 'Категории настроек' })
     .getByRole('button', { name: 'Данные', exact: true })
     .click();
+  await page.locator('.settings-offline .ui-disclosure__trigger').click();
   await stop('Офлайн-сезоны');
   await section(page, 'Моё');
   await tab(page, 'Игры и прогнозы');
@@ -251,7 +252,6 @@ export async function screenTour(
     group: 'Мини-окно',
     on: mini,
     root: '.mini-root',
-    extra: '.mini-empty span',
   });
   await mini.close();
 }

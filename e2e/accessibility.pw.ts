@@ -423,6 +423,30 @@ test('a match page passes on every tab', async ({ page }) => {
   expect(failures, failures.join('\n')).toEqual([]);
 });
 
+test('the setup wizard dialog keeps focus inside and names its kit controls', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1100, height: 720 });
+  await setupVisualFixture(page, 'dark', true);
+  await page.goto('/');
+  await settle(page, '.today-view');
+  const failures: string[] = [];
+
+  await page.evaluate(() => window.dispatchEvent(new Event('sportsdesk-open-onboarding')));
+  const wizard = page.locator('[role="dialog"].onboarding-card');
+  await expect(wizard).toBeVisible();
+  await settle(page);
+  await audit(page, 'Мастер настройки · шаг 1', failures, { trap: '.onboarding-card' });
+
+  await wizard.getByRole('button', { name: 'Начать', exact: true }).click();
+  await expect(wizard.locator('.eyebrow')).toContainText('ШАГ 2 ИЗ 8');
+  await settle(page);
+  await audit(page, 'Мастер настройки · шаг 2', failures, { trap: '.onboarding-card' });
+
+  await page.keyboard.press('Escape');
+  await expect(wizard).toHaveCount(0);
+  expect(failures, failures.join('\n')).toEqual([]);
+});
+
 test('the events drawer and the search dialog keep focus, close on Escape and return it', async ({
   page,
 }) => {

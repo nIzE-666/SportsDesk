@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyRound, Radio } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
-import { Badge, Button, Panel, PanelHeader } from '../../../kit';
+import {
+  Badge,
+  Button,
+  Disclosure,
+  Field,
+  Panel,
+  PanelHeader,
+  SegmentedControl,
+} from '../../../kit';
 import {
   LIVE_SOURCE_KEY,
   readLiveSourceChoice,
@@ -111,24 +119,23 @@ export function SourcesSettings() {
             Не удалось проверить ключи: {secretError}. Проверьте, что приложение Windows запущено.
           </div>
         )}
-        <div className="settings-row">
-          <label htmlFor="pitch-key" className="muted small">
-            Новый ключ PitchAPI
-          </label>
-          <input
-            id="pitch-key"
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={pitchReady ? 'Заменить сохранённый ключ' : 'Вставьте ключ'}
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            disabled={keyBusy}
-          />
-          <Button onClick={saveKey} disabled={keyBusy || !keyInput.trim()}>
-            {keyBusy ? 'Сохранение…' : 'Сохранить ключ'}
-          </Button>
-        </div>
+        <Field label="Новый ключ PitchAPI" htmlFor="pitch-key" inline>
+          <div className="settings-actions">
+            <input
+              id="pitch-key"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={pitchReady ? 'Заменить сохранённый ключ' : 'Вставьте ключ'}
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              disabled={keyBusy}
+            />
+            <Button onClick={saveKey} disabled={keyBusy || !keyInput.trim()}>
+              {keyBusy ? 'Сохранение…' : 'Сохранить ключ'}
+            </Button>
+          </div>
+        </Field>
         {keyMessage && <p className="settings-note">{keyMessage}</p>}
       </Panel>
 
@@ -140,28 +147,25 @@ export function SourcesSettings() {
             </>
           }
         />
-        <div className="settings-row">
-          <label htmlFor="live-source" className="muted small">
-            Источник
-          </label>
-          <select
-            id="live-source"
+        <Field label="Источник" hint="Авто: LiveScore, при сбое ESPN.">
+          <SegmentedControl
+            ariaLabel="Источник живых матчей"
             value={liveSource}
-            onChange={(event) => chooseLiveSource(event.target.value as LiveSourceChoice)}
-          >
-            <option value="auto">Авто (LiveScore, при сбое ESPN)</option>
-            <option value="livescore">Только LiveScore</option>
-            <option value="espn">Только ESPN</option>
-          </select>
-        </div>
-        <p className="muted small">LiveScore и ESPN — неофициальные бесплатные источники.</p>
+            onChange={(value) => chooseLiveSource(value as LiveSourceChoice)}
+            items={[
+              { id: 'auto', label: 'Авто' },
+              { id: 'livescore', label: 'Только LiveScore' },
+              { id: 'espn', label: 'Только ESPN' },
+            ]}
+          />
+        </Field>
+        <p className="settings-note">LiveScore и ESPN — неофициальные бесплатные источники.</p>
       </Panel>
 
       <DiagnosticsPanel />
 
-      <Panel className="settings-section">
-        <details className="settings-limits">
-          <summary>Ограничения источников</summary>
+      <Panel>
+        <Disclosure label="Ограничения источников">
           <p className="muted small">
             Данные могут быть неполными. Прочерк означает, что значение не получено.
           </p>
@@ -185,7 +189,7 @@ export function SourcesSettings() {
             <dt>Kino</dt>
             <dd>Трансляции после входа по коду устройства.</dd>
           </dl>
-        </details>
+        </Disclosure>
       </Panel>
     </>
   );

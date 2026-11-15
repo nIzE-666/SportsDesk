@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pin, Radio, X } from 'lucide-react';
+import { Pin, Radio, WifiOff, X } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { formatHumanDateTime } from '../../lib/humanDate';
 import { getUserTimezone, formatUpdatedAt } from './storage';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { Button, EmptyState, IconButton, MatchRow, type MatchRowStatus } from '../../kit';
-import { loadLiveFeed, type LiveMatch } from './liveFeed';
+import { loadLiveFeed, minuteLabel, type LiveMatch } from './liveFeed';
 import { spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import './mini.css';
 
@@ -19,16 +19,22 @@ type FlatMatch = LiveMatch;
 
 const REFRESH_MS = 60_000;
 
-function isLive(m: FlatMatch): boolean {
-  return classifyMatchStatus(m.status, m.status_text) === 'live';
-}
-
 function rowStatus(m: FlatMatch): MatchRowStatus {
   const state = classifyMatchStatus(m.status, m.status_text);
   if (state === 'live') return 'live';
   if (state === 'finished') return 'finished';
   if (state === 'postponed') return 'postponed';
   return 'scheduled';
+}
+
+/** The narrow window shows the clock first and the human day below it. */
+function shortKickOff(value: string, timeZone: string): { time: string; note: string | null } {
+  const full = formatHumanDateTime(value, timeZone);
+  const relative = /^(сегодня|завтра|вчера) (\d{2}:\d{2})$/u.exec(full);
+  if (relative) return { time: relative[2]!, note: relative[1]! };
+  const lastComma = full.lastIndexOf(', ');
+  if (lastComma === -1) return { time: full, note: null };
+  return { time: full.slice(lastComma + 2), note: full.slice(0, lastComma) };
 }
 
 export function MiniWindow() {
@@ -100,7 +106,7 @@ export function MiniWindow() {
     <div className="mini-root app-root">
       <header className="mini-top">
         <span className="mini-title">
-          <Radio size={13} /> Live-мини
+          <Radio size={13} aria-hidden /> Live-мини
         </span>
         <span className="mini-updated muted">
           {updatedAt ? formatUpdatedAt(updatedAt, tz) : ''}
@@ -109,37 +115,58 @@ export function MiniWindow() {
           small
           onClick={() => void close()}
           aria-label="Закрыть"
-          icon={<X size={13} />}
+          icon={<X size={13} aria-hidden />}
         />
       </header>
 
       {error && (
-        <p className="mini-error">
-          {error}{' '}
-          <Button variant="quiet" small onClick={() => void load()}>
-            Повторить
-          </Button>
-        </p>
+        <EmptyState
+          className="mini-error"
+          tone="error"
+          compact
+          icon={<WifiOff size={20} aria-hidden />}
+          message={error}
+          action={
+            <Button variant="quiet" small onClick={() => void load()}>
+              Повторить
+            </Button>
+          }
+        />
       )}
 
       <div className="mini-list">
         {shown.length === 0 && !error && (
-          <EmptyState icon={<Pin size={20} />} message="Сейчас нет матчей избранных клубов." />
-        )}
-        {shown.map((m, i) => (
-          <MatchRow
-            key={`${m.home}-${m.away}-${i}`}
-            size="compact"
-            className={isLive(m) ? 'mini-row live' : 'mini-row'}
-            competition={m.competition ?? undefined}
-            home={{ name: m.home ?? '—' }}
-            away={{ name: m.away ?? '—' }}
-            time={m.time ? formatHumanDateTime(m.time, tz) : (m.status_text ?? null)}
-            status={rowStatus(m)}
-            score={{ home: m.home_score ?? null, away: m.away_score ?? null }}
-            hideScore={spoilers.has(spoilerKey('football', m.id))}
+          <EmptyState
+            compact
+            icon={<Pin size={20} aria-hidden />}
+            message="Сейчас нет матчей избранных клубов."
           />
-        ))}
+        )}
+        {shown.map((m, i) => {
+          const status = rowStatus(m);
+          const kickOff = status === 'scheduled' && m.time ? shortKickOff(m.time, tz) : null;
+          return (
+            <MatchRow
+              key={`${m.home}-${m.away}-${i}`}
+              size="compact"
+              competition={m.competition ?? undefined}
+              home={{ name: m.home ?? '—' }}
+              away={{ name: m.away ?? '—' }}
+              time={
+                kickOff
+                  ? kickOff.time
+                  : m.time
+                    ? formatHumanDateTime(m.time, tz)
+                    : (m.status_text ?? null)
+              }
+              timeNote={kickOff?.note ?? undefined}
+              status={status}
+              minute={status === 'live' ? minuteLabel(m.status_text ?? null) : null}
+              score={{ home: m.home_score ?? null, away: m.away_score ?? null }}
+              hideScore={spoilers.has(spoilerKey('football', m.id))}
+            />
+          );
+        })}
       </div>
     </div>
   );

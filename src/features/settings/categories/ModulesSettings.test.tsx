@@ -57,6 +57,12 @@ it('shows a switch for every module and groups the league switches', async () =>
 
 it('writes a switch and shows the atmosphere options only while atmosphere is on', async () => {
   await render();
+  expect(host.querySelector('[aria-label="Эффекты и звуки"]')).toBeNull();
+  const effects = [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.includes('Эффекты и звуки'),
+  );
+  expect(effects).toBeDefined();
+  await act(async () => effects!.click());
   expect(host.querySelector('[aria-label="Эффекты и звуки"]')).not.toBeNull();
 
   const watch = checkboxFor('Просмотр')!;
@@ -71,6 +77,15 @@ it('writes a switch and shows the atmosphere options only while atmosphere is on
 
   await act(async () => checkboxFor('Атмосфера')!.click());
   expect(readModules().atmosphere).toBe(true);
-  expect(host.querySelector('[aria-label="Эффекты и звуки"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Эффекты и звуки"]')).toBeNull();
+  expect(
+    [...host.querySelectorAll<HTMLButtonElement>('button')].some((button) =>
+      button.textContent?.includes('Эффекты и звуки'),
+    ),
+  ).toBe(true);
+  const effectsAgain = [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.includes('Эффекты и звуки'),
+  );
+  await act(async () => effectsAgain!.click());
   expect(host.textContent).toContain('Реплики вымышлены.');
 });

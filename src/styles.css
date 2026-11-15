@@ -241,16 +241,3 @@ a {
   max-width: 650px;
   line-height: 1.7;
 }
-
-.settings-f1-reminders {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  margin: var(--space-16) 0 var(--space-8);
-  font-size: var(--text-13);
-}
-.settings-f1-reminders input {
-  accent-color: var(--color-accent);
-  width: 17px;
-  height: 17px;
-}

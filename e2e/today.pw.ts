@@ -172,11 +172,15 @@ test('four content blocks, mode tabs, a club tile and the live source choice', a
   await expect(page.locator('.settings-category')).toContainText(
     'неофициальные бесплатные источники',
   );
-  await page.locator('#live-source').selectOption('espn');
+  const sources = page.getByRole('radiogroup', { name: 'Источник живых матчей' });
+  await sources.getByRole('radio', { name: 'Только ESPN', exact: true }).click();
   expect(await page.evaluate(() => localStorage.getItem('sportsdesk.football.liveSource'))).toBe(
     'espn',
   );
-  await expect(page.locator('#live-source')).toHaveValue('espn');
+  await expect(sources.getByRole('radio', { name: 'Только ESPN', exact: true })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
 
   expect(sportScoreRequests).toEqual([]);
   expect(errors).toEqual([]);

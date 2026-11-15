@@ -87,6 +87,14 @@ describe('MatchRow', () => {
     expect(score()).toBe('0 : 0');
   });
 
+  it('replaces the kick-off note when the caller has a shorter day', async () => {
+    await app.render(
+      <MatchRow home={HOME} away={AWAY} time="21:30" timeNote="сб, 24 окт." status="scheduled" />,
+    );
+    expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('21:30');
+    expect(app.host.querySelector('.ui-match-row__state')?.textContent).toBe('сб, 24 окт.');
+  });
+
   it('uses the three sizes and the actions slot', async () => {
     await app.render(
       <>

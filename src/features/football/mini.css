@@ -51,9 +51,7 @@
   -webkit-app-region: no-drag;
 }
 .mini-error {
-  padding: var(--space-8) var(--space-12);
-  font-size: var(--text-12);
-  color: var(--color-error);
+  margin: var(--space-4);
 }
 .mini-list {
   flex: 1;
@@ -64,8 +62,11 @@
   align-content: start;
   padding: var(--space-4);
 }
-.mini-row.live {
-  box-shadow: inset 2px 0 0 var(--color-live);
+.mini-list .ui-match-row--compact {
+  --match-row-score: var(--space-48);
+}
+.mini-list .ui-match-row--compact .ui-match-row__team {
+  gap: var(--space-4);
 }
 .mini-list::-webkit-scrollbar {
   width: 6px;
@@ -73,4 +74,9 @@
 .mini-list::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--color-text) 20%, transparent);
   border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-title svg {
+    animation: none;
+  }
 }

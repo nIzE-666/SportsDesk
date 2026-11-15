@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
-import { Download, HardDriveDownload, Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
-import { Badge, Button, Panel, PanelHeader, Skeleton } from '../../../kit';
+import { Badge, Button, Disclosure, Panel, PanelHeader, Skeleton } from '../../../kit';
 import { BackupPanel } from '../BackupPanel';
 import { applyProfile, profileEntries } from '../profileBackup';
 
@@ -137,17 +137,12 @@ export function DataSettings() {
         </div>
         {profileMessage && <p className="settings-note">{profileMessage}</p>}
       </Panel>
-      <Panel className="settings-section settings-offline">
-        <PanelHeader
-          title={
-            <>
-              <HardDriveDownload size={16} aria-hidden /> Офлайн-сезоны
-            </>
-          }
-        />
-        <Suspense fallback={<Skeleton />}>
-          <OfflineView embedded />
-        </Suspense>
+      <Panel className="settings-offline" aria-label="Офлайн-сезоны">
+        <Disclosure label="Офлайн-сезоны" hint="Сезоны для просмотра без сети">
+          <Suspense fallback={<Skeleton />}>
+            <OfflineView embedded />
+          </Suspense>
+        </Disclosure>
       </Panel>
     </>
   );

@@ -6,7 +6,10 @@ import { MiniWindow } from './MiniWindow';
 import { loadLiveFeed } from './liveFeed';
 
 vi.mock('../../lib/bridge', () => ({ rpc: vi.fn(), isTauriRuntime: () => false }));
-vi.mock('./liveFeed', () => ({ loadLiveFeed: vi.fn() }));
+vi.mock('./liveFeed', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./liveFeed')>()),
+  loadLiveFeed: vi.fn(),
+}));
 
 let host: HTMLDivElement;
 let root: Root;
@@ -48,6 +51,7 @@ it('keeps showing the matches of favourite clubs and marks saved data', async ()
         home_score: 2,
         away_score: 1,
         status: 'live',
+        status_text: "67'",
         competition: 'Premier League',
       },
     ],
@@ -56,6 +60,9 @@ it('keeps showing the matches of favourite clubs and marks saved data', async ()
   });
   await act(async () => root.render(<MiniWindow />));
   expect(host.querySelector('.ui-match-row')?.textContent).toContain('Arsenal2 : 1Chelsea');
+  expect(host.querySelector('.ui-match-row__time')?.textContent).toBe("67'");
+  expect(host.querySelector('.ui-match-row__state')?.textContent).toBe('Идёт');
   expect(host.querySelector('.mini-error')?.textContent).toContain('Показаны сохранённые данные');
-  expect(host.querySelector('.ui-empty')).toBeNull();
+  expect(host.querySelector('.ui-empty--error')).not.toBeNull();
+  expect(host.querySelector('.ui-empty:not(.ui-empty--error)')).toBeNull();
 });

@@ -1,4 +1,4 @@
-import { Panel } from '../../../kit';
+import { Disclosure, Panel, Switch } from '../../../kit';
 import {
   CORE_MODULES,
   LEAGUE_MODULES,
@@ -11,8 +11,8 @@ import { AtmosphereSettings } from '../../atmosphere/AtmosphereSettings';
 export function ModulesSettings() {
   const modules = useModules();
   return (
-    <Panel className="settings-section" aria-label="Модули">
-      <p className="muted small settings-category-hint">Данные при выключении сохраняются.</p>
+    <Panel aria-label="Модули">
+      <p className="settings-note settings-category-hint">Данные при выключении сохраняются.</p>
       <div className="module-switches">
         {CORE_MODULES.map((module) => (
           <ModuleSwitch
@@ -37,7 +37,11 @@ export function ModulesSettings() {
           ))}
         </div>
       </div>
-      {modules.atmosphere && <AtmosphereSettings />}
+      {modules.atmosphere && (
+        <Disclosure label="Эффекты и звуки" className="module-options">
+          <AtmosphereSettings />
+        </Disclosure>
+      )}
     </Panel>
   );
 }
@@ -54,12 +58,12 @@ function ModuleSwitch({
   checked: boolean;
 }) {
   return (
-    <label className="module-switch">
-      <input type="checkbox" checked={checked} onChange={(e) => setModule(id, e.target.checked)} />
-      <span>
-        <b>{label}</b>
-        {description && <small>{description}</small>}
-      </span>
-    </label>
+    <Switch
+      className="module-switch"
+      label={label}
+      description={description || undefined}
+      checked={checked}
+      onChange={(enabled) => setModule(id, enabled)}
+    />
   );
 }

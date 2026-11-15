@@ -35,35 +35,37 @@ async function render() {
   });
 }
 
-const sourceSelect = () => host.querySelector<HTMLSelectElement>('#live-source');
+const sourceChoices = () =>
+  [...host.querySelectorAll<HTMLElement>('[role="radio"]')].map((item) => item.textContent);
+const chosenSource = () =>
+  host.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.textContent;
 
 it('offers three live source choices and stores the chosen one', async () => {
   await render();
-  const select = sourceSelect();
-  expect(select).not.toBeNull();
-  expect([...(select?.options ?? [])].map((option) => option.textContent)).toEqual([
-    'Авто (LiveScore, при сбое ESPN)',
-    'Только LiveScore',
-    'Только ESPN',
-  ]);
-  expect(select?.value).toBe('auto');
+  expect(sourceChoices()).toEqual(['Авто', 'Только LiveScore', 'Только ESPN']);
+  expect(chosenSource()).toBe('Авто');
   expect(host.textContent).toContain('неофициальные бесплатные источники');
 
-  await act(async () => {
-    if (!select) return;
-    select.value = 'espn';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  const espn = [...host.querySelectorAll<HTMLElement>('[role="radio"]')].find(
+    (item) => item.textContent === 'Только ESPN',
+  );
+  await act(async () => espn!.click());
   expect(localStorage.getItem(LIVE_SOURCE_KEY)).toBe('espn');
+
+  const limits = [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.includes('Ограничения источников'),
+  );
+  await act(async () => limits!.click());
+  expect(host.textContent).toContain('Данные могут быть неполными');
 
   await act(async () => root.unmount());
   root = createRoot(host);
   await render();
-  expect(sourceSelect()?.value).toBe('espn');
+  expect(chosenSource()).toBe('Только ESPN');
 });
 
 it('reads an unknown saved value as the automatic choice', async () => {
   localStorage.setItem(LIVE_SOURCE_KEY, 'something-else');
   await render();
-  expect(sourceSelect()?.value).toBe('auto');
+  expect(chosenSource()).toBe('Авто');
 });

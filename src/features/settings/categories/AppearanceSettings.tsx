@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Moon, Rows3, Sun } from 'lucide-react';
-import { Button, Panel } from '../../../kit';
+import { Field, Panel, PanelHeader, SegmentedControl } from '../../../kit';
 import { getString, setString } from '../../football/storage';
 import { useAtmosphere, writeAtmosphere, type MotionMode } from '../../atmosphere/atmosphereStore';
 
@@ -26,36 +25,42 @@ export function AppearanceSettings() {
   };
 
   return (
-    <Panel className="settings-section">
-      <div className="settings-actions">
-        <Button
-          icon={lightTheme ? <Moon size={14} /> : <Sun size={14} />}
-          onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}
-        >
-          {lightTheme ? 'Перейти на тёмную' : 'Перейти на светлую'}
-        </Button>
-        <Button
-          icon={<Rows3 size={14} />}
-          onClick={() => setDensity(compactTables ? 'default' : 'compact')}
-          aria-pressed={compactTables}
-        >
-          {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
-        </Button>
-      </div>
-      <div className="settings-row settings-motion-row">
-        <label htmlFor="motion-mode" className="muted small">
-          Движение
-        </label>
-        <select
-          id="motion-mode"
+    <Panel>
+      <PanelHeader title="Оформление" />
+      <Field label="Тема">
+        <SegmentedControl
+          ariaLabel="Тема"
+          value={lightTheme ? 'light' : 'dark'}
+          onChange={(id) => setAppearance(id === 'light' ? 'light' : 'dark')}
+          items={[
+            { id: 'dark', label: 'Тёмная' },
+            { id: 'light', label: 'Светлая' },
+          ]}
+        />
+      </Field>
+      <Field label="Плотность таблиц">
+        <SegmentedControl
+          ariaLabel="Плотность таблиц"
+          value={compactTables ? 'compact' : 'default'}
+          onChange={(id) => setDensity(id === 'compact' ? 'compact' : 'default')}
+          items={[
+            { id: 'default', label: 'Обычная' },
+            { id: 'compact', label: 'Плотная' },
+          ]}
+        />
+      </Field>
+      <Field label="Движение">
+        <SegmentedControl
+          ariaLabel="Движение"
           value={atmosphere.motion}
-          onChange={(e) => writeAtmosphere({ motion: e.target.value as MotionMode })}
-        >
-          <option value="system">Как в системе</option>
-          <option value="reduced">Спокойно, без частиц</option>
-          <option value="full">Полная анимация</option>
-        </select>
-      </div>
+          onChange={(id) => writeAtmosphere({ motion: id as MotionMode })}
+          items={[
+            { id: 'system', label: 'Как в системе' },
+            { id: 'reduced', label: 'Спокойно' },
+            { id: 'full', label: 'Полная' },
+          ]}
+        />
+      </Field>
     </Panel>
   );
 }

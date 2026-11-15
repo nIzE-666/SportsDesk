@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link2, Tv } from 'lucide-react';
 import { rpc, openExternal } from '../../../lib/bridge';
-import { Badge, Button, Panel, PanelHeader } from '../../../kit';
+import { Badge, Button, Field, Panel, PanelHeader } from '../../../kit';
 import {
   beginKinoAttempt,
   cancelKinoAttempt,
@@ -303,38 +303,35 @@ export function WatchSettings() {
               ? 'Сохранённые значения не показываются.'
               : 'Сначала данные клиента KinoPub.'}
           </p>
-          <label htmlFor="kino-base-url" className="muted small">
-            Адрес API (https://…)
-          </label>
-          <input
-            id="kino-base-url"
-            type="url"
-            autoComplete="off"
-            spellCheck={false}
-            value={kinoClientForm.baseUrl}
-            onChange={(e) => setKinoClientForm((f) => ({ ...f, baseUrl: e.target.value }))}
-          />
-          <label htmlFor="kino-client-id" className="muted small">
-            Client ID
-          </label>
-          <input
-            id="kino-client-id"
-            type="text"
-            autoComplete="off"
-            spellCheck={false}
-            value={kinoClientForm.clientId}
-            onChange={(e) => setKinoClientForm((f) => ({ ...f, clientId: e.target.value }))}
-          />
-          <label htmlFor="kino-client-secret" className="muted small">
-            Client secret
-          </label>
-          <input
-            id="kino-client-secret"
-            type="password"
-            autoComplete="off"
-            value={kinoClientForm.clientSecret}
-            onChange={(e) => setKinoClientForm((f) => ({ ...f, clientSecret: e.target.value }))}
-          />
+          <Field label="Адрес API (https://…)" htmlFor="kino-base-url">
+            <input
+              id="kino-base-url"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
+              value={kinoClientForm.baseUrl}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, baseUrl: e.target.value }))}
+            />
+          </Field>
+          <Field label="Client ID" htmlFor="kino-client-id">
+            <input
+              id="kino-client-id"
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              value={kinoClientForm.clientId}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, clientId: e.target.value }))}
+            />
+          </Field>
+          <Field label="Client secret" htmlFor="kino-client-secret">
+            <input
+              id="kino-client-secret"
+              type="password"
+              autoComplete="off"
+              value={kinoClientForm.clientSecret}
+              onChange={(e) => setKinoClientForm((f) => ({ ...f, clientSecret: e.target.value }))}
+            />
+          </Field>
           <div className="settings-actions">
             <Button onClick={() => void saveKinoClient()} busy={kinoClientBusy}>
               Сохранить настройки KinoPub
@@ -370,6 +367,7 @@ export function WatchSettings() {
       ) : (
         <div className="settings-actions">
           <Button
+            variant="primary"
             onClick={startKinoAuth}
             disabled={kinoBusy || kinoReady || !kinoClientReady}
             busy={kinoBusy}

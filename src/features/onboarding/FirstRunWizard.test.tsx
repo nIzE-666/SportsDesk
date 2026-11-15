@@ -138,7 +138,9 @@ describe('FirstRunWizard', () => {
     const onLeagueChange = vi.fn();
     openWizard({ onLeagueChange });
     click(button('Начать'));
-    const laliga = host.querySelector<HTMLInputElement>('input[value="l_0ErfuF"]');
+    const laliga = Array.from(host.querySelectorAll<HTMLElement>('[role="radio"]')).find(
+      (item) => item.textContent?.trim() === 'Ла Лига',
+    );
     click(laliga);
     expect(localStorage.getItem('sportsdesk.league')).toBe('l_0ErfuF');
     expect(onLeagueChange).toHaveBeenCalledWith('l_0ErfuF');
@@ -218,7 +220,7 @@ describe('FirstRunWizard', () => {
     expect(localStorage.getItem('sportsdesk.timezone')).toBe('Europe/London');
   });
 
-  it('asks for notification permission only when enabling', async () => {
+  it('asks for notification permission only when enabling and greys the F1 switch until then', async () => {
     const requestPermission = vi.fn(async () => 'granted' as NotificationPermission);
     vi.stubGlobal('Notification', { permission: 'default', requestPermission });
     localStorage.setItem('sportsdesk.notifications.enabled', '0');
@@ -226,16 +228,23 @@ describe('FirstRunWizard', () => {
     for (let i = 0; i < 5; i++) click(button(i === 0 ? 'Начать' : 'Далее'));
     expect(requestPermission).not.toHaveBeenCalled();
     const toggle = host.querySelector<HTMLInputElement>('.onboarding-toggle input');
+    const f1 = host.querySelectorAll<HTMLInputElement>('.onboarding-toggle input')[1]!;
+    expect(f1.checked).toBe(true);
+    expect(f1.disabled).toBe(true);
     await act(async () => {
       toggle!.click();
     });
     expect(requestPermission).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('sportsdesk.notifications.enabled')).toBe('1');
+    expect(f1.checked).toBe(true);
+    expect(f1.disabled).toBe(false);
     await act(async () => {
       host.querySelector<HTMLInputElement>('.onboarding-toggle input')!.click();
     });
     expect(requestPermission).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('sportsdesk.notifications.enabled')).toBe('0');
+    expect(f1.checked).toBe(true);
+    expect(f1.disabled).toBe(true);
     vi.unstubAllGlobals();
   });
 
@@ -304,6 +313,7 @@ describe('WhatsNewDialog', () => {
     appInfo.version = '1.8.0';
     const dialog = await renderDialog();
     expect(dialog).not.toBeNull();
+    expect(dialog?.classList.contains('ui-dialog')).toBe(true);
     expect(dialog?.textContent).toContain('SportsDesk 1.8.0');
     expect(dialog?.textContent).not.toContain('2.0.0');
     expect(dialog?.textContent).not.toContain('Пять разделов');
@@ -311,6 +321,7 @@ describe('WhatsNewDialog', () => {
 
   it('shows the 2.0.0 entry on version 2.0.0', async () => {
     const dialog = await renderDialog();
+    expect(dialog?.classList.contains('ui-dialog')).toBe(true);
     expect(dialog?.textContent).toContain('SportsDesk 2.0.0');
     expect(dialog?.textContent).toContain('Пять разделов');
     expect(dialog?.textContent).toContain('LiveScore');

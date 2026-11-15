@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../../kit';
+import { Button, Field } from '../../kit';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 interface Shortcut {
   shortcut: string;
@@ -24,34 +24,38 @@ export function ShortcutControl() {
   }, []);
   return (
     <div className="shortcut-control">
-      <label htmlFor="mini-shortcut">Глобальная клавиша Live-мини</label>
-      <div className="settings-row">
-        <input
-          id="mini-shortcut"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="Ctrl+Shift+L"
-        />
-        <Button
-          disabled={busy || !isTauriRuntime()}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              const v = await rpc<Shortcut>('set_shortcut', { shortcut: key });
-              setStatus(
-                v.registered ? 'Сочетание зарегистрировано.' : 'Горячая клавиша выключена.',
-              );
-            } catch (e) {
-              setStatus(String(e));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Применить
-        </Button>
-      </div>
-      <p className="muted small">Пустое поле выключает клавишу.</p>
+      <Field
+        label="Глобальная клавиша Live-мини"
+        htmlFor="mini-shortcut"
+        hint="Пустое поле выключает клавишу."
+      >
+        <div className="settings-actions">
+          <input
+            id="mini-shortcut"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="Ctrl+Shift+L"
+          />
+          <Button
+            disabled={busy || !isTauriRuntime()}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const v = await rpc<Shortcut>('set_shortcut', { shortcut: key });
+                setStatus(
+                  v.registered ? 'Сочетание зарегистрировано.' : 'Горячая клавиша выключена.',
+                );
+              } catch (e) {
+                setStatus(String(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Применить
+          </Button>
+        </div>
+      </Field>
       <p role="status" className="settings-note">
         {status}
       </p>

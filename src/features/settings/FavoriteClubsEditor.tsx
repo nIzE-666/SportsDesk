@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Star, Trash2, Plus, RotateCcw } from 'lucide-react';
-import { Badge, Button, IconButton } from '../../kit';
+import { Badge, Button, Field, IconButton } from '../../kit';
 import { useFavorites } from '../football/FavoritesProvider';
 import {
   addFavoriteTeam,
@@ -95,16 +95,15 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
         </ul>
       )}
 
-      <label className="fav-editor-search">
-        <span className="muted small">Добавить клуб</span>
+      <Field label="Добавить клуб" htmlFor="favorite-club-search">
         <input
+          id="favorite-club-search"
           type="search"
           value={query}
           placeholder="Название клуба или лиги"
-          aria-label="Поиск клуба"
           onChange={(e) => setQuery(e.target.value)}
         />
-      </label>
+      </Field>
       {catalogue.length === 0 && (
         <p className="muted small">Каталог пополняется после открытия лиг.</p>
       )}

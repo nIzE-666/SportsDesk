@@ -13,6 +13,8 @@ export interface EmptyStateProps {
   action?: ReactNode;
   /** `error` makes the element an alert and paints the icon with the error colour. */
   tone?: 'neutral' | 'error';
+  /** A smaller padding for narrow panels such as the Live-mini window. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -22,11 +24,17 @@ export function EmptyState({
   icon,
   action,
   tone = 'neutral',
+  compact = false,
   className,
 }: EmptyStateProps) {
   return (
     <div
-      className={cx('ui-empty', tone === 'error' && 'ui-empty--error', className)}
+      className={cx(
+        'ui-empty',
+        tone === 'error' && 'ui-empty--error',
+        compact && 'ui-empty--compact',
+        className,
+      )}
       role={tone === 'error' ? 'alert' : 'status'}
     >
       <span className="ui-empty__icon" aria-hidden="true">

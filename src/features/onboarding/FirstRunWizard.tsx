@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Compass } from 'lucide-react';
 import { isTauriRuntime } from '../../lib/bridge';
-import { Button, Dialog } from '../../kit';
+import { Button, Dialog, Field, SegmentedControl, Switch } from '../../kit';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import {
   CORE_MODULES,
@@ -139,8 +139,8 @@ export function FirstRunWizard({
 
   // Новый шаг начинается с заголовка, даже если предыдущий был выше.
   useEffect(() => {
-    const dialog = body.current?.closest('.ui-dialog');
-    if (dialog) dialog.scrollTop = 0;
+    const scroller = body.current?.closest('.ui-dialog__body');
+    if (scroller) scroller.scrollTop = 0;
   }, [step]);
 
   if (!open) return null;
@@ -244,23 +244,14 @@ function FootballStep({ onLeagueChange }: { onLeagueChange?: (id: string) => voi
   };
   return (
     <>
-      <fieldset className="onboarding-choice">
-        <legend>Основная лига — откроется первой</legend>
-        <div className="onboarding-options">
-          {LEAGUES.map((l) => (
-            <label key={l.id} className={`onboarding-option ${league === l.id ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="onboarding-league"
-                value={l.id}
-                checked={league === l.id}
-                onChange={() => choose(l.id)}
-              />
-              <span>{l.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <Field label="Основная лига — откроется первой">
+        <SegmentedControl
+          ariaLabel="Основная лига"
+          value={league}
+          onChange={choose}
+          items={LEAGUES.map((item) => ({ id: item.id, label: item.label }))}
+        />
+      </Field>
       <div>
         <FavoriteClubsEditor compact />
         <p className="muted small">
@@ -280,10 +271,12 @@ function F1Step() {
         <legend>Избранные команды</legend>
         <div className="onboarding-options">
           {WIZARD_F1_TEAMS.map(([id, label]) => (
-            <label key={id} className={`onboarding-option ${teams.includes(id) ? 'selected' : ''}`}>
-              <input type="checkbox" checked={teams.includes(id)} onChange={() => toggleTeam(id)} />
-              <span>{label}</span>
-            </label>
+            <Switch
+              key={id}
+              label={label}
+              checked={teams.includes(id)}
+              onChange={() => toggleTeam(id)}
+            />
           ))}
         </div>
       </fieldset>
@@ -291,17 +284,12 @@ function F1Step() {
         <legend>Избранные пилоты</legend>
         <div className="onboarding-options">
           {WIZARD_F1_DRIVERS.map(([id, label]) => (
-            <label
+            <Switch
               key={id}
-              className={`onboarding-option ${drivers.includes(id) ? 'selected' : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={drivers.includes(id)}
-                onChange={() => toggleDriver(id)}
-              />
-              <span>{label}</span>
-            </label>
+              label={label}
+              checked={drivers.includes(id)}
+              onChange={() => toggleDriver(id)}
+            />
           ))}
         </div>
       </fieldset>
@@ -322,33 +310,27 @@ function ModulesStep() {
       <p>Выключенное можно вернуть в «Настройках».</p>
       <div className="onboarding-modules">
         {CORE_MODULES.map((module) => (
-          <label key={module.id} className="onboarding-module">
-            <input
-              type="checkbox"
-              checked={modules[module.id]}
-              onChange={(e) => toggle(module.id, e.target.checked)}
-            />
-            <span>
-              <b>{module.label}</b>
-              {module.description && <small>{module.description}</small>}
-            </span>
-          </label>
+          <Switch
+            key={module.id}
+            className="onboarding-module"
+            label={<b>{module.label}</b>}
+            description={module.description || undefined}
+            checked={modules[module.id]}
+            onChange={(enabled) => toggle(module.id, enabled)}
+          />
         ))}
       </div>
       <div className="onboarding-module-group" role="group" aria-label="Лиги">
         <h3 className="onboarding-module-title">Лиги</h3>
         <div className="onboarding-module-leagues">
           {LEAGUE_MODULES.map((module) => (
-            <label key={module.id} className="onboarding-module">
-              <input
-                type="checkbox"
-                checked={modules[module.id]}
-                onChange={(e) => toggle(module.id, e.target.checked)}
-              />
-              <span>
-                <b>{module.label}</b>
-              </span>
-            </label>
+            <Switch
+              key={module.id}
+              className="onboarding-module"
+              label={<b>{module.label}</b>}
+              checked={modules[module.id]}
+              onChange={(enabled) => toggle(module.id, enabled)}
+            />
           ))}
         </div>
       </div>
@@ -369,16 +351,15 @@ function TimezoneStep() {
   };
   return (
     <>
-      <label className="onboarding-field">
-        <span>Время матчей, сессий и тихих часов</span>
-        <select value={timezone} onChange={(e) => choose(e.target.value)}>
+      <Field label="Время матчей, сессий и тихих часов" htmlFor="onboarding-timezone">
+        <select id="onboarding-timezone" value={timezone} onChange={(e) => choose(e.target.value)}>
           {options.map((tz) => (
             <option key={tz} value={tz}>
               {tz === detected ? `${tz} (как в системе)` : tz}
             </option>
           ))}
         </select>
-      </label>
+      </Field>
       {detected && timezone !== detected && (
         <Button onClick={() => choose(detected)}>Использовать системный: {detected}</Button>
       )}
@@ -408,27 +389,23 @@ function NotificationsStep() {
   };
   return (
     <>
-      <label className="onboarding-toggle">
-        <input type="checkbox" checked={enabled} onChange={() => void toggle()} />
-        <span>
-          <strong>Голы, старт и итоги матчей избранных клубов</strong>
-        </span>
-      </label>
-      <label className="onboarding-toggle">
-        <input
-          type="checkbox"
-          checked={f1}
-          onChange={() => {
-            const next = !f1;
-            setF1(next);
-            setString('sportsdesk.notifications.f1', next ? '1' : '0');
-          }}
-        />
-        <span>
-          <strong>Напоминания о сессиях Формулы 1</strong>
-          <small>Работают, когда уведомления включены.</small>
-        </span>
-      </label>
+      <Switch
+        className="onboarding-toggle"
+        label={<strong>Голы, старт и итоги матчей избранных клубов</strong>}
+        checked={enabled}
+        onChange={() => void toggle()}
+      />
+      <Switch
+        className="onboarding-toggle"
+        label={<strong>Напоминания о сессиях Формулы 1</strong>}
+        description="Работают, когда уведомления включены."
+        checked={f1}
+        disabled={!enabled}
+        onChange={(value) => {
+          setF1(value);
+          setString('sportsdesk.notifications.f1', value ? '1' : '0');
+        }}
+      />
       {message && (
         <p className="settings-note" role="status">
           {message}
@@ -448,32 +425,17 @@ function AppearanceStep() {
     window.dispatchEvent(new Event('sportsdesk-appearance-changed'));
   };
   return (
-    <>
-      <fieldset className="onboarding-choice">
-        <legend>Тема</legend>
-        <div className="onboarding-options">
-          {(
-            [
-              ['dark', 'Тёмная'],
-              ['light', 'Светлая'],
-            ] as const
-          ).map(([value, label]) => (
-            <label
-              key={value}
-              className={`onboarding-option ${scheme === value ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="onboarding-scheme"
-                checked={scheme === value}
-                onChange={() => choose(value)}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-    </>
+    <Field label="Тема">
+      <SegmentedControl
+        ariaLabel="Тема"
+        value={scheme}
+        onChange={(value) => choose(value === 'light' ? 'light' : 'dark')}
+        items={[
+          { id: 'dark', label: 'Тёмная' },
+          { id: 'light', label: 'Светлая' },
+        ]}
+      />
+    </Field>
   );
 }
 
