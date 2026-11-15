@@ -320,7 +320,7 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
               <StatTile
                 label="Баланс побед"
                 value={teamId && playedCount > 0 ? record : '—'}
-                note="В–Н–П по завершённым"
+                note="W–D–L по завершённым"
               />
               <StatTile
                 label="Голы"
