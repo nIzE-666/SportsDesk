@@ -98,7 +98,7 @@
   display: inline-block;
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-text-tertiary);
 }
 .ucl-standings__dot--direct {
@@ -326,7 +326,7 @@
   width: 64px;
   height: 64px;
   margin-bottom: var(--space-8);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-surface-3);
 }
 .scorer-card > strong {
@@ -366,7 +366,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-surface-2);
 }
 .ucl-player__team {
@@ -408,16 +408,6 @@
 }
 .ucl-loading__row {
   height: var(--space-12);
-}
-.ucl-error .ui-empty__icon {
-  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-2));
-  color: var(--color-error);
-}
-.ucl-error__message {
-  display: block;
-  margin-top: var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--text-13);
 }
 @media (max-width: 1250px) {
   .scorer-grid {

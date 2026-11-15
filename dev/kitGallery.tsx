@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowRight, Bell, EyeOff, Inbox, Search, Star } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bell, EyeOff, Inbox, Search, Star } from 'lucide-react';
 import '@fontsource-variable/manrope';
 import '../src/tokens.css';
 import '../src/kit/kit.css';
@@ -458,11 +458,26 @@ export function KitGallery() {
 
         <section className="kit-gallery-section" id="kit-empty">
           <h2>Пустое состояние</h2>
-          <p className="kit-gallery-note">Один значок, одна фраза, не больше одного действия.</p>
+          <p className="kit-gallery-note">
+            Заголовок на отдельной строке, одна фраза, не больше одного действия. Ошибка объявляется
+            как alert, значок — цвета ошибки.
+          </p>
           <EmptyState
             icon={<Inbox size={20} aria-hidden="true" />}
             message="На сегодня матчей нет."
             action={<Button variant="quiet">Обновить</Button>}
+          />
+          <EmptyState
+            title="Сезонов пока нет"
+            icon={<Inbox size={20} aria-hidden="true" />}
+            message="Сезоны появятся, когда источник их опубликует."
+          />
+          <EmptyState
+            tone="error"
+            title="Турнир временно недоступен"
+            icon={<AlertTriangle size={20} aria-hidden="true" />}
+            message="Попробуйте обновить данные позже."
+            action={<Button variant="quiet">Повторить</Button>}
           />
         </section>
 

@@ -40,11 +40,8 @@ export function SpoilerGate({
     <EmptyState
       className="spoiler-gate"
       icon={<EyeOff size={20} />}
-      message={
-        <>
-          <strong>Результат скрыт</strong> События, статистика и оценки скрыты.
-        </>
-      }
+      title="Результат скрыт"
+      message="События, статистика и оценки скрыты."
       action={
         <Button small onClick={() => revealResult(kind, id)}>
           Показать результат

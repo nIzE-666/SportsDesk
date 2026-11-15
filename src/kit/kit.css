@@ -746,6 +746,19 @@ button.ui-match-row {
   color: var(--color-accent);
 }
 
+.ui-empty--error .ui-empty__icon {
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-2));
+  color: var(--color-error);
+}
+
+.ui-empty__title {
+  max-width: calc(var(--space-48) * 8);
+  color: var(--color-text);
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+}
+
 .ui-empty__text {
   max-width: calc(var(--space-48) * 8);
   margin: 0;

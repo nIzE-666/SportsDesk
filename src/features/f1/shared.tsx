@@ -68,13 +68,6 @@ export function State({
   title: string;
   children?: ReactNode;
 }) {
-  const message = children ? (
-    <>
-      <strong>{title}</strong> <span className="f1-state__text">{children}</span>
-    </>
-  ) : (
-    title
-  );
   if (kind === 'loading')
     return (
       <EmptyState
@@ -85,18 +78,19 @@ export function State({
     );
   if (kind === 'error')
     return (
-      <div role="alert">
-        <EmptyState
-          className="f1-state f1-state--error"
-          message={message}
-          icon={<AlertTriangle size={20} aria-hidden="true" />}
-        />
-      </div>
+      <EmptyState
+        className="f1-state"
+        tone="error"
+        title={title}
+        message={children}
+        icon={<AlertTriangle size={20} aria-hidden="true" />}
+      />
     );
   return (
     <EmptyState
       className="f1-state"
-      message={message}
+      title={children ? title : undefined}
+      message={children ?? title}
       icon={<Inbox size={20} aria-hidden="true" />}
     />
   );

@@ -3,14 +3,12 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /* Section 5.2 of the UI plan: no raw colors, font sizes or radii outside
-   src/tokens.css. This check counts the places that still need moving.
-   PENDING_FILES only shrinks: remove a file when it has no findings left. */
+   src/tokens.css. Every font size is one of the seven text tokens, every
+   radius one of the four radius tokens, and no old button class survives. */
 
 const ROOT = process.cwd();
 const SRC_DIR = join(ROOT, 'src');
 const TOKENS_FILE = 'src/tokens.css';
-
-export const PENDING_FILES: ReadonlySet<string> = new Set([]);
 
 const NAMED_COLORS = new Set(
   `aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue
@@ -35,8 +33,41 @@ const NAMED_COLORS = new Set(
 const ALLOWED_COLOR_WORDS = new Set(['transparent', 'currentcolor', 'inherit']);
 const COLOR_PROPERTY =
   /^(?:color|background|background-color|background-image|border|border-(?:top|right|bottom|left)|border-(?:top|right|bottom|left)-color|border-color|border-block(?:-start|-end)?(?:-color)?|border-inline(?:-start|-end)?(?:-color)?|border-image|border-image-source|outline|outline-color|box-shadow|text-shadow|text-decoration|text-decoration-color|text-emphasis-color|column-rule|column-rule-color|filter|mask|mask-image|fill|stroke|stop-color|flood-color|lighting-color|accent-color|caret-color|scrollbar-color|-webkit-text-fill-color|-webkit-text-stroke-color)$/;
-const TEXT_SIZE = /^var\(--text-[a-z0-9-]+\)$/i;
-const RADIUS = /^var\(--radius-[a-z0-9-]+\)$/i;
+
+const TEXT_TOKENS = new Set([
+  '--text-12',
+  '--text-13',
+  '--text-14',
+  '--text-16',
+  '--text-20',
+  '--text-24',
+  '--text-32',
+]);
+const RADIUS_TOKENS = new Set(['--radius-sm', '--radius-md', '--radius-lg', '--radius-round']);
+const TOKEN_VALUE = /^var\((--[a-z0-9-]+)\)$/i;
+
+/** Old element classes that the kit replaced; no screen may name them again. */
+export const OLD_BUTTON_CLASSES = [
+  'primary-btn',
+  'ghost-btn',
+  'icon-button',
+  'link-btn',
+  'badge-btn',
+  'f1-btn',
+  'watch-btn',
+  'watch-link-btn',
+  'watch-filter-btn',
+  'watch-fav-chip',
+  'player-name-button',
+  'player-photo-button',
+  'live-flat-button',
+  'my-chip',
+  'text-link',
+  'chip',
+  'live-chip',
+  'stale-chip',
+  'segmented',
+] as const;
 
 interface Counts {
   colors: number;
@@ -49,11 +80,11 @@ interface Declaration {
   value: string;
 }
 
-function cssFiles(dir: string, found: string[] = []): string[] {
+function filesWithExtension(dir: string, extension: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) cssFiles(path, found);
-    else if (entry.isFile() && entry.name.endsWith('.css')) found.push(path);
+    if (entry.isDirectory()) filesWithExtension(path, extension, found);
+    else if (entry.isFile() && entry.name.endsWith(extension)) found.push(path);
   }
   return found;
 }
@@ -76,6 +107,16 @@ function namedColorsIn(value: string): number {
   return count;
 }
 
+function isTextToken(value: string): boolean {
+  const token = TOKEN_VALUE.exec(value);
+  return token !== null && TEXT_TOKENS.has(token[1]!);
+}
+
+function isRadiusToken(value: string): boolean {
+  const token = TOKEN_VALUE.exec(value);
+  return token !== null && RADIUS_TOKENS.has(token[1]!);
+}
+
 function countInFile(css: string): Counts {
   const counts: Counts = { colors: 0, fontSizes: 0, radii: 0 };
   for (const { property, value } of declarations(css)) {
@@ -86,11 +127,11 @@ function countInFile(css: string): Counts {
       COLOR_PROPERTY.test(property) || property.startsWith('--') ? namedColorsIn(clean) : 0;
     counts.colors += hexColors + colorFunctions + namedColors;
 
-    if (property === 'font-size' && !TEXT_SIZE.test(clean)) counts.fontSizes += 1;
+    if (property === 'font-size' && !isTextToken(clean)) counts.fontSizes += 1;
 
     const radiusParts = clean.split(/\s+/);
     const radiusIsToken = radiusParts.every(
-      (part) => RADIUS.test(part) || part === '0' || part === '50%',
+      (part) => isRadiusToken(part) || part === '0' || part === 'inherit',
     );
     if (property.endsWith('border-radius') && !radiusIsToken) counts.radii += 1;
   }
@@ -103,33 +144,38 @@ function relativePath(path: string): string {
   return relative(ROOT, path).split(sep).join('/');
 }
 
-const files = cssFiles(SRC_DIR)
+function classOffenders(text: string, classNames: readonly string[]): string[] {
+  return classNames.filter((name) => {
+    const pattern = new RegExp(`(^|[^a-zA-Z0-9_-])${name}([^a-zA-Z0-9_-]|$)`);
+    return pattern.test(text);
+  });
+}
+
+const files = filesWithExtension(SRC_DIR, '.css')
   .map(relativePath)
   .filter((file) => file !== TOKENS_FILE)
   .sort();
 const counts = new Map(
   files.map((file) => [file, countInFile(readFileSync(join(ROOT, file), 'utf8'))]),
 );
+const tsxFiles = filesWithExtension(SRC_DIR, '.tsx').map(relativePath).sort();
 
 describe('style tokens', () => {
-  it('keeps the pending list sorted and without duplicates', () => {
-    const pending = [...PENDING_FILES];
-    expect(pending).toEqual([...new Set(pending)].sort());
-  });
-
-  it('finds no raw colors, font sizes or radii outside the pending list', () => {
+  it('finds no raw colors, font sizes or radii outside src/tokens.css', () => {
     const offenders = files
-      .filter((file) => !PENDING_FILES.has(file))
       .map((file) => ({ file, ...counts.get(file)! }))
       .filter((file) => total(file) > 0);
     expect(offenders).toEqual([]);
   });
 
-  it('keeps the pending list honest: every entry still has findings and exists', () => {
-    const stale = [...PENDING_FILES]
-      .filter((file) => !counts.has(file) || total(counts.get(file)!) === 0)
-      .sort();
-    expect(stale).toEqual([]);
+  it('names no old button class in a TSX file', () => {
+    const offenders = tsxFiles
+      .map((file) => ({
+        file,
+        classes: classOffenders(readFileSync(join(ROOT, file), 'utf8'), OLD_BUTTON_CLASSES),
+      }))
+      .filter((entry) => entry.classes.length > 0);
+    expect(offenders).toEqual([]);
   });
 
   it('detects raw colors, font sizes and radii', () => {
@@ -162,7 +208,7 @@ describe('style tokens', () => {
     });
   });
 
-  it('accepts token values and the allowed exceptions', () => {
+  it('accepts the seven text tokens and the allowed radius values', () => {
     expect(
       countInFile(
         `.sample {
@@ -171,9 +217,28 @@ describe('style tokens', () => {
           border-color: currentColor;
           outline-color: inherit;
           font-size: var(--text-14);
-          border-radius: var(--radius-md) 0 50%;
+          border-radius: var(--radius-md) 0 inherit;
         }`,
       ),
     ).toEqual({ colors: 0, fontSizes: 0, radii: 0 });
+  });
+
+  it('rejects text and radius variables outside the token set', () => {
+    expect(
+      countInFile(
+        `.sample {
+          font-size: var(--text-15);
+          border-radius: var(--radius-xl) 50%;
+        }`,
+      ),
+    ).toEqual({ colors: 0, fontSizes: 1, radii: 1 });
+  });
+
+  it('detects an old button class as a whole word', () => {
+    expect(classOffenders(`<button className="ghost-btn">Открыть</button>`, ['ghost-btn'])).toEqual(
+      ['ghost-btn'],
+    );
+    expect(classOffenders(`<div className="ui-segmented" />`, ['segmented'])).toEqual([]);
+    expect(classOffenders(`<div className="f1-team-chip" />`, ['chip'])).toEqual([]);
   });
 });

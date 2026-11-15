@@ -208,10 +208,10 @@ export function PlayerFormPanel({
           >
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={graph} margin={{ top: 15, right: 20, bottom: 12, left: 0 }}>
-                <CartesianGrid stroke="var(--line)" vertical={false} />
+                <CartesianGrid stroke="var(--color-border)" vertical={false} />
                 <XAxis
                   dataKey="index"
-                  tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
                   tickFormatter={(n) => {
                     const row = graph[Number(n) - 1];
                     return row?.date
@@ -223,7 +223,7 @@ export function PlayerFormPanel({
                   domain={metric === 'rating' ? [0, 10] : [0, 'auto']}
                   allowDecimals={metric === 'rating'}
                   width={42}
-                  tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
                 />
                 <Tooltip
                   labelFormatter={(value) => {
@@ -234,20 +234,24 @@ export function PlayerFormPanel({
                   }}
                   formatter={(v) => [number(Number(v)), chosenMetric.label]}
                   contentStyle={{
-                    background: 'var(--panel)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 10,
-                    color: 'var(--text)',
+                    background: 'var(--color-surface-1)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--color-text)',
                   }}
                 />
                 {average !== null && (
-                  <ReferenceLine y={average} stroke="var(--muted)" strokeDasharray="5 5" />
+                  <ReferenceLine
+                    y={average}
+                    stroke="var(--color-text-secondary)"
+                    strokeDasharray="5 5"
+                  />
                 )}
                 <Line
                   type="linear"
                   dataKey="value"
                   name={chosenMetric.label}
-                  stroke="var(--accent)"
+                  stroke="var(--color-accent)"
                   strokeWidth={3}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}

@@ -6,13 +6,6 @@
   text-align: center;
 }
 
-.state-block.ui-empty .ui-empty__text strong {
-  display: block;
-  color: var(--color-text);
-  font-size: var(--text-14);
-  font-weight: var(--weight-semibold);
-}
-
 .state-skeleton-stack {
   display: flex;
   flex-direction: column;

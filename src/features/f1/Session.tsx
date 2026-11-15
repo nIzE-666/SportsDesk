@@ -293,7 +293,7 @@ export function Session({
                   {isCompleted(selectedSession, Date.now()) ? '' : ' · сессия ещё не завершена'}
                 </div>
               </div>
-              <Timer size={18} color="var(--muted,#8b9099)" aria-hidden="true" />
+              <Timer size={18} color="var(--color-text-secondary)" aria-hidden="true" />
             </div>
 
             {drivers.error && !drivers.data ? (
@@ -404,7 +404,7 @@ export function Session({
           <div className="f1-card">
             <div className="f1-card-head">
               <div className="f1-eyebrow">Отрезки и пит-стопы</div>
-              <CircleDot size={16} color="var(--muted,#8b9099)" aria-hidden="true" />
+              <CircleDot size={16} color="var(--color-text-secondary)" aria-hidden="true" />
             </div>
             {stints.loading && !stints.data ? (
               <State kind="loading" title="Загрузка отрезков…" />

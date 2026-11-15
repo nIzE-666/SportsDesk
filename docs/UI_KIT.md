@@ -22,7 +22,7 @@
 | `Panel`            | свойства `section` и `children`                                                                                        |
 | `PanelHeader`      | `title`, `action`, `id`                                                                                                |
 | `StatTile`         | `label`, `value`, `note`; без `value` не рисуется                                                                      |
-| `EmptyState`       | `message`, `icon`, `action`                                                                                            |
+| `EmptyState`       | `message`, `title`, `icon`, `action`, `tone`: `neutral`/`error`                                                        |
 | `Badge`            | `children`, `variant`: `live`, `win`, `draw`, `loss`, `warning`                                                        |
 | `Tooltip`          | `label`, `children`, `side`: `top`/`bottom`                                                                            |
 | `Dialog`           | `open`, `onClose`, `title`, `children`, `footer`, `closeLabel`                                                         |
@@ -106,7 +106,8 @@
 
 - `StatTile` (`.ui-stat`) — подпись, значение и необязательная заметка. Без
   значения не рисуется; ноль остаётся.
-- `EmptyState` (`.ui-empty`) — значок, одна фраза и не больше одного действия.
+- `EmptyState` (`.ui-empty`) — значок, короткий заголовок, одна фраза и не больше одного
+  действия. `tone="error"` делает элемент `role="alert"` и красит значок в `--color-error`.
 - `Badge` (`.ui-badge`) — варианты `live`, `win`, `draw`, `loss`, `warning` и
   обычная метка без варианта.
 

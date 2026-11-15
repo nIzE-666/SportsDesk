@@ -33,25 +33,20 @@ export function ErrorBlock({
   onRetry?: () => void;
 }) {
   return (
-    <div role="alert" className="state-alert">
-      <EmptyState
-        className="state-block"
-        icon={<AlertTriangle size={20} />}
-        message={
-          <>
-            <strong>{title}</strong>
-            {message && <> {message}</>}
-          </>
-        }
-        action={
-          onRetry ? (
-            <Button variant="quiet" onClick={onRetry}>
-              Повторить
-            </Button>
-          ) : undefined
-        }
-      />
-    </div>
+    <EmptyState
+      className="state-block"
+      tone="error"
+      icon={<AlertTriangle size={20} />}
+      title={title}
+      message={message}
+      action={
+        onRetry ? (
+          <Button variant="quiet" onClick={onRetry}>
+            Повторить
+          </Button>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -68,12 +63,8 @@ export function EmptyBlock({
     <EmptyState
       className="state-block"
       icon={<Inbox size={20} />}
-      message={
-        <>
-          <strong>{title}</strong>
-          {message && <> {message}</>}
-        </>
-      }
+      title={title}
+      message={message}
       action={children}
     />
   );

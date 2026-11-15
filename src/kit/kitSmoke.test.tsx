@@ -66,6 +66,24 @@ describe('EmptyState', () => {
     expect(app.host.querySelector('.ui-empty__text')?.textContent).toBe('На сегодня матчей нет.');
     expect(app.host.querySelectorAll('.ui-empty__action button')).toHaveLength(1);
   });
+
+  it('puts the title on its own line and announces errors as an alert', async () => {
+    await app.render(
+      <>
+        <EmptyState title="Матчей нет" message="На сегодня матчей нет." />
+        <EmptyState tone="error" title="Турнир временно недоступен" message="Попробуйте позже." />
+      </>,
+    );
+    const [neutral, error] = [...app.host.querySelectorAll('.ui-empty')];
+    expect(neutral?.getAttribute('role')).toBe('status');
+    expect(neutral?.querySelector('.ui-empty__title')?.textContent).toBe('Матчей нет');
+    expect(neutral?.querySelector('.ui-empty__title + .ui-empty__text')).not.toBeNull();
+    expect(error?.getAttribute('role')).toBe('alert');
+    expect(error?.classList.contains('ui-empty--error')).toBe(true);
+    expect(error?.querySelector('.ui-empty__title')?.textContent).toBe(
+      'Турнир временно недоступен',
+    );
+  });
 });
 
 describe('Tooltip', () => {

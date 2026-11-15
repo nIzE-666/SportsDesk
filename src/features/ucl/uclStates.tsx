@@ -27,18 +27,12 @@ export function UclError({
   onRetry?: () => void;
 }) {
   return (
-    <div role="alert">
-      <EmptyState
-        className="ucl-error"
-        icon={<AlertTriangle size={20} aria-hidden="true" />}
-        message={
-          <>
-            <strong>{title}</strong>
-            {message ? <span className="ucl-error__message">{message}</span> : null}
-          </>
-        }
-        action={onRetry ? <Button onClick={onRetry}>Повторить</Button> : undefined}
-      />
-    </div>
+    <EmptyState
+      tone="error"
+      icon={<AlertTriangle size={20} aria-hidden="true" />}
+      title={title}
+      message={message}
+      action={onRetry ? <Button onClick={onRetry}>Повторить</Button> : undefined}
+    />
   );
 }
