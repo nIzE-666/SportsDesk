@@ -11,10 +11,6 @@ const SRC_DIR = join(ROOT, 'src');
 const TOKENS_FILE = 'src/tokens.css';
 
 export const PENDING_FILES: ReadonlySet<string> = new Set([
-  'src/app/shell.css',
-  'src/components/personAvatar.css',
-  'src/components/searchSelect.css',
-  'src/design.css',
   'src/features/atmosphere/atmosphere.css',
   'src/features/diary/diary.css',
   'src/features/f1/calendar.css',
@@ -39,8 +35,6 @@ export const PENDING_FILES: ReadonlySet<string> = new Set([
   'src/features/today/today.css',
   'src/features/ucl/ucl.css',
   'src/features/watch/watch.css',
-  'src/productivity.css',
-  'src/styles.css',
 ]);
 
 const NAMED_COLORS = new Set(

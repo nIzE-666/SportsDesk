@@ -1,28 +1,3 @@
-:root {
-  --bg: #0b0f0e;
-  --panel: #141b18;
-  --panel2: #1a2420;
-  --text: #edf4ef;
-  --muted: #8e9e95;
-  --line: #26382e;
-  --accent: #b5f268;
-  --danger: #ff6868;
-  --radius: 14px;
-  --font:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color-scheme: dark;
-}
-
-[data-sport='f1'] {
-  --bg: #0c0c0e;
-  --panel: #151517;
-  --panel2: #1d1d21;
-  --line: #2a2a30;
-  --accent: #ff4d4d;
-  --text: #f2f2f2;
-  --muted: #9a9aa2;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -47,11 +22,6 @@ body,
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -67,7 +37,7 @@ button:disabled {
 }
 
 a {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .app-root {
@@ -75,105 +45,98 @@ a {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(1200px 600px at 78% -10%, rgba(181, 242, 104, 0.06), transparent 60%), var(--bg);
-}
-
-[data-sport='f1'] .app-root,
-[data-sport='f1'] {
-  background:
-    radial-gradient(1200px 600px at 78% -10%, rgba(255, 77, 77, 0.07), transparent 60%), var(--bg);
+  background: var(--color-bg);
 }
 
 .ghost-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--muted);
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 12px;
+  gap: var(--space-8);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-1);
+  color: var(--color-text-secondary);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-md);
+  font-size: var(--text-12);
   font-weight: 600;
   transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
+    color var(--duration-hover) var(--ease),
+    border-color var(--duration-hover) var(--ease);
 }
 
 .ghost-btn:hover:not(:disabled) {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
 }
 
 .ghost-btn.active {
-  color: var(--text);
-  border-color: var(--accent);
+  color: var(--color-text);
+  border-color: var(--color-accent);
 }
 
 .content {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 22px 26px 40px;
-}
-
-/* F1 background atmosphere */
-[data-sport='f1'] .content {
-  background: linear-gradient(180deg, rgba(255, 77, 77, 0.02), transparent 200px);
+  padding: var(--space-24) var(--space-24) 40px;
 }
 
 /* Shared utility */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 16px;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-16);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
+  gap: var(--space-12);
+  margin: 0 0 var(--space-12);
 }
 
 .section-title h2 {
-  font-size: 15px;
+  font-size: var(--text-16);
   margin: 0;
   letter-spacing: 0.2px;
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 12px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .live-chip {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
-  background: color-mix(in srgb, var(--danger) 10%, var(--panel2));
+  color: var(--color-live);
+  border-color: color-mix(in srgb, var(--color-live) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-live) 10%, var(--color-surface-2));
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--panel) 25%, var(--panel2) 50%, var(--panel) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-1) 25%,
+    var(--color-surface-2) 50%,
+    var(--color-surface-1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
@@ -189,26 +152,26 @@ a {
 .state-block {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-16);
   align-items: flex-start;
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-13);
 }
 
 .state-block > svg {
-  color: var(--accent);
+  color: var(--color-accent);
   flex-shrink: 0;
 }
 
 .state-block strong {
-  color: var(--text);
-  font-size: 14px;
+  color: var(--color-text);
+  font-size: var(--text-14);
   font-weight: 650;
 }
 
 .state-block p {
-  margin: 4px 0 0;
-  font-size: 12.5px;
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-13);
   line-height: 1.55;
 }
 
@@ -216,17 +179,17 @@ a {
 .state-block .state-action {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
 }
 
 .state-block.error {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
-  background: color-mix(in srgb, var(--danger) 7%, var(--panel));
+  border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-error) 7%, var(--color-surface-1));
 }
 
 .state-block.error > svg {
-  color: var(--danger);
+  color: var(--color-error);
 }
 
 .spin {
@@ -242,7 +205,7 @@ a {
 .skeleton-stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-8);
   width: 100%;
 }
 
@@ -253,7 +216,7 @@ a {
 
 /* Content transitions: gentle fade+rise on sport/tab change */
 .content-inner {
-  animation: sd-page-in 0.22s ease-out;
+  animation: sd-page-in var(--duration-page) var(--ease);
 }
 
 @keyframes sd-page-in {
@@ -272,43 +235,43 @@ a {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 14px;
-  padding: 11px 16px;
-  border-radius: 11px;
-  font-size: 12.5px;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  font-size: var(--text-13);
   font-weight: 550;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
-  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface-1));
+  color: var(--color-text);
 }
 
 .connectivity-banner.stale {
-  border-color: color-mix(in srgb, #e9c477 45%, var(--line));
-  background: color-mix(in srgb, #e9c477 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-1));
 }
 
 .connectivity-banner.offline {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
-  background: color-mix(in srgb, var(--danger) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface-1));
 }
 
 .connectivity-banner svg {
   flex-shrink: 0;
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .connectivity-banner.stale svg {
-  color: #e9c477;
+  color: var(--color-warning);
 }
 
 .connectivity-banner.offline svg {
-  color: var(--danger);
+  color: var(--color-error);
 }
 
 .connectivity-banner small {
   margin-left: auto;
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -317,11 +280,11 @@ a {
 .whatsnew-scrim {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--layer-dialog);
   display: grid;
   place-items: center;
-  padding: 24px;
-  background: rgba(5, 8, 14, 0.72);
+  padding: var(--space-24);
+  background: color-mix(in srgb, var(--color-scrim) 72%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -331,31 +294,31 @@ a {
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  gap: var(--space-16);
+  box-shadow: var(--shadow-2);
 }
 
 .whatsnew-card h2 {
-  margin: 4px 0 2px;
-  font-size: 24px;
+  margin: var(--space-4) 0 var(--space-4);
+  font-size: var(--text-24);
   letter-spacing: -0.6px;
 }
 
 .whatsnew-card ul {
   margin: 0;
-  padding: 0 0 4px 18px;
+  padding: 0 0 var(--space-4) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  font-size: 13px;
+  gap: var(--space-8);
+  font-size: var(--text-13);
   line-height: 1.55;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .whatsnew-card .modal-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: var(--space-16);
+  right: var(--space-16);
 }
 
 /* Shell responsiveness is owned by design.css; component layouts stay here. */
@@ -364,64 +327,64 @@ a {
 .weekend-schedule {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 10px;
-  margin: 18px 0;
+  gap: var(--space-8);
+  margin: var(--space-16) 0;
 }
 .weekend-session {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel2);
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
 }
 .weekend-session small {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
 .weekend-session strong {
-  font-size: 13px;
+  font-size: var(--text-13);
   font-variant-numeric: tabular-nums;
 }
 .weekend-session.main-session {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-1));
 }
 .race-weekend .f1-title {
-  margin: 8px 0;
-  font-size: clamp(19px, 2vw, 27px);
+  margin: var(--space-8) 0;
+  font-size: var(--text-24);
 }
 .points-difference {
-  color: var(--warning, #e6ba72);
+  color: var(--color-warning);
 }
 .section-failure {
-  padding: 30px;
+  padding: var(--space-32);
   min-height: 220px;
 }
 .section-failure > svg {
-  color: var(--danger);
+  color: var(--color-error);
 }
 .section-failure h2 {
-  margin: 14px 0;
-  font-size: 21px;
+  margin: var(--space-16) 0;
+  font-size: var(--text-20);
 }
 .section-failure p {
   max-width: 650px;
   line-height: 1.7;
 }
 .auxiliary-back {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-16);
 }
 .settings-f1-reminders {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 18px 0 8px;
-  font-size: 13px;
+  gap: var(--space-8);
+  margin: var(--space-16) 0 var(--space-8);
+  font-size: var(--text-13);
 }
 .settings-f1-reminders input {
-  accent-color: var(--accent);
+  accent-color: var(--color-accent);
   width: 17px;
   height: 17px;
 }

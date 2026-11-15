@@ -93,7 +93,9 @@ test('the competition accent belongs to football pages and the rail stays neutra
   const railBackground = await rail.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
   );
-  expect(railBackground).toBe('rgb(17, 17, 17)');
+  expect(railBackground).toBe(
+    await root.evaluate((element) => getComputedStyle(element).backgroundColor),
+  );
   await expect(root).toHaveAttribute('data-theme', 'epl');
 
   await switcher.click();

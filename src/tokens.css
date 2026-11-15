@@ -9,6 +9,9 @@
   --color-surface-2: #272727;
   --color-surface-3: #303030;
 
+  /* Full-window scrim behind dialogs and drawers. */
+  --color-scrim: #05080e;
+
   /* Borders. */
   --color-border: #393939;
   --color-border-strong: #4d4d4d;
@@ -109,6 +112,8 @@
   --color-surface-1: #ffffff;
   --color-surface-2: #e9eef6;
   --color-surface-3: #ffffff;
+
+  --color-scrim: #05080e;
 
   --color-border: #d3dce9;
   --color-border-strong: #b4c2d4;

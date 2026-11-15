@@ -4,12 +4,6 @@
 }
 
 .shell-frame {
-  --shell-rail-bg: #111111;
-  --shell-rail-line: #ffffff14;
-  --shell-rail-hover: #ffffff0b;
-  --shell-rail-active: #ffffff12;
-  --shell-rail-text: #f3f3f3;
-  --shell-rail-muted: #9a9a9a;
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   flex: 1;
@@ -17,23 +11,14 @@
   min-height: 0;
 }
 
-.app-root[data-scheme='light'] .shell-frame {
-  --shell-rail-bg: #f7f7f7;
-  --shell-rail-line: #d8d8d8;
-  --shell-rail-hover: #0000000a;
-  --shell-rail-active: #00000010;
-  --shell-rail-text: #171717;
-  --shell-rail-muted: #5c5c5c;
-}
-
 .nav-rail {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-8);
   min-height: 0;
-  padding: 14px 8px 12px;
-  background: var(--shell-rail-bg);
-  border-right: 1px solid var(--shell-rail-line);
+  padding: var(--space-16) var(--space-8) var(--space-12);
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -46,10 +31,10 @@
   display: grid;
   place-items: center;
   height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--shell-rail-line);
-  color: var(--shell-rail-text);
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: var(--text-12);
   font-weight: 800;
   letter-spacing: 1.2px;
 }
@@ -58,20 +43,20 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   min-height: 0;
 }
 
 .nav-rail-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 }
 
 .nav-rail-bottom {
   margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--shell-rail-line);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
 }
 
 .nav-rail-item {
@@ -79,18 +64,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: var(--space-4);
   width: 100%;
   min-height: 56px;
-  padding: 7px 4px;
+  padding: var(--space-8) var(--space-4);
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--shell-rail-muted);
-  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-12);
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
+  white-space: nowrap;
 }
 
 .nav-rail-item svg {
@@ -108,25 +94,25 @@
   right: -10px;
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--shell-rail-text);
-  color: var(--shell-rail-bg);
-  font-size: 10px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-round);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: var(--text-12);
   font-weight: 800;
   line-height: 16px;
   text-align: center;
 }
 
 .nav-rail-item:hover {
-  background: var(--shell-rail-hover);
-  color: var(--shell-rail-text);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  color: var(--color-text);
 }
 
 .nav-rail-item[aria-current='page'] {
-  background: var(--shell-rail-active);
-  color: var(--shell-rail-text);
-  box-shadow: inset 2px 0 0 var(--shell-rail-text);
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-text);
+  box-shadow: inset 2px 0 0 var(--color-text);
 }
 
 .shell-main {
@@ -139,40 +125,40 @@
 
 .shell-header {
   position: relative;
-  z-index: 10;
+  z-index: var(--layer-header);
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--panel) 92%, transparent);
-  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--color-surface-1) 92%, transparent);
+  border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(12px);
 }
 
 .shell-header-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-8);
   min-height: 52px;
-  padding: 8px 22px 4px;
+  padding: var(--space-8) var(--space-24) var(--space-4);
 }
 
 .shell-back {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  width: var(--control-md);
+  height: var(--control-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
 }
 
 .shell-back:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .shell-page-title {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: var(--text);
-  font-size: clamp(17px, 1.5vw, 21px);
+  color: var(--color-text);
+  font-size: var(--text-20);
   font-weight: 750;
   letter-spacing: -0.3px;
   white-space: nowrap;
@@ -195,11 +181,11 @@
 .competition-switcher-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-4);
   min-width: 0;
-  padding: 2px 4px;
+  padding: var(--space-4) var(--space-4);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: none;
   color: inherit;
   font: inherit;
@@ -214,41 +200,41 @@
 
 .competition-switcher-trigger svg {
   flex-shrink: 0;
-  color: var(--muted);
+  color: var(--color-text-secondary);
 }
 
 .competition-switcher-trigger:hover {
-  background: var(--panel2);
+  background: var(--color-surface-2);
 }
 
 .competition-switcher-trigger:hover svg {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .shell-page-context {
-  color: var(--muted);
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .competition-menu {
   position: absolute;
-  z-index: 60;
-  top: calc(100% + 8px);
+  z-index: var(--layer-dialog);
+  top: calc(100% + var(--space-8));
   left: 0;
   width: 280px;
   max-height: min(calc(100vh - 72px), 620px);
-  padding: 6px;
+  padding: var(--space-8);
   overflow-y: auto;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 18px 40px #00000066;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
 }
 
 .competition-menu-label {
-  padding: 9px 10px 4px;
-  color: var(--muted);
-  font-size: 11px;
+  padding: var(--space-8) var(--space-8) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -258,14 +244,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-8);
   width: 100%;
-  padding: 8px 10px;
+  padding: var(--space-8);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: none;
-  color: var(--text);
-  font-size: 13px;
+  color: var(--color-text);
+  font-size: var(--text-13);
   font-weight: 600;
   letter-spacing: 0;
   text-align: left;
@@ -273,11 +259,11 @@
 
 .competition-menu-item:hover,
 .competition-menu-item:focus-visible {
-  background: var(--panel2);
+  background: var(--color-surface-2);
 }
 
 .competition-menu-item[aria-checked='true'] {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 
 .competition-menu-item svg {
@@ -288,7 +274,7 @@
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-8);
   margin-left: auto;
 }
 
@@ -299,8 +285,8 @@
 .shell-tabs {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
-  padding: 0 18px;
+  gap: var(--space-4);
+  padding: 0 var(--space-16);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -310,38 +296,38 @@
 }
 
 .shell-tab {
-  padding: 8px 12px 9px;
+  padding: var(--space-8) var(--space-12);
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-13);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .shell-tab:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .shell-tab[aria-selected='true'] {
-  color: var(--text);
-  border-bottom-color: var(--text);
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
 }
 
 main.shell-content {
-  padding: 20px 24px 32px;
+  padding: 20px var(--space-24) var(--space-32);
   overflow-x: hidden;
 }
 
 .events-drawer-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: var(--layer-drawer);
   display: flex;
   justify-content: flex-end;
-  background: color-mix(in srgb, var(--bg) 52%, transparent);
-  animation: events-backdrop-in 160ms ease-out;
+  background: color-mix(in srgb, var(--color-bg) 52%, transparent);
+  animation: events-backdrop-in var(--duration-page) var(--ease);
 }
 
 .events-drawer {
@@ -349,10 +335,10 @@ main.shell-content {
   flex-direction: column;
   width: min(560px, 100%);
   height: 100%;
-  background: var(--panel);
-  border-left: 1px solid var(--line);
-  box-shadow: -24px 0 64px #0000004d;
-  animation: events-drawer-in 180ms ease-out;
+  background: var(--color-surface-1);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
+  animation: events-drawer-in var(--duration-page) var(--ease);
 }
 
 .events-drawer-head {
@@ -360,40 +346,40 @@ main.shell-content {
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-16);
+  padding: var(--space-16) 20px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .events-drawer-head h2 {
   margin: 0;
-  font-size: clamp(18px, 1.6vw, 22px);
+  font-size: var(--text-20);
   font-weight: 750;
   letter-spacing: -0.4px;
 }
 
 .events-drawer-close {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--muted);
+  width: var(--control-md);
+  height: var(--control-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
 }
 
 .events-drawer-close:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .events-drawer-body {
   flex: 1;
   min-height: 0;
-  padding: 18px 22px 32px;
+  padding: var(--space-16) var(--space-24) var(--space-32);
   overflow-y: auto;
 }
 
 .events-drawer .event-center {
-  gap: 18px;
+  gap: var(--space-16);
 }
 
 .events-drawer .event-center > .section-heading {
@@ -432,18 +418,19 @@ main.shell-content {
 
   .nav-rail-item {
     min-height: 52px;
-    font-size: 10px;
+    padding-inline: 2px;
+    font-size: var(--text-12);
   }
 
   .shell-header-bar {
-    padding-inline: 16px;
+    padding-inline: var(--space-16);
   }
 
   .shell-tabs {
-    padding-inline: 12px;
+    padding-inline: var(--space-12);
   }
 
   main.shell-content {
-    padding: 16px 18px 28px;
+    padding: var(--space-16) var(--space-16) 28px;
   }
 }
