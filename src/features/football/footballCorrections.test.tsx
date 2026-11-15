@@ -7,7 +7,6 @@ import { MatchDetailView } from './MatchDetailView';
 import { MatchesView } from './MatchesView';
 import { TeamView } from './TeamView';
 import { StandingsView } from './StandingsView';
-import type { HistoryMatch } from './history';
 import type { MatchSummary } from './types';
 import type { UseFootballResult } from './useFootballData';
 import { viewState } from '../../lib/viewState';
@@ -25,25 +24,6 @@ const makeMatch = (id: string, status: string, time?: string): MatchSummary => (
   away_team: { id: `away-${id}`, name: `Opponent ${id}` },
   score_home: null,
   score_away: null,
-});
-const historyMatch = (
-  id: string,
-  leagueId: string,
-  season: string,
-  homeId = home.id,
-): HistoryMatch => ({
-  id,
-  leagueId,
-  season,
-  homeId,
-  homeName: homeId,
-  awayId: 'away',
-  awayName: 'Away',
-  homeScore: 1,
-  awayScore: 0,
-  status: 'finished',
-  date: '2099-01-01',
-  round: id,
 });
 const makeData = (matches: MatchSummary[]): UseFootballResult => ({
   leagues: [{ id: 'league', name: 'League', season: '2099', seasons: ['2099', '2098'] }],
@@ -98,10 +78,10 @@ it('starts the club directory with favorite teams and opens the chosen club', as
   await render(
     <TeamView teamId={null} data={makeData([])} onSelectTeam={select} onOpenMatch={vi.fn()} />,
   );
-  expect(host.querySelector('.screen-title')?.textContent).toBe('Клубы');
+  expect(host.querySelector('.ui-page-title')?.textContent).toBe('Клубы');
   const favorite = host.querySelector<HTMLButtonElement>('.team-favorites button')!;
   expect(favorite.textContent).toContain('Atlético F.C.');
-  expect(host.querySelector('#team-picker-select')).not.toBeNull();
+  expect(host.querySelector('[role="combobox"][aria-label="Клуб"]')).not.toBeNull();
   await act(async () => favorite.click());
   expect(select).toHaveBeenCalledWith('home');
 });
@@ -243,24 +223,13 @@ it('finds a team through the searchable filter regardless of case', async () => 
   expect(host.querySelector('[data-match-id="scheduled"]')).not.toBeNull();
 });
 
-it('shows only scheduled and live fixtures and plots the chosen league season', async () => {
+it('shows the whole season with month headings and every status', async () => {
   const fixtures = [
     makeMatch('scheduled', 'scheduled', '2099-01-02T12:00:00Z'),
     makeMatch('live', 'live', '2099-01-03T12:00:00Z'),
     makeMatch('cancelled', 'cancelled', '2099-01-04T12:00:00Z'),
     makeMatch('postponed', 'postponed', '2099-01-05T12:00:00Z'),
   ];
-  transport.rpc.mockImplementation(async (command: string) => {
-    if (command === 'history_team_matches')
-      return [historyMatch('old', 'league', '2098'), historyMatch('other', 'cup', '2099')];
-    if (command === 'history_season_matches')
-      return [
-        historyMatch('one', 'league', '2099'),
-        historyMatch('two', 'league', '2099'),
-        historyMatch('unrelated', 'league', '2099', 'unrelated'),
-      ];
-    return [];
-  });
   await render(
     <FavoritesProvider>
       <TeamView
@@ -271,16 +240,19 @@ it('shows only scheduled and live fixtures and plots the chosen league season', 
       />
     </FavoritesProvider>,
   );
-  const schedule = host.querySelector('.team-schedule')!;
-  expect(schedule.textContent).toContain('2 предстоящих');
+  const matchTab = [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+    (tab) => tab.textContent?.trim() === 'Матчи',
+  )!;
+  await act(async () => matchTab.click());
+  const schedule = host.querySelector('.club-matches')!;
+  expect(schedule.textContent).toContain('Январь 2099');
   expect(schedule.textContent).toContain('В игре');
-  expect(schedule.textContent).not.toContain('Opponent cancelled');
-  expect(schedule.textContent).not.toContain('Opponent postponed');
+  expect(schedule.textContent).toContain('Отменён');
+  expect(schedule.textContent).toContain('Перенесён');
   expect(transport.rpc).toHaveBeenCalledWith('history_season_matches', {
     leagueId: 'league',
     season: '2099',
   });
-  expect(host.querySelector('.sa-chart')?.textContent).toContain('6 очков после 2 матчей');
 });
 
 it('retries the failed match request without navigating back', async () => {

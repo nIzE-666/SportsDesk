@@ -1,115 +1,187 @@
-/* Season analytics (local history, №5) */
-.season-analytics {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-16);
-}
-.sa-row {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: var(--space-16);
-}
-.sa-form,
-.sa-h2h {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  min-width: 0;
-}
-.sa-h2h select {
-  max-width: 260px;
-}
-.sa-h2h-summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  font-size: var(--text-14);
-}
-.sa-h2h-list {
-  margin-top: var(--space-4);
-}
-.team-match-row-static {
-  display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) 70px 70px;
-  align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-8) 0;
-  border-top: 1px solid var(--color-border);
-  font-size: var(--text-13);
-}
-.team-match-score-static {
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-.sa-chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-.sa-sparkline {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 64px;
-  padding: var(--space-8) 0 0;
-  border-bottom: 1px solid var(--color-border);
-}
-.sa-sparkline i {
-  flex: 1;
-  min-width: 3px;
-  max-width: 14px;
-  height: var(--bar-height, 0%);
-  background: color-mix(in srgb, var(--color-accent) 65%, transparent);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: background var(--duration-hover) var(--ease);
-}
-.sa-sparkline i:hover {
-  background: var(--color-accent);
+/* Club page (U4.3): a compact header, four tabs and one list of season rows. */
+.club-directory-head .ui-page-title,
+.club-header .ui-page-title {
+  margin: 0;
 }
 
-@media (max-width: 1280px) {
-  .sa-row {
-    grid-template-columns: 1fr;
-  }
-  .team-match-row-static {
-    grid-template-columns: 80px minmax(0, 1fr) 60px;
-  }
-  .team-match-row-static > span:last-child {
-    display: none;
-  }
+.club-directory-head p {
+  margin: var(--space-4) 0 0;
 }
 
-/* Team view additions (owned by football module) */
-.team-favorites h2 {
-  font-size: var(--text-16);
-  margin: var(--space-16) 0 var(--space-8);
+.club-directory-loading,
+.club-overview,
+.club-matches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
 }
+
+.club-directory-loading .ui-skeleton,
+.club-matches .ui-skeleton,
+.club-h2h__loading .ui-skeleton {
+  height: var(--control-lg);
+  border-radius: var(--radius-md);
+}
+
 .team-favorites-list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-8);
 }
-.team-header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-  margin: var(--space-12) 0 0;
+
+.team-picker {
+  width: calc(var(--space-48) * 5);
+  min-width: calc(var(--space-48) * 3 + var(--space-32));
+  max-width: 100%;
 }
 
-.team-record {
+.club-header__switch {
+  flex: 0 1 calc(var(--space-48) * 5);
+  min-width: calc(var(--space-48) * 3 + var(--space-32));
+  max-width: 100%;
+}
+
+.club-header {
+  gap: var(--space-12);
   padding: var(--space-16);
 }
 
-.team-record-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.club-header__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-16);
+  min-width: 0;
+}
+
+.club-header__identity {
+  flex: 1;
+  min-width: 180px;
+}
+
+.club-header__identity p {
+  margin: var(--space-4) 0 0;
+}
+
+.club-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.club-header__snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+.club-snapshot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.club-snapshot__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+}
+
+/* The date column keeps the full human date in the header and season rows. */
+.club-match-row--wide {
+  --match-row-when: calc(var(--space-48) * 3 - var(--space-4));
 }
 
 .wdl-strip {
   display: inline-flex;
   gap: var(--space-4);
   vertical-align: middle;
+}
+
+.club-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--space-32) * 5)), 1fr));
+  gap: var(--space-8);
+}
+
+.club-form-tile {
+  grid-column: span 2;
+}
+
+.club-form-tile .wdl-strip {
+  flex-wrap: wrap;
+}
+
+.club-matches__more {
+  display: flex;
+  justify-content: center;
+}
+
+.club-points {
+  gap: var(--space-8);
+  padding: var(--space-16);
+}
+
+.club-points__loading .ui-skeleton {
+  height: calc(var(--space-48) + var(--space-16));
+  border-radius: var(--radius-md);
+}
+
+.club-points__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  height: calc(var(--space-48) + var(--space-16));
+  padding: var(--space-8) 0 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.club-points__chart i {
+  flex: 1;
+  min-width: var(--space-4);
+  max-width: var(--space-32);
+  height: var(--bar-height, 0%);
+  background: color-mix(in srgb, var(--color-accent) 65%, transparent);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: background var(--duration-hover) var(--ease);
+}
+
+.club-points__chart i:hover {
+  background: var(--color-accent);
+}
+
+.club-h2h {
+  gap: var(--space-12);
+}
+
+.club-h2h__picker {
+  width: calc(var(--space-48) * 6);
+  min-width: calc(var(--space-48) * 4 + var(--space-24));
+  max-width: 100%;
+}
+
+.club-h2h__single {
+  color: var(--color-text-secondary);
+  font-size: var(--text-13);
+}
+
+.club-h2h__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 1100px) {
+  .club-header__snapshot {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .club-form-tile {
+    grid-column: span 1;
+  }
 }
 
 /* The table's club cell keeps its badge and name on one line. */
@@ -162,30 +234,7 @@
   white-space: nowrap;
 }
 
-.team-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-16);
-  min-width: 0;
-}
-
-.team-match-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.team-match-list li + li {
-  border-top: 1px solid var(--color-border);
-}
-
 /* Club names are never cut: a long one wraps inside the kit row. */
-.team-schedule {
-  container: team-schedule / inline-size;
-}
-
 .team-schedule-row,
 .team-schedule-row .ui-match-row__team-name {
   white-space: normal;
@@ -211,31 +260,11 @@
   border-top: 1px solid var(--color-border);
 }
 
-@media (max-width: 1280px) {
-  .team-cols {
-    grid-template-columns: 1fr;
-  }
-  .team-record-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
-  .team-record-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Screen titles are h2 under the frame's single h1 and keep their former look. */
 .dashboard-head .screen-title {
   font-size: var(--text-24);
   letter-spacing: -0.02em;
   margin: 0 0 var(--space-8);
-}
-
-.team-header .screen-title {
-  margin: 0;
-  font-size: var(--text-24);
 }
 
 /* «Матчи»: one list grouped by day, the live filter and the screen menu. */

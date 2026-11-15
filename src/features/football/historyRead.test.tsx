@@ -144,35 +144,27 @@ it('does not calculate partial player totals on a history failure and retries wi
   expect(host.querySelector('.pc-foot')?.textContent).toContain('проверено 2 из 2');
 });
 
-it('retries each history query in team analytics', async () => {
-  const attempts = new Map<string, number>();
+it('retries the head-to-head history of the club tab', async () => {
+  let attempts = 0;
   transport.rpc.mockImplementation(async (command: string) => {
-    const count = (attempts.get(command) ?? 0) + 1;
-    attempts.set(command, count);
-    if (count === 1) throw new Error('database unavailable');
-    if (command === 'history_season_matches') return [storedMatch('one'), storedMatch('two')];
-    return [storedMatch(command)];
+    if (command !== 'history_head_to_head') return [];
+    attempts += 1;
+    if (attempts === 1) throw new Error('database unavailable');
+    return [storedMatch('one')];
   });
   await render(
     <FavoritesProvider>
       <TeamView teamId="club" data={data([])} onSelectTeam={vi.fn()} onOpenMatch={vi.fn()} />
     </FavoritesProvider>,
   );
-  expect(host.textContent).toContain('История команды недоступна');
-  expect(host.textContent).toContain('История сезона недоступна');
-  await retry('История команды недоступна');
-  await retry('История сезона недоступна');
-  expect(host.querySelector('.sa-chart')?.textContent).toContain('6 очков после 2 матчей');
-  const select = host.querySelector<HTMLSelectElement>(
-    '[aria-label="Соперник для личных встреч"]',
+  const tab = [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+    (entry) => entry.textContent?.trim() === 'Личные встречи',
   )!;
-  await act(async () => {
-    select.value = 'rival';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  expect(host.textContent).toContain('История личных встреч недоступна');
-  await retry('История личных встреч недоступна');
-  expect(host.querySelector('.sa-h2h-summary')?.textContent).toContain('1 матчей');
+  await act(async () => tab.click());
+  await act(async () => {});
+  expect(host.textContent).toContain('Личные встречи недоступны');
+  await retry('Личные встречи недоступны');
+  expect(host.textContent).toContain('1 матч');
 });
 
 it('does not replace a newly selected comparison with a late response', async () => {

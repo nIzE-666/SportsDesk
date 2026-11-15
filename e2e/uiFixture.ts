@@ -52,13 +52,15 @@ const lineups = {
   home: {
     formation: '4-2-3-1',
     confirmed: true,
-    starters: [{ player_id: 'a', name: 'Alex Morgan', pitch_x: 0.1, pitch_y: 0.5 }],
-    subs: [{ player_id: 'b', name: 'Sam Taylor' }],
+    starters: [{ player_id: 'a', name: 'Alex Morgan', pitch_x: 0.1, pitch_y: 0.5, position_id: 4 }],
+    subs: [{ player_id: 'b', name: 'Sam Taylor', position_id: 3 }],
   },
   away: {
     formation: '4-3-3',
     confirmed: true,
-    starters: [{ player_id: 'c', name: 'Jamie Wilson', pitch_x: 0.1, pitch_y: 0.5 }],
+    starters: [
+      { player_id: 'c', name: 'Jamie Wilson', pitch_x: 0.1, pitch_y: 0.5, position_id: 2 },
+    ],
     subs: [],
   },
 };
@@ -189,6 +191,58 @@ export async function setupVisualFixture(page: Page, scheme: string, scenarioDat
               read: false,
               matchId: 'test-match',
               leagueId: 'l_4WFCIZ',
+            },
+          ],
+        });
+      if (body.command === 'history_head_to_head')
+        return route.fulfill({
+          json: [
+            {
+              id: 'test-match',
+              leagueId: 'l_4WFCIZ',
+              season: '2026/2027',
+              homeId: 'arsenal',
+              homeName: 'Arsenal',
+              awayId: 'chelsea',
+              awayName: 'Chelsea',
+              homeScore: 2,
+              awayScore: 1,
+              status: 'finished',
+              date: '2026-10-21',
+              round: '10',
+            },
+            {
+              id: 'h2h-1',
+              leagueId: 'l_4WFCIZ',
+              season: '2025/2026',
+              homeId: 'arsenal',
+              homeName: 'Arsenal',
+              awayId: 'chelsea',
+              awayName: 'Chelsea',
+              homeScore: 2,
+              awayScore: 1,
+              status: 'finished',
+              date: '2026-02-14',
+              round: '25',
+            },
+          ],
+        });
+      if (body.command === 'history_season_matches')
+        return route.fulfill({
+          json: [
+            {
+              id: 'test-match',
+              leagueId: 'l_4WFCIZ',
+              season: '2026/2027',
+              homeId: 'arsenal',
+              homeName: 'Arsenal',
+              awayId: 'chelsea',
+              awayName: 'Chelsea',
+              homeScore: 2,
+              awayScore: 1,
+              status: 'finished',
+              date: '2026-10-21',
+              round: '10',
             },
           ],
         });

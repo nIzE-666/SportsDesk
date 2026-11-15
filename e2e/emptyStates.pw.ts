@@ -613,31 +613,34 @@ for (const width of [1100, 1440])
       await page.reload();
       await section(page, 'Футбол');
       await headerTab(page, 'Клубы');
-      await expect(view.locator('h2.screen-title')).toHaveText('Клубы');
+      await expect(view.locator('h2.ui-page-title')).toHaveText('Клубы');
     };
-    const picker = view.locator('#team-picker-select');
+    const picker = view.getByRole('combobox', { name: 'Клуб', exact: true });
 
     await openClubs([]);
     await expect(view.locator('.team-favorites')).toHaveCount(0);
-    await expect(view.locator('.state-block')).toHaveCount(1);
-    await expect(view.locator('.state-block')).toContainText('Пока нет доступных избранных клубов');
+    await expect(view.locator('.ui-empty')).toHaveCount(1);
+    await expect(view.locator('.ui-empty')).toContainText('Пока нет избранных клубов');
     await expect(picker).toBeVisible();
     await shoot(page, testInfo, `broadcast-${width}-clubs-none`);
 
     await openClubs(['club-2']);
     await expect(view.locator('.team-favorites button')).toHaveCount(1);
-    await expect(view.locator('.state-block')).toHaveCount(0);
+    await expect(view.locator('.ui-empty')).toHaveCount(0);
     await shoot(page, testInfo, `broadcast-${width}-clubs-one`);
 
     await openClubs(clubs.slice(0, 10).map((club) => club.id));
     await expect(view.locator('.team-favorites button')).toHaveCount(10);
-    await expect(view.locator('.state-block')).toHaveCount(0);
+    await expect(view.locator('.ui-empty')).toHaveCount(0);
     await shoot(page, testInfo, `broadcast-${width}-clubs-ten`);
 
     await view.locator('.team-favorites').getByRole('button', { name: 'Cobalt Rovers' }).click();
-    await expect(view.locator('h2.screen-title')).toHaveText('Cobalt Rovers');
-    await expect(picker).toHaveValue('club-3');
+    await expect(view.locator('h2.ui-page-title')).toHaveText('Cobalt Rovers');
     await expect(view.locator('.team-favorites')).toHaveCount(0);
+    await view
+      .getByRole('tablist', { name: 'Разделы клуба' })
+      .getByRole('tab', { name: 'Состав', exact: true })
+      .click();
     await expect(view.locator('.club-players .squad-player')).toHaveCount(18);
     await shoot(page, testInfo, `broadcast-${width}-clubs-chosen`);
     expect(await noOverflow(page)).toBe(true);

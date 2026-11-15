@@ -6,9 +6,56 @@ export interface SquadMember {
   name: string;
   number?: string;
   role: 'start' | 'sub' | 'played';
+  /** Provider position id; unknown values leave the player in «Без позиции». */
+  positionId?: number | null;
   captain?: boolean;
   imageUrl?: string | null;
   entry?: PlayerMatchEntry;
+}
+
+/**
+ * Position ids of the lineups provider (1–4). This numbering is NOT confirmed
+ * against the data source; unknown ids stay in «Без позиции».
+ */
+const POSITION_LABELS: Readonly<Record<number, string>> = {
+  1: 'Вратари',
+  2: 'Защитники',
+  3: 'Полузащитники',
+  4: 'Нападающие',
+};
+
+export interface SquadPositionGroup {
+  key: string;
+  label: string;
+  members: SquadMember[];
+}
+
+/**
+ * Groups a squad by the provider position. Unknown or missing ids stay in
+ * «Без позиции» instead of being guessed into a line.
+ */
+export function squadPositionGroups(members: readonly SquadMember[]): SquadPositionGroup[] {
+  const order = new Map<string, SquadPositionGroup>();
+  for (const member of members) {
+    const id = member.positionId;
+    const label = id != null ? POSITION_LABELS[id] : undefined;
+    const key = label ? `position-${id}` : 'unknown';
+    let group = order.get(key);
+    if (!group) {
+      group = { key, label: label ?? 'Без позиции', members: [] };
+      order.set(key, group);
+    }
+    group.members.push(member);
+  }
+  return [...order.values()].sort((first, second) => {
+    const firstKnown = first.key.startsWith('position-');
+    const secondKnown = second.key.startsWith('position-');
+    if (firstKnown !== secondKnown) return firstKnown ? -1 : 1;
+    if (!firstKnown && !secondKnown) return 0;
+    return (
+      Number(first.key.slice('position-'.length)) - Number(second.key.slice('position-'.length))
+    );
+  });
 }
 
 export function mergeSquad(
@@ -34,6 +81,7 @@ export function mergeSquad(
           name: p.name,
           number: p.shirt_number,
           role,
+          positionId: p.position_id,
           captain: p.is_captain,
         });
   }
@@ -45,6 +93,7 @@ export function mergeSquad(
       id: entry.player.id,
       name: entry.player.name,
       role: old?.role ?? 'played',
+      positionId: old?.positionId ?? entry.player.position_id,
       imageUrl: entry.player.image_url,
       entry,
     });

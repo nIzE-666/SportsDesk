@@ -1,26 +1,42 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Star } from 'lucide-react';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
-import { ArrowRight, CalendarDays, Star, Target, TrendingUp, Users } from 'lucide-react';
-import { ClubPlayers } from './ClubPlayers';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  MatchRow,
+  Panel,
+  PanelHeader,
+  SearchSelect,
+  Skeleton,
+  StatTile,
+  Tabs,
+  type MatchRowStatus,
+} from '../../kit';
 import TeamBadge from '../../components/TeamBadge';
-import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
-import { Badge, Button, MatchRow, StatTile } from '../../kit';
-import type { MatchSummary } from './types';
 import { formatHumanDate } from '../../lib/humanDate';
-import { getUserTimezone, normalizeName } from './storage';
-import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
+import { migrateClubTab, type ClubTab } from '../../lib/navigation';
+import { countRu, MATCHES, pluralRu } from '../../lib/plural';
+import { useViewState } from '../../lib/useViewState';
+import { viewState } from '../../lib/viewState';
+import { spoilerKey, useResultHidden, useSpoilerSet } from '../spoilers/spoilerStore';
+import { buildLeagueTable, clubSnapshot } from '../today/todayModel';
+import { ClubPlayers } from './ClubPlayers';
+import { fixtureCalendarTime, formatFixtureTime } from './calendar';
 import { useFavorites } from './FavoritesProvider';
-import { compareUpcoming, formatFixtureTime, isUpcomingFixture } from './calendar';
 import {
   fetchHeadToHead,
   fetchHistorySeason,
-  fetchTeamHistory,
   h2hSummary,
   pointsProgression,
-  teamForm,
   type HistoryMatch,
 } from './history';
+import { MatchList, matchDayKey } from './MatchList';
+import { getUserTimezone, normalizeName } from './storage';
+import type { MatchSummary } from './types';
+import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
 
 interface TeamViewProps {
   teamId: string | null;
@@ -33,17 +49,28 @@ type FormResult = 'W' | 'D' | 'L';
 
 interface TeamHistory {
   played: MatchSummary[];
-  upcoming: MatchSummary[];
   form: FormResult[];
   wins: number;
   draws: number;
   losses: number;
   goalsFor: number;
   goalsAgainst: number;
+  /** Finished matches with both scores known. */
+  results: number;
 }
 
+const CLUB_TAB_LABELS: ReadonlyArray<[ClubTab, string]> = [
+  ['overview', 'Обзор'],
+  ['matches', 'Матчи'],
+  ['squad', 'Состав'],
+  ['h2h', 'Личные встречи'],
+];
+
+const COLLAPSED_MATCHES = 10;
+const COLLAPSED_H2H = 6;
+
 function outcomeForTeam(match: MatchSummary, teamId: string, teamName: string): FormResult | null {
-  if (match.status !== 'finished') return null;
+  if (classifyMatchStatus(match.status) !== 'finished') return null;
   if (match.score_home == null || match.score_away == null) return null;
   const isHome =
     match.home_team.id === teamId ||
@@ -67,24 +94,21 @@ function involvesTeam(match: MatchSummary, teamId: string, teamName: string): bo
 
 function computeHistory(matches: MatchSummary[], teamId: string, teamName: string): TeamHistory {
   const played: MatchSummary[] = [];
-  const upcoming: MatchSummary[] = [];
   for (const m of matches) {
     if (!m || !involvesTeam(m, teamId, teamName)) continue;
-    const state = classifyMatchStatus(m.status);
-    if (state === 'finished') played.push(m);
-    else if (isUpcomingFixture(m)) upcoming.push(m);
+    if (classifyMatchStatus(m.status) === 'finished') played.push(m);
   }
   played.sort(
     (a, b) =>
       new Date(b.time_utc ?? b.date ?? 0).getTime() - new Date(a.time_utc ?? a.date ?? 0).getTime(),
   );
-  upcoming.sort(compareUpcoming);
 
   let wins = 0;
   let draws = 0;
   let losses = 0;
   let goalsFor = 0;
   let goalsAgainst = 0;
+  let results = 0;
   const form: FormResult[] = [];
   for (const m of played) {
     const outcome = outcomeForTeam(m, teamId, teamName);
@@ -94,31 +118,100 @@ function computeHistory(matches: MatchSummary[], teamId: string, teamName: strin
     const ga = (isHome ? m.score_away : m.score_home) ?? 0;
     goalsFor += gf;
     goalsAgainst += ga;
+    results += 1;
     if (outcome === 'W') wins += 1;
     else if (outcome === 'L') losses += 1;
     else draws += 1;
-    if (form.length < 5) form.push(outcome);
+    if (form.length < 10) form.push(outcome);
   }
-  return { played, upcoming, form, wins, draws, losses, goalsFor, goalsAgainst };
+  return { played, form, wins, draws, losses, goalsFor, goalsAgainst, results };
 }
 
-function pickLatestPlayed(
-  allMatches: MatchSummary[],
-  teamId: string,
-  teamName: string,
-): MatchSummary | null {
-  let best: MatchSummary | null = null;
-  let bestTime = -Infinity;
-  for (const m of allMatches) {
-    if (m.status !== 'finished') continue;
-    if (!involvesTeam(m, teamId, teamName)) continue;
-    const t = new Date(m.time_utc ?? m.date ?? 0).getTime();
-    if (Number.isFinite(t) && t > bestTime) {
-      bestTime = t;
-      best = m;
-    }
+/** A finished season match in the shape used by the stored head-to-head history. */
+function loadedMeeting(
+  match: MatchSummary,
+  leagueId: string,
+  season: string | undefined,
+  timezone: string,
+): HistoryMatch | null {
+  if (classifyMatchStatus(match.status, match.status_text) !== 'finished') return null;
+  if (match.score_home == null || match.score_away == null) return null;
+  const day = matchDayKey(fixtureCalendarTime(match), timezone);
+  if (!day) return null;
+  return {
+    id: match.id,
+    leagueId,
+    season: season ?? '',
+    homeId: match.home_team.id,
+    homeName: match.home_team.name,
+    awayId: match.away_team.id,
+    awayName: match.away_team.name,
+    homeScore: match.score_home,
+    awayScore: match.score_away,
+    status: 'finished',
+    date: day,
+    round: match.round_name ?? '',
+  };
+}
+
+function sameTeamPair(first: HistoryMatch, second: HistoryMatch): boolean {
+  const firstHome = first.homeId || normalizeName(first.homeName);
+  const firstAway = first.awayId || normalizeName(first.awayName);
+  const secondHome = second.homeId || normalizeName(second.homeName);
+  const secondAway = second.awayId || normalizeName(second.awayName);
+  return (
+    (firstHome === secondHome && firstAway === secondAway) ||
+    (firstHome === secondAway && firstAway === secondHome)
+  );
+}
+
+function sameMeeting(first: HistoryMatch, second: HistoryMatch): boolean {
+  if (first.id && second.id && first.id === second.id) return true;
+  return first.date === second.date && sameTeamPair(first, second);
+}
+
+/**
+ * The stored head-to-head plus the finished meetings of the loaded season.
+ * A match with the same id, or else the same date and the same two teams,
+ * appears once; newer matches come first.
+ */
+export function mergeHeadToHead(
+  stored: readonly HistoryMatch[],
+  loaded: readonly HistoryMatch[],
+): HistoryMatch[] {
+  const merged: HistoryMatch[] = [];
+  for (const match of [...loaded, ...stored]) {
+    if (!merged.some((known) => sameMeeting(known, match))) merged.push(match);
   }
-  return best;
+  return merged.sort((first, second) => second.date.localeCompare(first.date));
+}
+
+function rowStatus(match: MatchSummary): MatchRowStatus {
+  const state = classifyMatchStatus(match.status, match.status_text);
+  if (state === 'live') return 'live';
+  if (state === 'finished') return 'finished';
+  if (state === 'postponed') return 'postponed';
+  if (state === 'cancelled') return 'cancelled';
+  if (state === 'unknown') return 'unknown';
+  return 'scheduled';
+}
+
+function resultBadge(outcome: FormResult | null) {
+  return outcome ? (
+    <Badge variant={outcome === 'W' ? 'win' : outcome === 'D' ? 'draw' : 'loss'}>{outcome}</Badge>
+  ) : undefined;
+}
+
+function FormStrip({ form }: { form: FormResult[] }) {
+  return (
+    <span className="wdl-strip">
+      {form.map((result, index) => (
+        <Badge key={index} variant={result === 'W' ? 'win' : result === 'D' ? 'draw' : 'loss'}>
+          {result}
+        </Badge>
+      ))}
+    </span>
+  );
 }
 
 export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewProps) {
@@ -133,382 +226,724 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
     [data.teams, teamId],
   );
 
-  const teamName = catalogueTeam?.name ?? '';
-  const teamImage = catalogueTeam?.image_url ?? null;
+  if (!teamId) {
+    return <ClubDirectory data={data} teamIds={teamIds} onSelectTeam={onSelectTeam} />;
+  }
 
-  const history: TeamHistory = useMemo(() => {
-    if (!teamId)
-      return {
-        played: [],
-        upcoming: [],
-        form: [],
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        goalsFor: 0,
-        goalsAgainst: 0,
-      };
-    return computeHistory(data.allMatches, teamId, teamName);
-  }, [data.allMatches, teamId, teamName]);
-
-  const latestPlayed = useMemo(
-    () => (teamId ? pickLatestPlayed(data.allMatches, teamId, teamName) : null),
-    [data.allMatches, teamId, teamName],
-  );
-
-  // Team picker options: grouped by league.
-  const groupedTeams = useMemo(() => {
-    const map = new Map<string, TeamCatalogueEntry[]>();
-    for (const t of data.teams) {
-      const list = map.get(t.leagueName) ?? [];
-      list.push(t);
-      map.set(t.leagueName, list);
-    }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
-  }, [data.teams]);
-
-  const favorite = teamId ? isTeamFavorite(teamId) : false;
-  const playedCount = history.played.length;
-  const record = `${history.wins}–${history.draws}–${history.losses}`;
-
-  const renderMatchRow = (match: MatchSummary, kind: 'played' | 'upcoming') => {
-    const state = classifyMatchStatus(match.status, match.status_text);
-    const finished = state === 'finished';
-    const outcome = outcomeForTeam(match, teamId ?? '', teamName);
-    const label = `${match.home_team.name} — ${match.away_team.name}`;
+  if (!catalogueTeam) {
     return (
-      <li key={match.id + kind}>
-        <MatchRow
-          size="compact"
-          className="team-schedule-row"
-          onClick={() => onOpenMatch(match.id)}
-          ariaLabel={`Открыть матч: ${label}`}
-          home={{ name: match.home_team.name, imageUrl: match.home_team.image_url }}
-          away={{ name: match.away_team.name, imageUrl: match.away_team.image_url }}
-          time={
-            finished
-              ? formatHumanDate(match.time_utc ?? match.date, timezone)
-              : formatFixtureTime(match, timezone)
-          }
-          status={finished ? 'finished' : state === 'live' ? 'live' : 'scheduled'}
-          score={
-            finished ? { home: match.score_home ?? null, away: match.score_away ?? null } : null
-          }
-          badge={
-            outcome ? (
-              <Badge variant={outcome === 'W' ? 'win' : outcome === 'D' ? 'draw' : 'loss'}>
-                {outcome}
-              </Badge>
-            ) : undefined
+      <div className="team-view">
+        <EmptyState
+          title="Клуб не найден"
+          message="Выберите другой клуб из каталога."
+          action={
+            <Button
+              variant="quiet"
+              onClick={() => {
+                const first = data.teams[0];
+                if (first) onSelectTeam(first.id);
+              }}
+              disabled={!data.teams.length}
+            >
+              Выбрать клуб
+            </Button>
           }
         />
-      </li>
+      </div>
     );
-  };
+  }
 
   return (
+    <ClubPage
+      team={catalogueTeam}
+      data={data}
+      timezone={timezone}
+      favorite={isTeamFavorite(catalogueTeam.id)}
+      onToggleFavorite={() => toggleTeam(catalogueTeam.id)}
+      onSelectTeam={onSelectTeam}
+      onOpenMatch={onOpenMatch}
+    />
+  );
+}
+
+function ClubDirectory({
+  data,
+  teamIds,
+  onSelectTeam,
+}: {
+  data: UseFootballResult;
+  teamIds: string[];
+  onSelectTeam: (id: string) => void;
+}) {
+  const favoriteTeams = teamIds
+    .map((id) => data.teams.find((team) => team.id === id))
+    .filter((team): team is TeamCatalogueEntry => !!team);
+  const loading = (data.matchesLoading || data.leaguesLoading) && !data.teams.length;
+  const options = useMemo(
+    () =>
+      data.teams.map((team) => ({
+        value: team.id,
+        label: team.name,
+        group: team.leagueName,
+      })),
+    [data.teams],
+  );
+  return (
     <div className="team-view">
-      <div className="md-topbar">
-        <div className="muted small">
-          <Users size={14} /> Клуб
-        </div>
+      <div className="club-directory-head">
+        <h2 className="ui-page-title">Клубы</h2>
       </div>
 
-      <div className="panel team-header">
-        {catalogueTeam && <TeamBadge name={teamName} imageUrl={teamImage} size={56} />}
-        <div className="team-header-body">
-          <h2 className="screen-title">{catalogueTeam?.name ?? 'Клубы'}</h2>
-          {catalogueTeam && <p className="muted small">{catalogueTeam.leagueName}</p>}
-          <div className="team-header-actions">
-            {teamId && (
-              <Button
-                onClick={() => toggleTeam(teamId)}
-                aria-pressed={favorite}
-                title={favorite ? 'Убрать из избранного' : 'В избранное'}
-              >
-                <Star size={14} /> {favorite ? 'В избранном' : 'В избранное'}
-              </Button>
-            )}
-            {teamId && latestPlayed && (
-              <Button onClick={() => onOpenMatch(latestPlayed.id)}>
-                Последний матч <ArrowRight size={14} />
-              </Button>
-            )}
-          </div>
-          {!teamId && teamIds.some((id) => data.teams.some((team) => team.id === id)) && (
-            <section className="team-favorites" aria-label="Избранные клубы">
-              <h2>Мои команды</h2>
-              <div className="team-favorites-list">
-                {teamIds
-                  .map((id) => data.teams.find((team) => team.id === id))
-                  .filter((team): team is TeamCatalogueEntry => !!team)
-                  .map((team) => (
-                    <Button key={team.id} small onClick={() => onSelectTeam(team.id)}>
-                      <TeamBadge name={team.name} imageUrl={team.image_url} size={24} /> {team.name}
-                    </Button>
-                  ))}
-              </div>
-            </section>
-          )}
-          <div className="team-picker">
-            <label htmlFor="team-picker-select" className="muted small">
-              Выбрать клуб из каталога
-            </label>
-            <select
-              id="team-picker-select"
-              value={teamId ?? ''}
-              onChange={(e) => {
-                if (e.target.value) onSelectTeam(e.target.value);
-              }}
-            >
-              <option value="">— выберите клуб —</option>
-              {groupedTeams.map(([league, list]) => (
-                <optgroup key={league} label={league}>
-                  {list.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
+      {loading && (
+        <div className="club-directory-loading" role="status" aria-label="Загрузка клубов">
+          <Skeleton />
+          <Skeleton />
         </div>
-      </div>
-
-      {!teamId && (data.matchesLoading || data.leaguesLoading) && !data.teams.length && (
-        <LoadingBlock label="Загружаем клубы…" rows={2} />
       )}
-      {!teamId &&
-        !data.matchesLoading &&
-        !data.leaguesLoading &&
-        !teamIds.some((id) => data.teams.some((team) => team.id === id)) && (
-          <EmptyBlock
-            title="Пока нет доступных избранных клубов"
-            message="Выберите клуб из каталога и добавьте его в избранное."
-          />
-        )}
 
-      {teamId && !catalogueTeam && (
-        <EmptyBlock
-          title="Клуб не сопоставлен"
-          message="Этот клуб не найден в загруженных расписаниях. Выберите другой клуб."
+      {!loading && favoriteTeams.length > 0 && (
+        <Panel className="team-favorites team-favorites-panel">
+          <PanelHeader title="Мои команды" />
+          <div className="team-favorites-list">
+            {favoriteTeams.map((team) => (
+              <Button key={team.id} small onClick={() => onSelectTeam(team.id)}>
+                <TeamBadge name={team.name} imageUrl={team.image_url} size={24} /> {team.name}
+              </Button>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      {!loading && favoriteTeams.length === 0 && (
+        <EmptyState
+          title="Пока нет избранных клубов"
+          message="Выберите клуб из каталога и добавьте его в избранное."
         />
       )}
 
-      {teamId && catalogueTeam && (
-        <>
-          <section className="panel team-record">
-            <div className="team-record-grid">
-              <StatTile
-                label="Форма (5 последних)"
-                value={
-                  history.form.length === 0 ? (
-                    '—'
-                  ) : (
-                    <span className="wdl-strip">
-                      {history.form.map((r, i) => (
-                        <Badge key={i} variant={r === 'W' ? 'win' : r === 'D' ? 'draw' : 'loss'}>
-                          {r}
-                        </Badge>
-                      ))}
-                    </span>
-                  )
-                }
-                note={history.form.length === 0 ? 'Нет завершённых матчей' : undefined}
-              />
-              <StatTile
-                label="Баланс побед"
-                value={teamId && playedCount > 0 ? record : '—'}
-                note="W–D–L по завершённым"
-              />
-              <StatTile
-                label="Голы"
-                value={
-                  teamId && playedCount > 0 ? `${history.goalsFor} : ${history.goalsAgainst}` : '—'
-                }
-                note="забито : пропущено"
-              />
-              <StatTile label="Матчи" value={playedCount} note="завершено в загруженных лигах" />
-            </div>
-          </section>
-
-          {teamId && (
-            <SeasonAnalytics
-              teamId={teamId}
-              teamName={catalogueTeam.name}
-              teams={data.teams}
-              leagueId={catalogueTeam.leagueId}
-              leagueName={catalogueTeam.leagueName}
-              season={
-                catalogueTeam.leagueId === data.selectedLeagueId
-                  ? data.season
-                  : data.leagues.find((league) => league.id === catalogueTeam.leagueId)?.season
-              }
+      {!loading && options.length > 0 && (
+        <Panel className="team-picker-panel">
+          <PanelHeader title="Выбрать клуб" />
+          <div className="team-picker">
+            <SearchSelect
+              ariaLabel="Клуб"
+              value=""
+              options={options}
+              onChange={(id) => {
+                if (id) onSelectTeam(id);
+              }}
+              placeholder="Найти клуб"
             />
-          )}
-
-          <div className="team-cols">
-            <section className="panel team-schedule">
-              <div className="section-title">
-                <h2>
-                  <CalendarDays size={14} /> Расписание
-                </h2>
-                <span className="muted small">{history.upcoming.length} предстоящих</span>
-              </div>
-              {history.upcoming.length === 0 ? (
-                <p className="muted small">
-                  В загруженных расписаниях нет будущих матчей этой команды.
-                </p>
-              ) : (
-                <ul className="team-match-list">
-                  {history.upcoming.map((m) => renderMatchRow(m, 'upcoming'))}
-                </ul>
-              )}
-            </section>
-
-            <section className="panel team-schedule">
-              <div className="section-title">
-                <h2>
-                  <Target size={14} /> История
-                </h2>
-                <span className="muted small">{history.played.length} завершённых</span>
-              </div>
-              {history.played.length === 0 ? (
-                <p className="muted small">
-                  Завершённых матчей этой команды в загруженных лигах не найдено.
-                </p>
-              ) : (
-                <ul className="team-match-list">
-                  {history.played.slice(0, 30).map((m) => renderMatchRow(m, 'played'))}
-                </ul>
-              )}
-            </section>
           </div>
+        </Panel>
+      )}
 
-          {catalogueTeam && (
-            <ClubPlayers
-              key={teamId}
-              team={catalogueTeam}
-              matches={data.allMatches}
-              onOpenMatch={onOpenMatch}
-            />
-          )}
-
-          <SourceLine
-            sources={['pitch']}
-            fetchedAt={data.fetchedAt}
-            stale={data.stale}
-            timezone={timezone}
-          />
-        </>
+      {!loading && options.length === 0 && (
+        <EmptyState title="Каталог клубов пуст" message="Данные о клубах пока не загружены." />
       )}
     </div>
   );
 }
 
-/**
- * №5: локальная аналитика из истории SQLite — ход очков сезона (график),
- * полная форма и head-to-head с любым соперником из каталога.
- */
-function SeasonAnalytics({
+function ClubPage({
+  team,
+  data,
+  timezone,
+  favorite,
+  onToggleFavorite,
+  onSelectTeam,
+  onOpenMatch,
+}: {
+  team: TeamCatalogueEntry;
+  data: UseFootballResult;
+  timezone: string;
+  favorite: boolean;
+  onToggleFavorite: () => void;
+  onSelectTeam: (id: string) => void;
+  onOpenMatch: (id: string) => void;
+}) {
+  const [storedTab, setStoredTab] = useViewState<unknown>(
+    `club.${team.id}.tab`,
+    'overview',
+    (value) => migrateClubTab(value) !== undefined,
+  );
+  const tab: ClubTab = migrateClubTab(storedTab) ?? 'overview';
+
+  const seasonMatches = useMemo(() => data.matchesForLeague(team.leagueId), [data, team.leagueId]);
+  const teamMatches = useMemo(
+    () => seasonMatches.filter((match) => involvesTeam(match, team.id, team.name)),
+    [seasonMatches, team.id, team.name],
+  );
+  const history = useMemo(
+    () => computeHistory(teamMatches, team.id, team.name),
+    [teamMatches, team.id, team.name],
+  );
+  const now = Date.now();
+  const snapshot = useMemo(
+    () => clubSnapshot(teamMatches, team.id, now),
+    [teamMatches, team.id, now],
+  );
+  const position = useMemo(
+    () => buildLeagueTable(seasonMatches).get(team.id)?.position ?? null,
+    [seasonMatches, team.id],
+  );
+  const teamOptions = useMemo(
+    () =>
+      data.teams.map((entry) => ({
+        value: entry.id,
+        label: entry.name,
+        group: entry.leagueName,
+      })),
+    [data.teams],
+  );
+  const tabs = CLUB_TAB_LABELS.map(([id, label]) => ({ id, label }));
+  const panelId = 'club-tab-panel';
+  const league = data.leagues.find((entry) => entry.id === team.leagueId);
+  const season =
+    team.leagueId === data.selectedLeagueId ? data.season : (league?.season ?? data.season);
+
+  return (
+    <div className="team-view">
+      <Panel className="club-header">
+        <div className="club-header__top">
+          <TeamBadge name={team.name} imageUrl={team.image_url} size={56} />
+          <div className="club-header__identity">
+            <h2 className="ui-page-title">{team.name}</h2>
+            <p className="muted small">
+              {`${team.leagueName} · ${position ? `${position}-е место` : 'место —'}`}
+            </p>
+          </div>
+          <div className="club-header__actions">
+            <Button
+              variant="quiet"
+              aria-pressed={favorite}
+              onClick={onToggleFavorite}
+              title={favorite ? 'Убрать из избранного' : 'В избранное'}
+            >
+              <Star size={14} fill={favorite ? 'currentColor' : 'none'} />{' '}
+              {favorite ? 'В избранном' : 'В избранное'}
+            </Button>
+            {teamOptions.length > 1 && (
+              <div className="club-header__switch">
+                <SearchSelect
+                  ariaLabel="Сменить клуб"
+                  value=""
+                  options={teamOptions}
+                  onChange={(id) => {
+                    if (id) onSelectTeam(id);
+                  }}
+                  placeholder="Сменить клуб"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="club-header__snapshot">
+          <ClubSnapshot
+            label="Последний матч"
+            match={snapshot.last}
+            teamId={team.id}
+            teamName={team.name}
+            timezone={timezone}
+            onOpenMatch={onOpenMatch}
+          />
+          <ClubSnapshot
+            label="Следующий матч"
+            match={snapshot.next}
+            teamId={team.id}
+            teamName={team.name}
+            timezone={timezone}
+            onOpenMatch={onOpenMatch}
+          />
+        </div>
+      </Panel>
+
+      <Tabs
+        ariaLabel="Разделы клуба"
+        active={tab}
+        onChange={(id) => {
+          const next = migrateClubTab(id);
+          if (next) setStoredTab(next);
+        }}
+        items={tabs}
+        panelId={panelId}
+      />
+
+      <div
+        id={panelId}
+        role="tabpanel"
+        aria-label={CLUB_TAB_LABELS.find(([id]) => id === tab)?.[1]}
+      >
+        {tab === 'overview' && (
+          <OverviewTab
+            teamId={team.id}
+            leagueId={team.leagueId}
+            season={season}
+            history={history}
+            loading={data.matchesLoading && !teamMatches.length}
+            error={data.matchesError}
+            onRetry={data.reload}
+          />
+        )}
+        {tab === 'matches' && (
+          <MatchesTab
+            team={team}
+            matches={teamMatches}
+            timezone={timezone}
+            loading={data.matchesLoading && !teamMatches.length}
+            error={data.matchesError}
+            onRetry={data.reload}
+            onOpenMatch={onOpenMatch}
+          />
+        )}
+        {tab === 'squad' && (
+          <ClubPlayers
+            key={team.id}
+            team={team}
+            matches={teamMatches}
+            onOpenMatch={onOpenMatch}
+            heading="Состав"
+            groupBy="position"
+            visibleLimit={18}
+          />
+        )}
+        {tab === 'h2h' && (
+          <HeadToHeadTab
+            team={team}
+            teams={data.teams}
+            matches={teamMatches}
+            season={season}
+            timezone={timezone}
+          />
+        )}
+      </div>
+
+      <SourceLine
+        sources={['pitch']}
+        fetchedAt={data.fetchedAt}
+        stale={data.stale}
+        timezone={timezone}
+      />
+    </div>
+  );
+}
+
+function ClubSnapshot({
+  label,
+  match,
   teamId,
   teamName,
-  teams,
+  timezone,
+  onOpenMatch,
+}: {
+  label: string;
+  match: MatchSummary | null;
+  teamId: string;
+  teamName: string;
+  timezone: string;
+  onOpenMatch: (id: string) => void;
+}) {
+  const hidden = useResultHidden('football', match?.id ?? '');
+  if (!match) {
+    return (
+      <div className="club-snapshot">
+        <span className="club-snapshot__label">{label}</span>
+        <span className="muted small">—</span>
+      </div>
+    );
+  }
+  const state = classifyMatchStatus(match.status, match.status_text);
+  const outcome = outcomeForTeam(match, teamId, teamName);
+  return (
+    <div className="club-snapshot">
+      <span className="club-snapshot__label">{label}</span>
+      <MatchRow
+        size="compact"
+        className="team-schedule-row club-match-row--wide"
+        onClick={() => onOpenMatch(match.id)}
+        ariaLabel={`Открыть матч: ${match.home_team.name} — ${match.away_team.name}`}
+        home={{ name: match.home_team.name, imageUrl: match.home_team.image_url }}
+        away={{ name: match.away_team.name, imageUrl: match.away_team.image_url }}
+        time={formatFixtureTime(match, timezone)}
+        status={rowStatus(match)}
+        score={
+          state === 'finished'
+            ? { home: match.score_home ?? null, away: match.score_away ?? null }
+            : null
+        }
+        hideScore={hidden}
+        badge={hidden ? undefined : resultBadge(outcome)}
+      />
+    </div>
+  );
+}
+
+function OverviewTab({
+  teamId,
   leagueId,
-  leagueName,
+  season,
+  history,
+  loading,
+  error,
+  onRetry,
+}: {
+  teamId: string;
+  leagueId: string;
+  season: string | undefined;
+  history: TeamHistory;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  const spoilers = useSpoilerSet();
+  if (loading) {
+    return (
+      <div className="club-overview">
+        <Skeleton />
+        <Skeleton />
+      </div>
+    );
+  }
+  const hasTiles = history.form.length > 0 || history.results > 0 || history.played.length > 0;
+  const formHidden = history.played
+    .slice(0, 10)
+    .some((match) => spoilers.has(spoilerKey('football', match.id)));
+  return (
+    <div className="club-overview">
+      {error && (
+        <EmptyState
+          tone="error"
+          title="Матчи недоступны"
+          message={error}
+          action={
+            <Button variant="quiet" onClick={onRetry}>
+              Повторить
+            </Button>
+          }
+        />
+      )}
+      {hasTiles && (
+        <div className="club-stat-grid">
+          {history.form.length > 0 && !formHidden && (
+            <StatTile
+              className="club-form-tile"
+              label="Форма"
+              value={<FormStrip form={history.form} />}
+            />
+          )}
+          {history.results > 0 && (
+            <StatTile
+              label="Баланс побед"
+              value={`${history.wins}–${history.draws}–${history.losses}`}
+              note="W–D–L по завершённым"
+            />
+          )}
+          {history.results > 0 && (
+            <StatTile
+              label="Голы"
+              value={`${history.goalsFor} : ${history.goalsAgainst}`}
+              note="забито : пропущено"
+            />
+          )}
+          {history.played.length > 0 && (
+            <StatTile label="Матчи" value={history.played.length} note="завершено" />
+          )}
+        </div>
+      )}
+
+      {!hasTiles && !error && (
+        <EmptyState
+          title="Матчей пока нет"
+          message="В загруженном сезоне нет завершённых матчей этого клуба."
+        />
+      )}
+
+      <PointsPanel teamId={teamId} leagueId={leagueId} season={season} />
+    </div>
+  );
+}
+
+function PointsPanel({
+  teamId,
+  leagueId,
   season,
 }: {
   teamId: string;
-  teamName: string;
-  teams: TeamCatalogueEntry[];
   leagueId: string;
-  leagueName: string;
   season: string | undefined;
 }) {
-  const [teamAttempt, setTeamAttempt] = useState(0);
-  const [teamHistory, setTeamHistory] = useState<{
-    teamId: string;
-    attempt: number;
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{
+    key: string;
     rows: HistoryMatch[] | null;
     error: string | null;
   } | null>(null);
-  const [seasonAttempt, setSeasonAttempt] = useState(0);
-  const [seasonHistory, setSeasonHistory] = useState<{
-    leagueId: string;
-    season: string;
-    attempt: number;
-    rows: HistoryMatch[] | null;
-    error: string | null;
-  } | null>(null);
-  const [rivalId, setRivalId] = useState<string>('');
-  const [h2hAttempt, setH2hAttempt] = useState(0);
-  const [h2hHistory, setH2hHistory] = useState<{
+  const key = `${leagueId}|${season ?? ''}|${attempt}`;
+
+  useEffect(() => {
+    if (!season) return;
+    let active = true;
+    setResult({ key, rows: null, error: null });
+    void fetchHistorySeason(leagueId, season).then(
+      (rows) => {
+        if (active) setResult({ key, rows, error: null });
+      },
+      (error: unknown) => {
+        if (active)
+          setResult({
+            key,
+            rows: null,
+            error: error instanceof Error ? error.message : 'История недоступна.',
+          });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [leagueId, season, key]);
+
+  const current = result?.key === key ? result : null;
+  const progression = useMemo(
+    () => (current?.rows ? pointsProgression(current.rows, teamId) : []),
+    [current, teamId],
+  );
+  if (!season) return null;
+  if (!current) {
+    return (
+      <Panel className="club-points">
+        <PanelHeader title="Ход очков" />
+        <div className="club-points__loading" role="status" aria-label="Загрузка хода очков">
+          <Skeleton />
+        </div>
+      </Panel>
+    );
+  }
+  if (current.error) {
+    return (
+      <Panel className="club-points">
+        <PanelHeader title="Ход очков" />
+        <EmptyState
+          tone="error"
+          title="Ход очков недоступен"
+          message={current.error}
+          action={
+            <Button variant="quiet" onClick={() => setAttempt((value) => value + 1)}>
+              Повторить
+            </Button>
+          }
+        />
+      </Panel>
+    );
+  }
+  const last = progression.at(-1);
+  if (progression.length < 1 || !last) return null;
+  const max = last.points || 1;
+  return (
+    <Panel className="club-points">
+      <PanelHeader title="Ход очков" />
+      <div className="club-points__chart" role="img" aria-label="График накопленных очков">
+        {progression.map((point, index) => (
+          <i
+            key={index}
+            style={
+              {
+                '--bar-height': `${Math.max(4, (point.points / max) * 100)}%`,
+              } as CSSProperties
+            }
+            title={`${point.round}: ${point.points} очк.`}
+          />
+        ))}
+      </div>
+      <span className="muted small">{`${countRu(last.points, ['очко', 'очка', 'очков'])} после ${progression.length} ${pluralRu(progression.length, ['матча', 'матчей', 'матчей'])}`}</span>
+    </Panel>
+  );
+}
+
+function MatchesTab({
+  team,
+  matches,
+  timezone,
+  loading,
+  error,
+  onRetry,
+  onOpenMatch,
+}: {
+  team: TeamCatalogueEntry;
+  matches: MatchSummary[];
+  timezone: string;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onOpenMatch: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (loading) {
+    return (
+      <div className="club-matches">
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+      </div>
+    );
+  }
+  return (
+    <div className="club-matches">
+      {error && (
+        <EmptyState
+          tone="error"
+          title="Матчи недоступны"
+          message={error}
+          action={
+            <Button variant="quiet" onClick={onRetry}>
+              Повторить
+            </Button>
+          }
+        />
+      )}
+      {matches.length > 0 ? (
+        <>
+          <MatchList
+            items={matches}
+            getKey={(match) => match.id}
+            getTime={(match) => fixtureCalendarTime(match)}
+            timezone={timezone}
+            grouping="month"
+            limit={expanded ? undefined : COLLAPSED_MATCHES}
+            renderRow={(match) => (
+              <ClubMatchRow
+                match={match}
+                team={team}
+                timezone={timezone}
+                onOpenMatch={onOpenMatch}
+              />
+            )}
+          />
+          {matches.length > COLLAPSED_MATCHES && (
+            <div className="club-matches__more">
+              <Button variant="quiet" onClick={() => setExpanded((value) => !value)}>
+                {expanded ? 'Свернуть' : 'Показать все'}
+              </Button>
+            </div>
+          )}
+        </>
+      ) : (
+        !error && (
+          <EmptyState title="Матчей нет" message="В загруженном сезоне нет матчей этого клуба." />
+        )
+      )}
+    </div>
+  );
+}
+
+function ClubMatchRow({
+  match,
+  team,
+  timezone,
+  onOpenMatch,
+}: {
+  match: MatchSummary;
+  team: TeamCatalogueEntry;
+  timezone: string;
+  onOpenMatch: (id: string) => void;
+}) {
+  const hidden = useResultHidden('football', match.id);
+  const state = classifyMatchStatus(match.status, match.status_text);
+  const outcome = outcomeForTeam(match, team.id, team.name);
+  const label = `${match.home_team.name} — ${match.away_team.name}`;
+  const isHome = match.home_team.id === team.id;
+  const outcomeBadge = hidden ? undefined : resultBadge(outcome);
+  return (
+    <MatchRow
+      size="compact"
+      className="team-schedule-row club-match-row--wide"
+      home={{
+        name: match.home_team.name,
+        imageUrl: match.home_team.image_url,
+        action: isHome ? outcomeBadge : undefined,
+      }}
+      away={{
+        name: match.away_team.name,
+        imageUrl: match.away_team.image_url,
+        action: !isHome ? outcomeBadge : undefined,
+      }}
+      time={formatFixtureTime(match, timezone)}
+      status={rowStatus(match)}
+      score={
+        state === 'finished'
+          ? { home: match.score_home ?? null, away: match.score_away ?? null }
+          : null
+      }
+      hideScore={hidden}
+      actions={
+        <Button
+          variant="quiet"
+          small
+          onClick={() => {
+            viewState.write(`match.${match.id}.tab`, 'stats');
+            onOpenMatch(match.id);
+          }}
+          aria-label={`Разбор матча: ${label}`}
+        >
+          Разбор
+        </Button>
+      }
+    />
+  );
+}
+
+function HeadToHeadTab({
+  team,
+  teams,
+  matches,
+  season,
+  timezone,
+}: {
+  team: TeamCatalogueEntry;
+  teams: TeamCatalogueEntry[];
+  matches: MatchSummary[];
+  season: string | undefined;
+  timezone: string;
+}) {
+  const [rivalId, setRivalId] = useViewState<string>(`club.${team.id}.rival`, '');
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{
     teamId: string;
     rivalId: string;
     attempt: number;
     rows: HistoryMatch[] | null;
     error: string | null;
   } | null>(null);
+  const rivals = useMemo(
+    () =>
+      teams
+        .filter((entry) => entry.id !== team.id)
+        .sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+    [teams, team.id],
+  );
+  const options = useMemo(
+    () => rivals.map((entry) => ({ value: entry.id, label: entry.name, group: entry.leagueName })),
+    [rivals],
+  );
 
   useEffect(() => {
-    let active = true;
-    const key = { teamId, attempt: teamAttempt };
-    setTeamHistory({ ...key, rows: null, error: null });
-    void fetchTeamHistory(teamId, true).then(
-      (rows) => {
-        if (active) setTeamHistory({ ...key, rows, error: null });
-      },
-      (error: unknown) => {
-        if (active)
-          setTeamHistory({
-            ...key,
-            rows: null,
-            error: error instanceof Error ? error.message : 'История недоступна.',
-          });
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [teamId, teamAttempt]);
-
+    if (!rivalId && rivals.length === 1) setRivalId(rivals[0]!.id);
+  }, [rivalId, rivals, setRivalId]);
   useEffect(() => {
-    let active = true;
-    if (leagueId && season) {
-      const key = { leagueId, season, attempt: seasonAttempt };
-      setSeasonHistory({ ...key, rows: null, error: null });
-      void fetchHistorySeason(leagueId, season).then(
-        (rows) => {
-          if (active) setSeasonHistory({ ...key, rows, error: null });
-        },
-        (error: unknown) => {
-          if (active)
-            setSeasonHistory({
-              ...key,
-              rows: null,
-              error: error instanceof Error ? error.message : 'История недоступна.',
-            });
-        },
-      );
-    }
-    return () => {
-      active = false;
-    };
-  }, [leagueId, season, seasonAttempt]);
+    if (rivalId && !rivals.some((entry) => entry.id === rivalId)) setRivalId('');
+  }, [rivalId, rivals, setRivalId]);
 
   useEffect(() => {
     if (!rivalId) return;
     let active = true;
-    const key = { teamId, rivalId, attempt: h2hAttempt };
-    setH2hHistory({ ...key, rows: null, error: null });
-    void fetchHeadToHead(teamId, rivalId).then(
+    const key = { teamId: team.id, rivalId, attempt };
+    setResult({ ...key, rows: null, error: null });
+    void fetchHeadToHead(team.id, rivalId).then(
       (rows) => {
-        if (active) setH2hHistory({ ...key, rows, error: null });
+        if (active) setResult({ ...key, rows, error: null });
       },
       (error: unknown) => {
         if (active)
-          setH2hHistory({
+          setResult({
             ...key,
             rows: null,
             error: error instanceof Error ? error.message : 'История недоступна.',
@@ -518,178 +953,148 @@ function SeasonAnalytics({
     return () => {
       active = false;
     };
-  }, [teamId, rivalId, h2hAttempt]);
+  }, [team.id, rivalId, attempt]);
 
-  const teamResult =
-    teamHistory?.teamId === teamId && teamHistory.attempt === teamAttempt ? teamHistory : null;
-  const seasonResult =
-    seasonHistory?.leagueId === leagueId &&
-    seasonHistory.season === season &&
-    seasonHistory.attempt === seasonAttempt
-      ? seasonHistory
+  const current =
+    result?.teamId === team.id && result.rivalId === rivalId && result.attempt === attempt
+      ? result
       : null;
-  const h2hResult =
-    rivalId &&
-    h2hHistory?.teamId === teamId &&
-    h2hHistory.rivalId === rivalId &&
-    h2hHistory.attempt === h2hAttempt
-      ? h2hHistory
-      : null;
-  const matches = teamResult?.rows ?? null;
-  const h2h = h2hResult?.rows ?? null;
-
-  const form = useMemo(() => (matches ? teamForm(matches, teamId) : []), [matches, teamId]);
-  const progression = useMemo(
-    () => (seasonResult?.rows ? pointsProgression(seasonResult.rows, teamId) : []),
-    [seasonResult, teamId],
-  );
+  const rival =
+    rivals.find((entry) => entry.id === rivalId) ?? (rivals.length === 1 ? rivals[0]! : null);
+  const loaded = useMemo(() => {
+    if (!rival) return [];
+    return matches
+      .filter(
+        (match) =>
+          involvesTeam(match, team.id, team.name) && involvesTeam(match, rival.id, rival.name),
+      )
+      .map((match) => loadedMeeting(match, team.leagueId, season, timezone))
+      .filter((match): match is HistoryMatch => match !== null);
+  }, [matches, team, rival, season, timezone]);
+  const merged = useMemo(() => mergeHeadToHead(current?.rows ?? [], loaded), [current, loaded]);
   const summary = useMemo(
-    () => (h2h && rivalId ? h2hSummary(h2h, teamId, rivalId) : null),
-    [h2h, teamId, rivalId],
+    () => (rivalId ? h2hSummary(merged, team.id, rivalId) : null),
+    [merged, rivalId, team.id],
   );
-  const rivals = teams.filter((t) => t.id !== teamId);
+  const [expanded, setExpanded] = useState(false);
 
-  if (matches !== null && matches.length === 0 && !seasonResult?.error && !h2hResult?.error)
-    return null;
+  if (!rivals.length) {
+    return (
+      <EmptyState title="Соперников нет" message="В загруженном каталоге нет других клубов." />
+    );
+  }
 
   return (
-    <section className="panel season-analytics">
-      <div className="section-title">
-        <h2>
-          <TrendingUp size={15} /> Сезонная аналитика
-        </h2>
-        <span className="muted small">
-          {matches
-            ? `${matches.length} матчей в базе`
-            : teamResult?.error
-              ? 'недоступно'
-              : 'загружаем…'}
-        </span>
+    <Panel className="club-h2h">
+      <PanelHeader
+        title="Личные встречи"
+        action={
+          merged.length > 0 && summary && summary.played > 0 ? (
+            <span className="muted small">{countRu(summary.played, MATCHES)}</span>
+          ) : undefined
+        }
+      />
+      <div className="club-h2h__picker">
+        {rivals.length === 1 ? (
+          <span className="club-h2h__single">
+            Соперник: <strong>{rival?.name}</strong>
+          </span>
+        ) : (
+          <SearchSelect
+            ariaLabel="Соперник"
+            value={rivalId}
+            options={options}
+            onChange={setRivalId}
+            placeholder="Выберите соперника"
+          />
+        )}
       </div>
 
-      {matches === null && !teamResult?.error && (
-        <LoadingBlock label="Читаем историю сезона…" rows={2} />
+      {!rivalId && <p className="muted small">Выберите соперника, чтобы увидеть личные встречи.</p>}
+
+      {rivalId && !current && (
+        <div className="club-h2h__loading" role="status" aria-label="Загрузка личных встреч">
+          <Skeleton />
+        </div>
       )}
-      {teamResult?.error && (
-        <ErrorBlock
-          title="История команды недоступна"
-          message={teamResult.error}
-          onRetry={() => setTeamAttempt((value) => value + 1)}
-        />
-      )}
-      {seasonResult?.error && (
-        <ErrorBlock
-          title="История сезона недоступна"
-          message={seasonResult.error}
-          onRetry={() => setSeasonAttempt((value) => value + 1)}
-        />
-      )}
-      {matches === null && h2hResult?.error && (
-        <ErrorBlock
-          title="История личных встреч недоступна"
-          message={h2hResult.error}
-          onRetry={() => setH2hAttempt((value) => value + 1)}
+
+      {current?.error && (
+        <EmptyState
+          tone="error"
+          title="Личные встречи недоступны"
+          message={current.error}
+          action={
+            <Button variant="quiet" onClick={() => setAttempt((value) => value + 1)}>
+              Повторить
+            </Button>
+          }
         />
       )}
 
-      {matches !== null && (
+      {merged.length > 0 && summary ? (
         <>
-          <div className="sa-row">
-            <div className="sa-form">
-              <span className="muted small">Форма (новые слева)</span>
-              <div className="wdl-strip">
-                {form.slice(0, 10).map((r, i) => (
-                  <Badge key={i} variant={r === 'W' ? 'win' : r === 'D' ? 'draw' : 'loss'}>
-                    {r}
-                  </Badge>
-                ))}
-                {form.length === 0 && <span className="muted small">Нет завершённых матчей</span>}
-              </div>
+          {summary.played > 0 && (
+            <div className="club-stat-grid">
+              <StatTile label="Матчи" value={summary.played} />
+              <StatTile label="Победы" value={summary.aWins} note={team.name} />
+              <StatTile label="Ничьи" value={summary.draws} />
+              <StatTile label="Поражения" value={summary.bWins} note={rival?.name} />
+              <StatTile
+                label="Голы"
+                value={`${summary.aGoals} : ${summary.bGoals}`}
+                note="забито : пропущено"
+              />
             </div>
-
-            <div className="sa-h2h">
-              <span className="muted small">Личные встречи</span>
-              <select
-                value={rivalId}
-                onChange={(e) => setRivalId(e.target.value)}
-                aria-label="Соперник для личных встреч"
-              >
-                <option value="">Выберите соперника</option>
-                {rivals.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-              {h2hResult?.error && (
-                <ErrorBlock
-                  title="История личных встреч недоступна"
-                  message={h2hResult.error}
-                  onRetry={() => setH2hAttempt((value) => value + 1)}
-                />
-              )}
-              {summary && (
-                <div className="sa-h2h-summary">
-                  <span>
-                    <b>{summary.aWins}</b> — <b>{summary.draws}</b> — <b>{summary.bWins}</b>
-                  </span>
-                  <span className="muted small">
-                    {summary.played} матчей · голы {summary.aGoals}:{summary.bGoals}
-                  </span>
-                </div>
-              )}
-              {h2h !== null && h2h.length === 0 && rivalId && (
-                <span className="muted small">Личных матчей в истории пока нет.</span>
-              )}
-            </div>
-          </div>
-
-          {h2h && h2h.length > 0 && (
-            <ul className="team-match-list sa-h2h-list">
-              {h2h.slice(0, 8).map((m) => (
-                <li key={m.id} className="team-match-row-static">
-                  <span className="muted small">{formatHumanDate(m.date, getUserTimezone())}</span>
-                  <span className="truncate">
-                    {m.homeName} — {m.awayName}
-                  </span>
-                  <b className="team-match-score-static">
-                    {m.homeScore} : {m.awayScore}
-                  </b>
-                  <span className="muted small">{m.season}</span>
-                </li>
-              ))}
-            </ul>
           )}
-
-          {progression.length > 1 && (
-            <div className="sa-chart">
-              <span className="muted small">
-                Ход очков · {leagueName} · {season}
-              </span>
-              <div className="sa-sparkline" role="img" aria-label="График накопленных очков">
-                {(() => {
-                  const max = progression[progression.length - 1]!.points || 1;
-                  return progression.map((p, i) => (
-                    <i
-                      key={i}
-                      style={
-                        {
-                          '--bar-height': `${Math.max(4, (p.points / max) * 100)}%`,
-                        } as CSSProperties
-                      }
-                      title={`${p.round}: ${p.points} очк.`}
-                    />
-                  ));
-                })()}
-              </div>
-              <span className="muted small">
-                {progression[progression.length - 1]!.points} очков после {progression.length}{' '}
-                матчей
-              </span>
+          <div className="club-h2h__list">
+            {(expanded ? merged : merged.slice(0, COLLAPSED_H2H)).map((match) => (
+              <H2HRow key={match.id} match={match} team={team} rival={rival} timezone={timezone} />
+            ))}
+          </div>
+          {merged.length > COLLAPSED_H2H && (
+            <div className="club-matches__more">
+              <Button variant="quiet" onClick={() => setExpanded((value) => !value)}>
+                {expanded ? 'Свернуть' : 'Показать все'}
+              </Button>
             </div>
           )}
         </>
+      ) : (
+        current?.rows &&
+        !current.error && <p className="muted small">Личных матчей в истории пока нет.</p>
       )}
-    </section>
+    </Panel>
+  );
+}
+
+function H2HRow({
+  match,
+  team,
+  rival,
+  timezone,
+}: {
+  match: HistoryMatch;
+  team: TeamCatalogueEntry;
+  rival: TeamCatalogueEntry | null;
+  timezone: string;
+}) {
+  const hidden = useResultHidden('football', match.id);
+  const known = match.homeScore >= 0 && match.awayScore >= 0;
+  const isHome = match.homeId === team.id;
+  const own = isHome ? match.homeScore : match.awayScore;
+  const opp = isHome ? match.awayScore : match.homeScore;
+  const outcome: FormResult | null = known ? (own > opp ? 'W' : own < opp ? 'L' : 'D') : null;
+  const outcomeBadge = hidden ? undefined : resultBadge(outcome);
+  return (
+    <MatchRow
+      size="compact"
+      home={{ name: match.homeName, action: isHome ? outcomeBadge : undefined }}
+      away={{ name: match.awayName, action: !isHome ? outcomeBadge : undefined }}
+      time={formatHumanDate(match.date, timezone)}
+      status="finished"
+      score={known ? { home: match.homeScore, away: match.awayScore } : { home: null, away: null }}
+      hideScore={hidden}
+      ariaLabel={`${team.name} — ${rival?.name ?? match.awayName}: ${match.date}`}
+    />
   );
 }

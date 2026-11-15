@@ -9,7 +9,7 @@ import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
 import { PlayerFormPanel } from './PlayerFormPanel';
-import { loadSquad, mergeSquad, type SquadMember } from './squad';
+import { loadSquad, mergeSquad, squadPositionGroups, type SquadMember } from './squad';
 import { formatHumanDate } from '../../lib/humanDate';
 import { countRu, PLAYERS } from '../../lib/plural';
 import { getUserTimezone } from './storage';
@@ -33,11 +33,21 @@ export function ClubPlayers({
   team,
   matches,
   onOpenMatch,
+  heading,
+  groupBy = 'role',
+  visibleLimit = 0,
 }: {
   team: TeamRef;
   matches: MatchSummary[];
   onOpenMatch: (id: string) => void;
+  /** Panel heading; the players directory keeps «Состав · {club}». */
+  heading?: string;
+  /** `position` groups by the provider position, `role` keeps starters and subs apart. */
+  groupBy?: 'role' | 'position';
+  /** Collapse a long position list after this many players; 0 shows all. */
+  visibleLimit?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const { isPlayerFavorite, togglePlayer } = useFavorites();
   const match = useMemo(
     () =>
@@ -147,13 +157,58 @@ export function ClubPlayers({
         />
       </div>
     );
+  const renderPlayerCard = (p: SquadMember) => (
+    <div className="squad-player" key={p.id}>
+      <Button
+        variant="quiet"
+        className="squad-player-open"
+        onClick={() => setSelectedId(p.id)}
+        aria-label={`Статистика: ${p.name}`}
+      >
+        <PersonAvatar name={p.name} src={p.imageUrl} />
+        <span className="squad-player-text">
+          <strong>{p.name}</strong>
+          <small>
+            {p.number ? `№ ${p.number} · ` : ''}
+            {p.role === 'start'
+              ? 'Стартовый состав'
+              : p.role === 'sub'
+                ? 'Запасной'
+                : 'Участник матча'}
+            {p.captain ? ' · Капитан' : ''}
+          </small>
+        </span>
+        <ChevronRight size={15} />
+      </Button>
+      <IconButton
+        className={isPlayerFavorite(p.id) ? 'is-active' : undefined}
+        aria-pressed={isPlayerFavorite(p.id)}
+        aria-label={`${isPlayerFavorite(p.id) ? 'Убрать из избранного' : 'В избранное'}: ${p.name}`}
+        onClick={() => match && togglePlayer(savedPlayer(p, team, match))}
+        icon={<Star size={17} fill={isPlayerFavorite(p.id) ? 'currentColor' : 'none'} />}
+      />
+    </div>
+  );
   const filtered = (current?.members ?? []).filter((p) =>
     p.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   );
+  const searching = query.trim().length > 0;
+  const positionGroups =
+    groupBy === 'position' && !searching ? squadPositionGroups(filtered) : null;
+  const limit = searching || expanded ? 0 : visibleLimit;
+  let remaining = limit;
+  const shownGroups =
+    positionGroups?.flatMap((group) => {
+      if (remaining <= 0 && limit > 0) return [];
+      const members = limit > 0 ? group.members.slice(0, remaining) : group.members;
+      remaining -= members.length;
+      return members.length ? [{ ...group, members, total: group.members.length }] : [];
+    }) ?? null;
+  const canExpand = !searching && visibleLimit > 0 && filtered.length > visibleLimit;
   return (
     <section className="panel club-players">
       <div className="section-title">
-        <h2>Состав · {team.name}</h2>
+        <h2>{heading ?? `Состав · ${team.name}`}</h2>
         {!!current?.members.length && (
           <span className="muted small">{countRu(current.members.length, PLAYERS)}</span>
         )}
@@ -192,40 +247,30 @@ export function ClubPlayers({
               />
             </label>
           )}
-          <div className="squad-player-grid">
-            {filtered.map((p) => (
-              <div className="squad-player" key={p.id}>
-                <Button
-                  variant="quiet"
-                  className="squad-player-open"
-                  onClick={() => setSelectedId(p.id)}
-                  aria-label={`Статистика: ${p.name}`}
-                >
-                  <PersonAvatar name={p.name} src={p.imageUrl} />
-                  <span className="squad-player-text">
-                    <strong>{p.name}</strong>
-                    <small>
-                      {p.number ? `№ ${p.number} · ` : ''}
-                      {p.role === 'start'
-                        ? 'Стартовый состав'
-                        : p.role === 'sub'
-                          ? 'Запасной'
-                          : 'Участник матча'}
-                      {p.captain ? ' · Капитан' : ''}
-                    </small>
-                  </span>
-                  <ChevronRight size={15} />
-                </Button>
-                <IconButton
-                  className={isPlayerFavorite(p.id) ? 'is-active' : undefined}
-                  aria-pressed={isPlayerFavorite(p.id)}
-                  aria-label={`${isPlayerFavorite(p.id) ? 'Убрать из избранного' : 'В избранное'}: ${p.name}`}
-                  onClick={() => match && togglePlayer(savedPlayer(p, team, match))}
-                  icon={<Star size={17} fill={isPlayerFavorite(p.id) ? 'currentColor' : 'none'} />}
-                />
-              </div>
-            ))}
-          </div>
+          {shownGroups ? (
+            <div className="squad-position-groups">
+              {shownGroups.map((group) => (
+                <section className="squad-position-group" key={group.key}>
+                  <h3 className="squad-position-title">
+                    {group.label}
+                    <span className="muted small">{group.total}</span>
+                  </h3>
+                  <div className="squad-player-grid">
+                    {group.members.map((p) => renderPlayerCard(p))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="squad-player-grid">{filtered.map((p) => renderPlayerCard(p))}</div>
+          )}
+          {canExpand && (
+            <div className="squad-more">
+              <Button variant="quiet" onClick={() => setExpanded((value) => !value)}>
+                {expanded ? 'Свернуть' : 'Показать все'}
+              </Button>
+            </div>
+          )}
           {!filtered.length && (
             <EmptyBlock title="Таких игроков в составе нет">
               <Button variant="quiet" onClick={() => setQuery('')}>

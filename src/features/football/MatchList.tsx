@@ -4,9 +4,9 @@ import { cx } from '../../kit/classes';
 import './MatchList.css';
 
 /**
- * One list of rows grouped by day. The kit `MatchRow` decides how a row looks;
- * screens pass already formatted times and build each row themselves, so the
- * same grouping works for league, cup and live lists.
+ * One list of rows grouped by day or by month. The kit `MatchRow` decides how
+ * a row looks; screens pass already formatted times and build each row
+ * themselves, so the same grouping works for league, cup and club lists.
  */
 export interface MatchListProps<T> {
   items: readonly T[];
@@ -18,9 +18,13 @@ export interface MatchListProps<T> {
   now?: number;
   /**
    * `nearest` shows today first, then coming and past days by distance from it;
-   * `ascending` is calendar order. Rows inside a day always go by time.
+   * `ascending` is calendar order. Rows inside a group always go by time.
    */
   dayOrder?: 'nearest' | 'ascending';
+  /** `day` is the list of U4.2; `month` is for a season schedule of one club. */
+  grouping?: 'day' | 'month';
+  /** Show at most this many rows in group order; the caller adds «Показать все». */
+  limit?: number;
   className?: string;
 }
 
@@ -32,6 +36,7 @@ export interface MatchDayGroup<T> {
 
 const DAY_MS = 86_400_000;
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
+const monthFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function dayFormatter(timezone: string): Intl.DateTimeFormat | null {
   const cached = formatterCache.get(timezone);
@@ -44,6 +49,22 @@ function dayFormatter(timezone: string): Intl.DateTimeFormat | null {
       day: '2-digit',
     });
     formatterCache.set(timezone, formatter);
+    return formatter;
+  } catch {
+    return null;
+  }
+}
+
+function monthFormatter(timezone: string): Intl.DateTimeFormat | null {
+  const cached = monthFormatterCache.get(timezone);
+  if (cached) return cached;
+  try {
+    const formatter = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: timezone,
+      month: 'long',
+      year: 'numeric',
+    });
+    monthFormatterCache.set(timezone, formatter);
     return formatter;
   } catch {
     return null;
@@ -79,10 +100,40 @@ export function matchDayLabel(day: string | null, timezone: string, now: number)
   return /^(сегодня|завтра|вчера)(?:\s|$)/u.test(label) ? capitalize(label) : label;
 }
 
+/** «Ноябрь 2026» from a `YYYY-MM` key, in the same timezone as the matches. */
+export function matchMonthLabel(month: string | null, timezone: string): string {
+  if (!month) return 'Без даты';
+  const match = /^(\d{4})-(\d{2})$/u.exec(month);
+  if (!match) return 'Без даты';
+  const year = Number(match[1]);
+  const number = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(number)) return 'Без даты';
+  const formatter = monthFormatter(timezone);
+  if (!formatter) return 'Без даты';
+  const date = new Date(Date.UTC(year, number - 1, 15, 12));
+  const parts = formatter.formatToParts(date);
+  const monthName = parts.find((part) => part.type === 'month')?.value;
+  const yearName = parts.find((part) => part.type === 'year')?.value;
+  if (!monthName || !yearName) return 'Без даты';
+  return capitalize(`${monthName} ${yearName}`);
+}
+
+/** `YYYY-MM` of the local calendar day; a missing date stays ungrouped. */
+export function matchMonthKey(value: string | null | undefined, timezone: string): string | null {
+  const day = matchDayKey(value, timezone);
+  return day ? day.slice(0, 7) : null;
+}
+
 function dayNumber(day: string): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(day);
   if (!match) return null;
   return Math.round(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / DAY_MS);
+}
+
+function monthNumber(month: string): number | null {
+  const match = /^(\d{4})-(\d{2})$/u.exec(month);
+  if (!match) return null;
+  return Number(match[1]) * 12 + Number(match[2]) - 1;
 }
 
 function sortValue(value: string | null | undefined): number {
@@ -91,6 +142,30 @@ function sortValue(value: string | null | undefined): number {
     ? Date.parse(`${value}T00:00:00Z`)
     : Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function orderGroups<T>(
+  groups: Map<string | null, MatchDayGroup<T>>,
+  keyNumber: (key: string) => number | null,
+  todayNumber: number | null,
+  dayOrder: 'nearest' | 'ascending',
+): MatchDayGroup<T>[] {
+  const ordered = [...groups.values()];
+  ordered.sort((first, second) => {
+    const firstDay = first.key ? keyNumber(first.key) : null;
+    const secondDay = second.key ? keyNumber(second.key) : null;
+    if (firstDay === null || secondDay === null) {
+      if (firstDay === secondDay) return 0;
+      return firstDay === null ? 1 : -1;
+    }
+    if (dayOrder === 'ascending' || todayNumber === null) return firstDay - secondDay;
+    const distance = Math.abs(firstDay - todayNumber) - Math.abs(secondDay - todayNumber);
+    if (distance !== 0) return distance;
+    const firstFuture = firstDay >= todayNumber ? 0 : 1;
+    const secondFuture = secondDay >= todayNumber ? 0 : 1;
+    return firstFuture - secondFuture || firstDay - secondDay;
+  });
+  return ordered;
 }
 
 export function groupMatchesByDay<T>(
@@ -112,26 +187,51 @@ export function groupMatchesByDay<T>(
     }
     group.items.push(item);
   }
-  const ordered = [...groups.values()];
-  ordered.sort((first, second) => {
-    const firstDay = first.key ? dayNumber(first.key) : null;
-    const secondDay = second.key ? dayNumber(second.key) : null;
-    if (firstDay === null || secondDay === null) {
-      if (firstDay === secondDay) return 0;
-      return firstDay === null ? 1 : -1;
-    }
-    if (dayOrder === 'ascending' || todayNumber === null) return firstDay - secondDay;
-    const distance = Math.abs(firstDay - todayNumber) - Math.abs(secondDay - todayNumber);
-    if (distance !== 0) return distance;
-    const firstFuture = firstDay >= todayNumber ? 0 : 1;
-    const secondFuture = secondDay >= todayNumber ? 0 : 1;
-    return firstFuture - secondFuture || firstDay - secondDay;
-  });
+  const ordered = orderGroups(groups, dayNumber, todayNumber, dayOrder);
   for (const group of ordered)
     group.items = [...group.items].sort(
       (first, second) => sortValue(getTime(first)) - sortValue(getTime(second)),
     );
   return ordered;
+}
+
+/** Month groups for a club season; the same ordering rules as the day list. */
+export function groupMatchesByMonth<T>(
+  items: readonly T[],
+  getTime: (item: T) => string | null | undefined,
+  timezone: string,
+  now: number,
+  dayOrder: 'nearest' | 'ascending' = 'nearest',
+): MatchDayGroup<T>[] {
+  const today = matchMonthKey(new Date(now).toISOString(), timezone);
+  const todayNumber = today ? monthNumber(today) : null;
+  const groups = new Map<string | null, MatchDayGroup<T>>();
+  for (const item of items) {
+    const month = matchMonthKey(getTime(item), timezone);
+    let group = groups.get(month);
+    if (!group) {
+      group = { key: month, label: matchMonthLabel(month, timezone), items: [] };
+      groups.set(month, group);
+    }
+    group.items.push(item);
+  }
+  const ordered = orderGroups(groups, monthNumber, todayNumber, dayOrder);
+  for (const group of ordered)
+    group.items = [...group.items].sort(
+      (first, second) => sortValue(getTime(first)) - sortValue(getTime(second)),
+    );
+  return ordered;
+}
+
+function limitGroups<T>(groups: MatchDayGroup<T>[], limit: number | undefined): MatchDayGroup<T>[] {
+  if (limit === undefined || !Number.isFinite(limit) || limit < 0) return groups;
+  let remaining = limit;
+  return groups.flatMap((group) => {
+    if (remaining <= 0) return [];
+    const items = group.items.slice(0, remaining);
+    remaining -= items.length;
+    return items.length ? [{ ...group, items }] : [];
+  });
 }
 
 export function MatchList<T>({
@@ -142,14 +242,21 @@ export function MatchList<T>({
   timezone,
   now = Date.now(),
   dayOrder = 'nearest',
+  grouping = 'day',
+  limit,
   className,
 }: MatchListProps<T>) {
   const baseId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const groups = groupMatchesByDay(items, getTime, timezone, now, dayOrder);
+  const groups = limitGroups(
+    grouping === 'month'
+      ? groupMatchesByMonth(items, getTime, timezone, now, dayOrder)
+      : groupMatchesByDay(items, getTime, timezone, now, dayOrder),
+    limit,
+  );
   return (
     <div className={cx('match-list', className)}>
       {groups.map((group, index) => {
-        const headingId = `${baseId}-day-${index}`;
+        const headingId = `${baseId}-group-${index}`;
         return (
           <section
             className="match-list__day"

@@ -26,6 +26,8 @@ export type CupTab = 'matches' | 'table' | 'bracket';
 export type FootballTab = LeagueTab | ChampionsTab | CupTab;
 export type F1Tab = 'overview' | 'calendar' | 'standings' | 'compare' | 'pace' | 'session';
 export type MatchTab = 'overview' | 'lineups' | 'stats' | 'analysis';
+/** Tabs of the club page (U4.3); remembered per club in the screen state. */
+export type ClubTab = 'overview' | 'matches' | 'squad' | 'h2h';
 export type MyTab = 'favorites' | 'diary' | 'games' | 'schemes';
 export type SettingsCategory =
   | 'general'
@@ -83,6 +85,7 @@ export const CHAMPIONS_TABS = ['matches', 'table', 'bracket', 'clubs', 'players'
 export const CUP_TABS = ['matches', 'table', 'bracket'] as const;
 export const F1_TABS = ['overview', 'calendar', 'standings', 'compare', 'pace', 'session'] as const;
 export const MATCH_TABS = ['overview', 'lineups', 'stats', 'analysis'] as const;
+export const CLUB_TABS = ['overview', 'matches', 'squad', 'h2h'] as const;
 /** Tab ids of the old seven-tab match page; still read from saved screen state. */
 export const LEGACY_MATCH_TABS = [
   'overview',
@@ -171,6 +174,39 @@ export function isMyTab(tab: unknown): tab is MyTab {
 
 export function isMatchTab(tab: unknown): tab is MatchTab {
   return includes(MATCH_TABS, tab);
+}
+
+export function isClubTab(tab: unknown): tab is ClubTab {
+  return includes(CLUB_TABS, tab);
+}
+
+/**
+ * Moves a saved club-page section id of the old long page to the new tab.
+ * The page had no tabs; old section ids are accepted so a saved place keeps
+ * opening the closest part instead of falling back to the top.
+ */
+export function migrateClubTab(value: unknown): ClubTab | undefined {
+  switch (value) {
+    case 'overview':
+    case 'summary':
+    case 'form':
+    case 'analytics':
+      return 'overview';
+    case 'matches':
+    case 'schedule':
+    case 'results':
+      return 'matches';
+    case 'squad':
+    case 'players':
+    case 'lineup':
+      return 'squad';
+    case 'h2h':
+    case 'head-to-head':
+    case 'rivals':
+      return 'h2h';
+    default:
+      return undefined;
+  }
 }
 
 /**

@@ -3,6 +3,7 @@ import { beforeEach, expect, it } from 'vitest';
 import { LEAGUES } from './navigationMetadata';
 import {
   CHAMPIONS_LEAGUE_ID,
+  CLUB_TABS,
   CUP_TABS,
   DEFAULT_CUP_ID,
   DEFAULT_LEAGUE_ID,
@@ -21,6 +22,7 @@ import {
   isValidFootballTab,
   isValidShellRoute,
   locationForRoute,
+  migrateClubTab,
   migrateCupId,
   migrateLeagueId,
   migrateLocation,
@@ -132,6 +134,18 @@ it('validates every route kind and keeps tabs tied to the competition kind', () 
   for (const category of SETTINGS_CATEGORIES)
     expect(isValidShellRoute({ kind: 'settings', category })).toBe(true);
   for (const tab of MY_TABS) expect(isValidShellRoute({ kind: 'my', tab })).toBe(true);
+});
+
+it('migrates old club-page sections to the four club tabs', () => {
+  expect(CLUB_TABS).toEqual(['overview', 'matches', 'squad', 'h2h']);
+  for (const tab of CLUB_TABS) expect(migrateClubTab(tab)).toBe(tab);
+  expect(migrateClubTab('schedule')).toBe('matches');
+  expect(migrateClubTab('results')).toBe('matches');
+  expect(migrateClubTab('players')).toBe('squad');
+  expect(migrateClubTab('head-to-head')).toBe('h2h');
+  expect(migrateClubTab('analytics')).toBe('overview');
+  expect(migrateClubTab('unknown')).toBeUndefined();
+  expect(migrateClubTab(null)).toBeUndefined();
 });
 
 it('migrates every old route shape to the new union idempotently', () => {

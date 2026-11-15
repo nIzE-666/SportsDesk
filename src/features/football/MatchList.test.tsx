@@ -2,7 +2,13 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { MatchList, groupMatchesByDay, matchDayKey } from './MatchList';
+import {
+  MatchList,
+  groupMatchesByDay,
+  groupMatchesByMonth,
+  matchDayKey,
+  matchMonthKey,
+} from './MatchList';
 
 interface Item {
   id: string;
@@ -70,6 +76,54 @@ it('renders one heading per day and the rows inside it', async () => {
   ).toEqual(['Сегодня', 'Завтра', 'вс, 22 нояб.']);
   expect(host.querySelectorAll('.match-list__rows li')).toHaveLength(3);
   expect(host.querySelectorAll('.match-list__day')).toHaveLength(3);
+});
+
+it('groups a club season by month, nearest month first', () => {
+  expect(matchMonthKey('2026-11-21T18:00:00Z', 'Asia/Yakutsk')).toBe('2026-11');
+  expect(matchMonthKey('not a date', 'Asia/Yakutsk')).toBeNull();
+  const groups = groupMatchesByMonth(
+    [
+      { id: 'november', time: '2026-11-21T08:00:00Z' },
+      { id: 'december', time: '2026-12-01T08:00:00Z' },
+      { id: 'october', time: '2026-10-01T08:00:00Z' },
+      { id: 'unknown', time: null },
+    ],
+    (item) => item.time,
+    'Asia/Yakutsk',
+    Date.parse('2026-11-20T10:00:00Z'),
+  );
+  expect(groups.map((group) => group.label)).toEqual([
+    'Ноябрь 2026',
+    'Декабрь 2026',
+    'Октябрь 2026',
+    'Без даты',
+  ]);
+});
+
+it('renders month headings and respects the visible row limit', async () => {
+  const list: Item[] = [
+    { id: 'nov-1', time: '2026-11-02T08:00:00Z' },
+    { id: 'nov-2', time: '2026-11-09T08:00:00Z' },
+    { id: 'dec-1', time: '2026-12-01T08:00:00Z' },
+  ];
+  await act(async () =>
+    root.render(
+      <MatchList
+        items={list}
+        getKey={(item) => item.id}
+        getTime={(item) => item.time}
+        timezone="Asia/Yakutsk"
+        now={Date.parse('2026-11-20T10:00:00Z')}
+        grouping="month"
+        limit={2}
+        renderRow={(item) => <span data-id={item.id}>{item.id}</span>}
+      />,
+    ),
+  );
+  expect(
+    [...host.querySelectorAll('.match-list__heading')].map((heading) => heading.textContent),
+  ).toEqual(['Ноябрь 2026']);
+  expect(host.querySelectorAll('.match-list__rows li')).toHaveLength(2);
 });
 
 it('can follow calendar order when a screen asks for it', () => {

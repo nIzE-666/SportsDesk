@@ -340,12 +340,21 @@ test('key screens have one h1, a named rail, named controls and a focus ring', a
   await screen('Футбол · игроки', '.players-view');
   await tab(page, 'Клубы');
   await screen('Футбол · клубы', '.team-view');
-  const club = page.locator('#team-picker-select');
+  const club = page.getByRole('combobox', { name: 'Клуб', exact: true });
   if (await club.count()) {
-    const option = club.locator('option').filter({ hasText: 'Arsenal' }).first();
-    if (await option.count()) await club.selectOption({ label: await option.innerText() });
+    await club.click();
+    await club.fill('Arsenal');
+    const option = page.getByRole('option', { name: 'Arsenal', exact: true });
+    if (await option.count()) await option.first().click();
   }
   await screen('Клуб', '.team-view');
+  for (const name of ['Обзор', 'Матчи', 'Состав', 'Личные встречи']) {
+    await page
+      .getByRole('tablist', { name: 'Разделы клуба' })
+      .getByRole('tab', { name, exact: true })
+      .click();
+    await screen(`Клуб · ${name}`, '.team-view');
+  }
 
   // Champions League and a cup: each tab.
   await competition(page, 'Лига чемпионов');

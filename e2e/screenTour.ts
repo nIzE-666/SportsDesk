@@ -110,7 +110,12 @@ export async function screenTour(
   await section(page, 'Футбол');
   await tab(page, 'Клубы');
   await page.locator('.team-favorites').getByRole('button', { name: 'Arsenal' }).click();
-  await stop('Клуб: Arsenal');
+  const clubTabs = page.getByRole('tablist', { name: 'Разделы клуба' });
+  for (const title of ['Обзор', 'Матчи', 'Состав', 'Личные встречи']) {
+    await expect(clubTabs).toBeVisible();
+    await clubTabs.getByRole('tab', { name: title, exact: true }).click();
+    await stop(`Клуб: ${title}`);
+  }
   await section(page, 'Формула 1');
   for (const title of ['Обзор', 'Календарь', 'Зачёты']) {
     await tab(page, title);
