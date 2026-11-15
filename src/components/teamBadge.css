@@ -12,3 +12,17 @@
 .team-badge-fallback--large {
   font-size: var(--text-14);
 }
+
+/* The match page marks the two sides of the crest fallback with the same pair
+   as the rest of the screen; the initials stay in the main text colour. */
+.team-badge-fallback.team-badge-fallback--home {
+  border-color: var(--color-team-home);
+  background: color-mix(in srgb, var(--color-team-home) 12%, var(--color-surface-2));
+  color: var(--color-text);
+}
+
+.team-badge-fallback.team-badge-fallback--away {
+  border-color: var(--color-team-away);
+  background: color-mix(in srgb, var(--color-team-away) 12%, var(--color-surface-2));
+  color: var(--color-text);
+}

@@ -86,6 +86,8 @@ const SCHEME_COLORS = [...SURFACES, ...BORDERS, ...TEXT, ...ACCENT, ...MEANING, 
 
 const REQUIRED_TOKENS = [
   ...COLOR_TOKENS,
+  '--color-team-home',
+  '--color-team-away',
   '--font-family',
   ...['12', '13', '14', '16', '20', '24', '32'].map((step) => `--text-${step}`),
   '--weight-regular',
@@ -230,6 +232,11 @@ describe('design tokens', () => {
         ).not.toThrow();
       }
     }
+  });
+
+  it('keeps the match team colours as aliases of the chart pair', () => {
+    expect(base['--color-team-home']).toBe('var(--color-chart-1)');
+    expect(base['--color-team-away']).toBe('var(--color-chart-2)');
   });
 
   describe('contrast', () => {

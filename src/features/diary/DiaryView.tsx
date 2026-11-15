@@ -323,7 +323,7 @@ export function DiaryView({ onOpen }: { onOpen: (reference: DiaryReference) => v
         {!state.store.entries.length ? (
           <div className="panel">
             <h3>Сохраните первый просмотр</h3>
-            <p>В карточке матча или гонки нажмите «Отметить просмотр».</p>
+            <p>Отметить просмотр можно в карточке матча или гонки.</p>
           </div>
         ) : !entries.length ? (
           <EmptyBlock title="Таких просмотров нет">

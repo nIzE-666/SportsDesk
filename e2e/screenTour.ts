@@ -197,10 +197,10 @@ export async function screenTour(
   // С подробностями: игроки с оценками, события, удары с xG.
   enabled.finished = true;
   await openFinishedMatch();
-  await page.getByRole('tab', { name: 'Игроки', exact: true }).click();
+  await page.getByRole('tab', { name: 'Составы', exact: true }).click();
   await expect(page.locator('.player-card').first()).toBeVisible();
   await page.locator('.player-card').first().click();
-  await stop('Игроки: профиль игрока', { group: 'Матч (с подробностями)', dedupe: true });
+  await stop('Составы: профиль игрока', { group: 'Матч (с подробностями)', dedupe: true });
   await page.getByRole('button', { name: 'К игрокам' }).click();
   const compare = page.locator('.compare-selects');
   await compare.getByLabel('Первый игрок').fill('Alex');
@@ -209,11 +209,12 @@ export async function screenTour(
   await compare.getByRole('option', { name: /Jamie Wilson/ }).click();
   await stop('Сравнение двух игроков', { group: 'Матч (с подробностями)', dedupe: true });
   await matchTabs('Матч (с подробностями)');
-  await page.getByRole('tab', { name: 'Мои схемы', exact: true }).click();
+  await page.getByRole('tab', { name: 'Составы', exact: true }).click();
+  await page.getByRole('button', { name: 'На доску' }).click();
   await page.getByRole('button', { name: 'Создать из состава' }).click();
   await stop('Мои схемы: редактор схемы', { group: 'Матч (с подробностями)', dedupe: true });
-  await page.getByRole('tab', { name: 'Сводка', exact: true }).click();
-  await page.getByRole('button', { name: 'Отметить просмотр' }).click();
+  await page.getByRole('tab', { name: 'Обзор', exact: true }).click();
+  await page.getByRole('button', { name: 'Просмотрено' }).click();
   await stop('Форма записи о просмотре', { group: 'Матч (с подробностями)', dedupe: true });
 
   enabled.upcoming = true;

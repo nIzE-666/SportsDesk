@@ -147,7 +147,7 @@ test('explicit marks, export, conflict-aware import and offline records', async 
   await openMatch(page);
   await expect(page.locator('.md-score')).toContainText('1 : 1');
   expect(await page.evaluate(() => localStorage.getItem('sportsdesk.view.diary'))).toBeNull();
-  await page.getByRole('button', { name: 'Отметить просмотр', exact: true }).click();
+  await page.getByRole('button', { name: 'Просмотрено', exact: true }).click();
   await page
     .getByLabel('Заметка о просмотре', { exact: true })
     .fill('Смотрели вместе, интересная концовка.');

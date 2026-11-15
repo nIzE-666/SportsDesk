@@ -27,7 +27,7 @@ for (const scheme of ['dark', 'light'])
       await page.getByRole('tab', { name: 'Статистика' }).click();
       await expect(page.locator('.match-statistics')).toContainText('62');
       await shot('statistics');
-      await page.getByRole('tab', { name: 'Поле и оценки' }).click();
+      await page.getByRole('tab', { name: 'Составы' }).click();
       await expect(page.locator('.match-lineups')).toContainText('Alex Morgan');
       await page.locator('.lineup-pitch').scrollIntoViewIfNeeded();
       await shot('lineups');
@@ -55,7 +55,7 @@ test('match actions and tabs fit in a 720px window', async ({ page }, testInfo) 
   await expect(page.locator('.md-score')).toContainText('2 : 1');
   await expect(page.locator('.md-actions').getByRole('button', { name: 'Смотреть' })).toBeVisible();
   await expect(
-    page.locator('.md-actions').getByRole('button', { name: 'Отметить просмотр' }),
+    page.locator('.md-actions').getByRole('button', { name: 'Просмотрено' }),
   ).toBeVisible();
   await expect(
     page.locator('.md-actions').getByRole('button', { name: 'Без спойлеров' }),

@@ -57,14 +57,33 @@ async function setup(page: Page, scheme: string) {
   return { errors, state };
 }
 
-async function openMatch(page: import('@playwright/test').Page) {
+async function openMatchFromSearch(page: import('@playwright/test').Page) {
   await page
     .getByRole('navigation', { name: 'Разделы' })
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
-  await page.locator(`[data-match-id="${tacticMatch.id}"] .mt-open`).first().click();
-  await page.getByRole('tab', { name: 'Мои схемы', exact: true }).click();
+  await page.getByRole('button', { name: 'Поиск · Ctrl+K' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Поиск' });
+  await dialog.getByRole('combobox').fill('Arsenal Chelsea');
+  await dialog.locator('[role="option"]').filter({ hasText: 'Arsenal — Chelsea' }).first().click();
+  await expect(page.locator('.md-score')).toBeVisible();
+}
+
+async function openMatch(page: import('@playwright/test').Page, legacyTab = true) {
+  if (legacyTab) {
+    await openMatchFromSearch(page);
+  } else {
+    await page
+      .getByRole('navigation', { name: 'Разделы' })
+      .getByRole('button', { name: 'Футбол', exact: true })
+      .click();
+    await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
+    await page.locator(`[data-match-id="${tacticMatch.id}"] .mt-open`).first().click();
+    await page.getByRole('tab', { name: 'Составы', exact: true }).click();
+    await page.getByRole('button', { name: 'На доску', exact: true }).click();
+  }
+  await expect(page.getByRole('region', { name: 'Тактическая доска', exact: true })).toBeVisible();
 }
 
 for (const scheme of ['dark', 'light'])
@@ -133,8 +152,9 @@ for (const scheme of ['dark', 'light'])
       await expect(feature.locator('.tactics-player')).toHaveCount(5);
       await page.setViewportSize({ width: width === 1100 ? 1440 : 1100, height: 1000 });
       expect(Number(await coordinate.inputValue())).toBeCloseTo(72, 0);
-      await page.getByRole('tab', { name: 'Сводка', exact: true }).click();
-      await page.getByRole('tab', { name: 'Мои схемы', exact: true }).click();
+      await page.getByRole('tab', { name: 'Обзор', exact: true }).click();
+      await page.getByRole('tab', { name: 'Составы', exact: true }).click();
+      await page.getByRole('button', { name: 'На доску', exact: true }).click();
       await expect(feature.locator('.tactics-player')).toHaveCount(5);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
@@ -146,14 +166,14 @@ for (const scheme of ['dark', 'light'])
 test('saved schemes remain available without the source after a new session', async ({ page }) => {
   const { state } = await setup(page, 'dark');
   await page.goto('/');
-  await openMatch(page);
+  await openMatch(page, false);
   await page.getByRole('button', { name: 'Создать из состава', exact: true }).click();
   await page.getByLabel('Название схемы', { exact: true }).fill('Запасной план');
   await page.getByRole('button', { name: 'Сохранить схему', exact: true }).click();
   await page.evaluate(() => sessionStorage.clear());
   state.sourceAvailable = false;
   await page.reload();
-  await openMatch(page);
+  await openMatch(page, false);
   await expect(
     page.getByRole('button', { name: 'Создать из состава', exact: true }),
   ).toBeDisabled();
@@ -173,7 +193,7 @@ test('refreshing match data preserves an unsaved tactics draft', async ({ page }
   await expect(refresh).toBeEnabled();
   await refresh.click();
   await expect(title).toHaveValue('Незавершённая схема');
-  await expect(page.getByRole('tab', { name: 'Мои схемы', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: 'Составы', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );

@@ -47,6 +47,10 @@
   --color-chart-7: #ff615b;
   --color-chart-8: #7ce2cd;
 
+  /* Match-page teams: home blue and away orange in both schemes. */
+  --color-team-home: var(--color-chart-1);
+  --color-team-away: var(--color-chart-2);
+
   /* Formula 1 tyres: real compound colors, same in both schemes. */
   --color-tyre-soft: #fa6868;
   --color-tyre-medium: #e7c64b;

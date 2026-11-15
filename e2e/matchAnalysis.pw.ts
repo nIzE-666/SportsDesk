@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { E2E_ORIGIN } from './origin';
 
@@ -44,6 +45,15 @@ const shots = {
     },
   ],
 };
+
+/** Every tournament theme name that src/tokens.css defines. */
+const TOURNAMENT_THEMES = [
+  ...new Set(
+    [...readFileSync('src/tokens.css', 'utf8').matchAll(/data-theme='([^']+)'/g)].map(
+      (found) => found[1]!,
+    ),
+  ),
+];
 
 async function setup(page: Page, scheme: string, unavailable = false) {
   const errors: string[] = [];
@@ -110,7 +120,7 @@ async function openMatch(page: import('@playwright/test').Page) {
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
   await page.locator(`[data-match-id="${match.id}"] .mt-open`).first().click();
-  await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
+  await page.getByRole('tab', { name: 'Разбор', exact: true }).click();
 }
 
 for (const scheme of ['dark', 'light'])
@@ -123,32 +133,86 @@ for (const scheme of ['dark', 'light'])
       await page.evaluate(() => document.fonts.ready);
       const feature = page.locator('.match-analysis');
       await expect(page.locator('.app-root')).toHaveAttribute('data-scheme', scheme);
-      const awayColours = await feature.evaluate(
-        (element, otherScheme) => {
-          const read = () => {
-            const style = getComputedStyle(element);
-            return {
-              away: style.getPropertyValue('--analysis-away').trim(),
-              chart: style.getPropertyValue('--color-chart-4').trim(),
-            };
-          };
-          const root = document.querySelector('.app-root');
+      const usesTeamPair = await feature.evaluate((element) => {
+        const resolve = (value: string) => {
+          const probe = document.createElement('span');
+          probe.style.color = value;
+          element.append(probe);
+          const color = getComputedStyle(probe).color;
+          probe.remove();
+          return color;
+        };
+        return {
+          home: resolve('var(--color-team-home)'),
+          analysisHome: resolve('var(--analysis-home)'),
+          away: resolve('var(--color-team-away)'),
+          analysisAway: resolve('var(--analysis-away)'),
+        };
+      });
+      expect(usesTeamPair.analysisHome).toBe(usesTeamPair.home);
+      expect(usesTeamPair.analysisAway).toBe(usesTeamPair.away);
+      const huePairs = await page.evaluate(
+        ({ themes }) => {
+          const root = document.querySelector<HTMLElement>('.app-root');
           if (!root) throw new Error('app root is missing');
-          const activeScheme = root.getAttribute('data-scheme') ?? '';
-          const current = read();
-          root.setAttribute('data-scheme', otherScheme);
-          const other = read();
-          root.setAttribute('data-scheme', activeScheme);
-          return { current, other };
+          const originalScheme = root.getAttribute('data-scheme');
+          const originalTheme = root.getAttribute('data-theme');
+          const homeProbe = document.createElement('span');
+          const awayProbe = document.createElement('span');
+          homeProbe.style.color = 'var(--color-team-home)';
+          awayProbe.style.color = 'var(--color-team-away)';
+          root.append(homeProbe, awayProbe);
+          const rgb = (value: string): [number, number, number] => {
+            const found = /rgba?\((\d+)[\s,]+(\d+)[\s,]+(\d+)/u.exec(value);
+            if (!found) throw new Error(`not an rgb colour: ${value}`);
+            return [Number(found[1]), Number(found[2]), Number(found[3])];
+          };
+          const hue = ([red, green, blue]: [number, number, number]) => {
+            const r = red / 255;
+            const g = green / 255;
+            const b = blue / 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const delta = max - min;
+            if (!delta) return 0;
+            const raw =
+              max === r ? (g - b) / delta : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+            const degrees = raw * 60;
+            return degrees < 0 ? degrees + 360 : degrees;
+          };
+          const pairs: Array<{ scheme: string; theme: string; difference: number }> = [];
+          for (const scheme of ['dark', 'light']) {
+            root.setAttribute('data-scheme', scheme);
+            for (const theme of themes) {
+              root.setAttribute('data-theme', theme);
+              const home = hue(rgb(getComputedStyle(homeProbe).color));
+              const away = hue(rgb(getComputedStyle(awayProbe).color));
+              const distance = Math.abs(home - away);
+              pairs.push({
+                scheme,
+                theme,
+                difference: Math.round(Math.min(distance, 360 - distance)),
+              });
+            }
+          }
+          if (originalScheme === null) root.removeAttribute('data-scheme');
+          else root.setAttribute('data-scheme', originalScheme);
+          if (originalTheme === null) root.removeAttribute('data-theme');
+          else root.setAttribute('data-theme', originalTheme);
+          homeProbe.remove();
+          awayProbe.remove();
+          return pairs;
         },
-        scheme === 'light' ? 'dark' : 'light',
+        { themes: TOURNAMENT_THEMES },
       );
-      expect(awayColours.current.away).toBe(awayColours.current.chart);
-      expect(awayColours.other.away).toBe(awayColours.other.chart);
-      expect(awayColours.current.away).not.toBe(awayColours.other.away);
+      for (const pair of huePairs)
+        expect(
+          pair.difference,
+          `${pair.scheme} ${pair.theme}: home and away hue differ by ${pair.difference}°`,
+        ).toBeGreaterThanOrEqual(60);
       await expect(feature.locator('.analysis-shot')).toHaveCount(5);
       await expect(feature).toContainText('Неполная кривая xG');
-      await expect(page.getByRole('tab', { name: 'Разбор матча' })).toHaveAttribute(
+      await expect(page.getByRole('tab', { name: 'Разбор' })).toHaveAttribute(
         'aria-selected',
         'true',
       );
@@ -173,8 +237,8 @@ for (const scheme of ['dark', 'light'])
         .focus();
       await page.keyboard.press('Enter');
       await expect(feature.locator('.analysis-shot.selected')).toHaveCount(1);
-      await page.getByRole('tab', { name: 'Сводка', exact: true }).click();
-      await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
+      await page.getByRole('tab', { name: 'Обзор', exact: true }).click();
+      await page.getByRole('tab', { name: 'Разбор', exact: true }).click();
       await expect(page.getByLabel('Команда', { exact: true })).toHaveValue(home.id);
       await expect(feature.locator('.analysis-shots tbody tr')).toHaveCount(2);
       expect(errors).toEqual([]);
@@ -188,6 +252,6 @@ test('unavailable analytics preserve the score and other match tabs', async ({ p
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал удары');
   await expect(page.locator('.match-analysis')).toContainText('Источник не опубликовал давление');
   await expect(page.locator('.md-score')).toContainText('2 : 1');
-  await page.getByRole('tab', { name: 'События', exact: true }).click();
-  await expect(page.getByText('Лента событий пуста', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Обзор', exact: true }).click();
+  await expect(page.locator('.md-events')).toContainText('Лента событий пуста.');
 });

@@ -2,8 +2,8 @@ import { PersonAvatar } from '../../components/PersonAvatar';
 import { SearchSelect } from '../../components/SearchSelect';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useMemo } from 'react';
-import { EmptyBlock } from '../../components/StateViews';
-import { Badge, Button, StatTile } from '../../kit';
+import { EmptyBlock, LoadingBlock } from '../../components/StateViews';
+import { Badge, Button, Panel, PanelHeader, StatTile } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { useFavorites } from './FavoritesProvider';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
@@ -11,6 +11,7 @@ import { PlayerFormPanel } from './PlayerFormPanel';
 import { formatHumanDate } from '../../lib/humanDate';
 import { getUserTimezone } from './storage';
 import { formatDistanceStat, formatTeamStat, statGroupLabel, statLabel } from './statLabels';
+import './matchPlayers.css';
 import type {
   MatchDetail,
   MatchSummary,
@@ -107,12 +108,14 @@ function playerTeamName(entry: PlayerMatchEntry, detail: MatchDetail): string {
 export function PlayersTab({
   entries,
   error,
+  loading = false,
   detail,
   seasonMatches,
   onOpenMatch,
 }: {
   entries: PlayerMatchEntry[];
   error?: string;
+  loading?: boolean;
   detail: MatchDetail;
   seasonMatches: MatchSummary[];
   onOpenMatch?: (id: string) => void;
@@ -123,6 +126,8 @@ export function PlayersTab({
     (v) => v === null || typeof v === 'string',
   );
 
+  if (loading && entries.length === 0)
+    return <LoadingBlock label="Загружаем показатели игроков…" rows={3} />;
   if (error && entries.length === 0)
     return <EmptyBlock title="Данные игроков недоступны" message={error} />;
   if (entries.length === 0)
@@ -238,7 +243,7 @@ export function PlayerProfile({
   const minutes = numericStat(entry, 'Сыграно минут') ?? numericStat(entry, 'Minutes played');
 
   return (
-    <div className="panel player-profile">
+    <Panel className="player-profile">
       <div className="md-topbar">
         <Button onClick={onBack}>
           <ArrowLeft size={14} /> {backLabel}
@@ -283,7 +288,7 @@ export function PlayerProfile({
           <StatPlayerGroup key={`${group.key || 'group'}-${i}`} group={group} minutes={minutes} />
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -291,7 +296,7 @@ function StatPlayerGroup({ group, minutes }: { group: PlayerStatGroup; minutes: 
   const stats = group.stats && typeof group.stats === 'object' ? group.stats : {};
   const rows = Object.entries(stats).filter(([, v]) => v?.stat?.type !== 'boolean');
   return (
-    <section className="panel inner">
+    <Panel className="inner">
       <h3>{statGroupLabel(group.key, group.title)}</h3>
       {rows.length === 0 && <p className="muted small">Показателей в этой группе нет.</p>}
       <div className="sp-grid">
@@ -317,7 +322,7 @@ function StatPlayerGroup({ group, minutes }: { group: PlayerStatGroup; minutes: 
           );
         })}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -389,10 +394,8 @@ export function MatchPlayersComparison({
   if (entries.length === 0) return null;
 
   return (
-    <section className="panel compare-panel">
-      <div className="section-title">
-        <h2>Сравнение двух игроков матча</h2>
-      </div>
+    <Panel className="compare-panel">
+      <PanelHeader title="Сравнение двух игроков матча" />
       <div className="compare-selects">
         <SearchSelect
           ariaLabel="Первый игрок"
@@ -453,7 +456,7 @@ export function MatchPlayersComparison({
           {entries.length < 2 ? 'Нужна статистика хотя бы двух игроков.' : 'Выберите двух игроков.'}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }
 

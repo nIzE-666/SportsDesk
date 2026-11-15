@@ -301,7 +301,7 @@ it('opens a match from «Матчи» and leaves only the header back button', a
   await click(headerTab('Матчи'));
   await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .mt-open')!);
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
-  expect(host.querySelector('.match-detail .md-topbar')?.textContent).not.toContain('Назад');
+  expect(host.querySelector('.match-detail .md-meta-row')?.textContent).not.toContain('Назад');
   expect(host.querySelectorAll('.match-detail [aria-label="Назад"]')).toHaveLength(0);
   expect(host.querySelectorAll('.shell-header-bar [aria-label="Назад"]')).toHaveLength(1);
 });

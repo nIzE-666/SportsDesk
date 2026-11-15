@@ -110,7 +110,7 @@ describe('match page modules', () => {
     expect(button('Мой прогноз')).toBeDefined();
     await act(async () => writeModules({ predictions: false }));
     expect(button('Мой прогноз')).toBeUndefined();
-    expect(button('Отметить просмотр')).toBeDefined();
+    expect(button('Просмотрено')).toBeDefined();
   });
 
   it('hides the watch button when watch is off', async () => {
@@ -122,21 +122,20 @@ describe('match page modules', () => {
 
   it('hides the diary mark when the diary is off', async () => {
     await renderMatch();
-    expect(button('Отметить просмотр')).toBeDefined();
+    expect(button('Просмотрено')).toBeDefined();
     await act(async () => writeModules({ diary: false }));
-    expect(button('Отметить просмотр')).toBeUndefined();
+    expect(button('Просмотрено')).toBeUndefined();
   });
 
-  it('hides the schemes tab and the tactics button when tactics are off', async () => {
+  it('hides the board button when tactics are off', async () => {
     await renderMatch();
-    expect(button('Мои схемы')).toBeDefined();
-    await act(async () => button('Поле и оценки')?.click());
+    expect(button('Составы')).toBeDefined();
+    await act(async () => button('Составы')?.click());
     await flush();
-    expect(button('Открыть тактическую доску')).toBeDefined();
+    expect(button('На доску')).toBeDefined();
 
     await act(async () => writeModules({ tactics: false }));
-    expect(button('Мои схемы')).toBeUndefined();
-    expect(button('Открыть тактическую доску')).toBeUndefined();
+    expect(button('На доску')).toBeUndefined();
     expect(host?.textContent).toContain('Поле и оценки');
   });
 });

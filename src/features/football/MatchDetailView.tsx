@@ -1,18 +1,20 @@
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
-import { ArrowLeft, Radio } from 'lucide-react';
+import { ArrowLeft, Radio, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionBoundary } from '../../components/SectionBoundary';
-import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
+import { LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
-import { Badge, Button, Tabs } from '../../kit';
+import { Badge, Button, EmptyState, IconButton, Panel, PanelHeader, Tabs } from '../../kit';
 import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useModules } from '../../lib/modules';
+import { migrateMatchTab, type MatchTab } from '../../lib/navigation';
 import { useViewState } from '../../lib/useViewState';
 import { retainResource } from '../../lib/resourceHealth';
 import { WatchEventButton } from '../../lib/watchIntent';
 import { MatchPlayersComparison, PlayersTab } from './MatchPlayers';
 import './matchStats.css';
+import './matchDetail.css';
 import { MatchStatsTab } from './MatchStatsTab';
 import { MatchLineups } from './MatchLineups';
 import { MatchAnalysis } from './MatchAnalysis';
@@ -45,7 +47,7 @@ interface Loaded {
   events: EventsPayload | null;
 }
 
-type TabKey = 'overview' | 'events' | 'lineups' | 'stats' | 'players' | 'analysis' | 'tactics';
+type OptionalKey = 'players' | 'lineups' | 'stats' | 'events';
 
 const EMPTY: Loaded = { detail: null, players: [], lineups: null, stats: null, events: null };
 const matchStatusLabel = matchStateLabel;
@@ -87,18 +89,20 @@ export function MatchDetailView({
 }) {
   const modules = useModules();
   const timezone = getUserTimezone();
-  const [tab, setTab] = useViewState<TabKey>(`match.${matchId}.tab`, 'overview', (v) =>
-    ['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'].includes(
-      String(v),
-    ),
+  const [storedTab, setStoredTab] = useViewState<unknown>(
+    `match.${matchId}.tab`,
+    'overview',
+    (v) => migrateMatchTab(v) !== undefined,
   );
+  const tab: MatchTab = migrateMatchTab(storedTab) ?? 'overview';
+  const [boardOpen, setBoardOpen] = useState(() => storedTab === 'tactics' && modules.tactics);
   const [loaded, setLoaded] = useState<Loaded>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [refreshingDetail, setRefreshingDetail] = useState(false);
-  const [optionalErrors, setOptionalErrors] = useState<Partial<Record<TabKey, string>>>({});
-  const [optionalLoading, setOptionalLoading] = useState<Partial<Record<TabKey, boolean>>>({});
+  const [optionalErrors, setOptionalErrors] = useState<Partial<Record<OptionalKey, string>>>({});
+  const [optionalLoading, setOptionalLoading] = useState<Partial<Record<OptionalKey, boolean>>>({});
   const [sources, setSources] = useState<
     Record<string, { fetchedAt: string | null; stale: boolean }>
   >({});
@@ -119,10 +123,29 @@ export function MatchDetailView({
     return () => release.forEach((stop) => stop());
   }, [matchId]);
 
+  useEffect(() => {
+    if (!modules.tactics) setBoardOpen(false);
+  }, [modules.tactics]);
+
+  const closeBoard = useCallback(() => {
+    setBoardOpen(false);
+    setStoredTab('lineups');
+  }, [setStoredTab]);
+
+  const changeTab = useCallback(
+    (id: string) => {
+      const next = migrateMatchTab(id);
+      if (!next) return;
+      setBoardOpen(false);
+      setStoredTab(next);
+    },
+    [setStoredTab],
+  );
+
   const loadOptional = useCallback(
-    async (key: 'players' | 'lineups' | 'stats' | 'events', automatic = false) => {
+    async (key: OptionalKey, automatic = false) => {
       const requestId = reqRef.current;
-      const map: Record<'players' | 'lineups' | 'stats' | 'events', string> = {
+      const map: Record<OptionalKey, string> = {
         players: `matches/${matchId}/players`,
         lineups: `matches/${matchId}/lineups`,
         stats: `matches/${matchId}/stats`,
@@ -261,10 +284,9 @@ export function MatchDetailView({
     lastManualTick.current = manualTick;
     void loadOptional('events', automatic).catch(() => undefined);
     if (!automatic || tab === 'stats') void loadOptional('stats', automatic);
-    if (!automatic || tab === 'players') void loadOptional('players', automatic);
-    if (!automatic || tab === 'lineups' || tab === 'tactics') {
+    if (!automatic || tab === 'lineups') {
       void loadOptional('lineups', automatic);
-      if (automatic && tab === 'lineups') void loadOptional('players', automatic);
+      if (automatic) void loadOptional('players', automatic);
     }
     setRefreshingDetail(true);
     void (async () => {
@@ -296,8 +318,7 @@ export function MatchDetailView({
 
   const detail = loaded.detail;
   const tacticsOn = modules.tactics;
-  // Сохранённая вкладка «Мои схемы» не открывается, пока тактическая доска выключена.
-  const activeTab: TabKey = tab === 'tactics' && !tacticsOn ? 'overview' : tab;
+  const activeTab: MatchTab = tab;
   const sourceEntries = [
     ...Object.values(sources),
     ...(activeTab === 'analysis' && analysisSource ? [analysisSource] : []),
@@ -329,137 +350,192 @@ export function MatchDetailView({
             <ArrowLeft size={14} /> Назад
           </Button>
         )}
-        <ErrorBlock
+        <EmptyState
+          tone="error"
           title="Матч недоступен"
           message={error ?? 'Пустой ответ'}
-          onRetry={() => setRetry((value) => value + 1)}
+          action={
+            <Button variant="quiet" onClick={() => setRetry((value) => value + 1)}>
+              Повторить
+            </Button>
+          }
         />
       </div>
     );
   }
 
-  const tabs = (
-    [
-      ['overview', 'Сводка'],
-      ['events', 'События'],
-      ['lineups', 'Поле и оценки'],
-      ['stats', 'Статистика'],
-      ['players', 'Игроки'],
-      ['analysis', 'Разбор матча'],
-      ...(tacticsOn ? [['tactics', 'Мои схемы'] as const] : []),
-    ] as const
-  ).map(([id, label]) => ({ id, label }));
+  const tabs: Array<{ id: MatchTab; label: string }> = [
+    { id: 'overview', label: 'Обзор' },
+    { id: 'lineups', label: 'Составы' },
+    { id: 'stats', label: 'Статистика' },
+    { id: 'analysis', label: 'Разбор' },
+  ];
+  const tabLoading =
+    !boardOpen &&
+    ((activeTab === 'overview' && optionalLoading.events && !loaded.events) ||
+      (activeTab === 'lineups' && optionalLoading.lineups && !loaded.lineups) ||
+      (activeTab === 'stats' && optionalLoading.stats && !loaded.stats));
 
   return (
     <div className="match-detail">
-      <div className="md-topbar">
-        {onBack && (
-          <Button onClick={onBack}>
-            <ArrowLeft size={14} /> Назад
-          </Button>
-        )}
-        <div className="muted small">
-          {[detail.league?.name, detail.season].filter(Boolean).join(' · ')}
-        </div>
-        <Button
-          disabled={refreshingDetail || Object.values(optionalLoading).some(Boolean)}
-          onClick={() => setManualTick((value) => value + 1)}
-        >
-          Обновить данные
-        </Button>
-      </div>
-
-      <div className="md-header panel">
-        <div className="md-team">
-          <TeamBadge name={detail.home_team.name} imageUrl={detail.home_team.image_url} size={52} />
-          <span>{detail.home_team.name}</span>
-        </div>
-        <div className="md-center">
-          <strong className="md-score">
-            <HiddenScore kind="football" id={detail.id}>
-              {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
-            </HiddenScore>
-          </strong>
-          <Badge>{matchStatusLabel(detail.status)}</Badge>
-          {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
-            <Badge variant="live">
-              <Radio size={10} className="watch-spin-slow" /> следим{' '}
-              {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
-            </Badge>
+      <Panel className="md-header md-hero">
+        <div className="md-meta-row">
+          {onBack && (
+            <Button small variant="quiet" onClick={onBack} icon={<ArrowLeft size={14} />}>
+              Назад
+            </Button>
           )}
-          <span className="muted small">
-            {formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}
-          </span>
+          <MatchMeta detail={detail} timezone={timezone} />
+          <IconButton
+            small
+            aria-label="Обновить данные"
+            title="Обновить данные"
+            disabled={refreshingDetail || Object.values(optionalLoading).some(Boolean)}
+            icon={<RefreshCw size={15} />}
+            onClick={() => setManualTick((value) => value + 1)}
+          />
         </div>
-        <div className="md-team right">
-          <span>{detail.away_team.name}</span>
-          <TeamBadge name={detail.away_team.name} imageUrl={detail.away_team.image_url} size={52} />
-        </div>
-      </div>
 
-      {hasMetadata(detail) && (
-        <div className="md-meta-strip">
-          <MatchMetadata detail={detail} />
+        <div className="md-scoreboard">
+          <div className="md-side home">
+            <TeamBadge
+              name={detail.home_team.name}
+              imageUrl={detail.home_team.image_url}
+              size={44}
+              side="home"
+            />
+            <span className="md-team-name" title={detail.home_team.name}>
+              {detail.home_team.name}
+            </span>
+          </div>
+          <div className="md-center">
+            <strong className="md-score">
+              <HiddenScore kind="football" id={detail.id}>
+                {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
+              </HiddenScore>
+            </strong>
+            <Badge>{matchStatusLabel(detail.status)}</Badge>
+            {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
+              <Badge variant="live">
+                <Radio size={10} className="watch-spin-slow" /> следим{' '}
+                {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
+              </Badge>
+            )}
+          </div>
+          <div className="md-side away">
+            <span className="md-team-name" title={detail.away_team.name}>
+              {detail.away_team.name}
+            </span>
+            <TeamBadge
+              name={detail.away_team.name}
+              imageUrl={detail.away_team.image_url}
+              size={44}
+              side="away"
+            />
+          </div>
         </div>
-      )}
-      <div className="md-actions">
-        <WatchEventButton
-          intent={{
-            sport: 'football',
-            key: `match:${detail.id}`,
-            title: `${detail.home_team.name} — ${detail.away_team.name}`,
-          }}
-        />
-        <DiaryMarkButton event={footballDiaryEvent(detail)} />
-        <PredictionPanel key={detail.id} detail={detail} compact />
-        <SpoilerToggle
-          kind="football"
-          id={detail.id}
-          label={`${detail.home_team.name} — ${detail.away_team.name}`}
-          eventTime={detail.time_utc ?? detail.date}
-          compact
-        />
-      </div>
-      <Tabs
-        ariaLabel="Разделы матча"
-        active={activeTab}
-        onChange={(id) => setTab(id as TabKey)}
-        items={tabs}
-      />
+
+        <div className="md-actions">
+          <WatchEventButton
+            intent={{
+              sport: 'football',
+              key: `match:${detail.id}`,
+              title: `${detail.home_team.name} — ${detail.away_team.name}`,
+            }}
+          />
+          <DiaryMarkButton event={footballDiaryEvent(detail)} label="Просмотрено" />
+          <PredictionPanel key={detail.id} detail={detail} compact />
+          <SpoilerToggle
+            kind="football"
+            id={detail.id}
+            label={`${detail.home_team.name} — ${detail.away_team.name}`}
+            eventTime={detail.time_utc ?? detail.date}
+            compact
+          />
+        </div>
+      </Panel>
+
+      <Tabs ariaLabel="Разделы матча" active={activeTab} onChange={changeTab} items={tabs} />
 
       <SpoilerGate
         kind="football"
         id={detail.id}
         bypass={classifyMatchStatus(detail.status) === 'scheduled'}
       >
-        <SectionBoundary resetKey={`${matchId}.${activeTab}`} name="Вкладка матча">
-          {activeTab !== 'overview' &&
-          optionalLoading[activeTab] &&
-          ((activeTab === 'stats' && !loaded.stats) ||
-            (activeTab === 'lineups' && !loaded.lineups) ||
-            (activeTab === 'players' && !loaded.players.length) ||
-            (activeTab === 'events' && !loaded.events)) ? (
+        <SectionBoundary resetKey={`${matchId}.${activeTab}.${boardOpen}`} name="Вкладка матча">
+          {tabLoading ? (
             <LoadingBlock
               label={
-                activeTab === 'lineups'
-                  ? 'Загружаем составы и расстановку…'
-                  : activeTab === 'stats'
-                    ? 'Загружаем статистику матча…'
-                    : activeTab === 'players'
-                      ? 'Загружаем показатели игроков…'
-                      : 'Загружаем события матча…'
+                activeTab === 'overview'
+                  ? 'Загружаем события матча…'
+                  : activeTab === 'lineups'
+                    ? 'Загружаем составы и расстановку…'
+                    : 'Загружаем статистику матча…'
               }
               rows={3}
             />
           ) : (
             <>
-              {activeTab === 'tactics' && tacticsOn && (
-                <TacticsBoard
-                  key={matchId}
+              {activeTab === 'overview' && (
+                <Overview
                   detail={detail}
-                  payload={loaded.lineups}
-                  loading={optionalLoading.lineups}
-                  error={optionalErrors.lineups}
+                  events={loaded.events}
+                  eventsError={optionalErrors.events}
+                  stats={loaded.stats}
+                  timezone={timezone}
+                />
+              )}
+              {activeTab === 'lineups' && boardOpen && tacticsOn && (
+                <div className="md-board">
+                  <div className="md-board-back">
+                    <Button
+                      small
+                      variant="quiet"
+                      onClick={closeBoard}
+                      icon={<ArrowLeft size={14} />}
+                    >
+                      К составам
+                    </Button>
+                  </div>
+                  <TacticsBoard
+                    key={matchId}
+                    detail={detail}
+                    payload={loaded.lineups}
+                    loading={optionalLoading.lineups}
+                    error={optionalErrors.lineups}
+                  />
+                </div>
+              )}
+              {activeTab === 'lineups' && !(boardOpen && tacticsOn) && (
+                <>
+                  <MatchLineups
+                    detail={detail}
+                    payload={loaded.lineups}
+                    entries={loaded.players}
+                    error={optionalErrors.lineups}
+                    playersError={optionalErrors.players}
+                    playersLoading={optionalLoading.players}
+                    onOpenTactics={tacticsOn ? () => setBoardOpen(true) : undefined}
+                  />
+                  <PlayersTab
+                    key={matchId}
+                    entries={loaded.players}
+                    error={optionalErrors.players}
+                    loading={optionalLoading.players}
+                    detail={detail}
+                    seasonMatches={seasonMatches}
+                    onOpenMatch={onOpenMatch}
+                  />
+                  <SectionBoundary resetKey={`${matchId}.comparison`} name="Сравнение игроков">
+                    <MatchPlayersComparison detail={detail} entries={loaded.players} />
+                  </SectionBoundary>
+                </>
+              )}
+              {activeTab === 'stats' && (
+                <MatchStatsTab
+                  payload={loaded.stats}
+                  error={optionalErrors.stats}
+                  detail={detail}
                 />
               )}
               {activeTab === 'analysis' && (
@@ -471,50 +547,8 @@ export function MatchDetailView({
                   onSourceStatus={updateAnalysisSource}
                 />
               )}
-              {activeTab === 'overview' && (
-                <Overview
-                  detail={detail}
-                  events={loaded.events}
-                  stats={loaded.stats}
-                  timezone={timezone}
-                />
-              )}
-              {activeTab === 'events' && (
-                <EventsTab payload={loaded.events} error={optionalErrors.events} detail={detail} />
-              )}
-              {activeTab === 'lineups' && (
-                <MatchLineups
-                  detail={detail}
-                  payload={loaded.lineups}
-                  entries={loaded.players}
-                  error={optionalErrors.lineups}
-                  playersError={optionalErrors.players}
-                  playersLoading={optionalLoading.players}
-                  onOpenTactics={tacticsOn ? () => setTab('tactics') : undefined}
-                />
-              )}
-              {activeTab === 'stats' && (
-                <MatchStatsTab
-                  payload={loaded.stats}
-                  error={optionalErrors.stats}
-                  detail={detail}
-                />
-              )}
-              {activeTab === 'players' && (
-                <PlayersTab
-                  key={matchId}
-                  entries={loaded.players}
-                  error={optionalErrors.players}
-                  detail={detail}
-                  seasonMatches={seasonMatches}
-                  onOpenMatch={onOpenMatch}
-                />
-              )}
             </>
           )}
-        </SectionBoundary>
-        <SectionBoundary resetKey={`${matchId}.comparison`} name="Сравнение игроков">
-          <MatchPlayersComparison detail={detail} entries={loaded.players} />
         </SectionBoundary>
       </SpoilerGate>
       <SourceLine
@@ -529,40 +563,49 @@ export function MatchDetailView({
   );
 }
 
-function hasMetadata(detail: MatchDetail) {
-  return !!(detail.round_name || detail.stadium || detail.referee);
+/** Одна строка: турнир · тур · дата и время · стадион · арбитр; только известное. */
+function MatchMeta({ detail, timezone }: { detail: MatchDetail; timezone: string }) {
+  const date = formatHumanDateTime(detail.time_utc ?? detail.date, timezone);
+  const parts = [
+    detail.league?.name,
+    detail.round_name ? roundLabel(detail.round_name) : null,
+    date && date !== '—' ? date : null,
+    detail.stadium,
+    detail.referee ? `Арбитр: ${detail.referee}` : null,
+  ].filter((part): part is string => Boolean(part));
+  if (!parts.length) return <span className="md-meta-line" />;
+  const line = parts.join(' · ');
+  return (
+    <span className="md-meta-line" title={line}>
+      {line}
+    </span>
+  );
 }
 
-/** Тур или стадия, стадион и арбитр. Дата не повторяется: она уже стоит рядом со счётом. */
-function MatchMetadata({ detail }: { detail: MatchDetail }) {
-  const round = detail.round_name
-    ? ((
-        {
-          final: 'Финал',
-          '1/2': 'Полуфинал',
-          '1/4': 'Четвертьфинал',
-          '1/8': '1/8 финала',
-          '1/16': 'Стыковые матчи',
-        } as Record<string, string>
-      )[detail.round_name.toLowerCase()] ?? `Тур ${detail.round_name}`)
-    : null;
+function roundLabel(value: string) {
   return (
-    <>
-      {round && <span className="muted small">{round}</span>}
-      {detail.stadium && <span className="muted small">{detail.stadium}</span>}
-      {detail.referee && <span className="muted small">Арбитр: {detail.referee}</span>}
-    </>
+    (
+      {
+        final: 'Финал',
+        '1/2': 'Полуфинал',
+        '1/4': 'Четвертьфинал',
+        '1/8': '1/8 финала',
+        '1/16': 'Стыковые матчи',
+      } as Record<string, string>
+    )[value.toLowerCase()] ?? `Тур ${value}`
   );
 }
 
 function Overview({
   detail,
   events,
+  eventsError,
   stats,
   timezone,
 }: {
   detail: MatchDetail;
   events: EventsPayload | null;
+  eventsError?: string;
   stats: StatsPayload | null;
   timezone: string;
 }) {
@@ -619,22 +662,18 @@ function Overview({
 
   return (
     <div className="md-overview">
-      <section className="panel">
-        <div className="section-title">
-          <h2>Сводка матча</h2>
-        </div>
+      <Panel className="md-summary">
+        <PanelHeader title="Сводка матча" />
         {summaryLines.map((line, i) => (
           <p key={i} className="summary-p">
             {line}
           </p>
         ))}
-      </section>
+      </Panel>
 
       {goals.length > 0 && (
-        <section className="panel">
-          <div className="section-title">
-            <h2>Хронология голов</h2>
-          </div>
+        <Panel className="md-goals">
+          <PanelHeader title="Хронология голов" />
           <ul className="timeline">
             {goals.map((g, i) => (
               <li key={i}>
@@ -642,7 +681,9 @@ function Overview({
                 <span className="t-team">
                   {g.team_id === detail.home_team.id
                     ? detail.home_team.name
-                    : detail.away_team.name}
+                    : g.team_id === detail.away_team.id
+                      ? detail.away_team.name
+                      : '—'}
                 </span>
                 <span>{g.player?.name ?? '—'}</span>
                 {g.is_penalty && <Badge>пенальти</Badge>}
@@ -650,31 +691,25 @@ function Overview({
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
-    </div>
-  );
-}
 
-function EventsTab({
-  payload,
-  error,
-  detail,
-}: {
-  payload: EventsPayload | null;
-  error?: string;
-  detail: MatchDetail;
-}) {
-  if (error) return <EmptyBlock title="События недоступны" message={error} />;
-  if (!payload?.events || payload.events.length === 0)
-    return <EmptyBlock title="Лента событий пуста" />;
-  return (
-    <div className="panel">
-      <ul className="event-list">
-        {payload.events.map((ev, i) => (
-          <EventRow key={i} ev={ev} detail={detail} />
-        ))}
-      </ul>
+      <Panel className="md-events">
+        <PanelHeader title="События матча" />
+        {eventsError ? (
+          <EmptyState tone="error" title="События недоступны" message={eventsError} />
+        ) : !events ? (
+          <EmptyState message="События матча пока недоступны." />
+        ) : events.events.length === 0 ? (
+          <EmptyState message="Лента событий пуста." />
+        ) : (
+          <ul className="event-list">
+            {events.events.map((ev, i) => (
+              <EventRow key={i} ev={ev} detail={detail} />
+            ))}
+          </ul>
+        )}
+      </Panel>
     </div>
   );
 }

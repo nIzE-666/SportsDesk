@@ -8,12 +8,15 @@ import {
   DEFAULT_LEAGUE_ID,
   F1_TABS,
   LEAGUE_TABS,
+  LEGACY_MATCH_TABS,
+  MATCH_TABS,
   MY_TABS,
   SETTINGS_CATEGORIES,
   START_SECTION,
   competitionKind,
   defaultFootballTab,
   defaultRouteOf,
+  isMatchTab,
   isSectionRoute,
   isValidFootballTab,
   isValidShellRoute,
@@ -21,6 +24,7 @@ import {
   migrateCupId,
   migrateLeagueId,
   migrateLocation,
+  migrateMatchTab,
   migrateRoute,
   migrateSport,
   rememberedLocation,
@@ -427,4 +431,21 @@ it('migrates search section targets and recent keys at read time', () => {
     ]),
   );
   expect(readSearchIndex().some((item) => item.key === 'section:x')).toBe(false);
+});
+
+it('migrates every old match tab to the four new ones on read', () => {
+  expect(MATCH_TABS).toEqual(['overview', 'lineups', 'stats', 'analysis']);
+  expect(migrateMatchTab('overview')).toBe('overview');
+  expect(migrateMatchTab('events')).toBe('overview');
+  expect(migrateMatchTab('lineups')).toBe('lineups');
+  expect(migrateMatchTab('players')).toBe('lineups');
+  expect(migrateMatchTab('stats')).toBe('stats');
+  expect(migrateMatchTab('analysis')).toBe('analysis');
+  expect(migrateMatchTab('tactics')).toBe('lineups');
+  for (const tab of MATCH_TABS) expect(migrateMatchTab(tab)).toBe(tab);
+  for (const tab of LEGACY_MATCH_TABS) expect(migrateMatchTab(tab)).toBeDefined();
+  for (const tab of MATCH_TABS) expect(isMatchTab(tab)).toBe(true);
+  expect(isMatchTab('players')).toBe(false);
+  expect(migrateMatchTab('unknown')).toBeUndefined();
+  expect(migrateMatchTab(null)).toBeUndefined();
 });

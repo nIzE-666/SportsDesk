@@ -3,7 +3,7 @@ import { api } from '../../lib/bridge';
 import { retainResource } from '../../lib/resourceHealth';
 import { LoadingBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
-import { Button } from '../../kit';
+import { Button, Panel } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import {
   buildXg,
@@ -191,7 +191,7 @@ export function MatchAnalysis({
           </Button>
         )}
       </header>
-      <section className="panel analysis-pressure">
+      <Panel className="analysis-pressure">
         <h3 title="Показатель источника, а не вероятность гола">Давление по ходу матча</h3>
         <p className="muted small">
           Выше нуля — давление {detail.home_team.name}, ниже — {detail.away_team.name}.
@@ -209,8 +209,8 @@ export function MatchAnalysis({
             Пропущено некорректных точек давления: {pressure.data.rejected}.
           </p>
         )}
-      </section>
-      <section className="panel analysis-shots">
+      </Panel>
+      <Panel className="analysis-shots">
         <h3>Удары и ожидаемые голы</h3>
         <ResourceNotice resource={shots} />
         {shots.loading && !shots.data ? (
@@ -358,7 +358,7 @@ export function MatchAnalysis({
         {omitted > 0 && (
           <p className="analysis-notice">Неполные данные: пропущено записей — {omitted}.</p>
         )}
-      </section>
+      </Panel>
       {!onSourceStatus && (
         <SourceLine sources={['pitch']} fetchedAt={oldest} oldest stale={stale} />
       )}

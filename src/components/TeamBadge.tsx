@@ -5,6 +5,8 @@ interface TeamBadgeProps {
   name: string;
   imageUrl?: string | null;
   size?: number;
+  /** Which side of a match the team plays on; tints only the crest fallback. */
+  side?: 'home' | 'away';
 }
 
 function initials(name: string): string {
@@ -21,7 +23,7 @@ function initials(name: string): string {
   return (a + b).toUpperCase();
 }
 
-export function TeamBadge({ name, imageUrl, size = 28 }: TeamBadgeProps) {
+export function TeamBadge({ name, imageUrl, size = 28, side }: TeamBadgeProps) {
   const [broken, setBroken] = useState(false);
 
   useEffect(() => {
@@ -31,9 +33,10 @@ export function TeamBadge({ name, imageUrl, size = 28 }: TeamBadgeProps) {
   const geometry = { '--badge-size': `${size}px` } as CSSProperties;
 
   if (!imageUrl || broken) {
+    const sideClass = side ? ` team-badge-fallback--${side}` : '';
     return (
       <span
-        className={`team-badge-fallback${size >= 32 ? ' team-badge-fallback--large' : ''}`}
+        className={`team-badge-fallback${size >= 32 ? ' team-badge-fallback--large' : ''}${sideClass}`}
         style={geometry}
         aria-hidden
       >

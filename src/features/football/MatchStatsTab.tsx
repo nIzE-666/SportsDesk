@@ -1,6 +1,6 @@
 import { EmptyBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
-import { SegmentedControl } from '../../kit';
+import { Panel, SegmentedControl } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { formatTeamStat, statGroupLabel, statLabel, statsPeriodLabel } from './statLabels';
 import type { MatchDetail, StatGroup, StatsPayload } from './types';
@@ -23,7 +23,7 @@ export function MatchStatsTab({
         title={upcoming ? 'Матч ещё не начался' : 'Статистика не загружена'}
         message={
           upcoming
-            ? 'Показатели появятся после начала матча; составы — во вкладке «Поле и оценки».'
+            ? 'Показатели появятся после начала матча; составы — во вкладке «Составы».'
             : 'Источник не передал статистику матча.'
         }
       />
@@ -65,8 +65,8 @@ export function MatchStatsTab({
     return (x < 0 ? 99 : x) - (y < 0 ? 99 : y);
   });
   return (
-    <section
-      className="match-statistics panel"
+    <Panel
+      className="match-statistics"
       aria-label={`Сравнение статистики: ${home.name} и ${away.name}`}
     >
       <h2 className="visually-hidden">Статистика матча</h2>
@@ -80,7 +80,7 @@ export function MatchStatsTab({
         />
         <div className="stats-column-head stat-grid">
           <div className="stats-team stats-home-team">
-            <TeamBadge name={home.name} imageUrl={home.image_url} size={34} />
+            <TeamBadge name={home.name} imageUrl={home.image_url} size={34} side="home" />
             <span>
               <small>СЛЕВА · ХОЗЯЕВА</small>
               <strong>{home.name}</strong>
@@ -95,7 +95,7 @@ export function MatchStatsTab({
               <small>СПРАВА · ГОСТИ</small>
               <strong>{away.name}</strong>
             </span>
-            <TeamBadge name={away.name} imageUrl={away.image_url} size={34} />
+            <TeamBadge name={away.name} imageUrl={away.image_url} size={34} side="away" />
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@ export function MatchStatsTab({
           <StatGroupBlock key={g.group_name} group={g} homeName={home.name} awayName={away.name} />
         ))}
       </div>
-    </section>
+    </Panel>
   );
 }
 

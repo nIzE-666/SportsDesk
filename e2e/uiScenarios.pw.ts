@@ -104,7 +104,7 @@ test('measure user journeys from launch', async ({ page }) => {
 
   await start();
   await openMatch();
-  await click(page.getByRole('button', { name: 'Отметить просмотр', exact: true }));
+  await click(page.getByRole('button', { name: 'Просмотрено', exact: true }));
   await click(page.getByRole('button', { name: 'Сохранить отметку', exact: true }));
   await expect(page.locator('.diary-mark')).toContainText('Просмотр сохранён');
   await expect

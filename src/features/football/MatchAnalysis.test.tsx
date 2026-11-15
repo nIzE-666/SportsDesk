@@ -278,7 +278,7 @@ it('shows one source summary for a match and refreshes analysis without leaving 
       </FavoritesProvider>,
     ),
   );
-  await click('Разбор матча');
+  await click('Разбор');
   expect(host.querySelectorAll('.source-foot')).toHaveLength(1);
   expect(host.querySelector('.source-foot')?.textContent).toContain('устаревшими');
   expect(host.textContent).not.toContain('Обновить разбор');
@@ -287,9 +287,7 @@ it('shows one source summary for a match and refreshes analysis without leaving 
   expect(
     transport.api.mock.calls.filter(([, path]) => path.endsWith('/shots')).length,
   ).toBeGreaterThan(count);
-  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
-    'Разбор матча',
-  );
+  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain('Разбор');
 });
 
 it('loads analytics only on the selected tab and only after revealing a hidden result', async () => {
@@ -301,7 +299,7 @@ it('loads analytics only on the selected tab and only after revealing a hidden r
       </FavoritesProvider>,
     ),
   );
-  await click('Разбор матча');
+  await click('Разбор');
   expect(host.textContent).toContain('Результат скрыт');
   expect(
     transport.api.mock.calls.some(

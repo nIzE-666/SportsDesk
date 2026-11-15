@@ -1402,11 +1402,7 @@ img {
   box-shadow: none;
 }
 .app-root[data-theme] .match-statistics {
-  --stat-away-color: var(--color-text);
   padding: 0;
-}
-.app-root[data-theme] :is(.compare-b, .compare-context strong:last-child) {
-  color: var(--color-text);
 }
 .app-root[data-theme] .match-stat-row {
   border-color: var(--color-border);

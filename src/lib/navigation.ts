@@ -25,6 +25,7 @@ export type ChampionsTab = 'overview' | 'table' | 'bracket' | 'matches' | 'stats
 export type CupTab = 'overview' | 'table' | 'bracket' | 'matches';
 export type FootballTab = LeagueTab | ChampionsTab | CupTab;
 export type F1Tab = 'overview' | 'calendar' | 'standings' | 'compare' | 'pace' | 'session';
+export type MatchTab = 'overview' | 'lineups' | 'stats' | 'analysis';
 export type MyTab = 'favorites' | 'diary' | 'games' | 'schemes';
 export type SettingsCategory =
   | 'general'
@@ -81,6 +82,17 @@ export const MATCHES_FILTER_VIEW_KEY = 'football.matches.filter';
 export const CHAMPIONS_TABS = ['overview', 'table', 'bracket', 'matches', 'stats'] as const;
 export const CUP_TABS = ['overview', 'table', 'bracket', 'matches'] as const;
 export const F1_TABS = ['overview', 'calendar', 'standings', 'compare', 'pace', 'session'] as const;
+export const MATCH_TABS = ['overview', 'lineups', 'stats', 'analysis'] as const;
+/** Tab ids of the old seven-tab match page; still read from saved screen state. */
+export const LEGACY_MATCH_TABS = [
+  'overview',
+  'events',
+  'lineups',
+  'stats',
+  'players',
+  'analysis',
+  'tactics',
+] as const;
 export const MY_TABS = ['favorites', 'diary', 'games', 'schemes'] as const;
 export const SETTINGS_CATEGORIES = [
   'general',
@@ -155,6 +167,32 @@ export function isCupTab(tab: unknown): tab is CupTab {
 
 export function isMyTab(tab: unknown): tab is MyTab {
   return includes(MY_TABS, tab);
+}
+
+export function isMatchTab(tab: unknown): tab is MatchTab {
+  return includes(MATCH_TABS, tab);
+}
+
+/**
+ * Moves a saved or linked tab id of the old seven-tab match page to the new
+ * four-tab page. The board is not a tab any more: «Составы» holds «На доску».
+ */
+export function migrateMatchTab(value: unknown): MatchTab | undefined {
+  switch (value) {
+    case 'overview':
+    case 'events':
+      return 'overview';
+    case 'lineups':
+    case 'players':
+    case 'tactics':
+      return 'lineups';
+    case 'stats':
+      return 'stats';
+    case 'analysis':
+      return 'analysis';
+    default:
+      return undefined;
+  }
 }
 
 export function isValidSettingsCategory(value: unknown): value is SettingsCategory {

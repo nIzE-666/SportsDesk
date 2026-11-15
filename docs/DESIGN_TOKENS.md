@@ -58,6 +58,9 @@
 ### Графики и шины
 
 - `--color-chart-1` … `--color-chart-8` — палитра графиков.
+- `--color-team-home`, `--color-team-away` — цвета команд на странице матча и
+  тактической доске: синий хозяева, оранжевый гости в обеих темах. Это ссылки на
+  `--color-chart-1` и `--color-chart-2`, поэтому акцент турнира их не меняет.
 - `--color-tyre-soft`, `--color-tyre-medium`, `--color-tyre-hard`,
   `--color-tyre-inter`, `--color-tyre-wet`, `--color-tyre-unknown` — цвета
   составов шин Формулы-1. Они настоящие и одинаковы в обеих темах.

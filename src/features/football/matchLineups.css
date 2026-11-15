@@ -5,11 +5,34 @@
 }
 .pitch-card {
   display: grid;
-  gap: var(--space-24);
+  gap: var(--space-16);
   min-width: 0;
 }
-.pitch-card .analysis-subtitle {
-  margin-bottom: 0;
+.pitch-card .ui-panel__title,
+.lineup-team-lists .ui-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.pitch-card .ui-panel__title svg {
+  color: var(--color-accent);
+}
+.pitch-card-head {
+  display: grid;
+  gap: var(--space-4);
+}
+.pitch-card-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.analysis-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
 }
 .pitch-team-headings {
   display: grid;
@@ -86,18 +109,18 @@
   white-space: nowrap;
   font-size: var(--text-12);
   font-weight: var(--weight-semibold);
-  color: var(--color-accent);
+  color: var(--color-team-home);
   background: var(--color-surface-2);
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-team-home);
   border-radius: var(--radius-sm);
   padding: var(--space-4) var(--space-8);
 }
 .pitch-side-label.away {
   right: 5%;
   left: auto;
-  color: var(--color-chart-5);
+  color: var(--color-team-away);
   background: var(--color-surface-2);
-  border-color: var(--color-chart-5);
+  border-color: var(--color-team-away);
   text-align: right;
 }
 .lineup-pitch .pitch-player {
@@ -142,13 +165,13 @@
   display: block;
 }
 .lineup-pitch .pitch-player .person-avatar {
-  border: 2px solid var(--color-accent);
+  border: 2px solid var(--color-team-home);
   border-radius: var(--radius-round);
   background: var(--color-surface-2);
   box-shadow: var(--shadow-1);
 }
 .lineup-pitch .pitch-player.away .person-avatar {
-  border-color: var(--color-chart-5);
+  border-color: var(--color-team-away);
 }
 .lineup-pitch .pitch-player-portrait > small {
   position: absolute;
@@ -166,8 +189,8 @@
   font-size: var(--text-12);
   font-weight: var(--weight-bold);
 }
-.pitch-player.away .lineup-pitch .pitch-player-portrait > small {
-  border-color: var(--color-chart-5);
+.lineup-pitch .pitch-player.away .pitch-player-portrait > small {
+  border-color: var(--color-team-away);
 }
 .lineup-pitch .pitch-player-portrait > i {
   position: absolute;

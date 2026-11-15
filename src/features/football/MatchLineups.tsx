@@ -2,8 +2,7 @@ import { ArrowLeftRight, Map, Users } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import TeamBadge from '../../components/TeamBadge';
-import { EmptyBlock } from '../../components/StateViews';
-import { Badge, Button } from '../../kit';
+import { Badge, Button, EmptyState, Panel, PanelHeader } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { PlayerProfile } from './MatchPlayers';
 import {
@@ -48,6 +47,18 @@ export function MatchLineups({
     null,
     (v) => v === null || typeof v === 'string',
   );
+  const heading = (
+    <div className="pitch-card-head">
+      <PanelHeader
+        title={
+          <>
+            <Map size={18} /> Поле и оценки
+          </>
+        }
+        action={onOpenTactics ? <Button onClick={onOpenTactics}>На доску</Button> : undefined}
+      />
+    </div>
+  );
   if (
     !payload ||
     (payload.match_id && payload.match_id !== detail.id) ||
@@ -55,10 +66,15 @@ export function MatchLineups({
     (payload.away_team?.id && payload.away_team.id !== detail.away_team.id)
   ) {
     return (
-      <EmptyBlock
-        title={error ? 'Составы недоступны' : 'Составы пока не опубликованы'}
-        message={error ?? 'Игроки появятся, когда состав будет опубликован.'}
-      />
+      <div className="match-lineups">
+        <Panel className="pitch-card">
+          {heading}
+          <EmptyState
+            title={error ? 'Составы недоступны' : 'Составы пока не опубликованы'}
+            message={error ?? 'Игроки появятся, когда состав будет опубликован.'}
+          />
+        </Panel>
+      </div>
     );
   }
   const home = buildPitchTeam(detail.home_team, payload.home, entries);
@@ -85,16 +101,11 @@ export function MatchLineups({
   const unpositioned = teams.some((team) => team.starters.some((p) => !p.point));
   return (
     <div className="match-lineups">
-      <section className="panel pitch-card">
-        <div className="section-title">
-          <div>
-            <h2>
-              <Map size={18} /> Поле и оценки
-            </h2>
-            <p className="analysis-subtitle">Стартовая расстановка</p>
-          </div>
+      <Panel className="pitch-card">
+        {heading}
+        <div className="pitch-card-sub">
+          <span className="analysis-subtitle">Стартовая расстановка</span>
           <Badge>Оценки 0–10</Badge>
-          {onOpenTactics && <Button onClick={onOpenTactics}>Открыть тактическую доску</Button>}
         </div>
         {(error || playersError) && (
           <p className="lineup-notice" role="status">
@@ -109,7 +120,12 @@ export function MatchLineups({
         <div className="pitch-team-headings">
           {teams.map((team) => (
             <div key={team.team.id} className={team === home ? 'home' : 'away'}>
-              <TeamBadge name={team.team.name} imageUrl={team.team.image_url} size={34} />
+              <TeamBadge
+                name={team.team.name}
+                imageUrl={team.team.image_url}
+                size={34}
+                side={team === home ? 'home' : 'away'}
+              />
               <div>
                 <h3>{team.team.name}</h3>
                 <p>
@@ -179,7 +195,7 @@ export function MatchLineups({
             </div>
           </div>
         ) : (
-          <EmptyBlock
+          <EmptyState
             title="Координаты расстановки пока недоступны"
             message="Игроки перечислены ниже."
           />
@@ -197,21 +213,28 @@ export function MatchLineups({
         {unpositioned && (
           <p className="muted small">У части игроков нет позиции на поле — они в списках ниже.</p>
         )}
-      </section>
+      </Panel>
       <div className="lineup-team-lists">
         {teams.map((team) => (
-          <section className="panel" key={team.team.id}>
-            <div className="section-title">
-              <h2>
-                <TeamBadge name={team.team.name} imageUrl={team.team.image_url} size={24} />
-                {team.team.name}
-              </h2>
-              <Badge>{team.formation ?? 'Схема —'}</Badge>
-            </div>
+          <Panel key={team.team.id}>
+            <PanelHeader
+              title={
+                <>
+                  <TeamBadge
+                    name={team.team.name}
+                    imageUrl={team.team.image_url}
+                    size={24}
+                    side={team === home ? 'home' : 'away'}
+                  />
+                  {team.team.name}
+                </>
+              }
+              action={<Badge>{team.formation ?? 'Схема —'}</Badge>}
+            />
             {team.coach && <p className="muted small">Тренер: {team.coach}</p>}
             <PlayerList title="Стартовый состав" players={team.starters} team={team} open={open} />
             <PlayerList title="Запасные" players={team.subs} team={team} open={open} />
-          </section>
+          </Panel>
         ))}
       </div>
     </div>
