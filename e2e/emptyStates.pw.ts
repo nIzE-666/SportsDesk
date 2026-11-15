@@ -613,7 +613,7 @@ for (const width of [1100, 1440])
       await page.reload();
       await section(page, 'Футбол');
       await headerTab(page, 'Клубы');
-      await expect(view.locator('h1')).toHaveText('Клубы');
+      await expect(view.locator('h2.screen-title')).toHaveText('Клубы');
     };
     const picker = view.locator('#team-picker-select');
 
@@ -635,7 +635,7 @@ for (const width of [1100, 1440])
     await shoot(page, testInfo, `broadcast-${width}-clubs-ten`);
 
     await view.locator('.team-favorites').getByRole('button', { name: 'Cobalt Rovers' }).click();
-    await expect(view.locator('h1')).toHaveText('Cobalt Rovers');
+    await expect(view.locator('h2.screen-title')).toHaveText('Cobalt Rovers');
     await expect(picker).toHaveValue('club-3');
     await expect(view.locator('.team-favorites')).toHaveCount(0);
     await expect(view.locator('.club-players .squad-player')).toHaveCount(18);

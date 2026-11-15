@@ -39,10 +39,10 @@ test('F1 headings, season and layout', async ({ page }, testInfo) => {
   await page.screenshot({ path: testInfo.outputPath('f1-overview.png') });
   const tabs = page.locator('.shell-tabs');
   await tabs.getByRole('tab', { name: 'Зачёты', exact: true }).click();
-  await expect(page.locator('.f1-root h1')).toHaveText('Зачёты');
+  await expect(page.locator('.f1-root h2.screen-title')).toHaveText('Зачёты');
   await expect(page.locator('.f1-root select[aria-label*="Сезон"]')).toHaveCount(1);
   await tabs.getByRole('tab', { name: 'Анализ', exact: true }).click();
-  await expect(page.locator('.f1-root h1')).toHaveText('Анализ');
+  await expect(page.locator('.f1-root h2.screen-title')).toHaveText('Анализ');
   const modes = page.getByRole('tablist', { name: 'Режим анализа' });
   await expect(modes).toBeVisible();
   for (const title of ['Сравнение пилотов', 'Темп по кругам', 'Центр сессии']) {

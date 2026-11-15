@@ -78,7 +78,7 @@ async function openArsenalWithLongNames(page: Page, width: number) {
     .getByRole('navigation', { name: 'Разделы' })
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
-  await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
+  await expect(page.locator('.team-view h2.screen-title')).toHaveText('Arsenal');
   await expect(page.locator('.team-schedule .team-match-row')).toHaveCount(longNames.length * 4);
 }
 
@@ -171,10 +171,10 @@ test('long away team names start inside the schedule cell', async ({ page }, tes
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Клубы', exact: true }).click();
-  await expect(page.locator('.team-view h1')).toHaveText('Клубы');
+  await expect(page.locator('.team-view h2.screen-title')).toHaveText('Клубы');
   await page.screenshot({ path: testInfo.outputPath('favorite-teams.png') });
   await page.locator('#team-picker-select').selectOption('arsenal');
-  await expect(page.locator('.team-view h1')).toHaveText('Arsenal');
+  await expect(page.locator('.team-view h2.screen-title')).toHaveText('Arsenal');
   const away = page.locator('.team-schedule .team-match-away').first();
   const name = away.locator('.team-match-name');
   await expect(name).toHaveText('Newcastle United Football Club');
