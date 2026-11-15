@@ -1,7 +1,7 @@
 {
   "name": "sportsdesk",
   "private": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
   "description": "SportsDesk - personal desktop sports, F1 and live TV hub",
   "scripts": {
