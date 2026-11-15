@@ -259,7 +259,6 @@ img {
   padding-top: 19px;
   border-top: 1px solid color-mix(in srgb, var(--color-text) 4%, transparent);
   color: var(--color-text-secondary);
-  opacity: 0.5;
   font-size: var(--text-12);
   letter-spacing: 0.4px;
 }
@@ -267,9 +266,14 @@ img {
   font-size: var(--text-12);
   letter-spacing: 2px;
 }
-.app-footer b {
-  color: var(--color-accent);
-  font-size: var(--text-12);
+.app-footer-dot {
+  display: inline-block;
+  width: calc(var(--space-4) + 1px);
+  height: calc(var(--space-4) + 1px);
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  margin-left: 1px;
+  vertical-align: middle;
 }
 .source-foot {
   display: flex;
@@ -279,7 +283,6 @@ img {
   font-size: var(--text-12);
   color: var(--color-text-secondary);
   padding: var(--space-16) var(--space-4) 0;
-  opacity: 0.8;
 }
 .source-foot a {
   display: inline-flex;

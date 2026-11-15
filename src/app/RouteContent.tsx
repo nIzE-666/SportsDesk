@@ -238,7 +238,7 @@ export function RouteContent({
       </Suspense>
       <footer className="app-footer">
         <span>
-          SPORTSDESK <b>●</b>
+          SPORTSDESK <span className="app-footer-dot" aria-hidden="true" />
         </span>
         <span>Время событий · {getUserTimezone()}</span>
       </footer>

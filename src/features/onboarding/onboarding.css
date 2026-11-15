@@ -84,6 +84,7 @@
 .onboarding-option.selected {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
+  color: var(--color-text);
 }
 
 .onboarding-option:focus-within,

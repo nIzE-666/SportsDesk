@@ -294,7 +294,7 @@
 .ui-segmented__option[aria-checked='true'] {
   border-color: var(--color-border-strong);
   background: var(--color-accent-soft);
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .ui-segmented__option:focus-visible {
@@ -799,7 +799,7 @@ button.ui-match-row {
 
 .ui-badge--win {
   border-color: color-mix(in srgb, var(--color-win) 45%, var(--color-border));
-  background: color-mix(in srgb, var(--color-win) 12%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-win) 12%, var(--color-surface-1));
   color: var(--color-win);
 }
 
@@ -817,7 +817,7 @@ button.ui-match-row {
 
 .ui-badge--warning {
   border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
-  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-1));
   color: var(--color-warning);
 }
 
