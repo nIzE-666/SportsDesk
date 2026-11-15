@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Moon, Rows3, Sun } from 'lucide-react';
+import { Button, Panel } from '../../../kit';
 import { getString, setString } from '../../football/storage';
 import { useAtmosphere, writeAtmosphere, type MotionMode } from '../../atmosphere/atmosphereStore';
 
@@ -25,19 +26,21 @@ export function AppearanceSettings() {
   };
 
   return (
-    <section className="panel settings-section">
+    <Panel className="settings-section">
       <div className="settings-actions">
-        <button className="ghost-btn" onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}>
-          {lightTheme ? <Moon size={14} /> : <Sun size={14} />}
+        <Button
+          icon={lightTheme ? <Moon size={14} /> : <Sun size={14} />}
+          onClick={() => setAppearance(lightTheme ? 'dark' : 'light')}
+        >
           {lightTheme ? 'Перейти на тёмную' : 'Перейти на светлую'}
-        </button>
-        <button
-          className="ghost-btn"
+        </Button>
+        <Button
+          icon={<Rows3 size={14} />}
           onClick={() => setDensity(compactTables ? 'default' : 'compact')}
           aria-pressed={compactTables}
         >
-          <Rows3 size={14} /> {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
-        </button>
+          {compactTables ? 'Обычные таблицы' : 'Плотные таблицы'}
+        </Button>
       </div>
       <div className="settings-row settings-motion-row">
         <label htmlFor="motion-mode" className="muted small">
@@ -53,6 +56,6 @@ export function AppearanceSettings() {
           <option value="full">Полная анимация</option>
         </select>
       </div>
-    </section>
+    </Panel>
   );
 }

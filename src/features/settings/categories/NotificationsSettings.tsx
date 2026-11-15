@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { isTauri } from '@tauri-apps/api/core';
 import { notify } from '../../../lib/bridge';
+import { Badge, Button, Panel } from '../../../kit';
 import { getString, setString } from '../../football/storage';
 import { readNotificationsEnabled, writeNotificationsEnabled } from '../../football/usePoller';
 import { NotificationPreferences } from '../NotificationPreferences';
@@ -67,15 +68,15 @@ export function NotificationsSettings() {
 
   return (
     <>
-      <section className="panel settings-section">
+      <Panel className="settings-section">
         <div className="settings-status-row">
-          <span className="chip">
+          <Badge>
             {notificationsEnabled ? <Bell size={14} /> : <BellOff size={14} />}
             {notificationsEnabled ? 'Включены' : 'Выключены'}
-          </span>
-          <button className="ghost-btn" onClick={() => void toggleNotifications()}>
+          </Badge>
+          <Button onClick={() => void toggleNotifications()}>
             {notificationsEnabled ? 'Выключить уведомления' : 'Включить уведомления'}
-          </button>
+          </Button>
         </div>
         <label className="settings-f1-reminders">
           <input
@@ -93,8 +94,7 @@ export function NotificationsSettings() {
         </label>
         <NotificationPreferences />
         <div className="settings-row settings-actions">
-          <button
-            className="ghost-btn"
+          <Button
             disabled={!notificationsEnabled}
             onClick={async () => {
               try {
@@ -108,10 +108,10 @@ export function NotificationsSettings() {
             }}
           >
             Проверить уведомление
-          </button>
+          </Button>
         </div>
         {notificationMessage && <p className="settings-note">{notificationMessage}</p>}
-      </section>
+      </Panel>
     </>
   );
 }

@@ -1,9 +1,10 @@
 import { FavoriteClubsEditor } from '../FavoriteClubsEditor';
+import { Panel } from '../../../kit';
 
 export function FavoritesSettings() {
   return (
-    <section className="panel settings-section">
+    <Panel className="settings-section">
       <FavoriteClubsEditor />
-    </section>
+    </Panel>
   );
 }

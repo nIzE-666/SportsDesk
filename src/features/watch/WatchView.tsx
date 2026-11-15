@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ExternalLink,
   Heart,
-  Loader2,
   LogOut,
   MonitorPlay,
   RefreshCw,
@@ -16,6 +15,16 @@ import {
   History as HistoryIcon,
 } from 'lucide-react';
 import { openExternal, rpc } from '../../lib/bridge';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  IconButton,
+  Panel,
+  PanelHeader,
+  SegmentedControl,
+  Skeleton,
+} from '../../kit';
 import type { WatchIntent } from '../../lib/watchIntent';
 import { getJson, setJson, setString } from '../football/storage';
 import { rememberSearchItems } from '../../lib/searchIndex';
@@ -111,17 +120,19 @@ export function WatchView({
     setJson('sportsdesk.watch.preferred', next);
   };
   const contextPanel = intent ? (
-    <section className="panel watch-event-context" aria-label="Просмотр события">
-      <div>
-        <h2>{intent.title}</h2>
-        <p>Выберите канал и проверьте, идёт ли трансляция.</p>
-      </div>
-      {preferred[intent.sport] && channels.some((c) => c.id === preferred[intent.sport]) && (
-        <button className="ghost-btn" onClick={() => setSelectedId(preferred[intent.sport]!)}>
-          Открыть мой канал
-        </button>
-      )}
-    </section>
+    <Panel className="watch-event-panel" aria-label="Просмотр события">
+      <PanelHeader
+        title={intent.title}
+        action={
+          preferred[intent.sport] && channels.some((c) => c.id === preferred[intent.sport]) ? (
+            <Button onClick={() => setSelectedId(preferred[intent.sport]!)}>
+              Открыть мой канал
+            </Button>
+          ) : undefined
+        }
+      />
+      <p className="watch-muted">Выберите канал и проверьте, идёт ли трансляция.</p>
+    </Panel>
   ) : null;
 
   useEffect(() => {
@@ -380,7 +391,7 @@ export function WatchView({
     return (
       <div className="watch-root">
         <div className="watch-center-state">
-          <Loader2 size={28} className="watch-spin" aria-hidden />
+          <Skeleton className="watch-center-skeleton" />
           <span className="watch-muted">Проверяем аккаунт…</span>
         </div>
       </div>
@@ -391,15 +402,19 @@ export function WatchView({
     return (
       <div className="watch-root">
         <div className="watch-center-state">
-          <AlertTriangle size={28} aria-hidden />
-          <span>{account.message}</span>
-          <button
-            type="button"
-            className="watch-btn watch-btn-primary"
-            onClick={() => void loadStatus()}
-          >
-            <RefreshCw size={15} aria-hidden /> Повторить
-          </button>
+          <EmptyState
+            icon={<AlertTriangle size={20} aria-hidden />}
+            message={account.message}
+            action={
+              <Button
+                variant="primary"
+                icon={<RefreshCw size={15} aria-hidden />}
+                onClick={() => void loadStatus()}
+              >
+                Повторить
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -414,7 +429,7 @@ export function WatchView({
             <span className="watch-hero-icon">
               <MonitorPlay size={30} aria-hidden />
             </span>
-            <h2 className="screen-title">Kino Live</h2>
+            <h2 className="ui-page-title">Kino Live</h2>
             <p className="watch-muted">Подключите аккаунт Kino один раз.</p>
           </div>
           <SplitAuthPanel
@@ -426,27 +441,27 @@ export function WatchView({
           <div className="watch-browser-fallback">
             <span className="watch-muted">Без входа в приложение:</span>
             <div className="watch-fallback-links">
-              <button
-                type="button"
-                className="watch-link-btn"
+              <Button
+                variant="quiet"
+                icon={<ExternalLink size={13} aria-hidden />}
                 onClick={() => openSite('https://kino.watch/tv/view/okkofootball')}
               >
-                <ExternalLink size={13} aria-hidden /> OKKO Football
-              </button>
-              <button
-                type="button"
-                className="watch-link-btn"
+                OKKO Football
+              </Button>
+              <Button
+                variant="quiet"
+                icon={<ExternalLink size={13} aria-hidden />}
                 onClick={() => openSite('https://kino.watch/tv/view/skysportsf1')}
               >
-                <ExternalLink size={13} aria-hidden /> Sky Sports F1
-              </button>
-              <button
-                type="button"
-                className="watch-link-btn"
+                Sky Sports F1
+              </Button>
+              <Button
+                variant="quiet"
+                icon={<ExternalLink size={13} aria-hidden />}
                 onClick={() => openSite('https://kino.watch/tv/view/matchtv')}
               >
-                <ExternalLink size={13} aria-hidden /> Матч ТВ
-              </button>
+                Матч ТВ
+              </Button>
             </div>
           </div>
         </div>
@@ -459,34 +474,25 @@ export function WatchView({
     <div className="watch-root">
       <header className="watch-topbar">
         <div className="watch-topbar-left">
-          <span className="watch-brand-badge">
+          <Badge>
             <Tv size={16} aria-hidden /> Kino
-          </span>
-          <span className="watch-account-pill">
+          </Badge>
+          <Badge>
             <CheckCircle2 size={14} aria-hidden /> Аккаунт подключён
-          </span>
+          </Badge>
         </div>
         <div className="watch-topbar-right">
-          <button
-            type="button"
-            className="watch-btn watch-btn-ghost watch-btn-sm"
+          <Button
+            small
+            icon={<RefreshCw size={14} aria-hidden />}
+            busy={channelsState === 'loading'}
             onClick={() => void loadChannels()}
-            disabled={channelsState === 'loading'}
           >
-            {channelsState === 'loading' ? (
-              <Loader2 size={14} className="watch-spin" aria-hidden />
-            ) : (
-              <RefreshCw size={14} aria-hidden />
-            )}
             Обновить
-          </button>
-          <button
-            type="button"
-            className="watch-btn watch-btn-ghost watch-btn-sm"
-            onClick={() => setShowLogout(true)}
-          >
-            <LogOut size={14} aria-hidden /> Выйти
-          </button>
+          </Button>
+          <Button small icon={<LogOut size={14} aria-hidden />} onClick={() => setShowLogout(true)}>
+            Выйти
+          </Button>
         </div>
       </header>
 
@@ -502,55 +508,43 @@ export function WatchView({
               aria-label="Поиск канала"
             />
             {query && (
-              <button
-                type="button"
+              <IconButton
+                small
                 className="watch-search-clear"
-                onClick={() => setQuery('')}
+                icon={<X size={14} aria-hidden />}
                 aria-label="Очистить поиск"
-              >
-                <X size={14} aria-hidden />
-              </button>
+                onClick={() => setQuery('')}
+              />
             )}
           </div>
 
-          <div className="watch-filter-row" role="tablist" aria-label="Фильтр каналов">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filter === 'all'}
-              className={`watch-filter-btn${filter === 'all' ? ' is-active' : ''}`}
-              onClick={() => setFilter('all')}
-            >
-              Все
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filter === 'sport'}
-              className={`watch-filter-btn${filter === 'sport' ? ' is-active' : ''}`}
-              onClick={() => setFilter('sport')}
-            >
-              Спорт
-            </button>
+          <div className="watch-filter-row">
+            <SegmentedControl
+              ariaLabel="Фильтр каналов"
+              value={filter}
+              onChange={(id) => setFilter(id as 'all' | 'sport')}
+              items={[
+                { id: 'all', label: 'Все' },
+                { id: 'sport', label: 'Спорт' },
+              ]}
+            />
             <span className="watch-view-toggle" role="group" aria-label="Вид каналов">
-              <button
-                type="button"
-                className={`watch-filter-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-                onClick={() => setViewMode('grid')}
+              <IconButton
+                small
+                variant={viewMode === 'grid' ? 'default' : 'quiet'}
+                icon={<LayoutGrid size={14} aria-hidden />}
                 aria-label="Сетка каналов"
-                title="Сетка"
-              >
-                <LayoutGrid size={13} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`watch-filter-btn${viewMode === 'list' ? ' is-active' : ''}`}
-                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'grid'}
+                onClick={() => setViewMode('grid')}
+              />
+              <IconButton
+                small
+                variant={viewMode === 'list' ? 'default' : 'quiet'}
+                icon={<List size={14} aria-hidden />}
                 aria-label="Список каналов"
-                title="Список"
-              >
-                <List size={13} aria-hidden />
-              </button>
+                aria-pressed={viewMode === 'list'}
+                onClick={() => setViewMode('list')}
+              />
             </span>
           </div>
 
@@ -559,19 +553,13 @@ export function WatchView({
               <span className="watch-fav-bar-label">
                 <HistoryIcon size={12} aria-hidden /> Недавние
               </span>
-              <div className="watch-fav-bar-chips">
-                {recentChannels.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`watch-fav-chip${selectedId === c.id ? ' is-active' : ''}`}
-                    onClick={() => selectChannel(c.id)}
-                    title={c.title}
-                  >
-                    {c.title}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                className="watch-fav-chips"
+                ariaLabel="Недавние каналы"
+                value={selectedId === null ? '' : String(selectedId)}
+                onChange={(id) => selectChannel(Number(id))}
+                items={recentChannels.map((c) => ({ id: String(c.id), label: c.title }))}
+              />
             </div>
           )}
 
@@ -580,45 +568,44 @@ export function WatchView({
               <span className="watch-fav-bar-label">
                 <Heart size={12} aria-hidden fill="currentColor" /> Избранное
               </span>
-              <div className="watch-fav-bar-chips">
-                {favoriteChannels.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`watch-fav-chip${selectedId === c.id ? ' is-active' : ''}`}
-                    onClick={() => selectChannel(c.id)}
-                    title={c.title}
-                  >
-                    {c.title}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                className="watch-fav-chips"
+                ariaLabel="Избранные каналы"
+                value={selectedId === null ? '' : String(selectedId)}
+                onChange={(id) => selectChannel(Number(id))}
+                items={favoriteChannels.map((c) => ({ id: String(c.id), label: c.title }))}
+              />
             </div>
           )}
 
           <div className="watch-rail-list-wrap">
             {channelsState === 'loading' && (
               <div className="watch-rail-state">
-                <Loader2 size={18} className="watch-spin" aria-hidden />
+                <Skeleton />
+                <Skeleton />
                 <span className="watch-muted">Загружаем каналы…</span>
               </div>
             )}
             {channelsState === 'error' && (
               <div className="watch-rail-state">
-                <AlertTriangle size={18} aria-hidden />
-                <span>{channelsError ?? 'Не удалось получить каналы.'}</span>
-                <button
-                  type="button"
-                  className="watch-btn watch-btn-ghost watch-btn-sm"
-                  onClick={() => void loadChannels()}
-                >
-                  <RefreshCw size={14} aria-hidden /> Повторить
-                </button>
+                <EmptyState
+                  icon={<AlertTriangle size={20} aria-hidden />}
+                  message={channelsError ?? 'Не удалось получить каналы.'}
+                  action={
+                    <Button
+                      small
+                      icon={<RefreshCw size={14} aria-hidden />}
+                      onClick={() => void loadChannels()}
+                    >
+                      Повторить
+                    </Button>
+                  }
+                />
               </div>
             )}
             {channelsState === 'ready' && filtered.length === 0 && (
               <div className="watch-rail-state">
-                <span className="watch-muted">Ничего не найдено.</span>
+                <EmptyState message="Ничего не найдено." />
               </div>
             )}
             {channelsState === 'ready' && filtered.length > 0 && viewMode === 'list' && (

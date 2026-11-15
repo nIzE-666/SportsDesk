@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyRound, Radio } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
+import { Badge, Button, Panel, PanelHeader } from '../../../kit';
 import {
   LIVE_SOURCE_KEY,
   readLiveSourceChoice,
@@ -87,19 +88,23 @@ export function SourcesSettings() {
         Ключи хранятся в зашифрованном виде и не входят в резервные копии.
       </p>
 
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h3>
-            <KeyRound size={15} /> PitchAPI
-          </h3>
-          <span className="chip">
-            {!secretStatus && !secretError
-              ? 'Проверяем…'
-              : pitchReady
-                ? 'Ключ сохранён'
-                : 'Ключ не задан'}
-          </span>
-        </div>
+      <Panel className="settings-section">
+        <PanelHeader
+          title={
+            <>
+              <KeyRound size={16} aria-hidden /> PitchAPI
+            </>
+          }
+          action={
+            <Badge>
+              {!secretStatus && !secretError
+                ? 'Проверяем…'
+                : pitchReady
+                  ? 'Ключ сохранён'
+                  : 'Ключ не задан'}
+            </Badge>
+          }
+        />
         <p className="muted small">Ключ нужен для данных PitchAPI.</p>
         {secretError && (
           <div className="settings-warn">
@@ -120,19 +125,21 @@ export function SourcesSettings() {
             onChange={(e) => setKeyInput(e.target.value)}
             disabled={keyBusy}
           />
-          <button className="ghost-btn" onClick={saveKey} disabled={keyBusy || !keyInput.trim()}>
+          <Button onClick={saveKey} disabled={keyBusy || !keyInput.trim()}>
             {keyBusy ? 'Сохранение…' : 'Сохранить ключ'}
-          </button>
+          </Button>
         </div>
         {keyMessage && <p className="settings-note">{keyMessage}</p>}
-      </section>
+      </Panel>
 
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h3>
-            <Radio size={15} /> Живые матчи
-          </h3>
-        </div>
+      <Panel className="settings-section">
+        <PanelHeader
+          title={
+            <>
+              <Radio size={16} aria-hidden /> Живые матчи
+            </>
+          }
+        />
         <div className="settings-row">
           <label htmlFor="live-source" className="muted small">
             Источник
@@ -148,11 +155,11 @@ export function SourcesSettings() {
           </select>
         </div>
         <p className="muted small">LiveScore и ESPN — неофициальные бесплатные источники.</p>
-      </section>
+      </Panel>
 
       <DiagnosticsPanel />
 
-      <section className="panel settings-section">
+      <Panel className="settings-section">
         <details className="settings-limits">
           <summary>Ограничения источников</summary>
           <p className="muted small">
@@ -179,7 +186,7 @@ export function SourcesSettings() {
             <dd>Трансляции после входа по коду устройства.</dd>
           </dl>
         </details>
-      </section>
+      </Panel>
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button, Panel, PanelHeader } from '../../kit';
 import { getResourceDiagnostics, subscribeHealth } from '../../lib/resourceHealth';
 import {
   getUiErrors,
@@ -29,13 +30,15 @@ export function DiagnosticsPanel() {
   }, []);
   const age = (ms: number) => `${Math.max(0, Math.floor((Date.now() - ms) / 60000))} мин.`;
   return (
-    <section className="panel settings-section diagnostics-panel">
-      <div className="section-title">
-        <h3>Диагностика источников</h3>
-        <button className="ghost-btn" disabled={busy} onClick={() => void load()}>
-          Обновить диагностику
-        </button>
-      </div>
+    <Panel className="settings-section diagnostics-panel">
+      <PanelHeader
+        title="Диагностика источников"
+        action={
+          <Button disabled={busy} onClick={() => void load()}>
+            Обновить диагностику
+          </Button>
+        }
+      />
       <p className="muted small">
         {backend?.runtime
           ? backend.runtime.startsWith('Windows')
@@ -49,7 +52,7 @@ export function DiagnosticsPanel() {
             rows = resources.filter((r) => r.key.startsWith(source + ':')),
             failed = rows.filter((r) => r.failed);
           return (
-            <div className="panel inner" key={source}>
+            <Panel className="diagnostics-source" key={source}>
               <strong>
                 {source === 'pitch'
                   ? 'PitchAPI'
@@ -78,7 +81,7 @@ export function DiagnosticsPanel() {
                   {r.message}
                 </small>
               ))}
-            </div>
+            </Panel>
           );
         })}
       </div>
@@ -106,35 +109,36 @@ export function DiagnosticsPanel() {
           </p>
         ))}
       </details>
-      <button
-        className="ghost-btn"
-        title="Отчёт без ключей и адресов."
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(
-              sanitizeDetails(
-                JSON.stringify(
-                  {
-                    app: 'SportsDesk',
-                    at: new Date().toISOString(),
-                    backend,
-                    resources,
-                    screenErrors: getUiErrors(),
-                  },
-                  null,
-                  2,
+      <div className="settings-actions">
+        <Button
+          title="Отчёт без ключей и адресов."
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(
+                sanitizeDetails(
+                  JSON.stringify(
+                    {
+                      app: 'SportsDesk',
+                      at: new Date().toISOString(),
+                      backend,
+                      resources,
+                      screenErrors: getUiErrors(),
+                    },
+                    null,
+                    2,
+                  ),
                 ),
-              ),
-            );
-            setMessage('Отчёт скопирован.');
-          } catch {
-            setMessage('Не удалось скопировать отчёт.');
-          }
-        }}
-      >
-        Скопировать отчёт
-      </button>
+              );
+              setMessage('Отчёт скопирован.');
+            } catch {
+              setMessage('Не удалось скопировать отчёт.');
+            }
+          }}
+        >
+          Скопировать отчёт
+        </Button>
+      </div>
       {message && <p role="status">{message}</p>}
-    </section>
+    </Panel>
   );
 }

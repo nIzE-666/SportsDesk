@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { Compass, X } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Compass } from 'lucide-react';
 import { isTauriRuntime } from '../../lib/bridge';
-import { useModalFocus } from '../../lib/useModalFocus';
+import { Button, Dialog } from '../../kit';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import {
   CORE_MODULES,
@@ -112,7 +112,7 @@ export function FirstRunWizard({
   onOpenSettings,
   onOpenWatch,
 }: FirstRunWizardProps) {
-  const panel = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(() => isTauriRuntime() && onboardingBootDecision().show);
   const [step, setStep] = useState<OnboardingStep>(() => onboardingBootDecision().step);
   const [origin, setOrigin] = useState<OnboardingOrigin>(() => readOnboarding()?.origin ?? 'new');
@@ -125,7 +125,6 @@ export function FirstRunWizard({
     persist(step, 'in_progress');
     setOpen(false);
   };
-  useModalFocus(panel, open, postpone);
 
   useEffect(() => {
     const reopen = () => {
@@ -140,7 +139,8 @@ export function FirstRunWizard({
 
   // Новый шаг начинается с заголовка, даже если предыдущий был выше.
   useEffect(() => {
-    if (panel.current) panel.current.scrollTop = 0;
+    const dialog = body.current?.closest('.ui-dialog');
+    if (dialog) dialog.scrollTop = 0;
   }, [step]);
 
   if (!open) return null;
@@ -161,23 +161,36 @@ export function FirstRunWizard({
   };
 
   return (
-    <div className="whatsnew-scrim onboarding-scrim">
-      <section
-        ref={panel}
-        tabIndex={-1}
-        className="panel whatsnew-card onboarding-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Настройка SportsDesk"
-      >
-        <button
-          className="icon-button modal-close"
-          onClick={postpone}
-          aria-label="Отложить настройку"
-          title="Отложить: настройка продолжится при следующем запуске"
-        >
-          <X size={18} />
-        </button>
+    <Dialog
+      open
+      onClose={postpone}
+      title={STEP_TITLES[step]}
+      closeLabel="Отложить настройку"
+      className="onboarding-card"
+      footer={
+        <div className="onboarding-actions">
+          {index > 0 ? (
+            <Button onClick={() => goTo(ONBOARDING_STEPS[index - 1]!)}>Назад</Button>
+          ) : (
+            <Button onClick={() => finish('skipped')}>Пропустить настройку</Button>
+          )}
+          <span className="onboarding-spacer" />
+          {!last && index > 0 && (
+            <Button onClick={() => finish('skipped')}>Пропустить остальное</Button>
+          )}
+          {last ? (
+            <Button variant="primary" onClick={() => finish('completed')}>
+              Готово
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={() => goTo(ONBOARDING_STEPS[index + 1]!)}>
+              {index === 0 ? 'Начать' : 'Далее'}
+            </Button>
+          )}
+        </div>
+      }
+    >
+      <div className="onboarding-meta">
         <span className="eyebrow">
           <Compass size={13} /> НАСТРОЙКА · ШАГ {index + 1} ИЗ {ONBOARDING_STEPS.length}
         </span>
@@ -189,55 +202,32 @@ export function FirstRunWizard({
           aria-valuenow={index + 1}
           aria-label="Прогресс настройки"
         >
-          <i style={{ width: `${((index + 1) / ONBOARDING_STEPS.length) * 100}%` }} />
+          <i
+            style={
+              {
+                '--value': `${((index + 1) / ONBOARDING_STEPS.length) * 100}%`,
+              } as CSSProperties
+            }
+          />
         </div>
-        <h2>{STEP_TITLES[step]}</h2>
-        <div className="onboarding-body">
-          {step === 'welcome' && <WelcomeStep />}
-          {step === 'football' && <FootballStep onLeagueChange={onLeagueChange} />}
-          {step === 'f1' && <F1Step />}
-          {step === 'modules' && <ModulesStep />}
-          {step === 'timezone' && <TimezoneStep />}
-          {step === 'notifications' && <NotificationsStep />}
-          {step === 'appearance' && <AppearanceStep />}
-          {step === 'sources' && (
-            <SourcesStep
-              onOpenSettings={onOpenSettings ? () => leave(onOpenSettings) : undefined}
-              onOpenWatch={onOpenWatch ? () => leave(onOpenWatch) : undefined}
-            />
-          )}
-        </div>
-        <div className="onboarding-actions">
-          {index > 0 ? (
-            <button className="ghost-btn" onClick={() => goTo(ONBOARDING_STEPS[index - 1]!)}>
-              Назад
-            </button>
-          ) : (
-            <button className="ghost-btn" onClick={() => finish('skipped')}>
-              Пропустить настройку
-            </button>
-          )}
-          <span className="onboarding-spacer" />
-          {!last && index > 0 && (
-            <button className="ghost-btn" onClick={() => finish('skipped')}>
-              Пропустить остальное
-            </button>
-          )}
-          {last ? (
-            <button className="primary-btn" onClick={() => finish('completed')}>
-              Готово
-            </button>
-          ) : (
-            <button className="primary-btn" onClick={() => goTo(ONBOARDING_STEPS[index + 1]!)}>
-              {index === 0 ? 'Начать' : 'Далее'}
-            </button>
-          )}
-        </div>
-        {origin === 'manual' && (
-          <p className="settings-note">Меняется только то, что вы выберете.</p>
+      </div>
+      <div className="onboarding-body" ref={body}>
+        {step === 'welcome' && <WelcomeStep />}
+        {step === 'football' && <FootballStep onLeagueChange={onLeagueChange} />}
+        {step === 'f1' && <F1Step />}
+        {step === 'modules' && <ModulesStep />}
+        {step === 'timezone' && <TimezoneStep />}
+        {step === 'notifications' && <NotificationsStep />}
+        {step === 'appearance' && <AppearanceStep />}
+        {step === 'sources' && (
+          <SourcesStep
+            onOpenSettings={onOpenSettings ? () => leave(onOpenSettings) : undefined}
+            onOpenWatch={onOpenWatch ? () => leave(onOpenWatch) : undefined}
+          />
         )}
-      </section>
-    </div>
+      </div>
+      {origin === 'manual' && <p className="settings-note">Меняется только то, что вы выберете.</p>}
+    </Dialog>
   );
 }
 
@@ -390,9 +380,7 @@ function TimezoneStep() {
         </select>
       </label>
       {detected && timezone !== detected && (
-        <button className="ghost-btn" onClick={() => choose(detected)}>
-          Использовать системный: {detected}
-        </button>
+        <Button onClick={() => choose(detected)}>Использовать системный: {detected}</Button>
       )}
     </>
   );
@@ -503,16 +491,8 @@ function SourcesStep({
         (после входа) можно подключить позже в «Настройках».
       </p>
       <div className="onboarding-actions">
-        {onOpenSettings && (
-          <button className="ghost-btn" onClick={onOpenSettings}>
-            Открыть настройки источников
-          </button>
-        )}
-        {onOpenWatch && (
-          <button className="ghost-btn" onClick={onOpenWatch}>
-            Открыть онлайн-просмотр
-          </button>
-        )}
+        {onOpenSettings && <Button onClick={onOpenSettings}>Открыть настройки источников</Button>}
+        {onOpenWatch && <Button onClick={onOpenWatch}>Открыть онлайн-просмотр</Button>}
       </div>
     </>
   );

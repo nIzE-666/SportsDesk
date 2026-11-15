@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
+import { Button, Panel, PanelHeader } from '../../kit';
 import { profileEntries, restoreFullBackup, withProfileMirrorPaused } from './profileBackup';
 interface Settings {
   enabled: boolean;
@@ -33,19 +34,18 @@ export function BackupPanel() {
   };
   if (!isTauriRuntime())
     return (
-      <section className="panel settings-section">
-        <h3>Автоматические резервные копии</h3>
+      <Panel className="settings-section">
+        <PanelHeader title="Автоматические резервные копии" />
         <p className="muted">Доступно в приложении Windows.</p>
-      </section>
+      </Panel>
     );
   return (
-    <section className="panel settings-section">
-      <h3>Резервные копии с историей</h3>
+    <Panel className="settings-section">
+      <PanelHeader title="Резервные копии с историей" />
       <p className="muted small">Профиль и история без ключей.</p>
       <p className="backup-folder">{settings?.folder ?? 'Папка ещё не выбрана'}</p>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
           disabled={busy}
           onClick={() =>
             void run(async () => {
@@ -66,9 +66,8 @@ export function BackupPanel() {
           }
         >
           Выбрать папку
-        </button>
-        <button
-          className="ghost-btn"
+        </Button>
+        <Button
           disabled={busy || !settings?.folder}
           onClick={() =>
             void run(async () => {
@@ -82,9 +81,8 @@ export function BackupPanel() {
           }
         >
           Создать сейчас
-        </button>
-        <button
-          className="ghost-btn"
+        </Button>
+        <Button
           disabled={busy}
           onClick={() =>
             void run(async () => {
@@ -109,7 +107,7 @@ export function BackupPanel() {
           }
         >
           Восстановить копию
-        </button>
+        </Button>
       </div>
       <label className="settings-f1-reminders">
         <input
@@ -139,6 +137,6 @@ export function BackupPanel() {
           {message || settings?.error}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

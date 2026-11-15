@@ -56,7 +56,7 @@ const categoryButton = (label: string) =>
     (button) => button.textContent?.trim() === label,
   );
 const current = () =>
-  host.querySelector('nav[aria-label="Категории настроек"] [aria-current="true"]')?.textContent;
+  host.querySelector('nav[aria-label="Категории настроек"] [aria-current="page"]')?.textContent;
 const heading = () => host.querySelector('.settings-category > h2')?.textContent;
 
 async function click(label: string) {
@@ -72,9 +72,9 @@ it('switches the category, marks only the current one and remembers the choice',
   expect(host.textContent).toContain('Основное содержимое');
   expect(current()).toBe('Основное');
   expect(
-    host.querySelectorAll('nav[aria-label="Категории настроек"] button[aria-current="true"]'),
+    host.querySelectorAll('nav[aria-label="Категории настроек"] button[aria-current="page"]'),
   ).toHaveLength(1);
-  expect(categoryButton('Основное')?.getAttribute('aria-current')).toBe('true');
+  expect(categoryButton('Основное')?.getAttribute('aria-current')).toBe('page');
   expect(categoryButton('Данные')?.hasAttribute('aria-current')).toBe(false);
 
   await click('Данные');

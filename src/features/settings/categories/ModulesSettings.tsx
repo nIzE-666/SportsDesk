@@ -1,3 +1,4 @@
+import { Panel } from '../../../kit';
 import {
   CORE_MODULES,
   LEAGUE_MODULES,
@@ -10,7 +11,7 @@ import { AtmosphereSettings } from '../../atmosphere/AtmosphereSettings';
 export function ModulesSettings() {
   const modules = useModules();
   return (
-    <section className="panel settings-section" aria-label="Модули">
+    <Panel className="settings-section" aria-label="Модули">
       <p className="muted small settings-category-hint">Данные при выключении сохраняются.</p>
       <div className="module-switches">
         {CORE_MODULES.map((module) => (
@@ -37,7 +38,7 @@ export function ModulesSettings() {
         </div>
       </div>
       {modules.atmosphere && <AtmosphereSettings />}
-    </section>
+    </Panel>
   );
 }
 

@@ -33,7 +33,7 @@ test('source information and settings remain clear when saved data is stale', as
   await expect(page.locator('.live-view .source-foot')).toContainText('LiveScore');
   await expect(page.locator('.live-view .source-foot')).toContainText('устаревшими');
   await rail.getByRole('button', { name: 'Настройки', exact: true }).click();
-  await expect(page.locator('.settings-view h2.screen-title')).toHaveText('Настройки');
+  await expect(page.locator('.shell-page-title')).toHaveText('Настройки');
   await page
     .getByRole('navigation', { name: 'Категории настроек' })
     .getByRole('button', { name: 'Источники', exact: true })

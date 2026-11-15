@@ -35,7 +35,13 @@ function parseBlocks(css: string): Block[] {
 const blocks = parseBlocks(source);
 
 function declarationsOf(selector: string): Record<string, string> {
-  const block = blocks.find((candidate) => candidate.selector === selector);
+  // A block may serve several selectors, for example `.app-root, .scheme-dark`.
+  const block = blocks.find((candidate) =>
+    candidate.selector
+      .split(',')
+      .map((part) => part.trim())
+      .includes(selector),
+  );
   if (!block) throw new Error(`src/tokens.css has no rule for ${selector}`);
   return block.declarations;
 }

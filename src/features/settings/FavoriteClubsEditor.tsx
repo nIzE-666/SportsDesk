@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Star, Trash2, Plus, RotateCcw } from 'lucide-react';
+import { Badge, Button, IconButton } from '../../kit';
 import { useFavorites } from '../football/FavoritesProvider';
 import {
   addFavoriteTeam,
@@ -72,27 +73,23 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
           {tracked.map(({ id, entry }) => (
             <li key={id}>
               <span className="fav-editor-name">{entry?.name ?? id}</span>
-              {entry?.leagueName && <span className="chip">{entry.leagueName}</span>}
-              <button
-                className="ghost-btn"
+              {entry?.leagueName && <Badge>{entry.leagueName}</Badge>}
+              <IconButton
+                icon={<Trash2 size={13} />}
                 aria-label={`Убрать ${entry?.name ?? id}`}
                 onClick={() => removeFavoriteTeam(id)}
-              >
-                <Trash2 size={13} />
-              </button>
+              />
             </li>
           ))}
           {pendingDefaults.map((name) => (
             <li key={`default:${name}`}>
               <span className="fav-editor-name">{name}</span>
-              <span className="chip muted">появится после загрузки лиги</span>
-              <button
-                className="ghost-btn"
+              <Badge>появится после загрузки лиги</Badge>
+              <IconButton
+                icon={<Trash2 size={13} />}
                 aria-label={`Убрать ${name}`}
                 onClick={() => dismissDefaultTeam(name)}
-              >
-                <Trash2 size={13} />
-              </button>
+              />
             </li>
           ))}
         </ul>
@@ -121,16 +118,17 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
             {teams.map((t) => (
               <li key={t.id}>
                 <span className="fav-editor-name">{t.name}</span>
-                <button
-                  className="ghost-btn"
+                <Button
+                  small
+                  icon={<Plus size={13} />}
                   aria-label={`Добавить ${t.name}`}
                   onClick={() => {
                     addFavoriteTeam(t.id);
                     setQuery('');
                   }}
                 >
-                  <Plus size={13} /> Добавить
-                </button>
+                  Добавить
+                </Button>
               </li>
             ))}
           </ul>
@@ -146,13 +144,14 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
             {dismissed.map((name) => (
               <li key={name}>
                 <span className="fav-editor-name">{name}</span>
-                <button
-                  className="ghost-btn"
+                <Button
+                  small
+                  icon={<RotateCcw size={13} />}
                   aria-label={`Вернуть ${name}`}
                   onClick={() => restoreDefaultTeam(name)}
                 >
-                  <RotateCcw size={13} /> Вернуть
-                </button>
+                  Вернуть
+                </Button>
               </li>
             ))}
           </ul>
@@ -171,13 +170,11 @@ export function FavoriteClubsEditor({ compact = false }: Props) {
               {favoritePlayers.map((p) => (
                 <li key={p.id}>
                   <span className="fav-editor-name">{p.name ?? p.id}</span>
-                  <button
-                    className="ghost-btn"
+                  <IconButton
+                    icon={<Trash2 size={13} />}
                     aria-label={`Убрать ${p.name ?? p.id}`}
                     onClick={() => togglePlayer(p)}
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  />
                 </li>
               ))}
             </ul>

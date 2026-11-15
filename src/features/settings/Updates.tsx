@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
+import { Badge, Button, Panel, PanelHeader, Toast } from '../../kit';
 import type { Update, DownloadEvent } from '@tauri-apps/plugin-updater';
 import packageInfo from '../../../package.json';
 
@@ -177,13 +178,15 @@ export function UpdatePanel() {
   const native = isTauriRuntime(),
     busy = ['checking', 'saving', 'installing'].includes(u.phase);
   return (
-    <section className="panel settings-section updates-panel">
-      <div className="section-title">
-        <h3>
-          <Download size={17} /> Обновления приложения
-        </h3>
-        <span className="chip">Версия {u.version}</span>
-      </div>
+    <Panel className="settings-section updates-panel">
+      <PanelHeader
+        title={
+          <>
+            <Download size={16} /> Обновления приложения
+          </>
+        }
+        action={<Badge>Версия {u.version}</Badge>}
+      />
       {!native && <p className="settings-note">Только в приложении Windows.</p>}
       {native && !u.source && (
         <p className="settings-note">Новые версии устанавливаются вручную.</p>
@@ -200,27 +203,22 @@ export function UpdatePanel() {
           onChange={(e) => setValue(e.target.value)}
           disabled={!native || busy}
         />
-        <button
-          className="ghost-btn"
-          onClick={() => void u.save(value)}
-          disabled={!native || busy || value === u.source}
-        >
+        <Button onClick={() => void u.save(value)} disabled={!native || busy || value === u.source}>
           Сохранить адрес
-        </button>
+        </Button>
       </div>
       <div className="settings-actions">
-        <button
-          className="ghost-btn"
+        <Button
+          icon={<RefreshCw size={14} className={u.phase === 'checking' ? 'spin' : ''} />}
           onClick={() => void u.check()}
           disabled={!native || !u.source || busy}
         >
-          <RefreshCw size={14} className={u.phase === 'checking' ? 'spin' : ''} /> Проверить
-          обновления
-        </button>
+          Проверить обновления
+        </Button>
         {u.update && u.phase !== 'installing' && (
-          <button className="primary-btn" onClick={() => void u.install()} disabled={busy}>
+          <Button variant="primary" onClick={() => void u.install()} disabled={busy}>
             Установить {u.update.version} и перезапустить
-          </button>
+          </Button>
         )}
       </div>
       {u.update?.body && <p className="update-notes">{u.update.body}</p>}
@@ -232,7 +230,7 @@ export function UpdatePanel() {
           {u.message}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -240,20 +238,17 @@ export function UpdateNotice() {
   const u = useUpdates();
   if (!u.update || !['available', 'installing'].includes(u.phase)) return null;
   return (
-    <div className="update-notice" role="status">
-      <Download size={17} />
-      <span>
-        {u.phase === 'installing'
+    <Toast
+      message={
+        u.phase === 'installing'
           ? u.message
-          : `Доступна новая версия SportsDesk ${u.update.version}`}
-      </span>
-      <button
-        className="ghost-btn"
-        disabled={u.phase === 'installing'}
-        onClick={() => void u.install()}
-      >
-        Установить и перезапустить
-      </button>
-    </div>
+          : `Доступна новая версия SportsDesk ${u.update.version}`
+      }
+      action={
+        <Button small disabled={u.phase === 'installing'} onClick={() => void u.install()}>
+          Установить и перезапустить
+        </Button>
+      }
+    />
   );
 }

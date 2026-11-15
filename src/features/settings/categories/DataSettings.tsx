@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { Download, HardDriveDownload, Upload } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
+import { Badge, Button, Panel, PanelHeader, Skeleton } from '../../../kit';
 import { BackupPanel } from '../BackupPanel';
 import { applyProfile, profileEntries } from '../profileBackup';
 
@@ -108,34 +109,46 @@ export function DataSettings() {
   return (
     <>
       <BackupPanel />
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h3>
-            <Download size={15} /> Резервная копия профиля
-          </h3>
-          <span className="chip">json</span>
-        </div>
+      <Panel className="settings-section">
+        <PanelHeader
+          title={
+            <>
+              <Download size={16} aria-hidden /> Резервная копия профиля
+            </>
+          }
+          action={<Badge>json</Badge>}
+        />
         <p className="muted small">Настройки и избранное без ключей.</p>
         <div className="settings-actions">
-          <button className="ghost-btn" onClick={() => void exportProfile()} disabled={profileBusy}>
-            <Download size={14} /> {profileBusy ? 'Работаем…' : 'Экспорт профиля'}
-          </button>
-          <button className="ghost-btn" onClick={() => void importProfile()} disabled={profileBusy}>
-            <Upload size={14} /> Импорт профиля
-          </button>
+          <Button
+            icon={<Download size={14} />}
+            onClick={() => void exportProfile()}
+            busy={profileBusy}
+          >
+            Экспорт профиля
+          </Button>
+          <Button
+            icon={<Upload size={14} />}
+            onClick={() => void importProfile()}
+            disabled={profileBusy}
+          >
+            Импорт профиля
+          </Button>
         </div>
         {profileMessage && <p className="settings-note">{profileMessage}</p>}
-      </section>
-      <section className="panel settings-section settings-offline">
-        <div className="section-title">
-          <h3>
-            <HardDriveDownload size={15} /> Офлайн-сезоны
-          </h3>
-        </div>
-        <Suspense fallback={<p className="muted small">Загрузка…</p>}>
+      </Panel>
+      <Panel className="settings-section settings-offline">
+        <PanelHeader
+          title={
+            <>
+              <HardDriveDownload size={16} aria-hidden /> Офлайн-сезоны
+            </>
+          }
+        />
+        <Suspense fallback={<Skeleton />}>
           <OfflineView embedded />
         </Suspense>
-      </section>
+      </Panel>
     </>
   );
 }

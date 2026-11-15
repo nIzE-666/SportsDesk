@@ -1,8 +1,10 @@
 /* Design tokens of «Спортивная обложка».
    Every color, size and spacing value in the app comes from this file.
-   Dark scheme is the default; a tournament changes only its accent. */
+   Dark scheme is the default; a tournament changes only its accent.
+   `.scheme-dark` gives one part of a light page the dark values. */
 
-.app-root {
+.app-root,
+.scheme-dark {
   /* Surfaces: page, panel, raised element, popover or dialog. */
   --color-bg: #181818;
   --color-surface-1: #1f1f1f;

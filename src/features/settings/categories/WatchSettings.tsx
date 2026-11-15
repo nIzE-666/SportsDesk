@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link2, Tv } from 'lucide-react';
 import { rpc, openExternal } from '../../../lib/bridge';
+import { Badge, Button, Panel, PanelHeader } from '../../../kit';
 import {
   beginKinoAttempt,
   cancelKinoAttempt,
@@ -274,25 +275,29 @@ export function WatchSettings() {
   const showKinoClientForm = secretStatus !== null && (!kinoClientReady || kinoClientEditing);
 
   return (
-    <section className="panel settings-section">
-      <div className="section-title">
-        <h3>
-          <Tv size={15} /> Kino (KinoWatch)
-        </h3>
-        <span className="chip">
-          {secretError
-            ? 'Статус неизвестен'
-            : !secretStatus
-              ? 'Проверяем…'
-              : kinoReady
-                ? 'Авторизован'
-                : 'Не авторизован'}
-        </span>
-      </div>
+    <Panel className="settings-section">
+      <PanelHeader
+        title={
+          <>
+            <Tv size={16} aria-hidden /> Kino (KinoWatch)
+          </>
+        }
+        action={
+          <Badge>
+            {secretError
+              ? 'Статус неизвестен'
+              : !secretStatus
+                ? 'Проверяем…'
+                : kinoReady
+                  ? 'Авторизован'
+                  : 'Не авторизован'}
+          </Badge>
+        }
+      />
       <p className="muted small">Вход по коду устройства.</p>
       {secretError && <p className="settings-note">Не удалось проверить вход: {secretError}.</p>}
       {showKinoClientForm && (
-        <div className="kino-client panel inner">
+        <Panel className="kino-client">
           <p className="muted small">
             {kinoClientReady
               ? 'Сохранённые значения не показываются.'
@@ -331,28 +336,20 @@ export function WatchSettings() {
             onChange={(e) => setKinoClientForm((f) => ({ ...f, clientSecret: e.target.value }))}
           />
           <div className="settings-actions">
-            <button
-              className="ghost-btn"
-              onClick={() => void saveKinoClient()}
-              disabled={kinoClientBusy}
-            >
-              {kinoClientBusy ? 'Сохраняем…' : 'Сохранить настройки KinoPub'}
-            </button>
+            <Button onClick={() => void saveKinoClient()} busy={kinoClientBusy}>
+              Сохранить настройки KinoPub
+            </Button>
             {kinoClientReady && (
-              <button
-                className="ghost-btn"
-                onClick={() => setKinoClientEditing(false)}
-                disabled={kinoClientBusy}
-              >
+              <Button onClick={() => setKinoClientEditing(false)} disabled={kinoClientBusy}>
                 Отмена
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Panel>
       )}
       {kinoClientMessage && <p className="settings-note">{kinoClientMessage}</p>}
       {kinoDevice ? (
-        <div className="kino-device panel inner">
+        <Panel className="kino-device">
           <p>
             Код устройства: <strong className="kino-code">{kinoDevice.userCode}</strong>
           </p>
@@ -360,32 +357,27 @@ export function WatchSettings() {
             Код действует примерно {Math.max(0, Math.round(kinoDevice.expiresIn / 60))} мин.
           </p>
           <div className="settings-actions">
-            <button
-              className="ghost-btn"
+            <Button
+              icon={<Link2 size={14} />}
               onClick={() => void openExternal(kinoDevice.verificationUri).catch(() => undefined)}
             >
-              <Link2 size={14} /> Открыть страницу авторизации
-            </button>
-            {kinoPolling && (
-              <button className="ghost-btn" onClick={stopKinoPolling}>
-                Остановить ожидание
-              </button>
-            )}
+              Открыть страницу авторизации
+            </Button>
+            {kinoPolling && <Button onClick={stopKinoPolling}>Остановить ожидание</Button>}
           </div>
           {kinoPolling && <p className="muted small">Ожидание подтверждения…</p>}
-        </div>
+        </Panel>
       ) : (
         <div className="settings-actions">
-          <button
-            className="ghost-btn"
+          <Button
             onClick={startKinoAuth}
             disabled={kinoBusy || kinoReady || !kinoClientReady}
+            busy={kinoBusy}
           >
-            {kinoBusy ? 'Запуск…' : 'Войти по коду устройства'}
-          </button>
+            Войти по коду устройства
+          </Button>
           {kinoClientReady && !kinoClientEditing && (
-            <button
-              className="ghost-btn"
+            <Button
               onClick={() => {
                 setKinoClientMessage(null);
                 setKinoClientEditing(true);
@@ -393,16 +385,16 @@ export function WatchSettings() {
               disabled={kinoBusy}
             >
               Изменить настройки клиента
-            </button>
+            </Button>
           )}
           {kinoReady && (
-            <button className="ghost-btn" onClick={logoutKino} disabled={kinoBusy}>
+            <Button onClick={logoutKino} disabled={kinoBusy}>
               Выйти из Kino в SportsDesk
-            </button>
+            </Button>
           )}
         </div>
       )}
       {kinoMessage && <p className="settings-note">{kinoMessage}</p>}
-    </section>
+    </Panel>
   );
 }

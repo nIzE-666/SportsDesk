@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from '../../kit';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 interface Shortcut {
   shortcut: string;
@@ -31,8 +32,7 @@ export function ShortcutControl() {
           onChange={(e) => setKey(e.target.value)}
           placeholder="Ctrl+Shift+L"
         />
-        <button
-          className="ghost-btn"
+        <Button
           disabled={busy || !isTauriRuntime()}
           onClick={async () => {
             setBusy(true);
@@ -49,7 +49,7 @@ export function ShortcutControl() {
           }}
         >
           Применить
-        </button>
+        </Button>
       </div>
       <p className="muted small">Пустое поле выключает клавишу.</p>
       <p role="status" className="settings-note">

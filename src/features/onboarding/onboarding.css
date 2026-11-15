@@ -1,29 +1,44 @@
-/* First-run wizard: reuses the "What's new" scrim and card. */
-.onboarding-card {
+/* First-run wizard: a kit dialog with its own steps. */
+.ui-dialog.onboarding-card {
   max-width: 640px;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
+  padding-bottom: 0;
+}
+
+.ui-dialog.onboarding-card .ui-dialog__footer {
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-16) 0 var(--space-24);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-3);
+}
+
+.onboarding-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin-bottom: var(--space-16);
 }
 
 .onboarding-progress {
   height: 4px;
-  border-radius: 999px;
-  background: rgba(127, 127, 127, 0.22);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-3);
   overflow: hidden;
 }
 
 .onboarding-progress > i {
   display: block;
+  width: var(--value);
   height: 100%;
-  background: var(--accent, currentColor);
-  transition: width 0.2s ease;
+  background: var(--color-accent);
+  transition: width var(--duration-page) var(--ease);
 }
 
 .onboarding-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  font-size: 13px;
+  gap: var(--space-12);
+  font-size: var(--text-13);
   line-height: 1.55;
 }
 
@@ -39,51 +54,58 @@
 }
 
 .onboarding-choice legend {
-  margin-bottom: 8px;
-  font-weight: 600;
+  margin-bottom: var(--space-8);
+  font-weight: var(--weight-semibold);
 }
 
 .onboarding-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  gap: var(--space-8);
+}
+
+.onboarding-option input,
+.onboarding-toggle input,
+.onboarding-module input {
+  accent-color: var(--color-accent);
 }
 
 .onboarding-option,
 .onboarding-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid rgba(127, 127, 127, 0.28);
-  border-radius: 10px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .onboarding-option.selected {
-  border-color: var(--accent, currentColor);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .onboarding-option:focus-within,
 .onboarding-toggle:focus-within {
-  outline: 2px solid var(--accent, currentColor);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 .onboarding-toggle > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-4);
 }
 
 .onboarding-toggle small {
-  opacity: 0.75;
+  color: var(--color-text-secondary);
 }
 
 .onboarding-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-8);
 }
 
 .onboarding-field select {
@@ -93,42 +115,42 @@
 .onboarding-modules,
 .onboarding-module-leagues {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .onboarding-module {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-8);
   cursor: pointer;
 }
 
 .onboarding-module > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .onboarding-module small {
-  opacity: 0.75;
+  color: var(--color-text-secondary);
 }
 
 .onboarding-module:focus-within {
-  outline: 2px solid var(--accent, currentColor);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .onboarding-module-group {
-  padding-top: 12px;
-  border-top: 1px solid rgba(127, 127, 127, 0.28);
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-border);
 }
 
 .onboarding-module-title {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 600;
+  margin: 0 0 var(--space-8);
+  font-size: var(--text-13);
+  font-weight: var(--weight-semibold);
 }
 
 .onboarding-module-leagues {
@@ -139,7 +161,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
+  width: 100%;
 }
 
 .onboarding-spacer {

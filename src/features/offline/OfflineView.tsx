@@ -3,6 +3,7 @@ import { api, rpc } from '../../lib/bridge';
 import { matchStateLabel } from '../../lib/sportsIdentity';
 import { formatHumanDate, formatHumanDateTime } from '../../lib/humanDate';
 import { countRu, MATCHES } from '../../lib/plural';
+import { Badge, Button, Dialog, EmptyState, Panel, PanelHeader, Skeleton } from '../../kit';
 import { getJson, getUserTimezone } from '../football/storage';
 import { VERIFIED_LEAGUES } from '../football/useFootballData';
 import { fetchHistorySeasons, type HistorySeasonInfo } from '../football/history';
@@ -160,12 +161,12 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
       {!embedded && (
         <header>
           <p className="eyebrow">ЛОКАЛЬНАЯ БИБЛИОТЕКА</p>
-          <h2 className="screen-title">Офлайн-сезоны</h2>
+          <h2 className="ui-page-title">Офлайн-сезоны</h2>
           <p className="muted">Сезоны для просмотра без сети.</p>
         </header>
       )}
       {(error || queue.error) && (
-        <div className="state-card error" role="alert">
+        <div className="offline-alert" role="alert">
           {error || queue.error}
         </div>
       )}
@@ -174,17 +175,15 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
           {message}
         </p>
       )}
-      <section className="panel" aria-label="Загрузить сезон">
-        <div className="offline-heading">
-          <h2>Добавить сезон</h2>
-          <button
-            className="ghost-btn"
-            disabled={refreshing || busy}
-            onClick={() => void refreshCatalogue()}
-          >
-            {refreshing ? 'Обновление…' : 'Обновить каталог'}
-          </button>
-        </div>
+      <Panel className="offline-download" aria-label="Загрузить сезон">
+        <PanelHeader
+          title="Добавить сезон"
+          action={
+            <Button disabled={refreshing || busy} onClick={() => void refreshCatalogue()}>
+              {refreshing ? 'Обновление…' : 'Обновить каталог'}
+            </Button>
+          }
+        />
         <form
           className="offline-select"
           onSubmit={(e) => {
@@ -228,37 +227,36 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
               ))}
             </select>
           </label>
-          <button className="primary-btn" disabled={!season || busy || !queue.writable}>
+          <Button type="submit" variant="primary" disabled={!season || busy || !queue.writable}>
             Загрузить и закрепить
-          </button>
+          </Button>
         </form>
         {!options.length && (
           <p className="muted">Подключитесь к сети и нажмите «Обновить каталог».</p>
         )}
         <p className="muted small">Без подробной статистики и изображений.</p>
-      </section>
+      </Panel>
       {queue.queue.jobs.length > 0 && (
-        <section className="panel" aria-label="Очередь загрузки">
-          <div className="offline-heading">
-            <div>
-              <h2>Очередь загрузки</h2>
-              {pending.length > 0 && (
-                <p className="muted">
-                  {queue.queue.paused ? 'На паузе' : 'Выполняется по одному сезону'} · ожидают:{' '}
-                  {pending.length}
-                </p>
-              )}
-            </div>
-            {(pending.length > 0 || queue.queue.paused || !!queue.error) && (
-              <button
-                className="ghost-btn"
-                disabled={!queue.writable || busy || (!pending.length && !queue.error)}
-                onClick={() => void attempt(() => pauseOfflineQueue(!queue.queue.paused))}
-              >
-                {queue.queue.paused ? 'Продолжить' : 'Пауза'}
-              </button>
-            )}
-          </div>
+        <Panel aria-label="Очередь загрузки">
+          <PanelHeader
+            title="Очередь загрузки"
+            action={
+              pending.length > 0 || queue.queue.paused || !!queue.error ? (
+                <Button
+                  disabled={!queue.writable || busy || (!pending.length && !queue.error)}
+                  onClick={() => void attempt(() => pauseOfflineQueue(!queue.queue.paused))}
+                >
+                  {queue.queue.paused ? 'Продолжить' : 'Пауза'}
+                </Button>
+              ) : undefined
+            }
+          />
+          {pending.length > 0 && (
+            <p className="muted">
+              {queue.queue.paused ? 'На паузе' : 'Выполняется по одному сезону'} · ожидают:{' '}
+              {pending.length}
+            </p>
+          )}
           {pending.length > 0 && (
             <p className="muted small">После перезапуска нажмите «Продолжить».</p>
           )}
@@ -277,35 +275,33 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
                 </div>
                 <div className="offline-actions">
                   {j.state === 'error' && (
-                    <button
-                      className="ghost-btn"
+                    <Button
                       disabled={busy || !queue.writable}
                       onClick={() =>
                         void attempt(() => enqueueSeason(j.leagueId, j.leagueName, j.season, j.pin))
                       }
                     >
                       Повторить
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    className="ghost-btn"
+                  <Button
                     disabled={
                       busy || !queue.writable || ['downloading', 'saving'].includes(j.state)
                     }
                     onClick={() => void attempt(() => removeOfflineJob(j))}
                   >
                     Убрать из очереди
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
       <section aria-label="Сохранённые пакеты">
         <div className="offline-heading">
           <div>
-            <h2>Сохранено на устройстве</h2>
+            <h2 className="ui-section-title">Сохранено на устройстве</h2>
             {packages.length > 0 && (
               <p className="muted">
                 {packages.length} из 60 пакетов · {bytes(packages.reduce((n, p) => n + p.bytes, 0))}{' '}
@@ -314,36 +310,41 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
             )}
           </div>
           {(packages.length > 0 || !!libraryError) && (
-            <button className="ghost-btn" disabled={loading} onClick={() => void reload()}>
+            <Button disabled={loading} onClick={() => void reload()}>
               Перечитать библиотеку
-            </button>
+            </Button>
           )}
         </div>
         {libraryError && (
-          <div role="alert" className="state-card error">
+          <div role="alert" className="offline-alert">
             {libraryError}
           </div>
         )}
         {loading && !packages.length ? (
-          <p role="status">Чтение локальной библиотеки…</p>
-        ) : !packages.length && !libraryError ? (
-          <div className="panel offline-empty">
-            <h3>Пока нет офлайн-пакетов</h3>
-            <p className="muted">Загрузите сезон, пока есть сеть.</p>
+          <div className="offline-loading" role="status">
+            <Skeleton />
+            <span className="muted small">Чтение локальной библиотеки…</span>
           </div>
+        ) : !packages.length && !libraryError ? (
+          <EmptyState
+            className="offline-empty"
+            message="Пока нет офлайн-пакетов — загрузите сезон, пока есть сеть."
+          />
         ) : null}
         <div className="offline-packages">
           {packages.map((p) => {
             const key = seasonKey(p.leagueId, p.season),
               locked = busy || pending.some((j) => seasonKey(j.leagueId, j.season) === key);
             return (
-              <article className="panel offline-package" key={key}>
-                <div className="offline-heading">
-                  <h3>
-                    {p.leagueName} · {p.season}
-                  </h3>
-                  <span className="offline-pin">{p.pinned ? 'Закреплён' : 'Не закреплён'}</span>
-                </div>
+              <Panel className="offline-package" key={key}>
+                <PanelHeader
+                  title={
+                    <>
+                      {p.leagueName} · {p.season}
+                    </>
+                  }
+                  action={<Badge>{p.pinned ? 'Закреплён' : 'Не закреплён'}</Badge>}
+                />
                 <p
                   className={`offline-coverage ${p.coverage.state}`}
                   title={
@@ -390,11 +391,10 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
                   <p className="muted small">Повторных записей: {p.duplicates} — объединены.</p>
                 )}
                 <div className="offline-actions">
-                  <button className="primary-btn" onClick={() => setSelected({ ...p })}>
+                  <Button variant="primary" onClick={() => setSelected({ ...p })}>
                     Открыть без сети
-                  </button>
-                  <button
-                    className="ghost-btn"
+                  </Button>
+                  <Button
                     disabled={locked || !queue.writable}
                     onClick={() =>
                       void attempt(() =>
@@ -403,9 +403,8 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
                     }
                   >
                     Обновить пакет
-                  </button>
-                  <button
-                    className="ghost-btn"
+                  </Button>
+                  <Button
                     disabled={locked}
                     onClick={() =>
                       void attempt(async () => {
@@ -419,48 +418,45 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
                     }
                   >
                     {p.pinned ? 'Открепить' : 'Закрепить'}
-                  </button>
-                  <button
-                    className="ghost-btn"
-                    disabled={locked || p.pinned}
-                    onClick={() => setDeleting(key)}
-                  >
+                  </Button>
+                  <Button danger disabled={locked || p.pinned} onClick={() => setDeleting(key)}>
                     Удалить пакет
-                  </button>
+                  </Button>
                 </div>
                 {deleting === key && (
-                  <div
-                    className="offline-confirm"
-                    role="group"
-                    aria-label="Подтвердить удаление пакета"
+                  <Dialog
+                    open
+                    onClose={() => setDeleting(null)}
+                    title={`Удалить офлайн-календарь ${p.season}?`}
+                    footer={
+                      <>
+                        <Button onClick={() => setDeleting(null)}>Отмена</Button>
+                        <Button
+                          variant="primary"
+                          danger
+                          busy={locked}
+                          onClick={() =>
+                            void attempt(async () => {
+                              await rpc('offline_remove', {
+                                leagueId: p.leagueId,
+                                season: p.season,
+                              });
+                              setDeleting(null);
+                              if (selected?.leagueId === p.leagueId && selected.season === p.season)
+                                setSelected(null);
+                              await reload();
+                            })
+                          }
+                        >
+                          Подтвердить удаление
+                        </Button>
+                      </>
+                    }
                   >
-                    <p>
-                      Удалить офлайн-календарь {p.season}? Автоматическая история результатов и
-                      дневник сохранятся.
-                    </p>
-                    <div className="offline-actions">
-                      <button
-                        className="ghost-btn"
-                        disabled={locked}
-                        onClick={() =>
-                          void attempt(async () => {
-                            await rpc('offline_remove', { leagueId: p.leagueId, season: p.season });
-                            setDeleting(null);
-                            if (selected?.leagueId === p.leagueId && selected.season === p.season)
-                              setSelected(null);
-                            await reload();
-                          })
-                        }
-                      >
-                        Подтвердить удаление
-                      </button>
-                      <button className="ghost-btn" onClick={() => setDeleting(null)}>
-                        Отмена
-                      </button>
-                    </div>
-                  </div>
+                    <p>Автоматическая история результатов и дневник сохранятся.</p>
+                  </Dialog>
                 )}
-              </article>
+              </Panel>
             );
           })}
         </div>
@@ -475,8 +471,8 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
         />
       )}
       {legacy.length > 0 && (
-        <section className="panel" aria-label="Автоматическая история">
-          <h2>Ранее сохранённая история</h2>
+        <Panel className="offline-legacy" aria-label="Автоматическая история">
+          <PanelHeader title="Ранее сохранённая история" />
           <p className="muted">Полнота и время начала не проверены.</p>
           <ul className="offline-list">
             {legacy.map((h) => (
@@ -484,36 +480,37 @@ export function OfflineView({ embedded = false }: { embedded?: boolean } = {}) {
                 <span>
                   {h.leagueName} · {h.season} · {matchesCount(h.matches)}
                 </span>
-                <button
-                  className="ghost-btn"
+                <Button
                   disabled={busy || !queue.writable}
                   onClick={() =>
                     void attempt(() => enqueueSeason(h.leagueId, h.leagueName, h.season))
                   }
                 >
                   Загрузить пакет
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
-      <details className="panel">
-        <summary>Как хранятся данные</summary>
-        <p>
-          Пакеты сохраняются до удаления. Чтобы удалить закреплённый пакет, сначала снимите
-          закрепление.
-        </p>
-        <p>
-          Пакеты входят в полную резервную копию, но не в экспорт профиля. Можно сохранить до 60
-          пакетов, по 2000 матчей и 2 МБ каждый. Прежний пакет заменяется только после успешной
-          загрузки и проверки.
-        </p>
-        <p>
-          «Полный календарь» означает наличие всех пар команд по проверенному формату лиги. Даты
-          будущих матчей могут измениться; результаты появятся после обновления пакета.
-        </p>
-      </details>
+      <Panel className="offline-storage">
+        <details>
+          <summary>Как хранятся данные</summary>
+          <p>
+            Пакеты сохраняются до удаления. Чтобы удалить закреплённый пакет, сначала снимите
+            закрепление.
+          </p>
+          <p>
+            Пакеты входят в полную резервную копию, но не в экспорт профиля. Можно сохранить до 60
+            пакетов, по 2000 матчей и 2 МБ каждый. Прежний пакет заменяется только после успешной
+            загрузки и проверки.
+          </p>
+          <p>
+            «Полный календарь» означает наличие всех пар команд по проверенному формату лиги. Даты
+            будущих матчей могут измениться; результаты появятся после обновления пакета.
+          </p>
+        </details>
+      </Panel>
     </div>
   );
 }
@@ -567,18 +564,16 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
     setPage(1);
   };
   return (
-    <section className="panel offline-reader" aria-label="Офлайн-календарь">
-      <div className="offline-heading">
-        <div>
-          <p className="eyebrow">СНИМОК НА УСТРОЙСТВЕ</p>
-          <h2>
+    <Panel className="offline-reader" aria-label="Офлайн-календарь">
+      <p className="eyebrow">СНИМОК НА УСТРОЙСТВЕ</p>
+      <PanelHeader
+        title={
+          <>
             {summary.leagueName} · {summary.season}
-          </h2>
-        </div>
-        <button className="ghost-btn" onClick={onClose}>
-          Закрыть календарь
-        </button>
-      </div>
+          </>
+        }
+        action={<Button onClick={onClose}>Закрыть календарь</Button>}
+      />
       <p className="muted">
         Данные на {formatHumanDate(summary.fetchedAt, timezone)}. Часовой пояс: {timezone}.
       </p>
@@ -587,7 +582,10 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
           {error}
         </p>
       ) : !data ? (
-        <p role="status">Чтение пакета…</p>
+        <div className="offline-loading" role="status">
+          <Skeleton />
+          <span className="muted small">Чтение пакета…</span>
+        </div>
       ) : (
         <>
           {(showSearch || showFilter) && (
@@ -622,9 +620,9 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
               )}
             </div>
           )}
-          <div className="offline-table">
-            <table>
-              <caption className="sr-only">Календарь сохранённого сезона</caption>
+          <div className="ui-table-scroll offline-table">
+            <table className="ui-table">
+              <caption className="offline-table-caption">Календарь сохранённого сезона</caption>
               <thead>
                 <tr>
                   <th>Дата и время</th>
@@ -646,7 +644,7 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
                     <td>
                       {m.homeName} — {m.awayName}
                     </td>
-                    <td>
+                    <td className="offline-table-score">
                       <HiddenScore kind="football" id={m.id}>
                         {m.homeScore ?? '—'} : {m.awayScore ?? '—'}
                       </HiddenScore>
@@ -661,14 +659,15 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
             </table>
           </div>
           {!matches.length && (
-            <div className="offline-empty">
-              <p className="muted">Матчи по этим условиям не найдены.</p>
-              {(query !== '' || filter !== 'all') && (
-                <button className="ghost-btn" onClick={resetReader}>
-                  Сбросить поиск и фильтр
-                </button>
-              )}
-            </div>
+            <EmptyState
+              className="offline-empty"
+              message="Матчи по этим условиям не найдены."
+              action={
+                query !== '' || filter !== 'all' ? (
+                  <Button onClick={resetReader}>Сбросить поиск и фильтр</Button>
+                ) : undefined
+              }
+            />
           )}
           {matches.length > 0 && (
             <div className="offline-heading">
@@ -678,26 +677,18 @@ function OfflineReader({ summary, onClose }: { summary: OfflineSummary; onClose:
               </span>
               {pages > 1 && (
                 <div className="offline-actions">
-                  <button
-                    className="ghost-btn"
-                    disabled={activePage <= 1}
-                    onClick={() => setPage(activePage - 1)}
-                  >
+                  <Button disabled={activePage <= 1} onClick={() => setPage(activePage - 1)}>
                     Предыдущие
-                  </button>
-                  <button
-                    className="ghost-btn"
-                    disabled={activePage >= pages}
-                    onClick={() => setPage(activePage + 1)}
-                  >
+                  </Button>
+                  <Button disabled={activePage >= pages} onClick={() => setPage(activePage + 1)}>
                     Следующие
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }

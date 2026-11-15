@@ -21,12 +21,7 @@ export const PENDING_FILES: ReadonlySet<string> = new Set([
   'src/features/football/mini.css',
   'src/features/football/playerForm.css',
   'src/features/football/players.css',
-  'src/features/offline/offline.css',
-  'src/features/onboarding/onboarding.css',
-  'src/features/settings/favoritesEditor.css',
-  'src/features/settings/settings.css',
   'src/features/ucl/ucl.css',
-  'src/features/watch/watch.css',
 ]);
 
 const NAMED_COLORS = new Set(

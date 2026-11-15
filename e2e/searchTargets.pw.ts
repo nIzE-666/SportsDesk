@@ -62,7 +62,7 @@ test('search targets open «Моё», settings, a cup and Formula 1 analysis', a
     page
       .getByRole('navigation', { name: 'Категории настроек' })
       .getByRole('button', { name: 'Источники', exact: true }),
-  ).toHaveAttribute('aria-current', 'true');
+  ).toHaveAttribute('aria-current', 'page');
 
   dialog = await search(page, 'Лига Европы');
   await expect(dialog.getByRole('option').first()).toContainText('Лига Европы');

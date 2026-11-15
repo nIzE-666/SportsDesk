@@ -239,7 +239,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   await page.goto('/');
   await expect(page.locator('.today-view')).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event('sportsdesk-open-onboarding')));
-  const wizard = '[role="dialog"][aria-label="Настройка SportsDesk"]';
+  const wizard = '[role="dialog"].onboarding-card';
   for (let step = 1; step <= 8; step += 1) {
     await expect(page.locator(wizard).locator('.eyebrow')).toContainText(`ШАГ ${step} ИЗ 8`);
     await dump(`Шаг ${step}`, { group: 'Мастер первого запуска', root: wizard });

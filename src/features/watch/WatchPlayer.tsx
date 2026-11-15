@@ -15,6 +15,7 @@ import {
   PictureInPicture2,
 } from 'lucide-react';
 import { openExternal } from '../../lib/bridge';
+import { Badge, Button, EmptyState, IconButton } from '../../kit';
 import { reportVideoAudible } from '../atmosphere/playbackContext';
 
 import type { KinoChannel } from './watchShared';
@@ -66,30 +67,26 @@ function PlayerControls({
 }: PlayerControlsProps) {
   return (
     <div className="watch-player-controls" onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="watch-ctrl"
+      <IconButton
+        icon={playing ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
         onClick={onTogglePlay}
         aria-label={playing ? 'Пауза (пробел)' : 'Воспроизвести (пробел)'}
         disabled={status !== 'ready'}
-      >
-        {playing ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
-      </button>
+      />
 
       <div className="watch-volume-group">
-        <button
-          type="button"
-          className="watch-ctrl"
+        <IconButton
+          icon={
+            muted || volume === 0 ? (
+              <VolumeX size={18} aria-hidden />
+            ) : (
+              <Volume2 size={18} aria-hidden />
+            )
+          }
           onClick={onToggleMute}
           aria-label={muted ? 'Включить звук (M)' : 'Выключить звук (M)'}
           disabled={status !== 'ready'}
-        >
-          {muted || volume === 0 ? (
-            <VolumeX size={18} aria-hidden />
-          ) : (
-            <Volume2 size={18} aria-hidden />
-          )}
-        </button>
+        />
         <input
           className="watch-volume"
           type="range"
@@ -103,9 +100,9 @@ function PlayerControls({
         />
       </div>
 
-      <span className="watch-live-pill">
+      <Badge variant="live">
         <span className="watch-dot" /> LIVE
-      </span>
+      </Badge>
 
       <div className="watch-player-spacer" />
 
@@ -128,26 +125,20 @@ function PlayerControls({
       )}
 
       {pipSupported && (
-        <button
-          type="button"
-          className="watch-ctrl"
+        <IconButton
+          icon={<PictureInPicture2 size={18} aria-hidden />}
           onClick={onTogglePip}
           aria-label={pipActive ? 'Выйти из мини-плеера' : 'Мини-плеер поверх окон (PiP)'}
           disabled={status !== 'ready'}
           title={pipActive ? 'Выйти из мини-плеера' : 'Мини-плеер поверх окон'}
-        >
-          <PictureInPicture2 size={18} aria-hidden />
-        </button>
+        />
       )}
 
-      <button
-        type="button"
-        className="watch-ctrl"
+      <IconButton
+        icon={fullscreen ? <Minimize size={18} aria-hidden /> : <Maximize size={18} aria-hidden />}
         onClick={onToggleFullscreen}
         aria-label={fullscreen ? 'Выйти из полноэкранного режима (Esc)' : 'На весь экран'}
-      >
-        {fullscreen ? <Minimize size={18} aria-hidden /> : <Maximize size={18} aria-hidden />}
-      </button>
+      />
     </div>
   );
 }
@@ -555,7 +546,7 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
         if (playing) setControlsVisible(false);
       }}
     >
-      <div className="watch-player-canvas" onClick={togglePlay} role="presentation">
+      <div className="watch-player-canvas scheme-dark" onClick={togglePlay} role="presentation">
         <video
           ref={videoRef}
           className="watch-video"
@@ -569,40 +560,50 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
           <div className="watch-player-overlay">
             {status === 'loading' && (
               <div className="watch-row-center">
-                <Loader2 size={26} className="watch-spin" aria-hidden />
+                <Loader2 size={26} className="spin" aria-hidden />
                 <span>Подключаем поток…</span>
               </div>
             )}
             {status === 'idle' && (
-              <div className="watch-player-idle">
-                <WifiOff size={26} aria-hidden />
-                <span>Для этого канала нет потока.</span>
-                <button type="button" className="watch-btn watch-btn-ghost" onClick={openSite}>
-                  <ExternalLink size={15} aria-hidden /> Открыть на сайте
-                </button>
-              </div>
+              <EmptyState
+                className="watch-player-idle"
+                icon={<WifiOff size={20} aria-hidden />}
+                message="Для этого канала нет потока."
+                action={
+                  <Button icon={<ExternalLink size={15} aria-hidden />} onClick={openSite}>
+                    Открыть на сайте
+                  </Button>
+                }
+              />
             )}
             {status === 'error' && (
-              <div className="watch-player-error">
-                <AlertTriangle size={24} aria-hidden />
-                <span>{error ?? 'Не удалось воспроизвести поток.'}</span>
-                <div className="watch-player-error-actions">
-                  <button type="button" className="watch-btn watch-btn-primary" onClick={retry}>
-                    <RefreshCw size={15} aria-hidden /> Повторить
-                  </button>
-                  <button type="button" className="watch-btn watch-btn-ghost" onClick={openSite}>
-                    <ExternalLink size={15} aria-hidden /> Открыть в браузере
-                  </button>
-                </div>
-              </div>
+              <EmptyState
+                className="watch-player-error"
+                icon={<AlertTriangle size={20} aria-hidden />}
+                message={error ?? 'Не удалось воспроизвести поток.'}
+                action={
+                  <div className="watch-player-error-actions">
+                    <Button
+                      variant="primary"
+                      icon={<RefreshCw size={15} aria-hidden />}
+                      onClick={retry}
+                    >
+                      Повторить
+                    </Button>
+                    <Button icon={<ExternalLink size={15} aria-hidden />} onClick={openSite}>
+                      Открыть в браузере
+                    </Button>
+                  </div>
+                }
+              />
             )}
           </div>
         )}
 
-        <div className="watch-player-title">
+        <Badge className="watch-player-title">
           <Tv size={14} aria-hidden />
           <span>{channel.title}</span>
-        </div>
+        </Badge>
 
         <PlayerControls
           status={status}
@@ -626,9 +627,14 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
 
       <div className="watch-player-foot">
         <span className="watch-muted">Качество и дорожки — если их даёт поток.</span>
-        <button type="button" className="watch-link-btn" onClick={onOpenSitePage}>
-          <ExternalLink size={13} aria-hidden /> канал на kino.watch
-        </button>
+        <Button
+          variant="quiet"
+          small
+          icon={<ExternalLink size={13} aria-hidden />}
+          onClick={onOpenSitePage}
+        >
+          канал на kino.watch
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Clock, Minimize2 } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
+import { Badge, Button, Panel, PanelHeader } from '../../../kit';
 import { getString, setString, STORAGE_KEYS } from '../../football/storage';
 import { ShortcutControl } from '../ShortcutControl';
 import { openFirstRunWizard } from '../../onboarding/onboarding';
@@ -41,12 +42,14 @@ export function GeneralSettings() {
 
   return (
     <>
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h3>
-            <Clock size={15} /> Время
-          </h3>
-        </div>
+      <Panel className="settings-section">
+        <PanelHeader
+          title={
+            <>
+              <Clock size={16} aria-hidden /> Время
+            </>
+          }
+        />
         <div className="settings-row">
           <label htmlFor="tz-select" className="muted small">
             Часовой пояс
@@ -63,30 +66,30 @@ export function GeneralSettings() {
             ))}
           </select>
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel settings-section">
-        <div className="section-title">
-          <h3>
-            <Minimize2 size={15} /> Трей
-          </h3>
-          <span className="chip">{trayMode ? 'Закрытие в трей' : 'Закрытие — выход'}</span>
-        </div>
+      <Panel className="settings-section">
+        <PanelHeader
+          title={
+            <>
+              <Minimize2 size={16} aria-hidden /> Трей
+            </>
+          }
+          action={<Badge>{trayMode ? 'Закрытие в трей' : 'Закрытие — выход'}</Badge>}
+        />
         <div className="settings-actions">
-          <button className="ghost-btn" onClick={() => void toggleTrayMode()}>
+          <Button onClick={() => void toggleTrayMode()}>
             {trayMode ? 'Закрывать приложение полностью' : 'Скрывать в трей при закрытии'}
-          </button>
+          </Button>
         </div>
         <ShortcutControl />
-      </section>
+      </Panel>
 
-      <section className="panel settings-section">
+      <Panel className="settings-section">
         <div className="settings-actions">
-          <button className="ghost-btn" onClick={openFirstRunWizard}>
-            Пройти мастер настройки
-          </button>
+          <Button onClick={openFirstRunWizard}>Пройти мастер настройки</Button>
         </div>
-      </section>
+      </Panel>
     </>
   );
 }
