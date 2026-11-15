@@ -22,7 +22,7 @@ for (const scheme of ['dark', 'light'])
       const rail = page.getByRole('navigation', { name: 'Разделы' });
       await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
       await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
-      await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
+      await page.locator('[data-match-id="test-match"] .mt-open').first().click();
       await expect(page.locator('.md-score')).toContainText('2 : 1');
       await page.getByRole('tab', { name: 'Статистика' }).click();
       await expect(page.locator('.match-statistics')).toContainText('62');
@@ -51,7 +51,7 @@ test('match actions and tabs fit in a 720px window', async ({ page }, testInfo) 
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
-  await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
+  await page.locator('[data-match-id="test-match"] .mt-open').first().click();
   await expect(page.locator('.md-score')).toContainText('2 : 1');
   await expect(page.locator('.md-actions').getByRole('button', { name: 'Смотреть' })).toBeVisible();
   await expect(

@@ -1,11 +1,11 @@
 .match-analysis {
-  --analysis-home: var(--accent);
-  --analysis-away: #b364d9;
+  --analysis-home: var(--color-accent);
+  --analysis-away: var(--color-chart-4);
   display: grid;
-  gap: 24px;
-  font-family: 'Manrope Variable', Manrope, sans-serif;
-  font-size: 14px;
-  line-height: 20px;
+  gap: var(--space-24);
+  font-family: var(--font-family);
+  font-size: var(--text-14);
+  line-height: var(--line-body);
 }
 .analysis-heading,
 .analysis-filters,
@@ -13,56 +13,56 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-16);
 }
 .analysis-heading {
   justify-content: space-between;
 }
 .match-analysis h2 {
-  font-size: 20px;
-  line-height: 28px;
+  font-size: var(--text-20);
+  line-height: var(--line-heading);
   margin: 0;
 }
 .match-analysis h3 {
-  font-size: 18px;
-  line-height: 28px;
-  margin: 0 0 8px;
+  font-size: var(--text-16);
+  line-height: var(--line-heading);
+  margin: 0 0 var(--space-8);
 }
 .match-analysis h4 {
-  font-size: 14px;
-  line-height: 20px;
-  margin: 0 0 12px;
+  font-size: var(--text-14);
+  line-height: var(--line-body);
+  margin: 0 0 var(--space-12);
 }
 .match-analysis p {
   text-wrap: pretty;
 }
 .analysis-filters {
-  margin: 16px 0;
+  margin: var(--space-16) 0;
 }
 .analysis-filters label {
   display: grid;
-  gap: 4px;
+  gap: var(--space-4);
   flex: 1;
   min-width: 180px;
 }
 .analysis-filters select {
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-8) var(--space-12);
   font: inherit;
-  color: var(--text);
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 .analysis-total {
   display: grid;
   flex: 1;
-  gap: 4px;
-  padding: 12px 0;
+  gap: var(--space-4);
+  padding: var(--space-12) 0;
 }
 .analysis-total > span {
-  font-size: 18px;
-  line-height: 28px;
+  font-size: var(--text-16);
+  line-height: var(--line-heading);
   font-variant-numeric: tabular-nums;
 }
 .analysis-total.home > strong,
@@ -76,8 +76,8 @@
 .analysis-visuals {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin: 16px 0 24px;
+  gap: var(--space-24);
+  margin: var(--space-16) 0 var(--space-24);
 }
 .analysis-visuals > div {
   min-width: 0;
@@ -85,16 +85,16 @@
 .analysis-pitch {
   display: block;
   width: 100%;
-  border-radius: 8px;
-  background: var(--panel2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
 }
 .analysis-pitch-lines {
-  stroke: var(--muted);
+  stroke: var(--color-text-tertiary);
   stroke-width: 0.35;
 }
 .analysis-shot {
   fill: var(--analysis-home);
-  stroke: var(--panel);
+  stroke: var(--color-surface-1);
   stroke-width: 0.4;
 }
 .analysis-shot.away {
@@ -102,24 +102,21 @@
 }
 .analysis-goal-ring {
   fill: none;
-  stroke: var(--text);
+  stroke: var(--color-text);
   stroke-width: 0.5;
 }
 .analysis-shot.selected {
-  stroke: var(--text);
+  stroke: var(--color-text);
   stroke-width: 1;
 }
 .analysis-selection-ring {
   fill: none;
-  stroke: var(--text);
+  stroke: var(--color-text);
   stroke-width: 0.6;
   stroke-dasharray: 1.5 1;
 }
-[data-scheme='light'] .match-analysis {
-  --analysis-away: #8a3db4;
-}
-.analysis-table tbody tr.selected {
-  outline: 2px solid var(--accent);
+.analysis-table-scroll .ui-table tr.selected {
+  outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
 .analysis-chart {
@@ -128,14 +125,12 @@
   overflow: visible;
 }
 .analysis-chart text {
-  fill: var(--muted);
-  font:
-    12px 'Manrope Variable',
-    Manrope,
-    sans-serif;
+  fill: var(--color-text-tertiary);
+  font-family: var(--font-family);
+  font-size: var(--text-12);
 }
 .analysis-grid {
-  stroke: var(--line);
+  stroke: var(--color-border);
   fill: none;
 }
 .analysis-xg {
@@ -154,64 +149,37 @@
   stroke: var(--analysis-away);
 }
 .analysis-notice {
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--panel2);
-  color: var(--text);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
-.analysis-table-wrap {
-  overflow-x: auto;
+.analysis-table-scroll {
+  margin-top: var(--space-8);
 }
-.analysis-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  line-height: 20px;
-}
-.analysis-table caption {
+.analysis-table-scroll caption {
   text-align: left;
-  padding: 12px 0;
-  font-weight: 600;
+  padding: var(--space-12) 0;
+  font-weight: var(--weight-semibold);
 }
-.analysis-table th,
-.analysis-table td {
-  padding: 12px 8px;
-  text-align: left;
-  vertical-align: middle;
+.analysis-table-scroll .ui-table tbody tr:nth-child(odd),
+.analysis-table-scroll .ui-table tbody tr.selected {
+  background: var(--color-surface-2);
 }
-.analysis-table tbody tr:nth-child(odd),
-.analysis-table tbody tr.selected {
-  background: var(--panel2);
-}
-.analysis-table td small {
+.analysis-table-scroll .ui-table td small {
   display: block;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 16px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-12);
+  line-height: var(--line-heading);
 }
-.match-analysis button {
-  font: inherit;
-  padding: 8px 12px;
-}
-.match-analysis button:focus-visible,
 .match-analysis select:focus-visible,
 .match-analysis summary:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-}
-.match-analysis button:not(:disabled):hover {
-  background: var(--panel2);
-}
-.match-analysis button:not(:disabled):active {
-  transform: scale(0.98);
-}
-.match-analysis button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 .match-analysis summary {
   cursor: pointer;
-  padding: 8px 0;
+  padding: var(--space-8) 0;
 }
 @media (max-width: 1250px) {
   .analysis-visuals {

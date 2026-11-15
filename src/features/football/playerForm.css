@@ -1,156 +1,141 @@
 .player-form-panel {
   display: grid;
-  gap: 18px;
+  gap: var(--space-16);
   min-width: 0;
 }
-.player-form-panel > .primary-btn {
+.player-form-panel > .player-form-start,
+.season-player-panel > .player-form-start {
   justify-self: start;
 }
 .analysis-subtitle {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
+  margin: var(--space-8) 0 0;
 }
 .analysis-description {
   margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.7;
+  color: var(--color-text-secondary);
+  font-size: var(--text-13);
+  line-height: var(--line-body);
   max-width: 900px;
 }
 .analysis-control-group {
   display: flex;
-  gap: 6px;
+  gap: var(--space-8);
   flex-wrap: wrap;
-}
-.analysis-control-group .ghost-btn {
-  font-size: 12px;
 }
 .analysis-progress {
   display: grid;
-  gap: 10px;
-  color: var(--accent);
-  font-size: 13px;
+  gap: var(--space-8);
+  color: var(--color-accent);
+  font-size: var(--text-13);
 }
 .analysis-progress progress {
   width: 100%;
-  accent-color: var(--accent);
+  accent-color: var(--color-accent);
 }
 .analysis-coverage {
   display: grid;
-  gap: 7px;
-  padding: 15px 18px;
-  border-radius: 12px;
-  background: rgba(var(--accent-rgb), 0.06);
-  border: 1px solid rgba(var(--accent-rgb), 0.15);
-  font-size: 13px;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
+  font-size: var(--text-13);
 }
 .analysis-coverage > span {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
 }
 .form-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-12);
 }
 .form-summary-card {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  text-align: left;
-  min-width: 0;
-  padding: 17px;
-  border: 1px solid var(--line);
+  display: block;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--text);
-  border-radius: 12px;
+  text-align: left;
+  white-space: normal;
 }
-.form-summary-card.selected {
-  border-color: rgba(var(--accent-rgb), 0.6);
-  background: rgba(var(--accent-rgb), 0.06);
+.form-summary-card .ui-stat {
+  height: 100%;
+  align-content: start;
 }
-.form-summary-card > span:first-child {
-  font-size: 12px;
+.form-summary-card .ui-button__label {
+  display: block;
+  width: 100%;
+}
+.form-summary-card .ui-stat__label {
   min-height: 2.7em;
-  line-height: 1.5;
-  color: var(--muted);
+  line-height: var(--line-body);
 }
-.form-summary-card > strong {
-  font-size: 25px;
-  font-variant-numeric: tabular-nums;
+.form-summary-card .ui-stat__note {
+  display: grid;
+  gap: var(--space-4);
+  line-height: var(--line-body);
 }
-.form-summary-card > small {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.form-delta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
+.form-summary-card[aria-pressed='true'] .ui-stat {
+  border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 .analysis-chart-head {
   display: flex;
-  gap: 14px;
+  gap: var(--space-16);
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
 }
 .analysis-chart-head h3 {
-  font-size: 15px;
+  font-size: var(--text-16);
   margin: 0;
 }
 .analysis-chart-head > span {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-12);
+  color: var(--color-text-secondary);
 }
 .analysis-chart {
   min-width: 0;
   width: 100%;
 }
-.form-match-list {
-  overflow: auto;
+.form-match-table {
+  max-height: 460px;
 }
-.form-match-header,
-.form-match-row {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) repeat(4, 72px);
-  gap: 12px;
-  align-items: center;
-  min-width: 560px;
-  border-bottom: 1px solid var(--line);
-  padding: 13px 0;
-  text-align: center;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.form-match-header {
-  color: var(--muted);
-  font-size: 12px;
-}
-.form-match-header > span:first-child {
-  text-align: left;
+.form-match-table .ui-table td {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
 }
 .form-match-open {
-  background: none;
-  border: 0;
-  color: var(--text);
-  text-align: left;
-  padding: 0;
   display: grid;
-  gap: 6px;
-  line-height: 1.5;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  white-space: normal;
+  line-height: var(--line-body);
+  text-align: left;
+}
+.form-match-open .ui-button__label {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
 }
 .form-match-open small {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
 .form-match-open > span {
-  font-size: 12.5px;
+  font-size: var(--text-13);
 }
 .form-match-open:disabled {
   cursor: default;
@@ -160,14 +145,47 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 18px;
+  gap: var(--space-16);
   flex-wrap: wrap;
 }
 .analysis-footer > span {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
   max-width: 650px;
+}
+/* The season list keeps its place; only the kit label wrapper needs the columns. */
+.season-player-panel .season-match-list > .season-match-open {
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  justify-content: stretch;
+  padding: var(--space-12) 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  background: none;
+  font-size: var(--text-12);
+  text-align: left;
+}
+.season-player-panel .season-match-list > .season-match-open .ui-button__label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 0;
+  white-space: normal;
+}
+.season-player-panel .season-match-open .ui-button__label > span:first-child {
+  display: grid;
+  flex: 1;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.season-player-panel .season-match-open .ui-button__label strong {
+  color: var(--color-text);
+  font-size: var(--text-13);
 }
 @media (max-width: 1050px) {
   .form-summary-grid {

@@ -59,6 +59,11 @@ describe('Button', () => {
     await click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it('keeps the pressed state of a toggle', async () => {
+    await app.render(<Button aria-pressed="true">В избранном</Button>);
+    expect(buttons()[0]?.getAttribute('aria-pressed')).toBe('true');
+  });
 });
 
 describe('IconButton', () => {

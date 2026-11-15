@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { ArrowRight, CalendarDays, Star, Target, TrendingUp, Users } from 'lucide-react';
 import { ClubPlayers } from './ClubPlayers';
 import TeamBadge from '../../components/TeamBadge';
 import { LoadingBlock, EmptyBlock, ErrorBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { Badge, Button, MatchRow, StatTile } from '../../kit';
 import type { MatchSummary } from './types';
 import { formatHumanDate } from '../../lib/humanDate';
 import { getUserTimezone, normalizeName } from './storage';
@@ -171,49 +172,36 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
   const record = `${history.wins}–${history.draws}–${history.losses}`;
 
   const renderMatchRow = (match: MatchSummary, kind: 'played' | 'upcoming') => {
-    const isHome = match.home_team.id === teamId;
-    const scoreHome = match.score_home;
-    const scoreAway = match.score_away;
+    const state = classifyMatchStatus(match.status, match.status_text);
+    const finished = state === 'finished';
     const outcome = outcomeForTeam(match, teamId ?? '', teamName);
+    const label = `${match.home_team.name} — ${match.away_team.name}`;
     return (
       <li key={match.id + kind}>
-        <button className="team-match-row" onClick={() => onOpenMatch(match.id)}>
-          <span className="team-match-date muted small">
-            {match.status === 'finished'
+        <MatchRow
+          size="compact"
+          className="team-schedule-row"
+          onClick={() => onOpenMatch(match.id)}
+          ariaLabel={`Открыть матч: ${label}`}
+          home={{ name: match.home_team.name, imageUrl: match.home_team.image_url }}
+          away={{ name: match.away_team.name, imageUrl: match.away_team.image_url }}
+          time={
+            finished
               ? formatHumanDate(match.time_utc ?? match.date, timezone)
-              : formatFixtureTime(match, timezone)}
-          </span>
-          <span className="team-match-op muted small">{isHome ? 'Д' : 'Г'}</span>
-          <span className="team-match-teams">
-            <span className="team-match-side">
-              <TeamBadge
-                name={match.home_team.name}
-                imageUrl={match.home_team.image_url}
-                size={18}
-              />
-              <span className="team-match-name">{match.home_team.name}</span>
-            </span>
-            <span className="muted team-match-dash">—</span>
-            <span className="team-match-side team-match-away">
-              <span className="team-match-name">{match.away_team.name}</span>
-              <TeamBadge
-                name={match.away_team.name}
-                imageUrl={match.away_team.image_url}
-                size={18}
-              />
-            </span>
-          </span>
-          <span className="team-match-score">
-            {match.status === 'finished' ? `${scoreHome ?? '—'} : ${scoreAway ?? '—'}` : '— : —'}
-          </span>
-          <span className="team-match-status">
-            {outcome ? (
-              <span className={`wdl wdl-${outcome.toLowerCase()}`}>{outcome}</span>
-            ) : (
-              <span className="chip">{matchStateLabel(match.status)}</span>
-            )}
-          </span>
-        </button>
+              : formatFixtureTime(match, timezone)
+          }
+          status={finished ? 'finished' : state === 'live' ? 'live' : 'scheduled'}
+          score={
+            finished ? { home: match.score_home ?? null, away: match.score_away ?? null } : null
+          }
+          badge={
+            outcome ? (
+              <Badge variant={outcome === 'W' ? 'win' : outcome === 'D' ? 'draw' : 'loss'}>
+                {outcome}
+              </Badge>
+            ) : undefined
+          }
+        />
       </li>
     );
   };
@@ -233,18 +221,18 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
           {catalogueTeam && <p className="muted small">{catalogueTeam.leagueName}</p>}
           <div className="team-header-actions">
             {teamId && (
-              <button
-                className={favorite ? 'ghost-btn active' : 'ghost-btn'}
+              <Button
                 onClick={() => toggleTeam(teamId)}
+                aria-pressed={favorite}
                 title={favorite ? 'Убрать из избранного' : 'В избранное'}
               >
                 <Star size={14} /> {favorite ? 'В избранном' : 'В избранное'}
-              </button>
+              </Button>
             )}
             {teamId && latestPlayed && (
-              <button className="ghost-btn" onClick={() => onOpenMatch(latestPlayed.id)}>
+              <Button onClick={() => onOpenMatch(latestPlayed.id)}>
                 Последний матч <ArrowRight size={14} />
-              </button>
+              </Button>
             )}
           </div>
           {!teamId && teamIds.some((id) => data.teams.some((team) => team.id === id)) && (
@@ -255,13 +243,9 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
                   .map((id) => data.teams.find((team) => team.id === id))
                   .filter((team): team is TeamCatalogueEntry => !!team)
                   .map((team) => (
-                    <button
-                      key={team.id}
-                      className="ghost-btn"
-                      onClick={() => onSelectTeam(team.id)}
-                    >
+                    <Button key={team.id} small onClick={() => onSelectTeam(team.id)}>
                       <TeamBadge name={team.name} imageUrl={team.image_url} size={24} /> {team.name}
-                    </button>
+                    </Button>
                   ))}
               </div>
             </section>
@@ -316,44 +300,36 @@ export function TeamView({ teamId, data, onSelectTeam, onOpenMatch }: TeamViewPr
         <>
           <section className="panel team-record">
             <div className="team-record-grid">
-              <div className="team-record-cell">
-                <span className="muted small">Форма (5 последних)</span>
-                <div className="wdl-strip">
-                  {history.form.length === 0 && (
-                    <span className="muted small">Нет завершённых матчей</span>
-                  )}
-                  {history.form.map((r, i) => (
-                    <span
-                      key={i}
-                      className={`wdl wdl-${r.toLowerCase()}`}
-                      title={r === 'W' ? 'Победа' : r === 'D' ? 'Ничья' : 'Поражение'}
-                    >
-                      {r}
+              <StatTile
+                label="Форма (5 последних)"
+                value={
+                  history.form.length === 0 ? (
+                    '—'
+                  ) : (
+                    <span className="wdl-strip">
+                      {history.form.map((r, i) => (
+                        <Badge key={i} variant={r === 'W' ? 'win' : r === 'D' ? 'draw' : 'loss'}>
+                          {r}
+                        </Badge>
+                      ))}
                     </span>
-                  ))}
-                </div>
-              </div>
-              <div className="team-record-cell">
-                <span className="muted small">Баланс побед</span>
-                <strong className="team-record-big">
-                  {teamId && playedCount > 0 ? record : '—'}
-                </strong>
-                <span className="muted tiny">В–Н–П по завершённым</span>
-              </div>
-              <div className="team-record-cell">
-                <span className="muted small">Голы</span>
-                <strong className="team-record-big">
-                  {teamId && playedCount > 0
-                    ? `${history.goalsFor} : ${history.goalsAgainst}`
-                    : '—'}
-                </strong>
-                <span className="muted tiny">забито : пропущено</span>
-              </div>
-              <div className="team-record-cell">
-                <span className="muted small">Матчи</span>
-                <strong className="team-record-big">{playedCount}</strong>
-                <span className="muted tiny">завершено в загруженных лигах</span>
-              </div>
+                  )
+                }
+                note={history.form.length === 0 ? 'Нет завершённых матчей' : undefined}
+              />
+              <StatTile
+                label="Баланс побед"
+                value={teamId && playedCount > 0 ? record : '—'}
+                note="В–Н–П по завершённым"
+              />
+              <StatTile
+                label="Голы"
+                value={
+                  teamId && playedCount > 0 ? `${history.goalsFor} : ${history.goalsAgainst}` : '—'
+                }
+                note="забито : пропущено"
+              />
+              <StatTile label="Матчи" value={playedCount} note="завершено в загруженных лигах" />
             </div>
           </section>
 
@@ -623,9 +599,9 @@ function SeasonAnalytics({
               <span className="muted small">Форма (новые слева)</span>
               <div className="wdl-strip">
                 {form.slice(0, 10).map((r, i) => (
-                  <span key={i} className={`wdl wdl-${r.toLowerCase()}`}>
+                  <Badge key={i} variant={r === 'W' ? 'win' : r === 'D' ? 'draw' : 'loss'}>
                     {r}
-                  </span>
+                  </Badge>
                 ))}
                 {form.length === 0 && <span className="muted small">Нет завершённых матчей</span>}
               </div>
@@ -696,7 +672,11 @@ function SeasonAnalytics({
                   return progression.map((p, i) => (
                     <i
                       key={i}
-                      style={{ height: `${Math.max(4, (p.points / max) * 100)}%` }}
+                      style={
+                        {
+                          '--bar-height': `${Math.max(4, (p.points / max) * 100)}%`,
+                        } as CSSProperties
+                      }
                       title={`${p.round}: ${p.points} очк.`}
                     />
                   ));

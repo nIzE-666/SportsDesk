@@ -109,7 +109,7 @@ async function openMatch(page: import('@playwright/test').Page) {
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
-  await page.locator(`[data-match-id="${match.id}"] .fixture-club`).first().click();
+  await page.locator(`[data-match-id="${match.id}"] .mt-open`).first().click();
   await page.getByRole('tab', { name: 'Разбор матча', exact: true }).click();
 }
 

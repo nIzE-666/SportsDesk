@@ -55,3 +55,22 @@ test('kit match rows never overflow their container', async ({ page }) => {
     expect(name.scrollWidth, name.text).toBeGreaterThan(name.width);
   }
 });
+
+/* A list is built from separate grids, so the fixed time and competition tracks
+   must keep the score in one column even with different names. */
+test('kit match row scores line up in a list', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto('/dev/kit.html?scheme=dark');
+  const list = page.locator('#kit-score-list');
+  await expect(list.locator('.ui-match-row')).toHaveCount(3);
+  const centers = await list.evaluate((container) => {
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('.ui-match-row'));
+    return rows.map((row) => {
+      const score = row.querySelector<HTMLElement>('.ui-match-row__score')!;
+      const box = score.getBoundingClientRect();
+      return box.left + box.width / 2;
+    });
+  });
+  const spread = Math.max(...centers) - Math.min(...centers);
+  expect(spread).toBeLessThanOrEqual(1);
+});

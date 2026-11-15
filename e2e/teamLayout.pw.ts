@@ -79,7 +79,7 @@ async function openArsenalWithLongNames(page: Page, width: number) {
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await expect(page.locator('.team-view h2.screen-title')).toHaveText('Arsenal');
-  await expect(page.locator('.team-schedule .team-match-row')).toHaveCount(longNames.length * 4);
+  await expect(page.locator('.team-schedule .ui-match-row')).toHaveCount(longNames.length * 4);
 }
 
 for (const width of [1100, 1290, 1440]) {
@@ -95,7 +95,7 @@ for (const width of [1100, 1290, 1440]) {
       const sections = Array.from(document.querySelectorAll('.team-cols .team-schedule'));
       sections.forEach((section, index) => {
         const column = index === 0 ? 'schedule' : 'history';
-        for (const row of Array.from(section.querySelectorAll<HTMLElement>('.team-match-row'))) {
+        for (const row of Array.from(section.querySelectorAll<HTMLElement>('.ui-match-row'))) {
           const rowBox = row.getBoundingClientRect();
           const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
           for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -175,8 +175,8 @@ test('long away team names start inside the schedule cell', async ({ page }, tes
   await page.screenshot({ path: testInfo.outputPath('favorite-teams.png') });
   await page.locator('#team-picker-select').selectOption('arsenal');
   await expect(page.locator('.team-view h2.screen-title')).toHaveText('Arsenal');
-  const away = page.locator('.team-schedule .team-match-away').first();
-  const name = away.locator('.team-match-name');
+  const away = page.locator('.team-schedule .ui-match-row__team--away').first();
+  const name = away.locator('.ui-match-row__team-name');
   await expect(name).toHaveText('Newcastle United Football Club');
   const bounds = await name.evaluate((node) => {
     const parent = node.parentElement!.getBoundingClientRect();

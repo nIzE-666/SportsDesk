@@ -12,36 +12,37 @@
 
 ## Компоненты и свойства
 
-| Компонент          | Главные свойства                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `Button`           | `variant`: `default`, `primary`, `quiet`; `danger`, `small`, `busy`, `icon`                                   |
-| `IconButton`       | `icon`, обязательный `aria-label`, `variant`, `small`, `busy`, `danger`                                       |
-| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`, `panelId`; у пункта `domId`, `title`, `ref` |
-| `SegmentedControl` | `items`, `value`, `onChange`, `ariaLabel`                                                                     |
-| `MatchRow`         | `home`, `away`, `time`, `status`, `minute`, `score`, `hideScore`, `competition`, `actions`, `size`, `onClick` |
-| `Panel`            | свойства `section` и `children`                                                                               |
-| `PanelHeader`      | `title`, `action`, `id`                                                                                       |
-| `StatTile`         | `label`, `value`, `note`; без `value` не рисуется                                                             |
-| `EmptyState`       | `message`, `icon`, `action`                                                                                   |
-| `Badge`            | `children`, `variant`: `live`, `win`, `draw`, `loss`, `warning`                                               |
-| `Tooltip`          | `label`, `children`, `side`: `top`/`bottom`                                                                   |
-| `Dialog`           | `open`, `onClose`, `title`, `children`, `footer`, `closeLabel`                                                |
-| `Toast`            | `message`, `action`, `onDismiss`, `dismissLabel`, `tone`: `info`/`error`                                      |
-| `Skeleton`         | свойства `span`; размер задаёт родитель                                                                       |
-| `SearchSelect`     | `ariaLabel`, `value`, `options`, `onChange`, `placeholder`, `clearLabel`                                      |
+| Компонент          | Главные свойства                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `Button`           | `variant`: `default`, `primary`, `quiet`; `danger`, `small`, `busy`, `icon`; `aria-pressed`                            |
+| `IconButton`       | `icon`, обязательный `aria-label`, `variant`, `small`, `busy`, `danger`                                                |
+| `Tabs`             | `items`, `ariaLabel`, `mode`: `tabs`/`nav`, `active`, `onChange`, `panelId`; у пункта `domId`, `title`, `ref`          |
+| `SegmentedControl` | `items`, `value`, `onChange`, `ariaLabel`                                                                              |
+| `MatchRow`         | `home`, `away`, `time`, `status`, `minute`, `score`, `hideScore`, `competition`, `badge`, `actions`, `size`, `onClick` |
+| `Panel`            | свойства `section` и `children`                                                                                        |
+| `PanelHeader`      | `title`, `action`, `id`                                                                                                |
+| `StatTile`         | `label`, `value`, `note`; без `value` не рисуется                                                                      |
+| `EmptyState`       | `message`, `icon`, `action`                                                                                            |
+| `Badge`            | `children`, `variant`: `live`, `win`, `draw`, `loss`, `warning`                                                        |
+| `Tooltip`          | `label`, `children`, `side`: `top`/`bottom`                                                                            |
+| `Dialog`           | `open`, `onClose`, `title`, `children`, `footer`, `closeLabel`                                                         |
+| `Toast`            | `message`, `action`, `onDismiss`, `dismissLabel`, `tone`: `info`/`error`                                               |
+| `Skeleton`         | свойства `span`; размер задаёт родитель                                                                                |
+| `SearchSelect`     | `ariaLabel`, `value`, `options`, `onChange`, `placeholder`, `clearLabel`                                               |
 
 ## Кнопки
 
-| Класс                 | Когда использовать                                                 |
-| --------------------- | ------------------------------------------------------------------ |
-| `.ui-button`          | обычное действие                                                   |
-| `.ui-button--primary` | главное действие; одно на экран или панель                         |
-| `.ui-button--quiet`   | второстепенное действие и ссылка-кнопка                            |
-| `.ui-button--icon`    | квадратная кнопка со значком; обязателен `aria-label`              |
-| `.ui-button--danger`  | опасное действие; сочетается с обычной, главной и тихой            |
-| `.ui-button--small`   | высота `--control-sm` вместо `--control-md`                        |
-| `aria-busy="true"`    | идёт действие: кнопка недоступна, вместо значка крутится индикатор |
-| `disabled`            | действие недоступно                                                |
+| Класс                 | Когда использовать                                                       |
+| --------------------- | ------------------------------------------------------------------------ |
+| `.ui-button`          | обычное действие                                                         |
+| `.ui-button--primary` | главное действие; одно на экран или панель                               |
+| `.ui-button--quiet`   | второстепенное действие и ссылка-кнопка                                  |
+| `.ui-button--icon`    | квадратная кнопка со значком; обязателен `aria-label`                    |
+| `.ui-button--danger`  | опасное действие; сочетается с обычной, главной и тихой                  |
+| `.ui-button--small`   | высота `--control-sm` вместо `--control-md`                              |
+| `aria-busy="true"`    | идёт действие: кнопка недоступна, вместо значка крутится индикатор       |
+| `aria-pressed="true"` | переключатель включён: фон `--color-accent-soft`, текст и рамка — акцент |
+| `disabled`            | действие недоступно                                                      |
 
 `Button` принимает `variant` (`default`, `primary`, `quiet`), `danger`, `small`,
 `busy`, `icon` и обычные свойства кнопки. `IconButton` требует `aria-label` и
@@ -67,16 +68,22 @@
 ## Строка матча
 
 `MatchRow` (`.ui-match-row`) — время или состояние, команды с эмблемами, счёт,
-необязательный турнир и место для действий. Подписей «Хозяева» и «Гости» нет:
-сторону показывает порядок. Неизвестное значение — прочерк.
+необязательный турнир, одна метка и место для действий. Подписей «Хозяева» и «Гости» нет:
+сторону показывает порядок. Неизвестное значение — прочерк. Время, счёт и турнир
+занимают постоянные колонки, поэтому счёт стоит на одном месте во всех строках списка;
+колонка турнира включается классами `--with-competition` и `--with-badge`, а в панели
+уже 480 px турнир и метка переходят на вторую строку.
 
-| Класс                          | Что делает                                        |
-| ------------------------------ | ------------------------------------------------- |
-| `.ui-match-row--compact`       | плотная строка, эмблемы 20 px                     |
-| `.ui-match-row`                | обычная строка, эмблемы 28 px                     |
-| `.ui-match-row--large`         | крупная строка, эмблемы 36 px, счёт `--text-24`   |
-| `.ui-match-row__actions`       | кнопки строки; с действиями строка не кликабельна |
-| `.ui-match-row__score--hidden` | режим без спойлеров: счёт заменён на `? : ?`      |
+| Класс                             | Что делает                                        |
+| --------------------------------- | ------------------------------------------------- |
+| `.ui-match-row--compact`          | плотная строка, эмблемы 20 px                     |
+| `.ui-match-row`                   | обычная строка, эмблемы 28 px                     |
+| `.ui-match-row--large`            | крупная строка, эмблемы 36 px, счёт `--text-24`   |
+| `.ui-match-row--with-competition` | постоянная колонка турнира (192 px)               |
+| `.ui-match-row--with-badge`       | постоянная колонка метки (96 px)                  |
+| `.ui-match-row__badge`            | одна метка рядом с турниром, например «Избранное» |
+| `.ui-match-row__actions`          | кнопки строки; с действиями строка не кликабельна |
+| `.ui-match-row__score--hidden`    | режим без спойлеров: счёт заменён на `? : ?`      |
 
 `hideScore` включает ту же маску, что `src/features/spoilers/`. Строка не читает
 хранилище сама: экран передаёт `hideScore` из `useResultHidden`. В узком контейнере

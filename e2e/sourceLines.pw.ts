@@ -270,9 +270,9 @@ test('every screen shows at most one data-source line and one refresh button', a
   // Матч: каждая вкладка отдельно.
   await competition(page, 'Premier League');
   await tab(page, 'Матчи');
-  await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
-  await expect(page.locator('.md-tabs')).toBeVisible();
-  const tabs = page.locator('.md-tabs button');
+  await page.locator('[data-match-id="test-match"] .mt-open').first().click();
+  await expect(page.getByRole('tablist', { name: 'Разделы матча' })).toBeVisible();
+  const tabs = page.getByRole('tablist', { name: 'Разделы матча' }).getByRole('tab');
   const count = await tabs.count();
   for (let index = 0; index < count; index += 1) {
     const label = (await tabs.nth(index).innerText()).trim();

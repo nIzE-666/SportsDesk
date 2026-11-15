@@ -1,11 +1,11 @@
-import { Radio, RefreshCw, Star } from 'lucide-react';
+import { Radio, RefreshCw } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
-import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
 import { isCompetitionVisible, useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
 import { LEAGUES } from '../../lib/navigationMetadata';
+import { Button, Badge, MatchRow, SegmentedControl, type MatchRowStatus } from '../../kit';
 import { CUP_COMPETITIONS } from '../ucl/cups';
 import { clubKey } from './clubNames';
 import { useFavorites } from './FavoritesProvider';
@@ -79,8 +79,12 @@ function kickoffTime(iso: string | null, timezone: string): string | null {
   return formatter.format(date);
 }
 
-function scoreValue(value: number | null): string {
-  return value === null ? '—' : String(value);
+/** The kit row knows four states; the other two keep their honest label in the time column. */
+function rowStatus(state: LiveState): MatchRowStatus {
+  if (state === 'live') return 'live';
+  if (state === 'finished') return 'finished';
+  if (state === 'postponed') return 'postponed';
+  return 'scheduled';
 }
 
 export interface LivePanelProps {
@@ -152,28 +156,26 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
           <p className="muted small">Ваши клубы и турниры.</p>
         </div>
         <div className="dashboard-head-actions">
-          <button className="ghost-btn" onClick={refresh} disabled={refreshing || loading}>
+          <Button onClick={refresh} disabled={refreshing || loading}>
             <RefreshCw size={14} /> {refreshing ? 'Обновление…' : 'Обновить'}
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="filters-bar panel">
         <div className="filter-group grow">
           <span className="muted small">Фильтр</span>
-          <div className="segmented">
-            {(['all', 'live', 'finished', 'favorites'] as const).map((f) => (
-              <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
-                {f === 'all'
-                  ? `Все (${personalMatches.length})`
-                  : f === 'live'
-                    ? `Live (${liveCount})`
-                    : f === 'finished'
-                      ? 'Завершённые'
-                      : `Избранные (${favoriteList.length})`}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel="Фильтр матчей"
+            value={filter}
+            onChange={(id) => setFilter(id as LiveFilter)}
+            items={[
+              { id: 'all', label: `Все (${personalMatches.length})` },
+              { id: 'live', label: `Live (${liveCount})` },
+              { id: 'finished', label: 'Завершённые' },
+              { id: 'favorites', label: `Избранные (${favoriteList.length})` },
+            ]}
+          />
         </div>
       </div>
 
@@ -193,56 +195,34 @@ export function LivePanel({ pitchMatches = [], onOpenMatch }: LivePanelProps) {
           <ul className="live-flat-list">
             {visible.map((m) => {
               const favorite = isFavorite(m);
-              const live = isLive(m);
               const clickableId =
                 onOpenMatch && pitchMatches.length > 0 ? findPitchMatchId(m, pitchMatches) : null;
               const kickoff = m.state === 'scheduled' ? kickoffTime(m.kickoffUtc, timezone) : null;
               const minute = minuteLabel(m.minute);
-              const row = (
-                <>
-                  <div className="live-flat-comp muted small">{competitionLabel(m)}</div>
-                  <div className="live-flat-teams">
-                    <span className="live-team">
-                      <TeamBadge name={m.home.name} size={20} />
-                      <span className="truncate">{m.home.name}</span>
-                    </span>
-                    <strong className="live-score">
-                      {scoreValue(m.score.home)} : {scoreValue(m.score.away)}
-                    </strong>
-                    <span className="live-team right">
-                      <span className="truncate">{m.away.name}</span>
-                      <TeamBadge name={m.away.name} size={20} />
-                    </span>
-                  </div>
-                  <div className="live-meta">
-                    <span className={live ? 'chip live-chip' : 'chip'}>
-                      {STATE_LABELS[m.state]}
-                    </span>
-                    {live && minute && <span className="chip live-chip">{minute}</span>}
-                    {favorite && (
-                      <span className="chip fav-chip">
-                        <Star size={10} /> Избранное
-                      </span>
-                    )}
-                    {kickoff && <span className="muted small">{kickoff}</span>}
-                  </div>
-                </>
-              );
-              const className = favorite ? 'live-flat favorite' : 'live-flat';
+              const status = rowStatus(m.state);
               return (
                 <li key={m.id}>
-                  {clickableId && onOpenMatch ? (
-                    <button
-                      type="button"
-                      className={`${className} live-flat-button`}
-                      onClick={() => onOpenMatch(clickableId)}
-                      title="Открыть разбор матча"
-                    >
-                      {row}
-                    </button>
-                  ) : (
-                    <div className={className}>{row}</div>
-                  )}
+                  <MatchRow
+                    size="compact"
+                    competition={competitionLabel(m)}
+                    badge={favorite ? <Badge>Избранное</Badge> : undefined}
+                    home={{ name: m.home.name }}
+                    away={{ name: m.away.name }}
+                    time={
+                      m.state === 'scheduled'
+                        ? kickoff
+                        : m.state === 'cancelled' || m.state === 'unknown'
+                          ? STATE_LABELS[m.state]
+                          : null
+                    }
+                    status={status}
+                    minute={minute}
+                    score={{ home: m.score.home, away: m.score.away }}
+                    onClick={
+                      clickableId && onOpenMatch ? () => onOpenMatch(clickableId) : undefined
+                    }
+                    ariaLabel={`Открыть разбор матча: ${m.home.name} — ${m.away.name}`}
+                  />
                 </li>
               );
             })}

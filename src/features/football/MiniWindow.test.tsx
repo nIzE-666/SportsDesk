@@ -32,9 +32,7 @@ it('is called Live-мини like the button that opens it and says plainly when 
   });
   await act(async () => root.render(<MiniWindow />));
   expect(host.querySelector('.mini-title')?.textContent).toContain('Live-мини');
-  expect(host.querySelector('.mini-empty')?.textContent).toBe(
-    'Сейчас нет матчей избранных клубов.',
-  );
+  expect(host.querySelector('.ui-empty')?.textContent).toBe('Сейчас нет матчей избранных клубов.');
   expect(host.textContent).not.toMatch(/SportsDesk Live|отслеживаем/);
 });
 
@@ -57,7 +55,7 @@ it('keeps showing the matches of favourite clubs and marks saved data', async ()
     stale: true,
   });
   await act(async () => root.render(<MiniWindow />));
-  expect(host.querySelector('.mini-row')?.textContent).toContain('Arsenal2 : 1Chelsea');
+  expect(host.querySelector('.ui-match-row')?.textContent).toContain('Arsenal2 : 1Chelsea');
   expect(host.querySelector('.mini-error')?.textContent).toContain('Показаны сохранённые данные');
-  expect(host.querySelector('.mini-empty')).toBeNull();
+  expect(host.querySelector('.ui-empty')).toBeNull();
 });

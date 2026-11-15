@@ -2,18 +2,18 @@
 .season-analytics {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-16);
 }
 .sa-row {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
-  gap: 18px;
+  gap: var(--space-16);
 }
 .sa-form,
 .sa-h2h {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 }
 .sa-h2h select {
@@ -22,20 +22,20 @@
 .sa-h2h-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 15px;
+  gap: var(--space-12);
+  font-size: var(--text-14);
 }
 .sa-h2h-list {
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 .team-match-row-static {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr) 70px 70px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-top: 1px solid var(--line);
-  font-size: 12.5px;
+  gap: var(--space-12);
+  padding: var(--space-8) 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-13);
 }
 .team-match-score-static {
   font-variant-numeric: tabular-nums;
@@ -44,26 +44,27 @@
 .sa-chart {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .sa-sparkline {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 64px;
-  padding: 6px 0 0;
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-8) 0 0;
+  border-bottom: 1px solid var(--color-border);
 }
 .sa-sparkline i {
   flex: 1;
   min-width: 3px;
   max-width: 14px;
-  background: color-mix(in srgb, var(--accent) 65%, transparent);
-  border-radius: 2px 2px 0 0;
-  transition: background 0.15s;
+  height: var(--bar-height, 0%);
+  background: color-mix(in srgb, var(--color-accent) 65%, transparent);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: background var(--duration-hover) var(--ease);
 }
 .sa-sparkline i:hover {
-  background: var(--accent);
+  background: var(--color-accent);
 }
 
 @media (max-width: 1280px) {
@@ -80,78 +81,91 @@
 
 /* Team view additions (owned by football module) */
 .team-favorites h2 {
-  font-size: 16px;
-  margin: 16px 0 8px;
+  font-size: var(--text-16);
+  margin: var(--space-16) 0 var(--space-8);
 }
 .team-favorites-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .team-header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0 0;
+  gap: var(--space-8);
+  margin: var(--space-12) 0 0;
 }
 
 .team-record {
-  padding: 16px 18px;
+  padding: var(--space-16);
 }
 
 .team-record-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.team-record-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.team-record-big {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.4px;
+  gap: var(--space-16);
 }
 
 .wdl-strip {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-4);
+  vertical-align: middle;
 }
 
-.wdl {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  color: var(--muted);
+/* The table's club cell keeps its badge and name on one line. */
+.st-team-open {
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.st-team-open .ui-button__label {
+  justify-content: flex-start;
+  gap: var(--space-8);
 }
 
-.wdl-w {
-  background: color-mix(in srgb, var(--accent) 18%, var(--panel2));
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  color: var(--accent);
+.mt-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-16);
+  min-width: 0;
 }
-
-.wdl-l {
-  background: color-mix(in srgb, var(--danger) 14%, var(--panel2));
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
-  color: var(--danger);
+.mt-team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.mt-team--away {
+  justify-content: flex-end;
+}
+.mt-team-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-13);
+}
+.ui-table .mt-team .ui-button--icon.is-active {
+  color: var(--color-accent);
+}
+.ui-table .mt-score {
+  min-width: 0;
+  padding: 0;
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.mt-actions-col {
+  width: 1%;
+  text-align: right;
+}
+.mt-date-cell {
+  white-space: nowrap;
 }
 
 .team-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: 0;
 }
 
@@ -164,184 +178,27 @@
 }
 
 .team-match-list li + li {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--color-border);
 }
 
-/* Club names are never cut: a long one wraps, and a narrow column stacks the two clubs. */
+/* Club names are never cut: a long one wraps inside the kit row. */
 .team-schedule {
   container: team-schedule / inline-size;
 }
 
-.team-match-row {
-  --team-status-col: 104px;
-  display: grid;
-  grid-template-columns: 110px 22px minmax(0, 1fr) 58px var(--team-status-col);
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  padding: 9px 4px;
-  text-align: left;
-  font-size: 13px;
-}
-
-/* A finished match only shows the one-letter result. */
-.team-match-row:has(.wdl) {
-  --team-status-col: 26px;
-}
-
-.team-match-row:hover {
-  background: var(--panel2);
-  border-radius: 8px;
-}
-
-.team-match-date {
-  font-variant-numeric: tabular-nums;
-}
-
-.team-match-op {
-  text-align: center;
-  font-weight: 700;
-}
-
-.team-match-teams {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.team-match-side {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.team-match-away {
-  justify-content: flex-end;
-}
-
-.team-match-name {
-  min-width: 0;
+.team-schedule-row,
+.team-schedule-row .ui-match-row__team-name {
+  white-space: normal;
+  overflow: visible;
   overflow-wrap: anywhere;
+  text-overflow: clip;
 }
 
-.team-match-side :is(.team-badge, .team-badge-fallback) {
-  flex-shrink: 0;
-}
-
-.team-match-score {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.team-match-status {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* In a half-width column the home club goes above the away club, each on its own line. */
-@container team-schedule (max-width: 740px) {
-  .team-match-row {
-    grid-template-columns: 88px 20px minmax(0, 1fr) 54px var(--team-status-col);
-    padding-block: 6px;
-  }
-  .team-match-teams {
-    grid-template-columns: minmax(0, 1fr);
-    row-gap: 4px;
-  }
-  .team-match-dash {
-    display: none;
-  }
-  .team-match-away {
-    justify-content: flex-start;
-  }
-  .team-match-away :is(.team-badge, .team-badge-fallback) {
-    order: -1;
-  }
-}
-
-.team-squad {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* Favorite cards */
-.fav-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.fav-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  color: var(--text);
-  text-align: left;
-  min-width: 0;
-}
-
-.fav-card:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-}
-
-.fav-card.pending {
-  opacity: 0.7;
-}
-
-.fav-card-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.fav-card-title {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.fav-card-title strong {
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fav-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.fav-card-line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.team-schedule-row .ui-match-row__team {
   flex-wrap: wrap;
-  min-width: 0;
 }
 
-.fav-chip {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-}
-
-/* Flat SportScore feed */
+/* Flat live feed */
 .live-flat-list {
   list-style: none;
   margin: 0;
@@ -351,49 +208,7 @@
 }
 
 .live-flat-list li + li {
-  border-top: 1px solid var(--line);
-}
-
-.live-flat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 4px;
-}
-
-.live-flat-button {
-  width: 100%;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.live-flat-button:hover,
-.live-flat-button:focus-visible {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.live-flat.favorite {
-  box-shadow: inset 3px 0 0 var(--accent);
-  padding-left: 10px;
-}
-
-.live-flat-comp {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.live-flat-teams {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  min-width: 0;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (max-width: 1280px) {
@@ -403,38 +218,22 @@
   .team-record-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .team-squad {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 900px) {
-  .team-match-row {
-    grid-template-columns: 1fr auto;
-    row-gap: 4px;
-  }
-  .team-match-date,
-  .team-match-op {
-    display: none;
+  .team-record-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 /* Screen titles are h2 under the frame's single h1 and keep their former look. */
 .dashboard-head .screen-title {
-  font-size: clamp(21px, 1.8vw, 26px);
-  letter-spacing: -0.6px;
-  margin: 0 0 7px;
+  font-size: var(--text-24);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-8);
 }
 
 .team-header .screen-title {
   margin: 0;
-  font-size: clamp(22px, 1.8vw, 28px);
-}
-
-.app-root[data-theme] .dashboard-head .screen-title,
-.app-root[data-theme] .team-header .screen-title {
-  font-size: 30px;
-  line-height: 36px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--text-24);
 }

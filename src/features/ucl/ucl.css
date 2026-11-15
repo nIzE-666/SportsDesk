@@ -248,9 +248,11 @@
   grid-row: 1 / span 2;
   align-self: center;
 }
-.bracket-tie .ui-match-row__competition {
+/* The kit puts the competition into its meta cell; in a tie it is the third line. */
+.bracket-tie .ui-match-row__meta {
   grid-column: 1 / -1;
   grid-row: 3;
+  width: auto;
 }
 .bracket-tie .ui-match-row__team-name {
   font-size: var(--text-13);

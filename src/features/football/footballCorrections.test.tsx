@@ -145,12 +145,10 @@ it('uses the selected league catalogue names and badges in standings without gue
       onOpenTeam={open}
     />,
   );
-  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team')];
-  expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual([
-    'Brighton',
-    'Bournemouth',
-    'Bournemouth Women',
-  ]);
+  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team-open')];
+  expect(
+    rows.map((row) => row.querySelector('.ui-button__label > span:last-child')?.textContent),
+  ).toEqual(['Brighton', 'Bournemouth', 'Bournemouth Women']);
   expect(rows[0]?.querySelector('img')?.getAttribute('src')).toBe(
     'https://example.com/brighton.png',
   );
@@ -201,14 +199,10 @@ it('shows catalogue names and crests for clubs another league table spells diffe
       onOpenTeam={open}
     />,
   );
-  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team')];
-  expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual([
-    'Inter',
-    'Milan',
-    'Roma',
-    'Juventus',
-    'Newly Promoted',
-  ]);
+  const rows = [...host.querySelectorAll<HTMLButtonElement>('.st-team-open')];
+  expect(
+    rows.map((row) => row.querySelector('.ui-button__label > span:last-child')?.textContent),
+  ).toEqual(['Inter', 'Milan', 'Roma', 'Juventus', 'Newly Promoted']);
   expect(rows.map((row) => row.querySelector('img')?.getAttribute('src'))).toEqual([
     'https://example.com/inter.png',
     'https://example.com/milan.png',

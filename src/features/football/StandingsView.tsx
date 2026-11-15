@@ -4,6 +4,7 @@ import { api } from '../../lib/bridge';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { Button } from '../../kit';
 import { clubKey } from './clubNames';
 import type { SportScoreStandings, SportScoreStandingRow } from './types';
 import type { TeamCatalogueEntry, UseFootballResult } from './useFootballData';
@@ -80,9 +81,9 @@ export function StandingsView({
           </p>
         </div>
         <div className="dashboard-head-actions">
-          <button className="ghost-btn" onClick={load} disabled={loading || !slug}>
+          <Button onClick={load} disabled={loading || !slug}>
             {loading ? 'Обновление…' : 'Обновить'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -99,25 +100,31 @@ export function StandingsView({
       {tables.map((table, i) => (
         <section key={i} className="panel standings-panel">
           {table.group && <h3>{table.group}</h3>}
-          <div className="standings-table" role="table">
-            <div className="st-head" role="row">
-              <span>#</span>
-              <span>Команда</span>
-              <span>И</span>
-              <span>В</span>
-              <span>Н</span>
-              <span>П</span>
-              <span>Г</span>
-              <span>О</span>
-            </div>
-            {table.rows.map((row) => (
-              <StandingsRow
-                key={row.team_slug ?? row.pos}
-                row={row}
-                onOpenTeam={onOpenTeam}
-                matchTeam={(name) => matchTeam(name, data)}
-              />
-            ))}
+          <div className="ui-table-scroll">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Команда</th>
+                  <th className="ui-table__num">И</th>
+                  <th className="ui-table__num">В</th>
+                  <th className="ui-table__num">Н</th>
+                  <th className="ui-table__num">П</th>
+                  <th className="ui-table__num">Г</th>
+                  <th className="ui-table__num">О</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row) => (
+                  <StandingsRow
+                    key={row.team_slug ?? row.pos}
+                    row={row}
+                    onOpenTeam={onOpenTeam}
+                    matchTeam={(name) => matchTeam(name, data)}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       ))}
@@ -150,25 +157,31 @@ function StandingsRow({
   const teamId = team?.id;
   const name = team?.name ?? row.team;
   return (
-    <div className="st-row" role="row" title={row.promo_name ?? ''}>
-      <span className="st-pos">{row.pos}</span>
-      <button
-        className="st-team"
-        onClick={() => teamId && onOpenTeam(teamId)}
-        disabled={!teamId}
-        title={teamId ? 'Открыть команду' : 'Для этого клуба нет страницы'}
-      >
-        <TeamBadge name={name} imageUrl={team?.image_url ?? row.team_logo} size={18} />
-        <span>{name}</span>
-      </button>
-      <span>{row.p ?? '—'}</span>
-      <span>{row.w ?? '—'}</span>
-      <span>{row.d ?? '—'}</span>
-      <span>{row.l ?? '—'}</span>
-      <span>{row.gd != null ? (row.gd > 0 ? `+${row.gd}` : row.gd) : '—'}</span>
-      <span>
+    <tr title={row.promo_name ?? ''}>
+      <td>{row.pos}</td>
+      <td>
+        <Button
+          variant="quiet"
+          small
+          className="st-team-open"
+          onClick={() => teamId && onOpenTeam(teamId)}
+          disabled={!teamId}
+          title={teamId ? 'Открыть команду' : 'Для этого клуба нет страницы'}
+        >
+          <TeamBadge name={name} imageUrl={team?.image_url ?? row.team_logo} size={18} />
+          <span>{name}</span>
+        </Button>
+      </td>
+      <td className="ui-table__num">{row.p ?? '—'}</td>
+      <td className="ui-table__num">{row.w ?? '—'}</td>
+      <td className="ui-table__num">{row.d ?? '—'}</td>
+      <td className="ui-table__num">{row.l ?? '—'}</td>
+      <td className="ui-table__num">
+        {row.gd != null ? (row.gd > 0 ? `+${row.gd}` : row.gd) : '—'}
+      </td>
+      <td className="ui-table__num">
         <strong>{row.pts ?? '—'}</strong>
-      </span>
-    </div>
+      </td>
+    </tr>
   );
 }

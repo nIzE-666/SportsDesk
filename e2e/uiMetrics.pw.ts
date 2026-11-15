@@ -73,11 +73,16 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
   }));
   await section('Футбол');
   await tab('Матчи');
-  await page.locator('[data-match-id="test-match"] .fixture-club').first().click();
+  await page.locator('[data-match-id="test-match"] .mt-open').first().click();
   await expect(page.locator('.md-score')).toContainText('2 : 1');
   await capture('Матч', '.match-detail');
-  const matchTabs = await page.locator('.md-tabs button').count();
-  const matchTabsTop = Math.round((await page.locator('.md-tabs').boundingBox())!.y);
+  const matchTabs = await page
+    .getByRole('tablist', { name: 'Разделы матча' })
+    .getByRole('tab')
+    .count();
+  const matchTabsTop = Math.round(
+    (await page.getByRole('tablist', { name: 'Разделы матча' }).boundingBox())!.y,
+  );
   await page.locator('.shell-header-bar').getByRole('button', { name: 'Назад' }).click();
   await capture('Матчи', '.matches-view');
   await tab('Таблица');

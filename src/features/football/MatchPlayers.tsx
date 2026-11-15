@@ -3,6 +3,7 @@ import { SearchSelect } from '../../components/SearchSelect';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useMemo } from 'react';
 import { EmptyBlock } from '../../components/StateViews';
+import { Badge, Button, StatTile } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { useFavorites } from './FavoritesProvider';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
@@ -187,7 +188,7 @@ function PlayerCard({
   const teamName = playerTeamName(entry, detail);
 
   return (
-    <button className="player-card" onClick={onClick} title="Открыть статистику игрока">
+    <Button className="player-card" onClick={onClick} title="Открыть статистику игрока">
       <div className="player-head">
         <PersonAvatar name={entry.player.name} src={entry.player.image_url} />
         <div>
@@ -211,17 +212,12 @@ function PlayerCard({
         <StatChip label="Голы" value={goals != null ? String(goals) : '—'} />
         <StatChip label="Ассисты" value={assists != null ? String(assists) : '—'} />
       </div>
-    </button>
+    </Button>
   );
 }
 
 function StatChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="stat-chip">
-      <span className="muted small">{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
+  return <StatTile label={label} value={value} />;
 }
 
 export function PlayerProfile({
@@ -244,11 +240,10 @@ export function PlayerProfile({
   return (
     <div className="panel player-profile">
       <div className="md-topbar">
-        <button className="ghost-btn" onClick={onBack}>
+        <Button onClick={onBack}>
           <ArrowLeft size={14} /> {backLabel}
-        </button>
-        <button
-          className={favorite ? 'ghost-btn active' : 'ghost-btn'}
+        </Button>
+        <Button
           aria-pressed={favorite}
           onClick={() =>
             togglePlayer({
@@ -264,7 +259,7 @@ export function PlayerProfile({
           }
         >
           <Star size={14} /> {favorite ? 'В избранном' : 'В избранное'}
-        </button>
+        </Button>
       </div>
       <div className="player-profile-head">
         <PersonAvatar name={entry.player.name} src={entry.player.image_url} size={64} />
@@ -278,12 +273,9 @@ export function PlayerProfile({
         </div>
       </div>
       {minutes === null && (
-        <p
-          className="chip"
-          title="Источник не указал минуты игрока, поэтому показатели за 90 минут недоступны."
-        >
-          Неполные данные: нет минут игрока
-        </p>
+        <span title="Источник не указал минуты игрока, поэтому показатели за 90 минут недоступны.">
+          <Badge variant="warning">Неполные данные: нет минут игрока</Badge>
+        </span>
       )}
       <h3>Статистика матча</h3>
       <div className="stat-groups">
@@ -473,9 +465,9 @@ export function FavoritePlayersPanel({ onClose }: { onClose: () => void }) {
         <h2>
           <Star size={14} /> Избранные игроки
         </h2>
-        <button className="link-btn" onClick={onClose}>
+        <Button variant="quiet" small onClick={onClose}>
           Закрыть
-        </button>
+        </Button>
       </div>
       {favoritePlayers.length === 0 && <p className="muted small">Пока нет избранных игроков.</p>}
       <ul className="fav-players-list">
@@ -488,9 +480,9 @@ export function FavoritePlayersPanel({ onClose }: { onClose: () => void }) {
                 · {p.teamName ?? '—'} · {p.matchLabel ?? ''}
               </span>
             </span>
-            <button className="link-btn" onClick={() => togglePlayer(p)}>
+            <Button variant="quiet" small onClick={() => togglePlayer(p)}>
               Убрать
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

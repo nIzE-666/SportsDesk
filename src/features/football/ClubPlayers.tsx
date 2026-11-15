@@ -4,6 +4,7 @@ import { PersonAvatar } from '../../components/PersonAvatar';
 import { useViewState } from '../../lib/useViewState';
 import { useDataRecovery } from '../../lib/useDataRecovery';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
+import { Button, IconButton } from '../../kit';
 import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
@@ -110,9 +111,9 @@ export function ClubPlayers({
           />
         ) : (
           <section className="panel">
-            <button className="ghost-btn" onClick={() => setSelectedId(null)}>
+            <Button onClick={() => setSelectedId(null)}>
               <ArrowLeft size={14} /> К составу
-            </button>
+            </Button>
             <div className="player-profile-head">
               <PersonAvatar name={selected.name} src={selected.imageUrl} size={64} />
               <div>
@@ -121,13 +122,12 @@ export function ClubPlayers({
               </div>
             </div>
             <p className="muted small">В заявке последнего матча, но статистики нет.</p>
-            <button
-              className="ghost-btn"
+            <Button
               aria-pressed={isPlayerFavorite(selected.id)}
               onClick={() => togglePlayer(savedPlayer(selected, team, match))}
             >
               <Star size={14} /> {isPlayerFavorite(selected.id) ? 'В избранном' : 'В избранное'}
-            </button>
+            </Button>
           </section>
         )}
         <PlayerFormPanel
@@ -157,13 +157,9 @@ export function ClubPlayers({
         {!!current?.members.length && (
           <span className="muted small">{countRu(current.members.length, PLAYERS)}</span>
         )}
-        <button
-          className="ghost-btn"
-          disabled={!!match && !current}
-          onClick={() => setRetry((n) => n + 1)}
-        >
+        <Button disabled={!!match && !current} onClick={() => setRetry((n) => n + 1)}>
           Обновить состав
-        </button>
+        </Button>
       </div>
       <p className="muted small">
         {match
@@ -199,13 +195,14 @@ export function ClubPlayers({
           <div className="squad-player-grid">
             {filtered.map((p) => (
               <div className="squad-player" key={p.id}>
-                <button
+                <Button
+                  variant="quiet"
                   className="squad-player-open"
                   onClick={() => setSelectedId(p.id)}
                   aria-label={`Статистика: ${p.name}`}
                 >
                   <PersonAvatar name={p.name} src={p.imageUrl} />
-                  <span>
+                  <span className="squad-player-text">
                     <strong>{p.name}</strong>
                     <small>
                       {p.number ? `№ ${p.number} · ` : ''}
@@ -218,23 +215,22 @@ export function ClubPlayers({
                     </small>
                   </span>
                   <ChevronRight size={15} />
-                </button>
-                <button
-                  className={`player-favorite ${isPlayerFavorite(p.id) ? 'active' : ''}`}
+                </Button>
+                <IconButton
+                  className={isPlayerFavorite(p.id) ? 'is-active' : undefined}
                   aria-pressed={isPlayerFavorite(p.id)}
                   aria-label={`${isPlayerFavorite(p.id) ? 'Убрать из избранного' : 'В избранное'}: ${p.name}`}
                   onClick={() => match && togglePlayer(savedPlayer(p, team, match))}
-                >
-                  <Star size={17} fill={isPlayerFavorite(p.id) ? 'currentColor' : 'none'} />
-                </button>
+                  icon={<Star size={17} fill={isPlayerFavorite(p.id) ? 'currentColor' : 'none'} />}
+                />
               </div>
             ))}
           </div>
           {!filtered.length && (
             <EmptyBlock title="Таких игроков в составе нет">
-              <button className="ghost-btn" onClick={() => setQuery('')}>
+              <Button variant="quiet" onClick={() => setQuery('')}>
                 Очистить поиск
-              </button>
+              </Button>
             </EmptyBlock>
           )}
         </>

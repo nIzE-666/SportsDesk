@@ -3,6 +3,7 @@ import { ArrowLeft, Star } from 'lucide-react';
 import { api } from '../../lib/bridge';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import { LoadingBlock } from '../../components/StateViews';
+import { Button } from '../../kit';
 import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
@@ -66,16 +67,12 @@ export function SavedPlayerProfile({
       ) : (
         <section className="panel">
           <div className="section-title">
-            <button className="ghost-btn" onClick={onBack}>
+            <Button onClick={onBack}>
               <ArrowLeft size={14} /> К игрокам
-            </button>
-            <button
-              className="ghost-btn"
-              aria-pressed={isPlayerFavorite(player.id)}
-              onClick={() => togglePlayer(player)}
-            >
+            </Button>
+            <Button aria-pressed={isPlayerFavorite(player.id)} onClick={() => togglePlayer(player)}>
               <Star size={14} /> {isPlayerFavorite(player.id) ? 'В избранном' : 'В избранное'}
-            </button>
+            </Button>
           </div>
           <div className="player-profile-head">
             <PersonAvatar name={player.name} src={player.imageUrl} size={64} />

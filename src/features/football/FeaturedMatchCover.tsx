@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react';
 import { EventCover } from '../../components/EventCover';
 import TeamBadge from '../../components/TeamBadge';
+import { Badge, Button } from '../../kit';
 import { classifyMatchStatus, matchStateLabel } from '../../lib/sportsIdentity';
 import { formatHumanDateTime } from '../../lib/humanDate';
 import { getUserTimezone } from './storage';
@@ -96,12 +97,15 @@ export function FeaturedMatchCover({
             {match.round_name ? ` · ${match.round_name}` : ''}
           </p>
           <div className="event-cover-actions">
-            <button className="primary-btn" onClick={() => onOpenMatch(match.id)}>
+            <Button variant="primary" onClick={() => onOpenMatch(match.id)}>
               {state === 'finished' ? 'Разбор матча' : 'Открыть матч'} <ArrowUpRight size={16} />
-            </button>
-            <span className={`event-cover-status ${state === 'live' ? 'live' : ''}`}>
+            </Button>
+            <Badge
+              variant={state === 'live' ? 'live' : 'neutral'}
+              className={state === 'live' ? 'event-cover-status live' : 'event-cover-status'}
+            >
               {matchStateLabel(match.status, match.status_text)}
-            </span>
+            </Badge>
           </div>
         </>
       ) : (
@@ -110,9 +114,9 @@ export function FeaturedMatchCover({
           <p>
             {loading ? 'Загружаем расписание и результаты.' : 'Доступные встречи показаны ниже.'}
           </p>
-          <button className="primary-btn" onClick={onSeeAllMatches}>
+          <Button variant="primary" onClick={onSeeAllMatches}>
             Все матчи <ArrowUpRight size={16} />
-          </button>
+          </Button>
         </>
       )}
     </EventCover>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, Star, X } from 'lucide-react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import { SearchSelect } from '../../components/SearchSelect';
+import { Button, IconButton, StatTile } from '../../kit';
 import { fetchTeamHistory, type HistoryMatch } from './history';
 import { fetchPlayerSeasonStats, type PlayerSeasonStats } from './playerAnalytics';
 import { statLabel } from './statLabels';
@@ -135,27 +136,25 @@ function PlayerCardView({
   return (
     <section className="panel pc-card">
       <div className="pc-head">
-        <button
-          className="player-photo-button"
+        <IconButton
+          className="pc-avatar-button"
           onClick={onOpen}
           aria-label={`Статистика: ${player.name}`}
-        >
-          <PersonAvatar name={player.name} src={player.imageUrl} size={52} />
-        </button>
+          icon={<PersonAvatar name={player.name} src={player.imageUrl} size={52} />}
+        />
         <div className="pc-title">
-          <button className="player-name-button" onClick={onOpen}>
+          <Button variant="quiet" className="pc-name-button" onClick={onOpen}>
             <strong>{player.name}</strong>
             <small>Профиль и статистика →</small>
-          </button>
+          </Button>
           <span className="muted small">{player.teamName ?? '—'}</span>
         </div>
-        <button
-          className="player-favorite active"
+        <IconButton
+          className="is-active"
           aria-label={`Убрать из избранного: ${player.name}`}
           onClick={onRemove}
-        >
-          <Star size={16} fill="currentColor" />
-        </button>
+          icon={<Star size={16} fill="currentColor" />}
+        />
       </div>
 
       {!noSummary && (
@@ -179,14 +178,14 @@ function PlayerCardView({
       {stats && stats.metrics.length > 0 && (
         <div className="pc-metrics">
           {stats.metrics.slice(0, 8).map((m) => (
-            <div className="pc-metric" key={m.key}>
-              <span className="muted small">{statLabel(m.key, m.label)}</span>
-              <strong>
-                {m.value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}
-                {m.kind === 'fraction' ? '%' : ''}
-              </strong>
-              <small className="muted">{m.matches} матч.</small>
-            </div>
+            <StatTile
+              key={m.key}
+              label={statLabel(m.key, m.label)}
+              value={`${m.value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${
+                m.kind === 'fraction' ? '%' : ''
+              }`}
+              note={`${m.matches} матч.`}
+            />
           ))}
         </div>
       )}
@@ -203,13 +202,9 @@ function PlayerCardView({
         </p>
       )}
       <div className="pc-actions">
-        <button className="ghost-btn" onClick={onOpen}>
-          Открыть профиль
-        </button>
+        <Button onClick={onOpen}>Открыть профиль</Button>
         {(canCompare || !!compareSlot) && (
-          <button
-            className={`ghost-btn ${compareSlot ? 'active' : ''}`}
-            onClick={onCompare}
+          <Button
             aria-pressed={!!compareSlot}
             aria-label={`${compareSlot ? 'Убрать из сравнения' : 'Сравнить'}: ${player.name}`}
             disabled={!compareSlot && comparisonFull}
@@ -220,9 +215,10 @@ function PlayerCardView({
                   ? 'Убрать игрока из сравнения'
                   : 'Добавить игрока в сравнение'
             }
+            onClick={onCompare}
           >
             <ArrowLeftRight size={14} /> {compareSlot ? 'В сравнении · убрать' : 'Сравнить'}
-          </button>
+          </Button>
         )}
       </div>
     </section>
@@ -271,9 +267,7 @@ function ComparePanel({ a, b, onClose }: { a: PlayerCard; b: PlayerCard; onClose
         <h2>
           <ArrowLeftRight size={15} /> {a.player.name} и {b.player.name}
         </h2>
-        <button className="icon-button" onClick={onClose} aria-label="Закрыть сравнение">
-          <X size={16} />
-        </button>
+        <IconButton onClick={onClose} aria-label="Закрыть сравнение" icon={<X size={16} />} />
       </div>
       <p className="muted small">
         Показатели по загруженным матчам команд. Количество матчей может различаться.
@@ -347,11 +341,7 @@ function ComparisonPicker({
         <h2>
           <ArrowLeftRight size={16} /> Сравнение игроков
         </h2>
-        {count > 0 && (
-          <button className="ghost-btn" onClick={onClear}>
-            Сбросить выбор
-          </button>
-        )}
+        {count > 0 && <Button onClick={onClear}>Сбросить выбор</Button>}
       </div>
       <p className="muted small" role="status">
         {count === 0
@@ -382,13 +372,11 @@ function ComparisonPicker({
               </select>
             </label>
             {player && (
-              <button
-                className="icon-button"
+              <IconButton
                 aria-label={`Убрать из сравнения: ${player.name}`}
                 onClick={() => onPick(side as 0 | 1, '')}
-              >
-                <X size={16} />
-              </button>
+                icon={<X size={16} />}
+              />
             )}
           </div>
         ))}

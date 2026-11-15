@@ -10,15 +10,7 @@ const ROOT = process.cwd();
 const SRC_DIR = join(ROOT, 'src');
 const TOKENS_FILE = 'src/tokens.css';
 
-export const PENDING_FILES: ReadonlySet<string> = new Set([
-  'src/features/football/football.css',
-  'src/features/football/matchAnalysis.css',
-  'src/features/football/matchLineups.css',
-  'src/features/football/matchStats.css',
-  'src/features/football/mini.css',
-  'src/features/football/playerForm.css',
-  'src/features/football/players.css',
-]);
+export const PENDING_FILES: ReadonlySet<string> = new Set([]);
 
 const NAMED_COLORS = new Set(
   `aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue

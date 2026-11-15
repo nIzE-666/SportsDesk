@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ArrowDownRight, ArrowUpRight, ChevronRight, RefreshCw } from 'lucide-react';
+import { Activity, ChevronRight, RefreshCw } from 'lucide-react';
 import {
   CartesianGrid,
   Line,
@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useViewState } from '../../lib/useViewState';
+import { Button, SegmentedControl, StatTile } from '../../kit';
 import {
   fetchPlayerForm,
   selectPlayerFormFixtures,
@@ -103,27 +104,27 @@ export function PlayerFormPanel({
           </h2>
           <p className="analysis-subtitle">{teamName} · последние матчи</p>
         </div>
-        <div className="analysis-control-group" role="group" aria-label="Окно формы игрока">
-          {([5, 10] as const).map((n) => (
-            <button
-              key={n}
-              className={windowSize === n ? 'ghost-btn active' : 'ghost-btn'}
-              aria-pressed={windowSize === n}
-              onClick={() => setWindowSize(n)}
-            >
-              {n} матчей
-            </button>
-          ))}
+        <div className="analysis-control-group">
+          <SegmentedControl
+            ariaLabel="Окно формы игрока"
+            value={String(windowSize)}
+            onChange={(id) => setWindowSize(Number(id) as PlayerFormWindow)}
+            items={[
+              { id: '5', label: '5 матчей' },
+              { id: '10', label: '10 матчей' },
+            ]}
+          />
         </div>
       </div>
       {!data && !busy && (
-        <button
-          className="primary-btn"
+        <Button
+          variant="primary"
+          className="player-form-start"
           disabled={!candidates.length || !playerId}
           onClick={() => void load()}
         >
           Показать форму игрока <ChevronRight size={15} />
-        </button>
+        </Button>
       )}
       {!candidates.length && (
         <p className="muted small">В расписании нет завершённых матчей этого клуба.</p>
@@ -139,9 +140,9 @@ export function PlayerFormPanel({
       {error && (
         <p className="season-error" role="alert">
           {error}{' '}
-          <button className="ghost-btn" onClick={() => void load()}>
+          <Button variant="quiet" small onClick={() => void load()}>
             Повторить
-          </button>
+          </Button>
         </p>
       )}
       {data && (
@@ -164,32 +165,35 @@ export function PlayerFormPanel({
               const delta =
                 recent.mean !== null && base.mean !== null ? recent.mean - base.mean : null;
               return (
-                <button
+                <Button
                   key={m.key}
-                  className={`form-summary-card ${metric === m.key ? 'selected' : ''}`}
+                  className={metric === m.key ? 'form-summary-card selected' : 'form-summary-card'}
                   aria-pressed={metric === m.key}
                   onClick={() => setMetric(m.key)}
                 >
-                  <span>{m.label} · среднее за матч</span>
-                  <strong>
-                    {number(recent.mean)}
-                    {recent.mean !== null ? m.unit : ''}
-                  </strong>
-                  <small>
-                    База: {number(base.mean)}
-                    {base.mean !== null ? m.unit : ''}
-                  </small>
-                  {delta !== null && (
-                    <span className="form-delta">
-                      {delta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{' '}
-                      {delta > 0 ? '+' : ''}
-                      {number(delta)} к среднему базы
-                    </span>
-                  )}
-                  <small>
-                    Наблюдений: {recent.observed} / {data.recent.fixtures}; в базе: {base.observed}
-                  </small>
-                </button>
+                  <StatTile
+                    label={`${m.label} · среднее за матч`}
+                    value={`${number(recent.mean)}${recent.mean !== null ? m.unit : ''}`}
+                    note={
+                      <>
+                        <span>
+                          База: {number(base.mean)}
+                          {base.mean !== null ? m.unit : ''}
+                        </span>
+                        {delta !== null && (
+                          <span>
+                            {delta > 0 ? '+' : ''}
+                            {number(delta)} к среднему базы
+                          </span>
+                        )}
+                        <span>
+                          Наблюдений: {recent.observed} / {data.recent.fixtures}; в базе:{' '}
+                          {base.observed}
+                        </span>
+                      </>
+                    }
+                  />
+                </Button>
               );
             })}
           </div>
@@ -253,50 +257,59 @@ export function PlayerFormPanel({
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="form-match-list">
-            <div className="form-match-header">
-              <span>Матч · новые сверху</span>
-              <span>Рейтинг</span>
-              <span>Мин.</span>
-              <span>Голы</span>
-              <span>Передачи</span>
-            </div>
-            {data.rows
-              .slice()
-              .reverse()
-              .map((row) => (
-                <div className="form-match-row" key={row.id}>
-                  <button
-                    className="form-match-open"
-                    disabled={!onOpenMatch}
-                    onClick={() => onOpenMatch?.(row.id)}
-                  >
-                    <small>
-                      {row.date ? formatHumanDate(row.date, tz) : 'Дата уточняется'}
-                      {row.status === 'failed'
-                        ? ' · не загрузился'
-                        : row.status === 'missing'
-                          ? ' · нет данных игрока'
-                          : row.status === 'not-played'
-                            ? ' · 0 минут'
-                            : ''}
-                    </small>
-                    <span>
-                      {row.match.home_team.name} — {row.match.away_team.name}
-                    </span>
-                  </button>
-                  <strong>{number(row.rating)}</strong>
-                  <span>{number(row.minutes, 0)}</span>
-                  <span>{number(row.goals, 0)}</span>
-                  <span>{number(row.assists, 0)}</span>
-                </div>
-              ))}
+          <div className="ui-table-scroll form-match-table">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>Матч · новые сверху</th>
+                  <th className="ui-table__num">Рейтинг</th>
+                  <th className="ui-table__num">Мин.</th>
+                  <th className="ui-table__num">Голы</th>
+                  <th className="ui-table__num">Передачи</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows
+                  .slice()
+                  .reverse()
+                  .map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <Button
+                          variant="quiet"
+                          className="form-match-open"
+                          disabled={!onOpenMatch}
+                          onClick={() => onOpenMatch?.(row.id)}
+                        >
+                          <small>
+                            {row.date ? formatHumanDate(row.date, tz) : 'Дата уточняется'}
+                            {row.status === 'failed'
+                              ? ' · не загрузился'
+                              : row.status === 'missing'
+                                ? ' · нет данных игрока'
+                                : row.status === 'not-played'
+                                  ? ' · 0 минут'
+                                  : ''}
+                          </small>
+                          <span>
+                            {row.match.home_team.name} — {row.match.away_team.name}
+                          </span>
+                        </Button>
+                      </td>
+                      <td className="ui-table__num">{number(row.rating)}</td>
+                      <td className="ui-table__num">{number(row.minutes, 0)}</td>
+                      <td className="ui-table__num">{number(row.goals, 0)}</td>
+                      <td className="ui-table__num">{number(row.assists, 0)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
           <div className="analysis-footer">
             <span>База — до 60 последних матчей клуба.</span>
-            <button className="ghost-btn" disabled={busy} onClick={() => void load()}>
+            <Button disabled={busy} onClick={() => void load()}>
               <RefreshCw size={13} /> Повторить подсчёт
-            </button>
+            </Button>
           </div>
         </>
       )}

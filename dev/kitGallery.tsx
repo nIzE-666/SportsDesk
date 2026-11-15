@@ -119,6 +119,8 @@ export function KitGallery() {
           <h2>Кнопки</h2>
           <p className="kit-gallery-note">
             Обычная, главная, тихая, опасная, маленькая, значок. Главная — одна на экран или панель.
+            Включённый переключатель помечается `aria-pressed`: фон с примесью акцента и акцентный
+            текст.
           </p>
           <div className="kit-gallery-row">
             <Button>Обычная</Button>
@@ -129,7 +131,15 @@ export function KitGallery() {
             <Button disabled>Недоступна</Button>
             <Button busy>Сохраняем</Button>
             <Button icon={<Star size={16} aria-hidden="true" />}>В избранное</Button>
+            <Button aria-pressed="true" icon={<Star size={16} aria-hidden="true" />}>
+              В избранном
+            </Button>
             <IconButton aria-label="Уведомления" icon={<Bell size={16} aria-hidden="true" />} />
+            <IconButton
+              aria-label="Уведомления включены"
+              aria-pressed="true"
+              icon={<Bell size={16} aria-hidden="true" />}
+            />
             <IconButton
               aria-label="Уведомления"
               small
@@ -196,8 +206,9 @@ export function KitGallery() {
         <section className="kit-gallery-section" id="kit-matches">
           <h2>Строка матча</h2>
           <p className="kit-gallery-note">
-            Три размера. Время или состояние, команды с эмблемами, счёт, турнир и место для
-            действий. Неизвестное значение — прочерк.
+            Три размера. Время или состояние, команды с эмблемами, счёт, турнир, одна метка и место
+            для действий. Неизвестное значение — прочерк. Время, счёт и турнир занимают постоянные
+            колонки, поэтому счёт стоит на одном месте во всех строках списка.
           </p>
           <div className="kit-gallery-stack">
             <MatchRow
@@ -214,6 +225,7 @@ export function KitGallery() {
               minute={67}
               score={{ home: 2, away: 1 }}
               competition="Премьер-лига"
+              badge={<Badge>Избранное</Badge>}
             />
             <MatchRow
               home={{ name: 'Тоттенхэм' }}
@@ -244,26 +256,6 @@ export function KitGallery() {
               competition="Ла Лига"
             />
             <MatchRow
-              size="compact"
-              home={{ name: 'Арсенал' }}
-              away={{ name: 'Челси' }}
-              time="21:30"
-              status="scheduled"
-              competition="Премьер-лига"
-              actions={
-                <>
-                  <Button small variant="quiet">
-                    Открыть
-                  </Button>
-                  <IconButton
-                    aria-label="Скрыть результат"
-                    small
-                    icon={<EyeOff size={14} aria-hidden="true" />}
-                  />
-                </>
-              }
-            />
-            <MatchRow
               size="large"
               home={{ name: 'Арсенал' }}
               away={{ name: 'Челси' }}
@@ -273,6 +265,55 @@ export function KitGallery() {
               competition="Премьер-лига"
             />
           </div>
+          <div className="kit-gallery-stack" id="kit-score-list">
+            <MatchRow
+              home={{ name: 'Арсенал' }}
+              away={{ name: 'Челси' }}
+              status="finished"
+              time="сб, 14 нояб."
+              score={{ home: 2, away: 1 }}
+              competition="Премьер-лига"
+            />
+            <MatchRow
+              home={{ name: 'Боруссия Мёнхенгладбах' }}
+              away={{ name: 'Вулверхэмптон Уондерерс' }}
+              status="live"
+              minute={67}
+              score={{ home: 10, away: 10 }}
+              competition="Лига чемпионов"
+            />
+            <MatchRow
+              home={{ name: 'Интер' }}
+              away={{ name: 'Милан' }}
+              status="scheduled"
+              time="21:30"
+              score={{ home: null, away: null }}
+              competition="Серия A"
+            />
+          </div>
+          <p className="kit-gallery-note">
+            С действиями строка не кликабельна; действия стоят после турнира.
+          </p>
+          <MatchRow
+            size="compact"
+            home={{ name: 'Арсенал' }}
+            away={{ name: 'Челси' }}
+            time="21:30"
+            status="scheduled"
+            competition="Премьер-лига"
+            actions={
+              <>
+                <Button small variant="quiet">
+                  Открыть
+                </Button>
+                <IconButton
+                  aria-label="Скрыть результат"
+                  small
+                  icon={<EyeOff size={14} aria-hidden="true" />}
+                />
+              </>
+            }
+          />
           <div className="kit-gallery-narrow">
             <Panel aria-labelledby="kit-narrow-title">
               <PanelHeader id="kit-narrow-title" title="Узкая панель · 360 px" />

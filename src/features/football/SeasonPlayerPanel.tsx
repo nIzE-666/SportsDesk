@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronRight } from 'lucide-react';
+import { Button, StatTile } from '../../kit';
 import { fetchPlayerSeasonStats } from './playerAnalytics';
 import type { PlayerSeasonStats } from './playerAnalytics';
 import type { MatchSummary } from './types';
@@ -64,9 +65,14 @@ export function SeasonPlayerPanel({
       </div>
       <p className="muted small">Суммы и средние по завершённым матчам этой команды.</p>
       {!stats && !busy && (
-        <button className="primary-btn" disabled={!candidates.length} onClick={load}>
+        <Button
+          variant="primary"
+          className="player-form-start"
+          disabled={!candidates.length}
+          onClick={load}
+        >
           Собрать статистику по матчам <ChevronRight size={14} />
-        </button>
+        </Button>
       )}
       {!candidates.length && (
         <p className="muted small">В расписании нет завершённых матчей этой команды.</p>
@@ -82,9 +88,9 @@ export function SeasonPlayerPanel({
       {error && (
         <p role="alert" className="season-error">
           {error}{' '}
-          <button className="text-link" onClick={load}>
+          <Button variant="quiet" small onClick={load}>
             Повторить
-          </button>
+          </Button>
         </p>
       )}
       {stats && (
@@ -101,25 +107,29 @@ export function SeasonPlayerPanel({
           </div>
           <div className="season-metrics">
             {stats.metrics.map((m) => (
-              <div className="season-metric" key={m.key}>
-                <span>{statLabel(m.key, m.label)}</span>
-                <strong>
-                  {m.value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}
-                  {m.kind === 'fraction' ? '%' : ''}
-                </strong>
-                <small>Есть данные в {m.matches} матчах</small>
-                {per90 &&
-                  m.kind === 'total' &&
-                  m.matches === stats.available &&
-                  !['minutes', 'minutes_played', 'appearances'].includes(m.key) && (
-                    <em>
-                      {((m.value / stats.minutes) * 90).toLocaleString('ru-RU', {
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      / 90 минут
-                    </em>
-                  )}
-              </div>
+              <StatTile
+                key={m.key}
+                label={statLabel(m.key, m.label)}
+                value={`${m.value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${
+                  m.kind === 'fraction' ? '%' : ''
+                }`}
+                note={
+                  <>
+                    <span>Есть данные в {m.matches} матчах</span>
+                    {per90 &&
+                      m.kind === 'total' &&
+                      m.matches === stats.available &&
+                      !['minutes', 'minutes_played', 'appearances'].includes(m.key) && (
+                        <span>
+                          {((m.value / stats.minutes) * 90).toLocaleString('ru-RU', {
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          / 90 минут
+                        </span>
+                      )}
+                  </>
+                }
+              />
             ))}
           </div>
           {!stats.metrics.length && (
@@ -133,7 +143,12 @@ export function SeasonPlayerPanel({
               .map((m) => {
                 const fixture = matches.find((f) => f.id === m.id);
                 return (
-                  <button key={m.id} onClick={() => onOpenMatch(m.id)}>
+                  <Button
+                    key={m.id}
+                    variant="quiet"
+                    className="season-match-open"
+                    onClick={() => onOpenMatch(m.id)}
+                  >
                     <span>
                       {formatHumanDateTime(fixture?.time_utc ?? m.date, getUserTimezone())}
                       <strong>
@@ -143,7 +158,7 @@ export function SeasonPlayerPanel({
                     <span>{m.minutes ?? '—'} мин.</span>
                     <b>{m.rating?.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) ?? '—'}</b>
                     <ChevronRight size={13} />
-                  </button>
+                  </Button>
                 );
               })}
           </div>

@@ -30,6 +30,8 @@ export interface MatchRowProps {
   hideScore?: boolean;
   /** Optional competition line. */
   competition?: ReactNode;
+  /** One badge next to the competition, for example «Избранное» or a result letter. */
+  badge?: ReactNode;
   /** Buttons and links of the row. With actions the row itself is not clickable. */
   actions?: ReactNode;
   size?: MatchRowSize;
@@ -71,6 +73,7 @@ export function MatchRow({
   score,
   hideScore = false,
   competition,
+  badge,
   actions,
   size = 'normal',
   onClick,
@@ -83,6 +86,8 @@ export function MatchRow({
   const when = whenLabel(cleanTime, status, cleanMinute);
   const badgeSize = size === 'compact' ? 20 : size === 'large' ? 36 : 28;
   const hidden = hideScore && (score?.home != null || score?.away != null);
+  const hasCompetition = competition != null && competition !== '';
+  const hasBadge = badge != null && badge !== '';
   const content = (
     <>
       <span className="ui-match-row__when">
@@ -109,8 +114,11 @@ export function MatchRow({
         <span className="ui-match-row__team-name">{away.name}</span>
         <TeamBadge name={away.name} imageUrl={away.imageUrl} size={badgeSize} />
       </span>
-      {competition != null && competition !== '' && (
-        <span className="ui-match-row__competition">{competition}</span>
+      {(hasCompetition || hasBadge) && (
+        <span className="ui-match-row__meta">
+          {hasCompetition && <span className="ui-match-row__competition">{competition}</span>}
+          {hasBadge && <span className="ui-match-row__badge">{badge}</span>}
+        </span>
       )}
       {actions != null && <span className="ui-match-row__actions">{actions}</span>}
     </>
@@ -120,6 +128,8 @@ export function MatchRow({
     'ui-match-row',
     size === 'compact' && 'ui-match-row--compact',
     size === 'large' && 'ui-match-row--large',
+    hasCompetition && 'ui-match-row--with-competition',
+    hasBadge && 'ui-match-row--with-badge',
     className,
   );
 

@@ -1,7 +1,9 @@
 import { ArrowLeftRight, Map, Users } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import TeamBadge from '../../components/TeamBadge';
 import { EmptyBlock } from '../../components/StateViews';
+import { Badge, Button } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { PlayerProfile } from './MatchPlayers';
 import {
@@ -91,12 +93,8 @@ export function MatchLineups({
             </h2>
             <p className="analysis-subtitle">Стартовая расстановка</p>
           </div>
-          <span className="chip">Оценки 0–10</span>
-          {onOpenTactics && (
-            <button className="ghost-btn" onClick={onOpenTactics}>
-              Открыть тактическую доску
-            </button>
-          )}
+          <Badge>Оценки 0–10</Badge>
+          {onOpenTactics && <Button onClick={onOpenTactics}>Открыть тактическую доску</Button>}
         </div>
         {(error || playersError) && (
           <p className="lineup-notice" role="status">
@@ -152,10 +150,16 @@ export function MatchLineups({
                 <path d="M172 250Q216 310 172 370M828 250Q784 310 828 370" />
               </svg>
               {positioned.map(({ team, p }) => (
-                <button
+                <Button
+                  variant="quiet"
                   className={`pitch-player ${team === home ? 'home' : 'away'}`}
                   key={lineupPlayerKey(team.team.id, p.player.player_id)}
-                  style={{ left: `${p.point!.left}%`, top: `${p.point!.top}%` }}
+                  style={
+                    {
+                      '--pitch-x': `${p.point!.left}%`,
+                      '--pitch-y': `${p.point!.top}%`,
+                    } as CSSProperties
+                  }
                   disabled={!p.entry}
                   onClick={() => open(team, p)}
                   aria-label={`${p.player.name}, ${team.team.name}, оценка ${ratingText(p.rating)}${p.entry ? ', открыть статистику' : ', показатели недоступны'}`}
@@ -170,7 +174,7 @@ export function MatchLineups({
                   <span className={`lineup-rating ${ratingTone(p.rating)}`}>
                     {ratingText(p.rating)}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -202,7 +206,7 @@ export function MatchLineups({
                 <TeamBadge name={team.team.name} imageUrl={team.team.image_url} size={24} />
                 {team.team.name}
               </h2>
-              <span className="chip">{team.formation ?? 'Схема —'}</span>
+              <Badge>{team.formation ?? 'Схема —'}</Badge>
             </div>
             {team.coach && <p className="muted small">Тренер: {team.coach}</p>}
             <PlayerList title="Стартовый состав" players={team.starters} team={team} open={open} />
@@ -234,8 +238,9 @@ function PlayerList({
       </h3>
       {!players.length && <p className="muted small">Источник пока не указал игроков.</p>}
       {players.map((p) => (
-        <button
+        <Button
           key={p.player.player_id}
+          variant="quiet"
           className="rated-lineup-row"
           onClick={() => open(team, p)}
           disabled={!p.entry}
@@ -251,7 +256,7 @@ function PlayerList({
             {p.minutes === null ? '—' : `${p.minutes}′`}
           </small>
           <span className={`lineup-rating ${ratingTone(p.rating)}`}>{ratingText(p.rating)}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );

@@ -21,7 +21,7 @@ const competition = async (page: Page, name: string) => {
 const openMatch = async (page: Page, id: string) => {
   await section(page, 'Футбол');
   await tab(page, 'Матчи');
-  await page.locator(`[data-match-id="${id}"] .fixture-club`).first().click();
+  await page.locator(`[data-match-id="${id}"] .mt-open`).first().click();
   await expect(page.locator('.md-score')).toBeVisible();
 };
 
@@ -180,7 +180,7 @@ test('count explanatory texts on every screen', async ({ page, context }) => {
   // Вкладки матча. Завершённый матч: сначала с тем, что отдаёт базовый ответ (составы и статистика без игроков),
   // потом с подробностями (оценки, сравнение игроков, события, удары с xG), потом матч, который ещё не начался.
   async function matchTabs(group: string) {
-    const tabs = page.locator('.md-tabs button');
+    const tabs = page.getByRole('tablist', { name: 'Разделы матча' }).getByRole('tab');
     const count = await tabs.count();
     for (let index = 0; index < count; index += 1) {
       const label = (await tabs.nth(index).innerText()).trim();

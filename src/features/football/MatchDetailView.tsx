@@ -5,6 +5,7 @@ import { SectionBoundary } from '../../components/SectionBoundary';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
+import { Badge, Button, Tabs } from '../../kit';
 import { api, isTauriRuntime, rpc } from '../../lib/bridge';
 import { useModules } from '../../lib/modules';
 import { useViewState } from '../../lib/useViewState';
@@ -311,9 +312,9 @@ export function MatchDetailView({
     return (
       <div className="match-detail">
         {onBack && (
-          <button className="ghost-btn" onClick={onBack}>
+          <Button onClick={onBack}>
             <ArrowLeft size={14} /> Назад
-          </button>
+          </Button>
         )}
         <LoadingBlock label="Загрузка матча и составов…" rows={5} />
       </div>
@@ -324,9 +325,9 @@ export function MatchDetailView({
     return (
       <div className="match-detail">
         {onBack && (
-          <button className="ghost-btn" onClick={onBack}>
+          <Button onClick={onBack}>
             <ArrowLeft size={14} /> Назад
-          </button>
+          </Button>
         )}
         <ErrorBlock
           title="Матч недоступен"
@@ -337,24 +338,35 @@ export function MatchDetailView({
     );
   }
 
+  const tabs = (
+    [
+      ['overview', 'Сводка'],
+      ['events', 'События'],
+      ['lineups', 'Поле и оценки'],
+      ['stats', 'Статистика'],
+      ['players', 'Игроки'],
+      ['analysis', 'Разбор матча'],
+      ...(tacticsOn ? [['tactics', 'Мои схемы'] as const] : []),
+    ] as const
+  ).map(([id, label]) => ({ id, label }));
+
   return (
     <div className="match-detail">
       <div className="md-topbar">
         {onBack && (
-          <button className="ghost-btn" onClick={onBack}>
+          <Button onClick={onBack}>
             <ArrowLeft size={14} /> Назад
-          </button>
+          </Button>
         )}
         <div className="muted small">
           {[detail.league?.name, detail.season].filter(Boolean).join(' · ')}
         </div>
-        <button
-          className="ghost-btn"
+        <Button
           disabled={refreshingDetail || Object.values(optionalLoading).some(Boolean)}
           onClick={() => setManualTick((value) => value + 1)}
         >
           Обновить данные
-        </button>
+        </Button>
       </div>
 
       <div className="md-header panel">
@@ -368,12 +380,12 @@ export function MatchDetailView({
               {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
             </HiddenScore>
           </strong>
-          <span className="chip">{matchStatusLabel(detail.status)}</span>
+          <Badge>{matchStatusLabel(detail.status)}</Badge>
           {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
-            <span className="chip live-watch-chip">
+            <Badge variant="live">
               <Radio size={10} className="watch-spin-slow" /> следим{' '}
               {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
-            </span>
+            </Badge>
           )}
           <span className="muted small">
             {formatHumanDateTime(detail.time_utc ?? detail.date, timezone)}
@@ -408,33 +420,12 @@ export function MatchDetailView({
           compact
         />
       </div>
-      <div className="md-tabs" role="tablist" aria-label="Разделы матча">
-        {(['overview', 'events', 'lineups', 'stats', 'players', 'analysis', 'tactics'] as const)
-          .filter((k) => k !== 'tactics' || tacticsOn)
-          .map((k) => (
-            <button
-              key={k}
-              role="tab"
-              aria-selected={activeTab === k}
-              className={activeTab === k ? 'active' : ''}
-              onClick={() => setTab(k)}
-            >
-              {k === 'overview'
-                ? 'Сводка'
-                : k === 'events'
-                  ? 'События'
-                  : k === 'lineups'
-                    ? 'Поле и оценки'
-                    : k === 'stats'
-                      ? 'Статистика'
-                      : k === 'players'
-                        ? 'Игроки'
-                        : k === 'analysis'
-                          ? 'Разбор матча'
-                          : 'Мои схемы'}
-            </button>
-          ))}
-      </div>
+      <Tabs
+        ariaLabel="Разделы матча"
+        active={activeTab}
+        onChange={(id) => setTab(id as TabKey)}
+        items={tabs}
+      />
 
       <SpoilerGate
         kind="football"
@@ -654,8 +645,8 @@ function Overview({
                     : detail.away_team.name}
                 </span>
                 <span>{g.player?.name ?? '—'}</span>
-                {g.is_penalty && <span className="chip">пенальти</span>}
-                {g.is_own_goal && <span className="chip">автогол</span>}
+                {g.is_penalty && <Badge>пенальти</Badge>}
+                {g.is_own_goal && <Badge>автогол</Badge>}
               </li>
             ))}
           </ul>

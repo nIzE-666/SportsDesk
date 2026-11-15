@@ -112,4 +112,27 @@ describe('MatchRow', () => {
     await click(row);
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it('shows one badge next to the competition and reserves its track', async () => {
+    await app.render(
+      <MatchRow
+        home={HOME}
+        away={AWAY}
+        competition="Премьер-лига"
+        badge={<span>Избранное</span>}
+      />,
+    );
+    const row = app.host.querySelector('.ui-match-row')!;
+    expect(row.className).toContain('ui-match-row--with-competition');
+    expect(row.className).toContain('ui-match-row--with-badge');
+    const meta = row.querySelector('.ui-match-row__meta')!;
+    expect(meta.querySelector('.ui-match-row__competition')?.textContent).toBe('Премьер-лига');
+    expect(meta.querySelector('.ui-match-row__badge')?.textContent).toBe('Избранное');
+
+    await app.render(<MatchRow home={HOME} away={AWAY} badge={<span>W</span>} />);
+    const badgeOnly = app.host.querySelector('.ui-match-row')!;
+    expect(badgeOnly.className).toContain('ui-match-row--with-badge');
+    expect(badgeOnly.className).not.toContain('ui-match-row--with-competition');
+    expect(badgeOnly.querySelector('.ui-match-row__competition')).toBeNull();
+  });
 });

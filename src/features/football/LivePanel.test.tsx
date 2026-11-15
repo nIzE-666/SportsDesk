@@ -95,7 +95,7 @@ function reply(payload: unknown, stale = false) {
 
 function rowFor(host: HTMLElement, text: string): HTMLElement | null {
   return (
-    [...host.querySelectorAll<HTMLElement>('.live-flat')].find((row) =>
+    [...host.querySelectorAll<HTMLElement>('.ui-match-row')].find((row) =>
       row.textContent?.includes(text),
     ) ?? null
   );
@@ -147,7 +147,7 @@ describe('LivePanel', () => {
       button.textContent?.includes('Live (1)'),
     )!;
     await act(async () => live.click());
-    expect(host.querySelectorAll('.live-flat')).toHaveLength(1);
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Arsenal')?.textContent).toContain("67'");
     expect(rowFor(host, 'Everton')).toBeNull();
 
@@ -155,14 +155,14 @@ describe('LivePanel', () => {
       button.textContent?.includes('Завершённые'),
     )!;
     await act(async () => finished.click());
-    expect(host.querySelectorAll('.live-flat')).toHaveLength(1);
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Everton')?.textContent).toContain('2 : 1');
 
     const favorites = [...host.querySelectorAll('button')].find((button) =>
       button.textContent?.includes('Избранные (1)'),
     )!;
     await act(async () => favorites.click());
-    expect(host.querySelectorAll('.live-flat')).toHaveLength(1);
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(1);
     expect(rowFor(host, 'Arsenal')).not.toBeNull();
     expect(vi.mocked(api).mock.calls.some(([source]) => source === 'sportscore')).toBe(false);
   });
@@ -177,7 +177,7 @@ describe('LivePanel', () => {
     expect(live?.textContent).toContain('1 : 0');
     expect(finished?.textContent).not.toContain("67'");
     expect(finished?.textContent).toContain('2 : 1');
-    expect(scheduled?.textContent).toContain('— : —');
+    expect(scheduled?.textContent).toContain('—');
     expect(scheduled?.textContent).toContain('22:30');
     expect(scheduled?.textContent).not.toContain("67'");
   });
@@ -287,7 +287,7 @@ describe('LivePanel', () => {
         },
       ],
     });
-    const buttons = host.querySelectorAll('.live-flat-button');
+    const buttons = host.querySelectorAll('button.ui-match-row');
     expect(buttons).toHaveLength(1);
     await act(async () => (buttons[0] as HTMLButtonElement).click());
     expect(onOpenMatch).toHaveBeenCalledWith('pitch-live');
@@ -325,7 +325,7 @@ describe('LivePanel', () => {
   it('keeps the last matches and marks the source line when a refresh returns saved data', async () => {
     vi.mocked(api).mockResolvedValue(reply(LIVE_DAY, true));
     await render();
-    expect(host.querySelectorAll('.live-flat')).toHaveLength(3);
+    expect(host.querySelectorAll('.ui-match-row')).toHaveLength(3);
     expect(host.querySelector('.source-foot')?.textContent).toContain('устаревшими');
   });
 });

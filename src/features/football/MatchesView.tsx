@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
 import { SourceLine } from '../../components/SourceLine';
+import { Badge, Button, IconButton, SegmentedControl } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { useFavorites } from './FavoritesProvider';
@@ -15,6 +16,12 @@ import { SPOILER_MASK, isResultHidden } from '../spoilers/spoilerStore';
 import type { UseFootballResult } from './useFootballData';
 
 type StatusFilter = 'all' | 'upcoming' | 'finished';
+
+const STATUS_ITEMS = [
+  { id: 'all', label: 'Все' },
+  { id: 'upcoming', label: 'Предстоящие' },
+  { id: 'finished', label: 'Завершённые' },
+] as const;
 
 export interface MatchesViewProps {
   data: UseFootballResult;
@@ -70,9 +77,9 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
           </p>
         </div>
         <div className="dashboard-head-actions">
-          <button className="ghost-btn" onClick={data.reload} disabled={data.matchesLoading}>
+          <Button onClick={data.reload} disabled={data.matchesLoading}>
             {data.matchesLoading ? 'Обновление…' : 'Обновить'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -110,13 +117,12 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
         </div>
         <div className="filter-group">
           <span className="muted small">Статус</span>
-          <div className="segmented">
-            {(['all', 'upcoming', 'finished'] as const).map((s) => (
-              <button key={s} className={status === s ? 'active' : ''} onClick={() => setStatus(s)}>
-                {s === 'all' ? 'Все' : s === 'upcoming' ? 'Предстоящие' : 'Завершённые'}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel="Статус матчей"
+            value={status}
+            onChange={(id) => setStatus(id as StatusFilter)}
+            items={STATUS_ITEMS}
+          />
         </div>
         <div className="filter-group grow">
           <label htmlFor="match-search" className="muted small">
@@ -148,29 +154,38 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
       )}
 
       {filtered.length > 0 && (
-        <div className="match-table panel">
-          <div className="mt-head">
-            <span>Дата</span>
-            <span>Матч</span>
-            <span>Счёт</span>
-            <span className="ta-right">Статус</span>
-          </div>
-          {filtered.map((m) => (
-            <MatchRow
-              key={m.id}
-              match={m}
-              timezone={timezone}
-              onOpen={() => {
-                viewState.write(`match.${m.id}.tab`, 'stats');
-                onOpenMatch(m.id);
-              }}
-              favorite={isTeamFavorite(m.home_team.id) || isTeamFavorite(m.away_team.id)}
-              homeFavorite={isTeamFavorite(m.home_team.id)}
-              awayFavorite={isTeamFavorite(m.away_team.id)}
-              onToggleHome={() => toggleTeam(m.home_team.id)}
-              onToggleAway={() => toggleTeam(m.away_team.id)}
-            />
-          ))}
+        <div className="ui-table-scroll">
+          <table className="ui-table">
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Матч</th>
+                <th className="ui-table__num">Счёт</th>
+                <th>Статус</th>
+                <th className="mt-actions-col">
+                  <span className="visually-hidden">Действия</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((m) => (
+                <MatchTableRow
+                  key={m.id}
+                  match={m}
+                  timezone={timezone}
+                  favorite={isTeamFavorite(m.home_team.id) || isTeamFavorite(m.away_team.id)}
+                  homeFavorite={isTeamFavorite(m.home_team.id)}
+                  awayFavorite={isTeamFavorite(m.away_team.id)}
+                  onToggleHome={() => toggleTeam(m.home_team.id)}
+                  onToggleAway={() => toggleTeam(m.away_team.id)}
+                  onOpen={() => {
+                    viewState.write(`match.${m.id}.tab`, 'stats');
+                    onOpenMatch(m.id);
+                  }}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       <SourceLine
@@ -183,7 +198,7 @@ export function MatchesView({ data, onOpenMatch }: MatchesViewProps) {
   );
 }
 
-function MatchRow({
+function MatchTableRow({
   match,
   timezone,
   onOpen,
@@ -202,69 +217,76 @@ function MatchRow({
   onToggleHome: () => void;
   onToggleAway: () => void;
 }) {
+  const live = classifyMatchStatus(match.status) === 'live';
+  const label = `${match.home_team.name} — ${match.away_team.name}`;
+  const scored = match.score_home != null || match.score_away != null;
+  const score = !scored
+    ? '— : —'
+    : isResultHidden('football', match.id)
+      ? SPOILER_MASK
+      : `${match.score_home ?? '—'} : ${match.score_away ?? '—'}`;
   return (
-    <div
-      className={favorite ? 'mt-row favorite' : 'mt-row'}
-      role="group"
-      data-match-id={match.id}
-      aria-label={`Матч: ${match.home_team.name} — ${match.away_team.name}, ${formatHumanDateTime(match.time_utc ?? match.date, timezone)}`}
-      onClick={(event) => {
-        if (!(event.target as Element).closest('button')) onOpen();
-      }}
-    >
-      <span className="mt-date muted small">
-        {formatHumanDateTime(match.time_utc ?? match.date, timezone)}
-      </span>
-      <div className="fixture-teams">
-        {[
-          { team: match.home_team, saved: homeFavorite, toggle: onToggleHome, side: 'Хозяева' },
-          { team: match.away_team, saved: awayFavorite, toggle: onToggleAway, side: 'Гости' },
-        ].map(({ team, saved, toggle, side }) => (
-          <div className="fixture-team" key={side}>
-            <button
-              className="fixture-club"
-              onClick={onOpen}
-              title="Открыть статистику этого матча"
-              aria-label={`Статистика матча ${match.home_team.name} — ${match.away_team.name}: ${team.name}`}
-            >
-              <TeamBadge name={team.name} imageUrl={team.image_url} size={24} />
-              <span>
-                <small>{side}</small>
-                <strong>{team.name}</strong>
-              </span>
-            </button>
-            <button
-              className={`row-star ${saved ? 'active' : ''}`}
-              onClick={toggle}
-              aria-pressed={saved}
-              title={saved ? 'Убрать из отслеживаемых' : 'Отслеживать команду'}
-              aria-label={`${saved ? 'Убрать из отслеживаемых' : 'Отслеживать'}: ${team.name}`}
-            >
-              <Star size={14} fill={saved ? 'currentColor' : 'none'} />
-            </button>
-          </div>
-        ))}
-      </div>
-      <button
-        className="mt-score fixture-score"
-        onClick={onOpen}
-        aria-label={`Разбор матча: ${match.home_team.name} — ${match.away_team.name}`}
-      >
-        {(match.score_home != null || match.score_away != null) &&
-        isResultHidden('football', match.id)
-          ? SPOILER_MASK
-          : match.score_home != null || match.score_away != null
-            ? `${match.score_home ?? '—'} : ${match.score_away ?? '—'}`
-            : '— : —'}
-      </button>
-      <span className="ta-right">
-        <span className={classifyMatchStatus(match.status) === 'live' ? 'chip live-chip' : 'chip'}>
-          {matchStateLabel(match.status)}
+    <tr data-match-id={match.id} className={favorite ? 'ui-table__favorite' : undefined}>
+      <td className="mt-date-cell">
+        <span className="muted small">
+          {formatHumanDateTime(match.time_utc ?? match.date, timezone)}
         </span>
-        <button className="link-btn" onClick={onOpen}>
-          Разбор →
-        </button>
-      </span>
-    </div>
+      </td>
+      <td>
+        <div className="mt-teams">
+          <span className="mt-team">
+            <TeamBadge name={match.home_team.name} imageUrl={match.home_team.image_url} size={24} />
+            <span className="mt-team-name">{match.home_team.name}</span>
+            <IconButton
+              small
+              className={homeFavorite ? 'is-active' : undefined}
+              onClick={onToggleHome}
+              aria-pressed={homeFavorite}
+              title={homeFavorite ? 'Убрать из отслеживаемых' : 'Отслеживать команду'}
+              aria-label={`${homeFavorite ? 'Убрать из отслеживаемых' : 'Отслеживать'}: ${match.home_team.name}`}
+              icon={<Star size={14} fill={homeFavorite ? 'currentColor' : 'none'} />}
+            />
+          </span>
+          <span className="mt-team mt-team--away">
+            <IconButton
+              small
+              className={awayFavorite ? 'is-active' : undefined}
+              onClick={onToggleAway}
+              aria-pressed={awayFavorite}
+              title={awayFavorite ? 'Убрать из отслеживаемых' : 'Отслеживать команду'}
+              aria-label={`${awayFavorite ? 'Убрать из отслеживаемых' : 'Отслеживать'}: ${match.away_team.name}`}
+              icon={<Star size={14} fill={awayFavorite ? 'currentColor' : 'none'} />}
+            />
+            <span className="mt-team-name">{match.away_team.name}</span>
+            <TeamBadge name={match.away_team.name} imageUrl={match.away_team.image_url} size={24} />
+          </span>
+        </div>
+      </td>
+      <td className="ui-table__num">
+        <Button
+          variant="quiet"
+          small
+          className="mt-score"
+          onClick={onOpen}
+          aria-label={`Разбор матча: ${label}`}
+        >
+          {score}
+        </Button>
+      </td>
+      <td>
+        <Badge variant={live ? 'live' : 'neutral'}>{matchStateLabel(match.status)}</Badge>
+      </td>
+      <td className="mt-actions-col">
+        <Button
+          variant="quiet"
+          small
+          className="mt-open"
+          onClick={onOpen}
+          aria-label={`Разбор матча: ${label}`}
+        >
+          Разбор
+        </Button>
+      </td>
+    </tr>
   );
 }

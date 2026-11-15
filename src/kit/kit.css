@@ -67,6 +67,19 @@
   opacity: 0.6;
 }
 
+/* A toggle that is on: the accent-soft surface and the accent text in both schemes. */
+.ui-button[aria-pressed='true']:not(.ui-button--primary) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.ui-button[aria-pressed='true']:not(.ui-button--primary):hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 22%, var(--color-surface-2));
+  color: var(--color-accent);
+}
+
 .ui-button--primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
@@ -296,9 +309,16 @@
 
 /* Match row ---------------------------------------------------------------- */
 
+/* Fixed time and score tracks keep the score in one place in a list; the meta
+   track is reserved only when a competition or a badge is present. */
 .ui-match-row {
+  --match-row-when: calc(var(--space-24) * 4);
+  --match-row-score: calc(var(--space-24) * 3);
+  --match-row-meta: 0px;
   display: grid;
-  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, auto) auto;
+  grid-template-columns:
+    var(--match-row-when) minmax(0, 1fr) var(--match-row-score) minmax(0, 1fr)
+    fit-content(var(--match-row-meta)) auto;
   align-items: center;
   gap: var(--space-8);
   width: 100%;
@@ -320,6 +340,18 @@
     border-color var(--duration-hover) var(--ease);
 }
 
+.ui-match-row--with-badge {
+  --match-row-meta: calc(var(--space-48) * 2);
+}
+
+.ui-match-row--with-competition {
+  --match-row-meta: calc(var(--space-48) * 4);
+}
+
+.ui-match-row--with-competition.ui-match-row--with-badge {
+  --match-row-meta: calc(var(--space-48) * 4);
+}
+
 button.ui-match-row {
   cursor: pointer;
 }
@@ -335,6 +367,7 @@ button.ui-match-row {
 }
 
 .ui-match-row__when {
+  grid-column: 1;
   display: grid;
   gap: var(--space-4);
   min-width: 0;
@@ -369,7 +402,12 @@ button.ui-match-row {
   min-width: 0;
 }
 
+.ui-match-row__team--home {
+  grid-column: 2;
+}
+
 .ui-match-row__team--away {
+  grid-column: 4;
   justify-content: flex-end;
 }
 
@@ -407,7 +445,8 @@ button.ui-match-row {
 }
 
 .ui-match-row__score {
-  min-width: calc(var(--space-16) * 3);
+  grid-column: 3;
+  min-width: 0;
   color: var(--color-text);
   font-size: var(--text-16);
   font-weight: var(--weight-bold);
@@ -421,24 +460,50 @@ button.ui-match-row {
   opacity: 0.75;
 }
 
+/* Competition and one badge share the meta track, so the score keeps its place.
+   The meta element has the track width itself, so an empty track collapses. */
+.ui-match-row__meta {
+  grid-column: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: var(--match-row-meta);
+  max-width: 100%;
+  min-width: 0;
+}
+
 .ui-match-row__competition {
   overflow: hidden;
+  min-width: 0;
+  flex: 1;
   color: var(--color-text-tertiary);
   font-size: var(--text-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* A narrow panel: the competition keeps its width on a second line instead of
+.ui-match-row__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* A narrow panel: the meta keeps its width on a second line instead of
    squeezing the team names to nothing. */
 @container (max-width: 480px) {
-  .ui-match-row__competition {
+  .ui-match-row {
+    --match-row-meta: 0px;
+  }
+
+  .ui-match-row__meta {
     grid-column: 1 / -1;
     grid-row: 2;
+    width: auto;
   }
 }
 
 .ui-match-row__actions {
+  grid-column: 6;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -446,6 +511,8 @@ button.ui-match-row {
 }
 
 .ui-match-row--compact {
+  --match-row-when: calc(var(--space-48) * 2 - var(--space-12));
+  --match-row-score: calc(var(--space-8) * 7);
   gap: var(--space-8);
   min-height: var(--control-md);
   padding: var(--space-8) var(--space-12);
@@ -468,6 +535,8 @@ button.ui-match-row {
 }
 
 .ui-match-row--large {
+  --match-row-when: calc(var(--space-48) * 2 + var(--space-8));
+  --match-row-score: calc(var(--space-32) * 3);
   gap: var(--space-16);
   padding: var(--space-16) var(--space-24);
 }

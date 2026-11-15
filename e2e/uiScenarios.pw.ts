@@ -34,7 +34,7 @@ test('measure user journeys from launch', async ({ page }) => {
   };
   const openMatch = async () => {
     await openFootballMatches();
-    await click(page.locator('[data-match-id="test-match"] .fixture-club').first());
+    await click(page.locator('[data-match-id="test-match"] .mt-open').first());
   };
   async function start() {
     await page.evaluate(() => {

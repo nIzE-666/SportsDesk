@@ -1,16 +1,8 @@
 .panel.match-statistics {
   padding: 0;
   overflow: visible;
-  --stat-home-color: var(--accent);
-  --stat-away-color: #73d2d9;
-}
-.live-watch-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #62d6ad;
-  border-color: rgba(98, 214, 173, 0.35);
-  background: rgba(98, 214, 173, 0.1);
+  --stat-home-color: var(--color-accent);
+  --stat-away-color: var(--color-chart-5);
 }
 .watch-spin-slow {
   animation: watch-pulse 2s ease-in-out infinite;
@@ -25,70 +17,51 @@
   }
 }
 .content {
-  --stats-sticky-inset: 26px;
+  --stats-sticky-inset: var(--space-24);
 }
 .stats-context {
   position: sticky;
   top: calc(-1 * var(--stats-sticky-inset));
-  z-index: 6;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  z-index: var(--layer-sticky);
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
   border-width: 0 0 1px;
-  border-radius: 14px 14px 0 0;
-  padding: 18px 24px 20px;
-  box-shadow: 0 9px 18px #00000022;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-16) var(--space-24) var(--space-24);
+  box-shadow: var(--shadow-1);
 }
 .stats-period-nav {
   display: flex;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 0 20px;
-}
-.stats-period-nav button {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 550;
-}
-.stats-period-nav button[aria-selected='true'] {
-  color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.12);
-  border-color: rgba(var(--accent-rgb), 0.26);
-}
-.stats-period-nav button:hover {
-  color: var(--text);
-  background: #ffffff07;
+  width: fit-content;
+  margin: 0 auto var(--space-24);
 }
 .stat-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 1.6fr) minmax(0, 1fr);
   align-items: center;
-  column-gap: 16px;
+  column-gap: var(--space-16);
 }
 .stats-team {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-12);
   min-width: 0;
 }
 .stats-team > span {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-4);
 }
 .stats-team small {
-  font-size: 12px;
+  font-size: var(--text-12);
   letter-spacing: 1.2px;
-  font-weight: 550;
+  font-weight: var(--weight-medium);
 }
 .stats-team strong {
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 650;
+  font-size: var(--text-14);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
   overflow-wrap: anywhere;
 }
 .stats-home-team {
@@ -101,43 +74,43 @@
 .stats-center-heading {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-4);
   align-items: center;
   text-align: center;
 }
 .stats-center-heading strong {
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--text-13);
+  font-weight: var(--weight-semibold);
 }
 .stats-center-heading > span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
 .stats-groups {
-  padding: 8px 24px 5px;
+  padding: var(--space-8) var(--space-24) var(--space-4);
 }
 .match-statistics .stat-group {
-  margin: 20px 0 26px;
+  margin: var(--space-16) 0 var(--space-24);
 }
 .match-statistics .stat-group h3 {
   text-align: center;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--text-12);
+  font-weight: var(--weight-semibold);
   margin: 0;
-  padding: 15px 0 14px;
+  padding: var(--space-16) 0 var(--space-12);
   letter-spacing: 0.2px;
-  color: var(--text);
-  border-bottom: 1px solid var(--line);
-  background: rgba(var(--accent-rgb), 0.035);
-  border-radius: 8px 8px 0 0;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-accent) 3%, transparent);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 .match-stat-row {
   min-height: 51px;
-  border-bottom: 1px solid var(--line);
-  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-8) 0;
 }
 .match-stat-row:hover {
-  background: rgba(var(--accent-rgb), 0.035);
+  background: color-mix(in srgb, var(--color-accent) 3%, transparent);
 }
 .match-stat-row:last-child {
   border-bottom-color: transparent;
@@ -145,10 +118,10 @@
 .match-stat-row .stat-value {
   justify-self: center;
   text-align: center;
-  font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.5;
+  font-family: var(--font-family);
+  font-size: var(--text-16);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum';
   white-space: nowrap;
@@ -162,135 +135,109 @@
 .match-stat-row .stat-label {
   justify-self: stretch;
   text-align: center;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text);
-  padding: 0 10px;
+  font-size: var(--text-12);
+  line-height: var(--line-body);
+  color: var(--color-text);
+  padding: 0 var(--space-8);
   overflow-wrap: break-word;
-}
-.stats-explainer {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.9;
-  text-align: center;
-  margin: 0;
-  border-top: 1px solid var(--line);
-  padding: 18px 24px;
 }
 .compare-context {
   position: sticky;
   top: 0;
-  z-index: 5;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 5px 12px #0002;
+  z-index: var(--layer-sticky);
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
 }
 .compare-context strong:first-child {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 .compare-context strong:last-child {
-  color: #73d2d9;
+  color: var(--color-chart-5);
 }
 .compare-context strong {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--text-13);
+  line-height: var(--line-body);
 }
 .compare-context > span {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-12);
+  color: var(--color-text-secondary);
 }
 .compare-row {
   align-items: center;
   font-variant-numeric: tabular-nums;
 }
 .compare-b {
-  color: #73d2d9;
+  color: var(--color-chart-5);
 }
 .compare-a {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 @media (max-width: 900px) {
   .stats-context {
-    padding: 15px 16px;
+    padding: var(--space-16);
   }
   .stats-groups {
-    padding: 8px 16px;
+    padding: var(--space-8) var(--space-16);
   }
   .stat-grid {
     grid-template-columns: minmax(0, 1fr) minmax(150px, 1.5fr) minmax(0, 1fr);
-    gap: 10px;
+    gap: var(--space-8);
   }
   .stats-team {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-8);
     text-align: center;
   }
   .stats-away-team {
     flex-direction: column-reverse;
   }
   .stats-team strong {
-    font-size: 12px;
+    font-size: var(--text-12);
   }
   .stats-team small {
-    font-size: 12px;
+    font-size: var(--text-12);
     letter-spacing: 0.5px;
   }
   .match-stat-row .stat-label {
-    font-size: 12px;
-    padding: 0 4px;
+    font-size: var(--text-12);
+    padding: 0 var(--space-4);
   }
   .match-stat-row .stat-value {
-    font-size: 14px;
+    font-size: var(--text-14);
   }
   .stats-center-heading strong {
-    font-size: 12px;
+    font-size: var(--text-12);
   }
 }
 @media (max-width: 600px) {
   .stat-grid {
     grid-template-columns: minmax(48px, 1fr) minmax(110px, 1.6fr) minmax(48px, 1fr);
-    gap: 7px;
+    gap: var(--space-8);
   }
   .stats-context {
-    padding: 13px 10px;
+    padding: var(--space-12) var(--space-8);
   }
   .stats-groups {
-    padding: 7px 10px;
-  }
-  .stats-period-nav {
-    gap: 3px;
-  }
-  .stats-period-nav button {
-    padding: 8px 9px;
-    font-size: 12px;
-  }
-  .stats-team strong {
-    font-size: 12px;
-  }
-  .stats-team small {
-    letter-spacing: 0;
-    font-size: 12px;
-  }
-  .match-stat-row .stat-label {
-    font-size: 12px;
+    padding: var(--space-8) var(--space-8);
   }
   .match-stat-row .stat-value {
-    font-size: 12px;
+    font-size: var(--text-12);
   }
 }
 @media (min-width: 1600px) {
   .content {
-    --stats-sticky-inset: 30px;
+    --stats-sticky-inset: var(--space-32);
   }
 }
 @media (max-width: 1260px) {
   .content {
-    --stats-sticky-inset: 23px;
+    --stats-sticky-inset: var(--space-24);
   }
 }
 @media (max-width: 720px) {
   .content {
-    --stats-sticky-inset: 16px;
+    --stats-sticky-inset: var(--space-16);
   }
 }

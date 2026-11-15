@@ -4,8 +4,9 @@ import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { formatHumanDateTime } from '../../lib/humanDate';
 import { getUserTimezone, formatUpdatedAt } from './storage';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
+import { Button, EmptyState, IconButton, MatchRow, type MatchRowStatus } from '../../kit';
 import { loadLiveFeed, type LiveMatch } from './liveFeed';
-import { SPOILER_MASK, spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
+import { spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import './mini.css';
 
 /**
@@ -22,10 +23,12 @@ function isLive(m: FlatMatch): boolean {
   return classifyMatchStatus(m.status, m.status_text) === 'live';
 }
 
-function score(v: string | number | null | undefined): string {
-  if (v === null || v === undefined) return '—';
-  const t = String(v).trim();
-  return t.length > 0 ? t : '—';
+function rowStatus(m: FlatMatch): MatchRowStatus {
+  const state = classifyMatchStatus(m.status, m.status_text);
+  if (state === 'live') return 'live';
+  if (state === 'finished') return 'finished';
+  if (state === 'postponed') return 'postponed';
+  return 'scheduled';
 }
 
 export function MiniWindow() {
@@ -94,7 +97,7 @@ export function MiniWindow() {
   };
 
   return (
-    <div className="mini-root">
+    <div className="mini-root app-root">
       <header className="mini-top">
         <span className="mini-title">
           <Radio size={13} /> Live-мини
@@ -102,44 +105,40 @@ export function MiniWindow() {
         <span className="mini-updated muted">
           {updatedAt ? formatUpdatedAt(updatedAt, tz) : ''}
         </span>
-        <button className="mini-close" onClick={() => void close()} aria-label="Закрыть">
-          <X size={13} />
-        </button>
+        <IconButton
+          small
+          onClick={() => void close()}
+          aria-label="Закрыть"
+          icon={<X size={13} />}
+        />
       </header>
 
       {error && (
         <p className="mini-error">
           {error}{' '}
-          <button className="mini-retry" onClick={() => void load()}>
+          <Button variant="quiet" small onClick={() => void load()}>
             Повторить
-          </button>
+          </Button>
         </p>
       )}
 
       <div className="mini-list">
         {shown.length === 0 && !error && (
-          <div className="mini-empty">
-            <Pin size={20} />
-            <span>Сейчас нет матчей избранных клубов.</span>
-          </div>
+          <EmptyState icon={<Pin size={20} />} message="Сейчас нет матчей избранных клубов." />
         )}
         {shown.map((m, i) => (
-          <div key={`${m.home}-${m.away}-${i}`} className={`mini-row ${isLive(m) ? 'live' : ''}`}>
-            <span className="mini-comp muted">{m.competition ?? ''}</span>
-            <div className="mini-teams">
-              <span className="mini-team">{m.home ?? '—'}</span>
-              <b className="mini-score">
-                {spoilers.has(spoilerKey('football', m.id))
-                  ? SPOILER_MASK
-                  : `${score(m.home_score)} : ${score(m.away_score)}`}
-              </b>
-              <span className="mini-team">{m.away ?? '—'}</span>
-            </div>
-            <span className="mini-status">
-              {isLive(m) ? <i className="mini-live-dot" /> : null}
-              {m.time ? formatHumanDateTime(m.time, tz) : (m.status_text ?? '')}
-            </span>
-          </div>
+          <MatchRow
+            key={`${m.home}-${m.away}-${i}`}
+            size="compact"
+            className={isLive(m) ? 'mini-row live' : 'mini-row'}
+            competition={m.competition ?? undefined}
+            home={{ name: m.home ?? '—' }}
+            away={{ name: m.away ?? '—' }}
+            time={m.time ? formatHumanDateTime(m.time, tz) : (m.status_text ?? null)}
+            status={rowStatus(m)}
+            score={{ home: m.home_score ?? null, away: m.away_score ?? null }}
+            hideScore={spoilers.has(spoilerKey('football', m.id))}
+          />
         ))}
       </div>
     </div>

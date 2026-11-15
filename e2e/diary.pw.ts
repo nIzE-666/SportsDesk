@@ -86,7 +86,7 @@ const openMatch = async (page: Page) => {
     .getByRole('button', { name: 'Футбол', exact: true })
     .click();
   await page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }).click();
-  await page.locator(`[data-match-id="${diaryMatch.id}"] .fixture-club`).first().click();
+  await page.locator(`[data-match-id="${diaryMatch.id}"] .mt-open`).first().click();
 };
 for (const scheme of ['dark', 'light'])
   for (const width of [1100, 1440]) {

@@ -3,6 +3,7 @@ import { api } from '../../lib/bridge';
 import { retainResource } from '../../lib/resourceHealth';
 import { LoadingBlock } from '../../components/StateViews';
 import { SourceLine } from '../../components/SourceLine';
+import { Button } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import {
   buildXg,
@@ -185,13 +186,9 @@ export function MatchAnalysis({
           <p className="muted small">Качество моментов и ход игры</p>
         </div>
         {!onSourceStatus && (
-          <button
-            className="ghost-btn"
-            onClick={reload}
-            disabled={shots.loading || pressure.loading}
-          >
+          <Button onClick={reload} disabled={shots.loading || pressure.loading}>
             Обновить разбор
-          </button>
+          </Button>
         )}
       </header>
       <section className="panel analysis-pressure">
@@ -301,8 +298,8 @@ export function MatchAnalysis({
                 </p>
               </div>
             </div>
-            <div className="analysis-table-wrap">
-              <table className="analysis-table">
+            <div className="ui-table-scroll analysis-table-scroll">
+              <table className="ui-table">
                 <caption>
                   Список ударов · {periodLabel(activePeriod)} · {visible.length}
                 </caption>
@@ -337,14 +334,15 @@ export function MatchAnalysis({
                       <td>{decimal(s.xg)}</td>
                       <td>
                         {s.x !== null ? (
-                          <button
-                            className="ghost-btn"
+                          <Button
+                            variant="quiet"
+                            small
                             aria-pressed={selected === s.id}
                             aria-label={`Показать удар: ${s.player}, ${shotMinute(s)}`}
                             onClick={() => setSelected(selected === s.id ? null : s.id)}
                           >
                             Показать
-                          </button>
+                          </Button>
                         ) : (
                           <span className="muted">Нет координат</span>
                         )}
@@ -518,8 +516,8 @@ function PressureChart({ data, detail }: { data: PressureData; detail: MatchDeta
         <summary>
           Давление в числах · {data.points.length} {pointsWord(data.points.length)}
         </summary>
-        <div className="analysis-table-wrap">
-          <table className="analysis-table">
+        <div className="ui-table-scroll analysis-table-scroll">
+          <table className="ui-table">
             <caption>Исходные значения давления</caption>
             <thead>
               <tr>

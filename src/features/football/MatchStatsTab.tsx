@@ -1,5 +1,6 @@
 import { EmptyBlock } from '../../components/StateViews';
 import TeamBadge from '../../components/TeamBadge';
+import { SegmentedControl } from '../../kit';
 import { useViewState } from '../../lib/useViewState';
 import { formatTeamStat, statGroupLabel, statLabel, statsPeriodLabel } from './statLabels';
 import type { MatchDetail, StatGroup, StatsPayload } from './types';
@@ -70,18 +71,13 @@ export function MatchStatsTab({
     >
       <h2 className="visually-hidden">Статистика матча</h2>
       <div className="stats-context">
-        <div className="stats-period-nav" role="tablist" aria-label="Период статистики">
-          {periods.map((p) => (
-            <button
-              key={p.period}
-              role="tab"
-              aria-selected={p.period === period?.period}
-              onClick={() => setSelectedPeriod(p.period)}
-            >
-              {statsPeriodLabel(p.period)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Период статистики"
+          className="stats-period-nav"
+          value={period?.period ?? selectedPeriod}
+          onChange={setSelectedPeriod}
+          items={periods.map((p) => ({ id: p.period, label: statsPeriodLabel(p.period) }))}
+        />
         <div className="stats-column-head stat-grid">
           <div className="stats-team stats-home-team">
             <TeamBadge name={home.name} imageUrl={home.image_url} size={34} />

@@ -140,7 +140,7 @@ it('loads only on request, shows per-metric coverage and preserves missing versu
   const openMatch = vi.fn();
   await render({ onOpenMatch: openMatch });
   expect(fetchPlayerForm).not.toHaveBeenCalled();
-  expect(host.querySelector('.form-match-list')).toBeNull();
+  expect(host.querySelector('.form-match-table')).toBeNull();
   await click(button('Показать форму игрока'));
   expect(fetchPlayerForm).toHaveBeenCalledWith('player', 'club', fixtures, 5, expect.any(Function));
   expect(host.querySelector('.analysis-coverage')?.textContent).toContain(
@@ -153,7 +153,7 @@ it('loads only on request, shows per-metric coverage and preserves missing versu
   expect(summary[0]?.textContent).toContain('Наблюдений: 2 / 5; в базе: 3');
   expect(summary[3]?.querySelector('strong')?.textContent).toBe('0');
   expect(summary[3]?.textContent).toContain('Наблюдений: 1 / 5; в базе: 2');
-  const rows = [...host.querySelectorAll<HTMLElement>('.form-match-row')];
+  const rows = [...host.querySelectorAll<HTMLElement>('.form-match-table tbody tr')];
   expect(rows).toHaveLength(5);
   const missing = rows.find((element) => element.textContent?.includes('Opponent C'))!;
   expect(missing.textContent).toContain('нет данных игрока');
@@ -182,9 +182,9 @@ it('switches between5/10 fixtures and metrics using the loaded baseline without 
   await render();
   await click(button('Показать форму игрока'));
   await click(button('10 матчей'));
-  expect(button('10 матчей').getAttribute('aria-pressed')).toBe('true');
-  expect(host.querySelectorAll('.form-match-row')).toHaveLength(6);
-  expect(host.querySelector('.form-match-list')?.textContent).toContain('Opponent A');
+  expect(button('10 матчей').getAttribute('aria-checked')).toBe('true');
+  expect(host.querySelectorAll('.form-match-table tbody tr')).toHaveLength(6);
+  expect(host.querySelector('.form-match-table')?.textContent).toContain('Opponent A');
   expect(host.querySelector('.analysis-coverage')?.textContent).toContain(
     'Последние 6 матчей команды',
   );
@@ -196,8 +196,8 @@ it('switches between5/10 fixtures and metrics using the loaded baseline without 
     'График: Голы, последние 6 матчей',
   );
   await click(button('5 матчей'));
-  expect(host.querySelectorAll('.form-match-row')).toHaveLength(5);
-  expect(host.querySelector('.form-match-list')?.textContent).not.toContain('Opponent A');
+  expect(host.querySelectorAll('.form-match-table tbody tr')).toHaveLength(5);
+  expect(host.querySelector('.form-match-table')?.textContent).not.toContain('Opponent A');
   expect(fetchPlayerForm).toHaveBeenCalledTimes(1);
 });
 
@@ -210,7 +210,7 @@ it('shows a calendar-only match on its original day and converts a timestamp in 
   );
   await render({ matches: [day, timed] });
   await click(button('Показать форму игрока'));
-  const rows = [...host.querySelectorAll<HTMLElement>('.form-match-row')];
+  const rows = [...host.querySelectorAll<HTMLElement>('.form-match-table tbody tr')];
   expect(
     rows.find((item) => item.textContent?.includes('Opponent calendar'))?.textContent,
   ).toContain('пт, 2 окт.');
@@ -242,16 +242,16 @@ it('ignores an old player/team response and its completion state while the new s
     oldRequest.resolve(form());
   });
   expect(host.querySelector('[role="status"]')).not.toBeNull();
-  expect(host.querySelector('.form-match-list')).toBeNull();
+  expect(host.querySelector('.form-match-table')).toBeNull();
   await act(async () => {
     newRequest.resolve(nextForm);
   });
   expect(host.querySelector('[role="status"]')).toBeNull();
-  expect(host.querySelectorAll('.form-match-row')).toHaveLength(1);
-  expect(host.querySelector('.form-match-list')?.textContent).toContain(
+  expect(host.querySelectorAll('.form-match-table tbody tr')).toHaveLength(1);
+  expect(host.querySelector('.form-match-table')?.textContent).toContain(
     'New club — Opponent new-fixture',
   );
-  expect(host.querySelector('.form-match-list')?.textContent).not.toContain('Opponent F');
+  expect(host.querySelector('.form-match-table')?.textContent).not.toContain('Opponent F');
   expect(fetchPlayerForm).toHaveBeenCalledTimes(2);
 });
 

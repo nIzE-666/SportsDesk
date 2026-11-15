@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, Eye, EyeOff, LayoutGrid, RotateCcw } from 'lucide-react';
+import { Button, IconButton } from '../../kit';
 import {
   moveHomeWidget,
   resetHomeLayout,
@@ -31,9 +32,9 @@ export function HomeLayoutEditor({
         <h2>
           <LayoutGrid size={16} /> {scope === 'today' ? 'Блоки «Сегодня»' : 'Блоки главной'}
         </h2>
-        <button className="text-link" onClick={onClose}>
+        <Button variant="quiet" onClick={onClose}>
           Готово
-        </button>
+        </Button>
       </div>
       <ol className="home-layout-list">
         {layout.order.map((id, index) => {
@@ -46,45 +47,39 @@ export function HomeLayoutEditor({
                 <small>{hidden ? `Скрыт · ${meta.description}` : meta.description}</small>
               </span>
               <span className="home-layout-actions">
-                <button
-                  className="ghost-btn"
+                <IconButton
+                  small
                   aria-label={`Выше: ${meta.label}`}
                   title="Выше"
                   disabled={index === 0}
                   onClick={() => moveHomeWidget(design, id, -1, scope)}
-                >
-                  <ArrowUp size={14} />
-                </button>
-                <button
-                  className="ghost-btn"
+                  icon={<ArrowUp size={14} />}
+                />
+                <IconButton
+                  small
                   aria-label={`Ниже: ${meta.label}`}
                   title="Ниже"
                   disabled={index === last}
                   onClick={() => moveHomeWidget(design, id, 1, scope)}
-                >
-                  <ArrowDown size={14} />
-                </button>
-                <button
-                  className="ghost-btn"
+                  icon={<ArrowDown size={14} />}
+                />
+                <Button
+                  small
                   aria-label={`${hidden ? 'Показать' : 'Скрыть'}: ${meta.label}`}
                   onClick={() => setHomeWidgetHidden(design, id, !hidden, scope)}
                 >
                   {hidden ? <Eye size={14} /> : <EyeOff size={14} />}{' '}
                   {hidden ? 'Показать' : 'Скрыть'}
-                </button>
+                </Button>
               </span>
             </li>
           );
         })}
       </ol>
       <div className="home-layout-foot">
-        <button
-          className="ghost-btn"
-          onClick={() => resetHomeLayout(scope)}
-          disabled={!layout.custom}
-        >
+        <Button onClick={() => resetHomeLayout(scope)} disabled={!layout.custom}>
           <RotateCcw size={14} /> Восстановить стандартное расположение
-        </button>
+        </Button>
       </div>
     </section>
   );

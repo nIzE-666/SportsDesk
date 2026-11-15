@@ -288,7 +288,7 @@ it('opens a match from «Матчи» and leaves only the header back button', a
   await renderApp();
   await click(railButton('Футбол'));
   await click(headerTab('Матчи'));
-  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .fixture-club')!);
+  await click(host.querySelector<HTMLButtonElement>('[data-match-id="test-match"] .mt-open')!);
   expect(host.querySelector('.md-score')?.textContent).toContain('2 : 1');
   expect(host.querySelector('.match-detail .md-topbar')?.textContent).not.toContain('Назад');
   expect(host.querySelectorAll('.match-detail [aria-label="Назад"]')).toHaveLength(0);
@@ -321,17 +321,19 @@ it('retains football season, filters and list scroll through settings and back',
   });
   main.scrollTop = 640;
   main.dispatchEvent(new Event('scroll'));
-  await click(host.querySelector<HTMLButtonElement>('.fixture-score')!);
+  await click(host.querySelector<HTMLButtonElement>('.mt-open')!);
   await click(button('Статистика'));
   await click(railButton('Настройки'));
   expect(host.textContent).toContain('Настройки');
   await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
-  expect(host.querySelector('.md-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
+  expect(host.querySelector('.ui-tabs [aria-selected="true"]')?.textContent).toBe('Статистика');
   await click(host.querySelector<HTMLButtonElement>('.shell-header-bar [aria-label="Назад"]')!);
   await new Promise((resolve) => setTimeout(resolve, 5));
   expect(host.querySelector<HTMLInputElement>('#match-search')?.value).toBe('Arsenal');
   expect(host.querySelector<HTMLSelectElement>('#football-season')?.value).toBe('2025/2026');
-  expect(host.querySelector('.segmented .active')?.textContent).toBe('Завершённые');
+  expect(host.querySelector('.ui-segmented [aria-checked="true"]')?.textContent).toBe(
+    'Завершённые',
+  );
   expect(main.scrollTop).toBe(640);
 });
 
