@@ -122,12 +122,12 @@ export async function screenTour(
     await stop(`F1: ${title}`);
   }
   await competition(page, 'Лига чемпионов');
-  for (const title of ['Обзор', 'Таблица', 'Сетка', 'Матчи', 'Игроки']) {
+  for (const title of ['Матчи', 'Таблица', 'Сетка', 'Клубы', 'Игроки']) {
     await tab(page, title);
     await stop(`ЛЧ: ${title}`);
   }
   await competition(page, 'Лига Европы');
-  for (const title of ['Обзор', 'Таблица', 'Сетка', 'Матчи']) {
+  for (const title of ['Матчи', 'Таблица', 'Сетка']) {
     await tab(page, title);
     await stop(`Кубки: ${title}`);
   }

@@ -11,6 +11,8 @@ function rowStatus(status: string, statusText?: string): MatchRowStatus {
   if (state === 'finished') return 'finished';
   if (state === 'live') return 'live';
   if (state === 'postponed') return 'postponed';
+  if (state === 'cancelled') return 'cancelled';
+  if (state === 'unknown') return 'unknown';
   return 'scheduled';
 }
 

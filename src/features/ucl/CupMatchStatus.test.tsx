@@ -83,21 +83,20 @@ async function click(label: string) {
 }
 
 it.each(['champions', 'cup'] as const)(
-  '%s overview, featured game and filters consistently classify provider statuses',
+  '%s matches, featured game and filters consistently classify provider statuses',
   async (view) => {
     const onTabChange = vi.fn();
-    const render = (tab: 'overview' | 'matches') =>
+    const render = (tab: 'matches') =>
       view === 'champions' ? (
         <ChampionsView tab={tab} onTabChange={onTabChange} />
       ) : (
         <CupsView competitionId="l_38d9HA" tab={tab} onTabChange={onTabChange} />
       );
-    await act(async () => root.render(render('overview')));
+    await act(async () => root.render(render('matches')));
 
-    expect(rowNames()).toHaveLength(2);
+    expect(rowNames()).toHaveLength(7);
     expect(rowNames().join(' ')).toContain('Scheduled Home');
     expect(rowNames().join(' ')).toContain('Live Home');
-    expect(rowNames().join(' ')).not.toMatch(/Finished|ExtraTime|Cancelled|Postponed|Unknown/);
     expect(host.querySelector('.event-cover-teams')?.textContent).toContain('Live Home');
     expect(host.querySelector('.event-cover-status')?.textContent).toContain('В игре');
     const played = [...host.querySelectorAll('.insights-row small')].find((element) =>
@@ -105,8 +104,6 @@ it.each(['champions', 'cup'] as const)(
     );
     expect(played?.parentElement?.querySelector('strong')?.textContent).toBe('2');
 
-    await act(async () => root.render(render('matches')));
-    expect(rowNames()).toHaveLength(7);
     await click('Предстоящие');
     expect(rowNames()).toHaveLength(2);
     expect(rowNames().join(' ')).toContain('Scheduled Home');

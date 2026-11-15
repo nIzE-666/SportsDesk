@@ -78,6 +78,9 @@ const SEARCH_SECTION_IDS: readonly string[] = [
 const SEARCH_SECTION_ALIASES: Record<string, SearchSectionId> = {
   matches: 'football.matches',
   players: 'football.players',
+  // Tournament tabs removed in U4.5: «Обзор» → matches, «Статистика» → players.
+  overview: 'football.matches',
+  stats: 'football.players',
   f1: 'f1',
   watch: 'watch',
   planner: 'today.plan',

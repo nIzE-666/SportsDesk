@@ -253,7 +253,7 @@ function parseTableRow(raw: unknown): CupTableRow | undefined {
 }
 
 export async function fetchCupStandings(slug: string): Promise<{
-  rows: CupTableRow[];
+  groups: Array<{ name?: string; rows: CupTableRow[] }>;
   fetchedAt: string;
   stale: boolean;
 }> {
@@ -265,14 +265,20 @@ export async function fetchCupStandings(slug: string): Promise<{
   const tables = asArray(payload.tables).filter(isRecord);
   if (tables.length === 0) throw new Error('Таблица пока недоступна.');
 
-  const rows: CupTableRow[] = [];
+  const groups: Array<{ name?: string; rows: CupTableRow[] }> = [];
   for (const table of tables) {
+    const rows: CupTableRow[] = [];
     for (const rawRow of asArray(table.rows)) {
       const row = parseTableRow(rawRow);
       if (row) rows.push(row);
     }
+    rows.sort((a, b) => a.position - b.position);
+    groups.push({ name: typeof table.group === 'string' ? table.group : undefined, rows });
   }
 
-  rows.sort((a, b) => a.position - b.position);
-  return { rows, fetchedAt: reply.fetchedAt, stale: Boolean(reply.stale) };
+  return {
+    groups,
+    fetchedAt: reply.fetchedAt,
+    stale: Boolean(reply.stale),
+  };
 }

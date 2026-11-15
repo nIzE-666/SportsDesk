@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { formatHumanDate, formatHumanDateTime } from './humanDate';
+import { formatHumanDate, formatHumanDateTime, formatHumanTime } from './humanDate';
 
 // Четверг, 12 ноября 2026, 10:00 UTC. 14 ноября — суббота, 22 ноября — воскресенье.
 const now = Date.parse('2026-11-12T10:00:00Z');
@@ -88,6 +88,15 @@ it('shows a calendar date without a time zone shift and without a time', () => {
 it('shows midnight as 00:00 and keeps leading zeros', () => {
   expect(formatHumanDateTime('2026-11-12T00:00:00Z', 'UTC', now)).toBe('сегодня 00:00');
   expect(formatHumanDateTime('2026-11-12T09:05:00Z', 'UTC', now)).toBe('сегодня 09:05');
+  expect(formatHumanTime('2026-11-12T21:30:00Z', 'UTC')).toBe('21:30');
+  expect(formatHumanTime('2026-11-12T09:05:00Z', 'UTC')).toBe('09:05');
+});
+
+it('shows no clock for a calendar date or an unknown value', () => {
+  expect(formatHumanTime('2026-11-12', 'UTC')).toBeNull();
+  for (const value of [null, undefined, '', 'вчера', 'not a date', Number.NaN])
+    expect(formatHumanTime(value, 'UTC')).toBeNull();
+  expect(formatHumanTime('2026-11-12T21:30:00Z', 'Not/A_Zone')).toBeNull();
 });
 
 it('accepts timestamps and Date objects', () => {

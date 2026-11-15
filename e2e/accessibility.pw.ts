@@ -348,15 +348,18 @@ test('key screens have one h1, a named rail, named controls and a focus ring', a
 
   // Champions League and a cup: each tab.
   await competition(page, 'Лига чемпионов');
-  for (const name of ['Обзор', 'Таблица', 'Сетка', 'Матчи', 'Игроки']) {
+  for (const name of ['Матчи', 'Таблица', 'Сетка', 'Клубы', 'Игроки']) {
     await tab(page, name);
     await screen(`Лига чемпионов · ${name}`, '.ucl-view');
   }
   await competition(page, 'Лига Европы');
-  for (const name of ['Обзор', 'Таблица', 'Сетка', 'Матчи']) {
+  for (const name of ['Матчи', 'Таблица', 'Сетка']) {
     await tab(page, name);
     await screen(`Лига Европы · ${name}`, '.ucl-view');
   }
+  // A cup without a table has no «Таблица» tab.
+  await competition(page, 'Чемпионат мира');
+  await screen('Чемпионат мира · Матчи', '.ucl-view');
 
   // Formula 1: each header tab and each analysis mode.
   await section(page, 'Формула 1');

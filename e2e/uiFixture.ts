@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { E2E_ORIGIN } from './origin';
+import { installTournamentFixture } from './tournamentFixture';
 
 function liveFixture(name: string): unknown {
   return JSON.parse(readFileSync(`src/test/fixtures/liveSources/${name}`, 'utf8')) as unknown;
@@ -225,5 +226,8 @@ export async function setupVisualFixture(page: Page, scheme: string, scenarioDat
   await page.clock.setFixedTime(
     new Date(scenarioData ? '2026-10-22T00:00:00Z' : '2026-10-25T00:00:00Z'),
   );
+  // TEST DATA ONLY: an invented European season so the tournament screen has a
+  // table, a bracket and player statistics to show.
+  await installTournamentFixture(page);
   return errors;
 }

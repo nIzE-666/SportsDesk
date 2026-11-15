@@ -118,10 +118,10 @@ const screens: Screen[] = [
     },
   },
   {
-    name: 'ЛЧ: европейский вечер',
+    name: 'ЛЧ: матчи',
     open: async (page) => {
       await competition(page, 'Лига чемпионов');
-      await tab(page, 'Обзор');
+      await tab(page, 'Матчи');
     },
   },
   {
@@ -153,10 +153,10 @@ const screens: Screen[] = [
     },
   },
   {
-    name: 'Кубки: обзор',
+    name: 'Кубки: матчи',
     open: async (page) => {
       await competition(page, 'Лига Европы');
-      await tab(page, 'Обзор');
+      await tab(page, 'Матчи');
     },
   },
   {

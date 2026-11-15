@@ -8,6 +8,7 @@ import {
   isCupTab,
   isF1Tab,
   isLeagueTab,
+  isValidFootballTab,
   type ChampionsTab,
   type CupTab,
   type LeagueTab,
@@ -80,26 +81,25 @@ const LEAGUE_TABS: ReadonlyArray<[LeagueTab, string]> = [
 ];
 
 const CHAMPIONS_TABS: ReadonlyArray<[ChampionsTab, string]> = [
-  ['overview', 'Обзор'],
+  ['matches', 'Матчи'],
   ['table', 'Таблица'],
   ['bracket', 'Сетка'],
-  ['matches', 'Матчи'],
-  ['stats', 'Игроки'],
+  ['clubs', 'Клубы'],
+  ['players', 'Игроки'],
 ];
 
 const CUP_TABS: ReadonlyArray<[CupTab, string]> = [
-  ['overview', 'Обзор'],
+  ['matches', 'Матчи'],
   ['table', 'Таблица'],
   ['bracket', 'Сетка'],
-  ['matches', 'Матчи'],
 ];
 
 function footballTabs(route: Extract<ShellRoute, { kind: 'football' }>): HeaderTab[] {
   const id = route.competitionId;
   const kind = competitionKind(id);
   if (kind === 'ucl') {
-    const active = isChampionsTab(route.tab) ? route.tab : 'overview';
-    return CHAMPIONS_TABS.map(([key, label]) => ({
+    const active = isChampionsTab(route.tab) ? route.tab : 'matches';
+    return CHAMPIONS_TABS.filter(([key]) => isValidFootballTab(id, key)).map(([key, label]) => ({
       key,
       label,
       active: key === active,
@@ -107,8 +107,8 @@ function footballTabs(route: Extract<ShellRoute, { kind: 'football' }>): HeaderT
     }));
   }
   if (kind === 'cup') {
-    const active = isCupTab(route.tab) ? route.tab : 'overview';
-    return CUP_TABS.map(([key, label]) => ({
+    const active = isCupTab(route.tab) && isValidFootballTab(id, route.tab) ? route.tab : 'matches';
+    return CUP_TABS.filter(([key]) => isValidFootballTab(id, key)).map(([key, label]) => ({
       key,
       label,
       active: key === active,

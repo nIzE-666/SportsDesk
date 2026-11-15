@@ -58,4 +58,25 @@ describe('Champions League stage and aggregate correctness', () => {
     expect(partial?.complete).toBe(false);
     expect(partial?.winnerId).toBeNull();
   });
+  it('recognises a normalized third-place round when the board re-reads its legs', () => {
+    expect(normalizeKnockoutRound('third place')).toBe('third');
+    expect(normalizeKnockoutRound('third')).toBe('third');
+    const ties = groupBracket(
+      [
+        {
+          id: 'third-1',
+          round: 'third',
+          status: 'finished',
+          home_team: { id: 'a', name: 'A' },
+          away_team: { id: 'b', name: 'B' },
+          score_home: 2,
+          score_away: 1,
+        },
+      ],
+      'single-leg',
+    );
+    expect(ties).toHaveLength(1);
+    expect(ties[0]?.round).toBe('third');
+    expect(ties[0]?.winnerId).toBe('a');
+  });
 });

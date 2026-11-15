@@ -894,7 +894,7 @@ for (const width of [1100, 1440])
       await section(page, 'Футбол');
       await page.locator('.competition-switcher-trigger').click();
       await page.getByRole('menuitemradio', { name: 'Лига чемпионов' }).click();
-      await headerTab(page, 'Обзор');
+      await headerTab(page, 'Матчи');
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     };
     const tiles = page.locator('.ucl-insights > div');

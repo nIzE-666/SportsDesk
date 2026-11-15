@@ -4,15 +4,19 @@
   flex-direction: column;
   gap: var(--space-24);
 }
-.ucl-view > .section-heading {
-  margin-bottom: 0;
+.ucl-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-12);
 }
 .ucl-season {
   display: flex;
   align-items: center;
   gap: var(--space-12);
 }
-.ucl-season > label {
+.ucl-season > label,
+.ucl-season__value {
   color: var(--color-text-secondary);
   font-size: var(--text-12);
   letter-spacing: 1px;
@@ -24,6 +28,12 @@
   margin: 0 0 var(--space-4);
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
+.ucl-view .ui-panel.filters-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
 .metric-star {
   color: var(--color-accent);
   font-size: var(--text-24);
@@ -34,98 +44,6 @@
 }
 .ucl-match-list .section-title {
   margin-bottom: var(--space-8);
-}
-.ucl-team-button.ui-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-8);
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-text);
-  font-size: var(--text-13);
-  text-align: left;
-}
-.ucl-team-button.ui-button .ui-button__label {
-  display: contents;
-}
-.ucl-team-button.ui-button:hover:not(:disabled) {
-  background: transparent;
-  color: var(--color-accent);
-}
-.ucl-team-button strong {
-  font-weight: var(--weight-semibold);
-}
-.ucl-standings td {
-  white-space: nowrap;
-}
-.ucl-standings td:nth-child(2) {
-  min-width: 150px;
-}
-.ucl-standings--compact td {
-  padding: var(--space-8) var(--space-4);
-  font-size: var(--text-12);
-}
-.ucl-standings--compact td button {
-  font-size: var(--text-12);
-}
-.ucl-standings--compact td:nth-child(2) {
-  min-width: 120px;
-}
-.ucl-standings__position {
-  display: grid;
-  place-items: center;
-  width: 23px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-12);
-}
-.ucl-standings td:last-child b {
-  color: var(--color-text);
-}
-.ucl-standings__direct .ucl-standings__position {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-.ucl-standings__playoff .ucl-standings__position {
-  background: var(--color-surface-2);
-  color: var(--color-text-secondary);
-}
-.ucl-standings__dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: var(--radius-round);
-  background: var(--color-text-tertiary);
-}
-.ucl-standings__dot--direct {
-  background: var(--color-accent);
-}
-.ucl-standings__dot--playoff {
-  background: var(--color-text-secondary);
-}
-.table-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-24);
-  margin: 0 0 var(--space-16);
-  color: var(--color-text-secondary);
-  font-size: var(--text-12);
-}
-.table-legend span {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-}
-.table-legend small {
-  flex: 1;
-  min-width: 250px;
-  font-size: var(--text-12);
-  line-height: var(--line-body);
 }
 .ucl-logo-wall {
   display: grid;
@@ -156,6 +74,42 @@
   border-color: var(--color-border);
   background: var(--color-surface-2);
 }
+.standings-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-24);
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+}
+.standings-legend span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.standings-legend__dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-round);
+  background: var(--color-text-tertiary);
+}
+.standings-legend__dot--direct {
+  background: var(--color-accent);
+}
+.standings-legend__dot--playoff {
+  background: var(--color-text-secondary);
+}
+.ucl-table-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+.ucl-table-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
 .bracket-intro {
   display: flex;
   align-items: center;
@@ -176,14 +130,18 @@
   margin-left: auto;
 }
 .knockout-scroll {
-  overflow-x: auto;
+  overflow: visible;
   padding: 0 0 var(--space-16);
 }
 .knockout-board {
   display: grid;
-  grid-template-columns: repeat(var(--rounds, 5), minmax(200px, 1fr));
-  gap: var(--space-24);
-  min-width: 1120px;
+  grid-template-columns: repeat(var(--rounds, 5), minmax(0, 1fr));
+  gap: var(--space-16);
+  min-width: 0;
+}
+/* Six rounds at 1440 are too narrow for readable ties: three columns, two rows. */
+.knockout-board--wrapped {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .stage-heading {
   position: relative;
@@ -196,7 +154,7 @@
   font-size: var(--text-12);
   letter-spacing: 1.8px;
 }
-.stage-heading h3 {
+.stage-heading h2 {
   margin: var(--space-8) 0 0;
   font-size: var(--text-14);
   font-weight: var(--weight-semibold);
@@ -205,7 +163,7 @@
   position: absolute;
   top: var(--space-16);
   right: var(--space-4);
-  color: color-mix(in srgb, var(--color-accent) 13%, transparent);
+  color: var(--color-text-tertiary);
   font-size: var(--text-24);
   font-weight: var(--weight-bold);
 }
@@ -224,11 +182,12 @@
   display: grid;
   gap: var(--space-8);
 }
+/* A bracket row keeps home on the left and away on the right, but drops the
+   time track: the day or leg date is shown outside the row. */
 .bracket-tie .ui-match-row {
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-12);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: var(--space-4) var(--space-8);
 }
 .bracket-tie .ui-match-row__when {
   display: none;
@@ -237,25 +196,28 @@
   grid-column: 1;
   grid-row: 1;
 }
-.bracket-tie .ui-match-row__team--away {
-  grid-column: 1;
-  grid-row: 2;
-  flex-direction: row-reverse;
-  justify-content: flex-end;
-}
 .bracket-tie .ui-match-row__score {
   grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
+  grid-row: 1;
 }
-/* The kit puts the competition into its meta cell; in a tie it is the third line. */
+.bracket-tie .ui-match-row__team--away {
+  grid-column: 3;
+  grid-row: 1;
+}
 .bracket-tie .ui-match-row__meta {
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 2;
   width: auto;
 }
-.bracket-tie .ui-match-row__team-name {
-  font-size: var(--text-13);
+.bracket-tie__leg {
+  display: grid;
+  gap: var(--space-4);
+}
+.bracket-tie__leg-date {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-12);
+  line-height: var(--line-body);
 }
 .bracket-tie.final-tie .ui-match-row {
   border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
@@ -268,7 +230,7 @@
   font-style: normal;
   line-height: 1.7;
 }
-.stage-final h3 {
+.stage-final h2 {
   color: var(--color-accent);
 }
 .bracket-tie__legs {
@@ -359,9 +321,6 @@
   gap: var(--space-12);
   text-align: center;
 }
-.ucl-player > .eyebrow {
-  margin: 0;
-}
 .ucl-player__badge {
   display: grid;
   place-items: center;
@@ -409,7 +368,10 @@
 .ucl-loading__row {
   height: var(--space-12);
 }
-@media (max-width: 1250px) {
+@media (max-width: 1279px) {
+  .knockout-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .scorer-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -427,18 +389,10 @@
   .scorer-grid {
     grid-template-columns: 1fr 1fr;
   }
-  .ucl-season > .ui-button {
+  .ucl-toolbar > .ui-button {
     display: none;
-  }
-  .section-heading :is(h1, h2) {
-    font-size: var(--text-24);
   }
   .ucl-logo-wall {
     grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
   }
-}
-
-/* The screen title is h2 under the frame's single h1 and keeps its former look. */
-.app-root[data-theme] .section-heading .screen-title {
-  margin-top: 0;
 }

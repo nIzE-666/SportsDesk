@@ -75,28 +75,34 @@ it('switches the Champions League and cup tabs', async () => {
   const navigate = await renderHeader({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'overview',
+    tab: 'matches',
   });
   expect(host.querySelectorAll('[role="tab"]')).toHaveLength(5);
   await act(async () => tab('Игроки').click());
   expect(navigate).toHaveBeenCalledWith({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'stats',
+    tab: 'players',
   });
 
   navigate.mockClear();
-  await renderHeader(
-    { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'overview' },
-    navigate,
-  );
-  expect(host.querySelectorAll('[role="tab"]')).toHaveLength(4);
+  await renderHeader({ kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'matches' }, navigate);
+  expect(host.querySelectorAll('[role="tab"]')).toHaveLength(3);
   await act(async () => tab('Сетка').click());
   expect(navigate).toHaveBeenCalledWith({
     kind: 'football',
     competitionId: DEFAULT_CUP_ID,
     tab: 'bracket',
   });
+});
+
+it('hides the table tab of a cup without a table', async () => {
+  await renderHeader({ kind: 'football', competitionId: 'l_1XLtP0', tab: 'matches' });
+  expect(
+    [...host.querySelectorAll('[role="tab"]')].map((button) => button.textContent?.trim()),
+  ).toEqual(['Матчи', 'Сетка']);
+  await renderHeader({ kind: 'football', competitionId: 'l_1XLtP0', tab: 'table' });
+  expect(tab('Матчи').getAttribute('aria-selected')).toBe('true');
 });
 
 it('keeps «Анализ» active on pace and reopens the last analysis mode', async () => {

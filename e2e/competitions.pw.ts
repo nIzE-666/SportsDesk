@@ -43,13 +43,13 @@ test('switches Premier League → Лига чемпионов → Лига Ев�
   await expect(menu.getByRole('group', { name: 'Еврокубки и сборные' })).toBeVisible();
   await menu.getByRole('menuitemradio', { name: 'Лига чемпионов' }).click();
   await expect(switcher).toContainText('Лига чемпионов');
-  await expect(tabs(page)).toHaveText(['Обзор', 'Таблица', 'Сетка', 'Матчи', 'Игроки']);
+  await expect(tabs(page)).toHaveText(['Матчи', 'Таблица', 'Сетка', 'Клубы', 'Игроки']);
   await expect(page.locator('.ucl-view')).toBeVisible();
 
   await switcher.click();
   await page.getByRole('menuitemradio', { name: 'Лига Европы' }).click();
   await expect(switcher).toContainText('Лига Европы');
-  await expect(tabs(page)).toHaveText(['Обзор', 'Таблица', 'Сетка', 'Матчи']);
+  await expect(tabs(page)).toHaveText(['Матчи', 'Таблица', 'Сетка']);
   await expect(page.locator('.ucl-view')).toContainText('Лига Европы');
 });
 

@@ -83,7 +83,13 @@ it('validates every route kind and keeps tabs tied to the competition kind', () 
     expect(isValidFootballTab(LEAGUES[0].id, tab)).toBe(false);
   for (const tab of F1_TABS.filter((tab) => !['overview', 'standings', 'matches'].includes(tab)))
     expect(isValidFootballTab(CHAMPIONS_LEAGUE_ID, tab)).toBe(false);
-  expect(defaultFootballTab(CHAMPIONS_LEAGUE_ID)).toBe('overview');
+  expect(isValidFootballTab(CHAMPIONS_LEAGUE_ID, 'overview')).toBe(false);
+  expect(isValidFootballTab(CHAMPIONS_LEAGUE_ID, 'stats')).toBe(false);
+  expect(isValidFootballTab(DEFAULT_CUP_ID, 'overview')).toBe(false);
+  expect(isValidFootballTab('l_1XLtP0', 'table')).toBe(false);
+  expect(isValidFootballTab('l_1XLtP0', 'matches')).toBe(true);
+  expect(defaultFootballTab(CHAMPIONS_LEAGUE_ID)).toBe('matches');
+  expect(defaultFootballTab(DEFAULT_CUP_ID)).toBe('matches');
 
   const invalid: unknown[] = [
     null,
@@ -96,6 +102,19 @@ it('validates every route kind and keeps tabs tied to the competition kind', () 
     { kind: 'football', competitionId: 'unknown', tab: 'matches' },
     { kind: 'football', competitionId: LEAGUES[0].id, tab: 'overview' },
     { kind: 'football', competitionId: LEAGUES[0].id, tab: 'matches', matchesFilter: 'later' },
+    {
+      kind: 'football',
+      competitionId: LEAGUES[0].id,
+      tab: 'standings',
+      matchesFilter: 'mine',
+    },
+    {
+      kind: 'football',
+      competitionId: CHAMPIONS_LEAGUE_ID,
+      tab: 'matches',
+      matchesFilter: 'mine',
+    },
+    { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'matches', matchesFilter: 'mine' },
     { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'live' },
     { kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'stats' },
     { kind: 'football-match', matchId: '', competitionId: LEAGUES[0].id },
@@ -137,6 +156,49 @@ it('migrates every old route shape to the new union idempotently', () => {
     tab: 'matches',
     matchesFilter: 'live',
   });
+  // The lead's merge keeps a filter of a current-shape route only for a league on «Матчи».
+  expect(
+    migrateRoute({
+      kind: 'football',
+      competitionId: LEAGUES[0].id,
+      tab: 'overview',
+      matchesFilter: 'mine',
+    }),
+  ).toEqual({
+    kind: 'football',
+    competitionId: LEAGUES[0].id,
+    tab: 'matches',
+    matchesFilter: 'mine',
+  });
+  expect(
+    migrateRoute({
+      kind: 'football',
+      competitionId: LEAGUES[0].id,
+      tab: 'matches',
+      matchesFilter: 'mine',
+    }),
+  ).toEqual({
+    kind: 'football',
+    competitionId: LEAGUES[0].id,
+    tab: 'matches',
+    matchesFilter: 'mine',
+  });
+  expect(
+    migrateRoute({
+      kind: 'football',
+      competitionId: CHAMPIONS_LEAGUE_ID,
+      tab: 'matches',
+      matchesFilter: 'mine',
+    }),
+  ).toEqual({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'matches' });
+  expect(
+    migrateRoute({
+      kind: 'football',
+      competitionId: DEFAULT_CUP_ID,
+      tab: 'matches',
+      matchesFilter: 'mine',
+    }),
+  ).toEqual({ kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'matches' });
   expect(migrateRoute({ kind: 'football', section: 'team', teamId: 'arsenal' })).toEqual({
     kind: 'football',
     competitionId: DEFAULT_LEAGUE_ID,
@@ -151,17 +213,41 @@ it('migrates every old route shape to the new union idempotently', () => {
   expect(migrateRoute({ kind: 'ucl' })).toEqual({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'overview',
+    tab: 'matches',
   });
   expect(migrateRoute({ kind: 'ucl', tab: 'bracket' })).toEqual({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
     tab: 'bracket',
   });
+  expect(migrateRoute({ kind: 'ucl', tab: 'overview' })).toEqual({
+    kind: 'football',
+    competitionId: CHAMPIONS_LEAGUE_ID,
+    tab: 'matches',
+  });
+  expect(migrateRoute({ kind: 'ucl', tab: 'stats' })).toEqual({
+    kind: 'football',
+    competitionId: CHAMPIONS_LEAGUE_ID,
+    tab: 'players',
+  });
+  expect(
+    migrateRoute({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'overview' }),
+  ).toEqual({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'matches' });
+  expect(
+    migrateRoute({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'stats' }),
+  ).toEqual({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: 'players' });
   expect(migrateRoute({ kind: 'cup', cupId: DEFAULT_CUP_ID })).toEqual({
     kind: 'football',
     competitionId: DEFAULT_CUP_ID,
-    tab: 'overview',
+    tab: 'matches',
+  });
+  expect(
+    migrateRoute({ kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'overview' }),
+  ).toEqual({ kind: 'football', competitionId: DEFAULT_CUP_ID, tab: 'matches' });
+  expect(migrateRoute({ kind: 'football', competitionId: 'l_1XLtP0', tab: 'table' })).toEqual({
+    kind: 'football',
+    competitionId: 'l_1XLtP0',
+    tab: 'matches',
   });
   expect(migrateRoute({ kind: 'cup', cupId: 'unknown-cup', tab: 'table' })).toEqual({
     kind: 'football',
@@ -287,7 +373,7 @@ it('exposes section, home and start helpers for the new shell', () => {
   expect(defaultRouteOf('football', CHAMPIONS_LEAGUE_ID)).toEqual({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'overview',
+    tab: 'matches',
   });
   expect(defaultRouteOf('f1')).toEqual({ kind: 'f1', tab: 'overview' });
   expect(defaultRouteOf('watch')).toEqual({ kind: 'watch' });
@@ -380,7 +466,16 @@ it('keeps «Сейчас идут» as a search target of «Матчи» with th
 });
 
 it('migrates search section targets and recent keys at read time', () => {
-  const oldSections = ['matches', 'players', 'f1', 'watch', 'planner', 'events'];
+  const oldSections = [
+    'matches',
+    'players',
+    'overview',
+    'stats',
+    'f1',
+    'watch',
+    'planner',
+    'events',
+  ];
   localStorage.setItem(
     'sportsdesk.search.index',
     JSON.stringify(
@@ -394,7 +489,14 @@ it('migrates search section targets and recent keys at read time', () => {
   );
   localStorage.setItem(
     'sportsdesk.search.recent',
-    JSON.stringify(['section:matches', 'section:planner', 'section:matches', 'team:a']),
+    JSON.stringify([
+      'section:overview',
+      'section:stats',
+      'section:matches',
+      'section:planner',
+      'section:matches',
+      'team:a',
+    ]),
   );
 
   const items = readSearchIndex();
@@ -411,7 +513,14 @@ it('migrates search section targets and recent keys at read time', () => {
     id: 'today.plan',
   });
   expect(items.some((item) => item.key === 'section:matches')).toBe(false);
-  expect(readSearchRecent()).toEqual(['section:football.matches', 'section:today.plan', 'team:a']);
+  expect(items.some((item) => item.key === 'section:overview')).toBe(false);
+  expect(items.some((item) => item.key === 'section:stats')).toBe(false);
+  expect(readSearchRecent()).toEqual([
+    'section:football.matches',
+    'section:football.players',
+    'section:today.plan',
+    'team:a',
+  ]);
   expect(readSearchRecent()).toEqual(readSearchRecent());
 
   rememberSearchItems([

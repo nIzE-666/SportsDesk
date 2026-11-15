@@ -62,7 +62,7 @@ it('moves a hidden league to the first visible league and keeps its tab', () => 
 });
 
 it('uses the default tab when the first league does not have the current one', () => {
-  const tab = 'stats' as FootballTab;
+  const tab = 'bracket' as FootballTab;
   const isVisible = (id: string) => id !== CHAMPIONS_LEAGUE_ID;
   expect(visible(isVisible)({ kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab })).toEqual(
     {

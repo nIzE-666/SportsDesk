@@ -142,7 +142,7 @@ export function normalizeKnockoutRound(raw: string | undefined): UclKnockoutRoun
   const t = raw.trim().toLowerCase();
   if (t === '') return null;
   if (
-    /^(third place|third-place|third place play-off|third place playoff|3rd place|3rd place play-off|3rd place playoff|bronze)$/.test(
+    /^(third place|third-place|third|third place play-off|third place playoff|3rd place|3rd place play-off|3rd place playoff|bronze)$/.test(
       t,
     )
   )

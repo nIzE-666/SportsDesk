@@ -17,13 +17,12 @@ test('overviews have useful headings without slogan banners', async ({ page }, t
   await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
   await page.locator('.competition-switcher-trigger').click();
   await page.getByRole('menuitemradio', { name: 'Лига чемпионов' }).click();
-  await page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }).click();
-  await expect(page.locator('main h2.screen-title')).toContainText('Европейский вечер');
+  await expect(page.locator('main .ucl-view')).toBeVisible();
+  await expect(page.locator('.mode-hero')).toHaveCount(0);
 
   await page.locator('.competition-switcher-trigger').click();
   await page.getByRole('menuitemradio', { name: 'Лига Европы' }).click();
-  await page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }).click();
-  await expect(page.locator('main h2.screen-title')).toContainText('Лига Европы');
+  await expect(page.locator('main .ucl-view')).toContainText('Лига Европы');
   await expect(page.locator('.mode-hero')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /баннер/ })).toHaveCount(0);
 });

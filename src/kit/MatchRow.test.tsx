@@ -112,9 +112,12 @@ describe('MatchRow', () => {
 
   it('is a button when the whole row is clickable', async () => {
     const onClick = vi.fn();
-    await app.render(<MatchRow home={HOME} away={AWAY} onClick={onClick} ariaLabel="Открыть" />);
+    await app.render(
+      <MatchRow home={HOME} away={AWAY} onClick={onClick} ariaLabel="Открыть" ariaExpanded />,
+    );
     const row = app.host.querySelector('button.ui-match-row')!;
     expect(row.getAttribute('aria-label')).toBe('Открыть');
+    expect(row.getAttribute('aria-expanded')).toBe('true');
     await click(row);
     expect(onClick).toHaveBeenCalledTimes(1);
   });

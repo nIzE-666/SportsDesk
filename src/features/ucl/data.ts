@@ -241,7 +241,7 @@ function parseTableRow(raw: unknown): UclTableRow | undefined {
 }
 
 export async function fetchUclStandings(): Promise<{
-  rows: UclTableRow[];
+  groups: Array<{ name?: string; rows: UclTableRow[] }>;
   fetchedAt: string;
   stale: boolean;
 }> {
@@ -260,18 +260,19 @@ export async function fetchUclStandings(): Promise<{
     throw new Error('Таблица Лиги чемпионов пока недоступна.');
   }
 
-  const rows: UclTableRow[] = [];
+  const groups: Array<{ name?: string; rows: UclTableRow[] }> = [];
   for (const table of tables) {
+    const rows: UclTableRow[] = [];
     for (const rawRow of asArray(table.rows)) {
       const row = parseTableRow(rawRow);
       if (row) rows.push(row);
     }
+    rows.sort((a, b) => a.position - b.position);
+    groups.push({ name: typeof table.group === 'string' ? table.group : undefined, rows });
   }
 
-  rows.sort((a, b) => a.position - b.position);
-
   return {
-    rows,
+    groups,
     fetchedAt: reply.fetchedAt,
     stale: Boolean(reply.stale),
   };

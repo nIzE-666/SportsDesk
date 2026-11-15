@@ -159,7 +159,7 @@ it('keeps the tab when the competition has it and falls back to the default othe
   expect(navigate).toHaveBeenCalledWith({
     kind: 'football',
     competitionId: CHAMPIONS_LEAGUE_ID,
-    tab: 'overview',
+    tab: 'matches',
   });
 
   navigate.mockClear();
@@ -186,6 +186,6 @@ it('opens the default tab from a match page and keeps the match suffix', async (
   expect(navigate).toHaveBeenCalledWith({
     kind: 'football',
     competitionId: DEFAULT_CUP_ID,
-    tab: 'overview',
+    tab: 'matches',
   });
 });

@@ -129,3 +129,15 @@ export function formatHumanDateTime(
 ): string {
   return describe(value, timeZone, now, true);
 }
+
+/**
+ * Только время в часовом поясе: «21:30». Календарная дата без времени даёт null.
+ * Нужно там, где день уже стоит отдельной строкой, например в списке по дням.
+ */
+export function formatHumanTime(value: HumanDateInput, timeZone: string): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  const target = zonedParts(value instanceof Date ? value : new Date(value), timeZone);
+  if (!target || target.hour === null || target.minute === null) return null;
+  return `${pad(target.hour)}:${pad(target.minute)}`;
+}

@@ -337,6 +337,17 @@ export function KitGallery() {
             size="compact"
             home={{ name: 'Арсенал' }}
             away={{ name: 'Челси' }}
+            status="finished"
+            score={{ home: 3, away: 2 }}
+            competition="2 матча"
+            ariaLabel="Арсенал — Челси, 2 матча"
+            ariaExpanded={false}
+            onClick={() => {}}
+          />
+          <MatchRow
+            size="compact"
+            home={{ name: 'Арсенал' }}
+            away={{ name: 'Челси' }}
             time="21:30"
             status="scheduled"
             competition="Премьер-лига"

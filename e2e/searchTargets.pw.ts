@@ -70,7 +70,7 @@ test('search targets open «Моё», settings, a cup and Formula 1 analysis', a
   await expect(page.locator('.ucl-view')).toBeVisible();
   await expect(page.locator('.competition-switcher-trigger')).toContainText('Лига Европы');
   await expect(
-    page.locator('.shell-tabs').getByRole('tab', { name: 'Обзор', exact: true }),
+    page.locator('.shell-tabs').getByRole('tab', { name: 'Матчи', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
 
   dialog = await search(page, 'Анализ');

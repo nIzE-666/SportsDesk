@@ -41,6 +41,8 @@ export interface MatchRowProps {
   onClick?: () => void;
   /** Explicit accessible name for the clickable row. */
   ariaLabel?: string;
+  /** Set on a clickable row that expands a group, e.g. the legs of a tie. */
+  ariaExpanded?: boolean;
   className?: string;
 }
 
@@ -87,6 +89,7 @@ export function MatchRow({
   size = 'normal',
   onClick,
   ariaLabel,
+  ariaExpanded,
   className,
 }: MatchRowProps) {
   const cleanTime = time?.trim() ? time : null;
@@ -147,7 +150,13 @@ export function MatchRow({
 
   if (onClick && actions == null && !hasTeamAction) {
     return (
-      <button type="button" className={rootClass} onClick={onClick} aria-label={ariaLabel}>
+      <button
+        type="button"
+        className={rootClass}
+        onClick={onClick}
+        aria-label={ariaLabel}
+        aria-expanded={ariaExpanded}
+      >
         {content}
       </button>
     );

@@ -21,8 +21,8 @@ export type TodayMode = 'today' | 'week' | 'plan';
 /** The «Сейчас идут» tab became a filter of «Матчи» in U4.2. */
 export type MatchesFilter = 'mine' | 'all' | 'live';
 export type LeagueTab = 'matches' | 'standings' | 'team' | 'players';
-export type ChampionsTab = 'overview' | 'table' | 'bracket' | 'matches' | 'stats';
-export type CupTab = 'overview' | 'table' | 'bracket' | 'matches';
+export type ChampionsTab = 'matches' | 'table' | 'bracket' | 'clubs' | 'players';
+export type CupTab = 'matches' | 'table' | 'bracket';
 export type FootballTab = LeagueTab | ChampionsTab | CupTab;
 export type F1Tab = 'overview' | 'calendar' | 'standings' | 'compare' | 'pace' | 'session';
 export type MatchTab = 'overview' | 'lineups' | 'stats' | 'analysis';
@@ -79,8 +79,8 @@ export const LEAGUE_TABS = ['matches', 'standings', 'team', 'players'] as const;
 export const MATCHES_FILTERS = ['mine', 'all', 'live'] as const;
 /** The remembered «Матчи» filter; the same place for a search result or a migrated tab. */
 export const MATCHES_FILTER_VIEW_KEY = 'football.matches.filter';
-export const CHAMPIONS_TABS = ['overview', 'table', 'bracket', 'matches', 'stats'] as const;
-export const CUP_TABS = ['overview', 'table', 'bracket', 'matches'] as const;
+export const CHAMPIONS_TABS = ['matches', 'table', 'bracket', 'clubs', 'players'] as const;
+export const CUP_TABS = ['matches', 'table', 'bracket'] as const;
 export const F1_TABS = ['overview', 'calendar', 'standings', 'compare', 'pace', 'session'] as const;
 export const MATCH_TABS = ['overview', 'lineups', 'stats', 'analysis'] as const;
 /** Tab ids of the old seven-tab match page; still read from saved screen state. */
@@ -199,13 +199,46 @@ export function isValidSettingsCategory(value: unknown): value is SettingsCatego
   return includes(SETTINGS_CATEGORIES, value);
 }
 
-export function isValidFootballTab(competitionId: string, tab: unknown): tab is FootballTab {
-  const kind = competitionKind(competitionId);
-  return kind !== undefined && includes(TABS_BY_COMPETITION[kind], tab);
+/** A cup without a standings slug has no «Таблица» tab at all. */
+export function cupHasTable(id: string): boolean {
+  return CUP_COMPETITIONS.some(
+    (competition) => competition.id === id && competition.sportscoreSlug !== undefined,
+  );
 }
 
-export function defaultFootballTab(competitionId: string): FootballTab {
-  return competitionKind(competitionId) === 'league' ? 'matches' : 'overview';
+/** Tabs a competition really has; a cup without a table drops it. */
+export function tabsForCompetition(competitionId: string): readonly string[] {
+  const kind = competitionKind(competitionId);
+  if (kind === undefined) return [];
+  if (kind === 'cup' && !cupHasTable(competitionId))
+    return CUP_TABS.filter((tab) => tab !== 'table');
+  return TABS_BY_COMPETITION[kind];
+}
+
+export function isValidFootballTab(competitionId: string, tab: unknown): tab is FootballTab {
+  return includes(tabsForCompetition(competitionId), tab);
+}
+
+/** Old tab names of the Champions League and the cups, mapped to the new places. */
+const LEGACY_FOOTBALL_TABS: Record<string, string> = { overview: 'matches', stats: 'players' };
+
+/** Read-time migration of a saved tab; a cup without a table falls back to «Матчи». */
+export function migrateFootballTab(competitionId: string, tab: unknown): FootballTab | undefined {
+  const normalized = tab === undefined ? undefined : (LEGACY_FOOTBALL_TABS[String(tab)] ?? tab);
+  if (normalized === undefined) return defaultFootballTab(competitionId);
+  // A saved «Таблица» of a cup that has no table opens its matches instead.
+  if (
+    normalized === 'table' &&
+    competitionKind(competitionId) === 'cup' &&
+    !cupHasTable(competitionId)
+  )
+    return 'matches';
+  return isValidFootballTab(competitionId, normalized) ? normalized : undefined;
+}
+
+export function defaultFootballTab(_competitionId: string): FootballTab {
+  // Every competition opens on its matches since U4.5.
+  return 'matches';
 }
 
 function isValidWatchIntent(value: unknown): value is WatchIntent {
@@ -226,7 +259,10 @@ export function isValidShellRoute(value: unknown): value is ShellRoute {
         isCompetitionId(value.competitionId) &&
         (value.tab === undefined || isValidFootballTab(value.competitionId, value.tab)) &&
         (value.teamId === undefined || isText(value.teamId)) &&
-        (value.matchesFilter === undefined || isMatchesFilter(value.matchesFilter))
+        (value.matchesFilter === undefined ||
+          (isLeagueId(value.competitionId) &&
+            value.tab === 'matches' &&
+            isMatchesFilter(value.matchesFilter)))
       );
     case 'football-match':
       return isText(value.matchId) && isCompetitionId(value.competitionId);
@@ -379,8 +415,10 @@ function fallbackForSection(
 function tabRoute(section: Section, tab: unknown, context: LegacyContext): ShellRoute | undefined {
   if (section === 'f1') return isF1Tab(tab) ? { kind: 'f1', tab } : undefined;
   if (section !== 'football') return undefined;
-  if (migrateSport(context.sport) === 'ucl' && isValidFootballTab(CHAMPIONS_LEAGUE_ID, tab))
-    return { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab };
+  if (migrateSport(context.sport) === 'ucl') {
+    const migrated = migrateFootballTab(CHAMPIONS_LEAGUE_ID, tab);
+    if (migrated) return { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab: migrated };
+  }
   return undefined;
 }
 
@@ -396,6 +434,7 @@ export function migrateRoute(value: unknown, context: LegacyContext = {}): Shell
   switch (value.kind) {
     case 'football': {
       // U4.2: the old «Сейчас идут» tab is now the live filter of «Матчи».
+      // It must come first: «live» is no longer a league tab below.
       if (value.tab === 'live' && isLeagueId(value.competitionId))
         return {
           kind: 'football',
@@ -403,6 +442,26 @@ export function migrateRoute(value: unknown, context: LegacyContext = {}): Shell
           tab: 'matches',
           matchesFilter: 'live',
         };
+      // A route of the current shape: an old Champions League or cup tab is
+      // migrated here, a league without a tab gets its default.
+      if (isCompetitionId(value.competitionId)) {
+        const competitionId = value.competitionId;
+        const tab = migrateFootballTab(competitionId, value.tab);
+        if (!tab) return undefined;
+        const league = competitionKind(competitionId) === 'league';
+        const teamId = league && isText(value.teamId) ? value.teamId : undefined;
+        const matchesFilter =
+          league && tab === 'matches' && isMatchesFilter(value.matchesFilter)
+            ? value.matchesFilter
+            : undefined;
+        return {
+          kind: 'football',
+          competitionId,
+          tab,
+          ...(teamId ? { teamId } : {}),
+          ...(matchesFilter ? { matchesFilter } : {}),
+        };
+      }
       const section = value.section;
       if (section === 'live')
         return {
@@ -432,18 +491,14 @@ export function migrateRoute(value: unknown, context: LegacyContext = {}): Shell
       return isF1Tab(tab) ? { kind: 'f1', tab } : undefined;
     }
     case 'ucl': {
-      const tab = value.tab === undefined ? 'overview' : value.tab;
-      return isValidFootballTab(CHAMPIONS_LEAGUE_ID, tab)
-        ? { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab }
-        : undefined;
+      const tab = migrateFootballTab(CHAMPIONS_LEAGUE_ID, value.tab);
+      return tab ? { kind: 'football', competitionId: CHAMPIONS_LEAGUE_ID, tab } : undefined;
     }
     case 'cup': {
       if (!isText(value.cupId)) return undefined;
       const competitionId = migrateCupId(value.cupId);
-      const tab = value.tab === undefined ? 'overview' : value.tab;
-      return isValidFootballTab(competitionId, tab)
-        ? { kind: 'football', competitionId, tab }
-        : undefined;
+      const tab = migrateFootballTab(competitionId, value.tab);
+      return tab ? { kind: 'football', competitionId, tab } : undefined;
     }
     case 'watch': {
       const channelId =

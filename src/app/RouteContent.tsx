@@ -13,6 +13,7 @@ import {
   isF1Tab,
   isLeagueId,
   isLeagueTab,
+  isValidFootballTab,
   type MyTab,
   type ShellRoute,
   type Sport,
@@ -79,11 +80,14 @@ export function RouteContent({
   const uclTab: UclTab =
     route.kind === 'football' && competition === 'ucl' && isChampionsTab(route.tab)
       ? route.tab
-      : 'overview';
+      : 'matches';
   const cupTab: CupTab =
-    route.kind === 'football' && competition === 'cup' && isCupTab(route.tab)
+    route.kind === 'football' &&
+    competition === 'cup' &&
+    isCupTab(route.tab) &&
+    isValidFootballTab(route.competitionId, route.tab)
       ? route.tab
-      : 'overview';
+      : 'matches';
   const leagueTab: FootballSection =
     route.kind === 'football' && competition === 'league' && isLeagueTab(route.tab)
       ? route.tab
