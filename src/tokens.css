@@ -1,0 +1,227 @@
+/* Design tokens of «Спортивная обложка».
+   Every color, size and spacing value in the app comes from this file.
+   Dark scheme is the default; a tournament changes only its accent. */
+
+.app-root {
+  /* Surfaces: page, panel, raised element, popover or dialog. */
+  --color-bg: #181818;
+  --color-surface-1: #1f1f1f;
+  --color-surface-2: #272727;
+  --color-surface-3: #303030;
+
+  /* Borders. */
+  --color-border: #393939;
+  --color-border-strong: #4d4d4d;
+
+  /* Text. */
+  --color-text: #f2f5fb;
+  --color-text-secondary: #b3b7bd;
+  --color-text-tertiary: #8a98b1;
+  --color-text-disabled: #6b7280;
+
+  /* Accent: the neutral one for «Сегодня», «Моё» and settings. */
+  --color-accent: #6aabff;
+  --color-accent-soft: #2a333e;
+  --color-on-accent: #181818;
+
+  /* Meaning. */
+  --color-live: #ff615b;
+  --color-win: #22c55e;
+  --color-draw: #b3b7bd;
+  --color-loss: #ff6868;
+  --color-warning: #e9c477;
+  --color-error: #ff6868;
+
+  /* Charts. */
+  --color-chart-1: #6aabff;
+  --color-chart-2: #ff7a59;
+  --color-chart-3: #b8ef70;
+  --color-chart-4: #b1a6ff;
+  --color-chart-5: #54c7f0;
+  --color-chart-6: #e9c477;
+  --color-chart-7: #ff615b;
+  --color-chart-8: #7ce2cd;
+
+  /* Formula 1 tyres: real compound colors, same in both schemes. */
+  --color-tyre-soft: #fa6868;
+  --color-tyre-medium: #e7c64b;
+  --color-tyre-hard: #c7d0dc;
+  --color-tyre-inter: #5bd290;
+  --color-tyre-wet: #5aabff;
+  --color-tyre-unknown: #8190a2;
+
+  /* Font. */
+  --font-family: 'Manrope Variable', 'Segoe UI', sans-serif;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-20: 20px;
+  --text-24: 24px;
+  --text-32: 32px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --line-body: 1.5;
+  --line-heading: 1.2;
+
+  /* Radii. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-round: 999px;
+
+  /* Spacing. */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+
+  /* Control heights. */
+  --control-sm: 28px;
+  --control-md: 36px;
+  --control-lg: 44px;
+
+  /* Shadows: raised element and popover, dialog or drawer. */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 45%), 0 2px 10px rgb(0 0 0 / 30%);
+  --shadow-2: 0 24px 80px rgb(0 0 0 / 55%);
+
+  /* Layers, from the lowest to the highest. */
+  --layer-sticky: 6;
+  --layer-header: 10;
+  --layer-drawer: 30;
+  --layer-dialog: 100;
+  --layer-toast: 900;
+  --layer-tooltip: 950;
+
+  /* Durations and one easing. */
+  --duration-hover: 120ms;
+  --duration-page: 180ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-root[data-scheme='light'] {
+  --color-bg: #f3f6fb;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #e9eef6;
+  --color-surface-3: #ffffff;
+
+  --color-border: #d3dce9;
+  --color-border-strong: #b4c2d4;
+
+  --color-text: #17202e;
+  --color-text-secondary: #5b6b80;
+  --color-text-tertiary: #6b7280;
+  --color-text-disabled: #9aa4b2;
+
+  --color-accent: #1764b4;
+  --color-accent-soft: #dfe9f5;
+  --color-on-accent: #ffffff;
+
+  --color-live: #c62f28;
+  --color-win: #197345;
+  --color-draw: #5b6b80;
+  --color-loss: #b3261e;
+  --color-warning: #8a5a00;
+  --color-error: #b3261e;
+
+  --color-chart-1: #235eab;
+  --color-chart-2: #b8431f;
+  --color-chart-3: #3d7a17;
+  --color-chart-4: #4a3fa8;
+  --color-chart-5: #1668a0;
+  --color-chart-6: #8a5a00;
+  --color-chart-7: #c62f28;
+  --color-chart-8: #0d7d6a;
+
+  --shadow-1: 0 4px 14px rgb(27 40 57 / 5%);
+  --shadow-2: 0 24px 80px rgb(0 0 0 / 25%);
+}
+
+/* Tournament accents, dark scheme. */
+.app-root[data-theme='epl'] {
+  --color-accent: #6aabff;
+  --color-accent-soft: #2a333e;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='laliga'] {
+  --color-accent: #b8ef70;
+  --color-accent-soft: #343c2a;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='seriea'] {
+  --color-accent: #54c7f0;
+  --color-accent-soft: #26373c;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='bundesliga'] {
+  --color-accent: #ff7a59;
+  --color-accent-soft: #3e2c27;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='ligue1'] {
+  --color-accent: #cdd2ff;
+  --color-accent-soft: #37383e;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='mls'] {
+  --color-accent: #7ce2cd;
+  --color-accent-soft: #2c3a37;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='f1'] {
+  --color-accent: #ff615b;
+  --color-accent-soft: #3e2827;
+  --color-on-accent: #181818;
+}
+.app-root[data-theme='ucl'] {
+  --color-accent: #b1a6ff;
+  --color-accent-soft: #33323e;
+  --color-on-accent: #181818;
+}
+
+/* Tournament accents, light scheme. */
+.app-root[data-scheme='light'][data-theme='epl'] {
+  --color-accent: #235eab;
+  --color-accent-soft: #e0e8f3;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='laliga'] {
+  --color-accent: #3d7a17;
+  --color-accent-soft: #e4ecdf;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='seriea'] {
+  --color-accent: #1668a0;
+  --color-accent-soft: #deeaf2;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='bundesliga'] {
+  --color-accent: #b8431f;
+  --color-accent-soft: #f5e5e0;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='ligue1'] {
+  --color-accent: #3a3f8f;
+  --color-accent-soft: #e3e4ef;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='mls'] {
+  --color-accent: #0d7d6a;
+  --color-accent-soft: #ddedea;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='f1'] {
+  --color-accent: #c62f28;
+  --color-accent-soft: #f7e2e1;
+  --color-on-accent: #ffffff;
+}
+.app-root[data-scheme='light'][data-theme='ucl'] {
+  --color-accent: #4a3fa8;
+  --color-accent-soft: #e6e4f3;
+  --color-on-accent: #ffffff;
+}
