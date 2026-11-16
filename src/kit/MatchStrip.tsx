@@ -6,6 +6,8 @@ export interface MatchStripGoal {
   /** Added time: 90+2 is minute 90 with extra 2. */
   extra?: number | null;
   side: 'home' | 'away';
+  /** A goal that decided the story: the winner, a late equaliser. Its minute is always shown. */
+  key?: boolean;
 }
 
 export interface MatchStripProps {
@@ -21,6 +23,7 @@ interface PlacedGoal {
   side: 'home' | 'away';
   bucket: number;
   lane: 1 | 2;
+  key: boolean;
 }
 
 function place(goal: MatchStripGoal, length: number): PlacedGoal | null {
@@ -37,6 +40,7 @@ function place(goal: MatchStripGoal, length: number): PlacedGoal | null {
     side: goal.side === 'away' ? 'away' : 'home',
     bucket: Math.round((effective / length) * 20) * 5,
     lane: 1,
+    key: goal.key === true,
   };
 }
 
@@ -74,6 +78,8 @@ export function MatchStrip({ goals, length = 90, className }: MatchStripProps) {
   placed.sort((left, right) => left.bucket - right.bucket);
   assignLanes(placed);
   const unknown = goals.length - placed.length;
+  /* With few goals every minute fits; with many only the key ones are written. */
+  const writeAll = placed.length <= 3;
   const hidden =
     unknown > 0 ? `Голов без минуты: ${unknown}` : placed.length === 0 ? 'голов нет' : null;
 
@@ -89,9 +95,17 @@ export function MatchStrip({ goals, length = 90, className }: MatchStripProps) {
               `ui-match-strip__goal--${goal.side}`,
               `ui-match-strip__goal--p${goal.bucket}`,
               goal.lane === 2 && 'ui-match-strip__goal--lane-2',
+              goal.key && 'ui-match-strip__goal--key',
             )}
           >
-            <span className="ui-match-strip__minute">{goal.label}</span>
+            <span
+              className={cx(
+                'ui-match-strip__minute',
+                !goal.key && !writeAll && 'ui-showcase-visually-hidden',
+              )}
+            >
+              {goal.label}
+            </span>
             <span className="ui-match-strip__dot" aria-hidden="true" />
           </span>
         ))}

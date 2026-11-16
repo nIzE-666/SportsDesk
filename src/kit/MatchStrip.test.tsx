@@ -82,4 +82,42 @@ describe('MatchStrip', () => {
     expect(goals()).toHaveLength(0);
     expect(app.host.textContent).toContain('Голов без минуты: 1');
   });
+
+  it('writes every minute while there are three goals or fewer', async () => {
+    await app.render(
+      <MatchStrip
+        goals={[
+          { minute: 12, side: 'home' },
+          { minute: 34, side: 'away' },
+          { minute: 88, side: 'home', key: true },
+        ]}
+      />,
+    );
+    const hidden = app.host.querySelectorAll('.ui-match-strip__minute.ui-showcase-visually-hidden');
+    expect(hidden).toHaveLength(0);
+    expect(minutes()).toEqual(['12′', '34′', '88′']);
+  });
+
+  it('writes only the key minutes on a busy bar', async () => {
+    await app.render(
+      <MatchStrip
+        goals={[
+          { minute: 12, side: 'home' },
+          { minute: 34, side: 'away' },
+          { minute: 56, side: 'home' },
+          { minute: 78, side: 'away' },
+          { minute: 90, extra: 3, side: 'home', key: true },
+        ]}
+      />,
+    );
+    const labels = [...app.host.querySelectorAll('.ui-match-strip__minute')];
+    expect(labels.map((label) => label.textContent)).toEqual(['12′', '34′', '56′', '78′', '90+3′']);
+    expect(labels.map((label) => label.classList.contains('ui-showcase-visually-hidden'))).toEqual([
+      true,
+      true,
+      true,
+      true,
+      false,
+    ]);
+  });
 });

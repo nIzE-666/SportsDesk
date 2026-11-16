@@ -8,6 +8,8 @@ export interface CountdownProps {
   endedLabel: string;
   /** Clock for tests; the app uses the real time. */
   now?: () => number;
+  /** `text` reads «через 2 дня · 14:05:32»; `board` shows the same time in scoreboard cells. */
+  variant?: 'text' | 'board';
   className?: string;
 }
 
@@ -36,6 +38,34 @@ function clockPart(totalSeconds: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
+interface ClockParts {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+function clockParts(remaining: number): ClockParts {
+  const totalSeconds = Math.max(0, Math.ceil(remaining / SECOND));
+  const days = Math.floor(totalSeconds / (DAY / SECOND));
+  const rest = totalSeconds % (DAY / SECOND);
+  return {
+    days,
+    hours: Math.floor(rest / 3600),
+    minutes: Math.floor((rest % 3600) / 60),
+    seconds: rest % 60,
+  };
+}
+
+function BoardCell({ value, unit }: { value: string; unit: string }) {
+  return (
+    <span className="ui-countdown__cell">
+      <span className="ui-countdown__value">{value}</span>
+      <span className="ui-countdown__unit">{unit}</span>
+    </span>
+  );
+}
+
 function visibleLabel(remaining: number): string {
   const totalSeconds = Math.max(0, Math.ceil(remaining / SECOND));
   const days = Math.floor(totalSeconds / (DAY / SECOND));
@@ -55,7 +85,13 @@ function spokenLabel(remaining: number, endedLabel: string): string {
  * Time left until a start. The seconds tick only while the component is mounted
  * and the document is visible; the screen-reader label is refreshed once a minute.
  */
-export function Countdown({ target, endedLabel, now, className }: CountdownProps) {
+export function Countdown({
+  target,
+  endedLabel,
+  now,
+  variant = 'text',
+  className,
+}: CountdownProps) {
   const nowRef = useRef(now);
   nowRef.current = now;
   const [current, setCurrent] = useState(() => (now ?? Date.now)());
@@ -92,16 +128,27 @@ export function Countdown({ target, endedLabel, now, className }: CountdownProps
   if (!Number.isFinite(targetMs)) return null;
 
   const label = remaining <= 0 ? endedLabel : visibleLabel(remaining);
+  const board = variant === 'board' && remaining > 0;
+  const parts = clockParts(remaining);
 
   return (
     <span
-      className={cx('ui-countdown', className)}
+      className={cx('ui-countdown', board && 'ui-countdown--board', className)}
       role="timer"
       aria-label={spokenLabel(remaining, endedLabel)}
     >
-      <span className="ui-countdown__digits" aria-hidden="true">
-        {label}
-      </span>
+      {board ? (
+        <span className="ui-countdown__cells" aria-hidden="true">
+          {parts.days >= 1 && <BoardCell value={String(parts.days)} unit="дн" />}
+          <BoardCell value={pad(parts.hours)} unit="ч" />
+          <BoardCell value={pad(parts.minutes)} unit="мин" />
+          <BoardCell value={pad(parts.seconds)} unit="сек" />
+        </span>
+      ) : (
+        <span className="ui-countdown__digits" aria-hidden="true">
+          {label}
+        </span>
+      )}
     </span>
   );
 }

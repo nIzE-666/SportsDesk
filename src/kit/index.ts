@@ -27,8 +27,22 @@ export {
   type PitchTrackLineProps,
   type PitchTrackLineVariant,
 } from './PitchTrackLine';
+export { ShowcaseBand, type ShowcaseBandItem, type ShowcaseBandProps } from './ShowcaseBand';
+export {
+  ShowcaseCrest,
+  crestInitials,
+  type ShowcaseCrestProps,
+  type ShowcaseCrestSize,
+  type ShowcaseTeam,
+} from './ShowcaseCrest';
 export { ShowcaseHero, type ShowcaseHeroCrest, type ShowcaseHeroProps } from './ShowcaseHero';
+export {
+  ShowcaseMatchCard,
+  type ShowcaseMatchCardProps,
+  type ShowcaseMatchSide,
+} from './ShowcaseMatchCard';
 export { ShowcaseShelf, type ShowcaseShelfProps } from './ShowcaseShelf';
+export { ShowcaseUpcomingCard, type ShowcaseUpcomingCardProps } from './ShowcaseUpcomingCard';
 export { SegmentedControl, type SegmentItem, type SegmentedControlProps } from './SegmentedControl';
 export { Skeleton, type SkeletonProps } from './Skeleton';
 export { StatTile, type StatTileProps } from './StatTile';

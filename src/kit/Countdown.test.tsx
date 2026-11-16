@@ -57,6 +57,60 @@ describe('Countdown', () => {
     expect(app.host.querySelector('.ui-countdown')?.getAttribute('aria-label')).toBe('14:05');
   });
 
+  it('splits the same time into scoreboard cells in the board form', async () => {
+    await app.render(
+      <Countdown
+        variant="board"
+        target={targetFrom(2 * DAY + 14 * HOUR + 5 * MINUTE + 32 * SECOND)}
+        endedLabel="Матч начался"
+        now={() => NOW}
+      />,
+    );
+    const countdown = app.host.querySelector('.ui-countdown')!;
+    expect(countdown.classList.contains('ui-countdown--board')).toBe(true);
+    expect(countdown.getAttribute('aria-label')).toBe('через 2 дня · 14:05');
+    const cells = [...app.host.querySelectorAll('.ui-countdown__cell')];
+    expect(cells.map((cell) => cell.querySelector('.ui-countdown__value')?.textContent)).toEqual([
+      '2',
+      '14',
+      '05',
+      '32',
+    ]);
+    expect(cells.map((cell) => cell.querySelector('.ui-countdown__unit')?.textContent)).toEqual([
+      'дн',
+      'ч',
+      'мин',
+      'сек',
+    ]);
+    expect(app.host.querySelector('.ui-countdown__cells')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
+  it('drops the day cell of the board under one day and keeps the text after the start', async () => {
+    await app.render(
+      <Countdown
+        variant="board"
+        target={targetFrom(14 * HOUR + 5 * MINUTE + 32 * SECOND)}
+        endedLabel="Матч начался"
+        now={() => NOW}
+      />,
+    );
+    expect(app.host.querySelectorAll('.ui-countdown__cell')).toHaveLength(3);
+    expect(app.host.querySelector('.ui-countdown__unit')?.textContent).toBe('ч');
+
+    await app.render(
+      <Countdown
+        variant="board"
+        target={targetFrom(0)}
+        endedLabel="Матч начался"
+        now={() => NOW}
+      />,
+    );
+    expect(app.host.querySelector('.ui-countdown__cell')).toBeNull();
+    expect(digits()).toBe('Матч начался');
+  });
+
   it('uses the Russian plurals for the days', async () => {
     await app.render(
       <Countdown target={targetFrom(DAY + 2 * HOUR)} endedLabel="Начался" now={() => NOW} />,

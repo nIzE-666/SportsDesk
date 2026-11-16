@@ -24,6 +24,8 @@ describe('ShowcaseHero', () => {
         kicker="Главный матч"
         title="Арсенал — Челси"
         meta="через 2 дня · 14:05:32"
+        reasons={['лондонское дерби', '1-е против 2-го']}
+        clock={<span className="clock-stub">02:00:00</span>}
         actions={<button type="button">Буду смотреть</button>}
         home={HOME}
         away={AWAY}
@@ -33,20 +35,30 @@ describe('ShowcaseHero', () => {
     expect(app.host.querySelectorAll('.ui-showcase-hero__kicker-mark')).toHaveLength(2);
     expect(app.host.querySelector('.ui-showcase-hero__title')?.textContent).toBe('Арсенал — Челси');
     expect(app.host.querySelector('.ui-showcase-hero__meta')?.textContent).toBe(
-      'через 2 дня · 14:05:32',
+      'через 2 дня · 14:05:32лондонское дерби1-е против 2-го',
+    );
+    expect(app.host.querySelectorAll('.ui-showcase-hero__tag')).toHaveLength(2);
+    expect(app.host.querySelector('.ui-showcase-hero__clock .clock-stub')?.textContent).toBe(
+      '02:00:00',
     );
     expect(app.host.querySelectorAll('.ui-showcase-hero__actions button')).toHaveLength(1);
+
     const line = app.host.querySelector('.ui-showcase-hero__line');
     expect(line?.getAttribute('aria-hidden')).toBe('true');
+    expect(app.host.querySelector('.ui-showcase-hero__split')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(app.host.querySelectorAll('.ui-showcase-hero__side')).toHaveLength(2);
+    expect(app.host.querySelector('.ui-showcase-hero__shine')).not.toBeNull();
   });
 
   it('falls back to initials when a crest image is missing', async () => {
     await app.render(<ShowcaseHero title="Арсенал — Челси" home={HOME} away={AWAY} />);
-    const initials = [...app.host.querySelectorAll('.ui-showcase-hero__crest-initials')].map(
+    const initials = [...app.host.querySelectorAll('.ui-showcase-crest__initials')].map(
       (element) => element.textContent,
     );
     expect(initials).toEqual(['АР', 'ЧЕ']);
-    expect(app.host.querySelector('.ui-showcase-hero__crest-image')).toBeNull();
+    expect(app.host.querySelector('.ui-showcase-hero__crest .ui-showcase-crest__image')).toBeNull();
   });
 
   it('renders a crest image and falls back after a load error', async () => {
@@ -57,38 +69,32 @@ describe('ShowcaseHero', () => {
         away={AWAY}
       />,
     );
-    const image = app.host.querySelector<HTMLImageElement>('.ui-showcase-hero__crest-image')!;
+    const image = app.host.querySelector<HTMLImageElement>(
+      '.ui-showcase-hero__crest .ui-showcase-crest__image',
+    )!;
     expect(image.getAttribute('src')).toBe('https://example.test/arsenal.webp');
     expect(image.getAttribute('alt')).toBe('');
     await act(async () => {
       image.dispatchEvent(new Event('error'));
     });
-    expect(app.host.querySelector('.ui-showcase-hero__crest-image')).toBeNull();
-    expect(app.host.querySelector('.ui-showcase-hero__crest-initials')?.textContent).toBe('АР');
+    expect(app.host.querySelector('.ui-showcase-hero__crest .ui-showcase-crest__image')).toBeNull();
+    expect(app.host.querySelector('.ui-showcase-crest__initials')?.textContent).toBe('АР');
   });
 
   it('keeps the split neutral without team colours', async () => {
     await app.render(<ShowcaseHero title="Арсенал — Челси" home={HOME} away={AWAY} />);
-    const halves = [...app.host.querySelectorAll('.ui-showcase-hero__split-half')];
-    expect(halves[0]?.classList.contains('ui-showcase-hero__split-half--home')).toBe(true);
-    expect(halves[1]?.classList.contains('ui-showcase-hero__split-half--away')).toBe(true);
+    const halves = [...app.host.querySelectorAll('.ui-showcase-hero__side')];
+    expect(halves[0]?.classList.contains('ui-showcase-hero__side--home')).toBe(true);
+    expect(halves[1]?.classList.contains('ui-showcase-hero__side--away')).toBe(true);
     expect(halves[0]?.getAttribute('fill')).toBeNull();
     expect(halves[1]?.getAttribute('fill')).toBeNull();
+    expect(halves[0]?.getAttribute('style')).toBeNull();
+    expect(halves[1]?.getAttribute('style')).toBeNull();
   });
 
-  it('paints the split in the team colours when they are known', async () => {
-    await app.render(
-      <ShowcaseHero
-        title="Арсенал — Челси"
-        home={HOME}
-        away={AWAY}
-        homeColor="#c8102e"
-        awayColor="#1d4f9e"
-      />,
-    );
-    const halves = [...app.host.querySelectorAll('.ui-showcase-hero__split-half')];
-    expect(halves[0]?.getAttribute('fill')).toBe('#c8102e');
-    expect(halves[1]?.getAttribute('fill')).toBe('#1d4f9e');
-    expect(halves[0]?.classList.contains('ui-showcase-hero__split-half--home')).toBe(false);
+  it('uses the team names with the accent dash when the title is omitted', async () => {
+    await app.render(<ShowcaseHero home={HOME} away={AWAY} />);
+    expect(app.host.querySelector('.ui-showcase-hero__title')?.textContent).toBe('Арсенал — Челси');
+    expect(app.host.querySelector('.ui-showcase-hero__dash')?.textContent).toBe('—');
   });
 });
