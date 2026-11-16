@@ -1,0 +1,1701 @@
+/* Dev-only mockup of the «Главное» screen: the broadcast layout with the pitch → track line,
+   in calm «night forest» colours. Not part of the app: it lets the owner judge the look
+   before the kit elements are reworked. */
+
+:root {
+  color-scheme: dark;
+  --hm-bg: #050a07;
+  --hm-bg-glow-a: rgb(80 200 125 / 8%);
+  --hm-bg-glow-b: rgb(220 165 75 / 5%);
+  --hm-rail-bg: #181818;
+  --hm-rail-border: #393939;
+  --hm-rail-text: #8e949c;
+  --hm-panel: #0b120e;
+  --hm-panel-2: #111a15;
+  --hm-panel-edge: rgb(205 255 225 / 7%);
+  --hm-panel-edge-strong: rgb(205 255 225 / 15%);
+  --hm-text: #eef5f0;
+  --hm-text-2: #b2c1b7;
+  --hm-text-3: #7d8d83;
+
+  /* Accent: the soft glow of the wallpaper's leaves; warm amber for «now». */
+  --hm-accent: #5cd18a;
+  --hm-accent-hi: #86e6aa;
+  --hm-accent-soft: rgb(92 209 138 / 11%);
+  --hm-accent-line: rgb(92 209 138 / 45%);
+  --hm-accent-glow: rgb(92 209 138 / 30%);
+  --hm-plate-top: #5fcf8c;
+  --hm-plate-bottom: #2f9460;
+  --hm-on-plate: #04170c;
+  --hm-warm: #e7b04f;
+  --hm-warm-glow: rgb(231 176 79 / 50%);
+
+  /* Scoreboard: a dark green board with glowing digits. */
+  --hm-board-top: #17392a;
+  --hm-board-bottom: #0e251a;
+  --hm-board-digit: #9ff2c0;
+  --hm-board-dim: rgb(159 242 192 / 45%);
+
+  --hm-kerb-a: #4fc27f;
+  --hm-kerb-b: #d3e0d7;
+  --hm-kerb-edge: rgb(0 0 0 / 40%);
+  --hm-kerb-outline: transparent;
+  --hm-line: #2b3832;
+  --hm-meter-off: #1c2721;
+  --hm-pitch-line: rgb(160 235 190 / 13%);
+  --hm-asphalt: #09100c;
+  --hm-track-edge: rgb(205 255 225 / 17%);
+  --hm-hero-a: #0f1a14;
+  --hm-hero-b: #060b08;
+  --hm-hero-glow: rgb(92 209 138 / 12%);
+  --hm-side-a: #10231a;
+  --hm-side-b: #0a160f;
+  --hm-side-c: #0d1f16;
+  --hm-side-d: #08130d;
+  --hm-pool: rgb(150 240 190 / 18%);
+  --hm-ray: rgb(170 240 200 / 5%);
+  --hm-title-shadow: 0 4px 26px rgb(0 0 0 / 45%);
+  --hm-shadow-sm: 0 12px 28px rgb(0 0 0 / 35%);
+  --hm-shadow-lg: 0 20px 50px rgb(0 0 0 / 55%);
+  --hm-ghost: rgb(205 255 225 / 3%);
+  --hm-ghost-hover: rgb(205 255 225 / 8%);
+  --hm-cell-a: rgb(205 255 225 / 8%);
+  --hm-cell-b: rgb(205 255 225 / 2%);
+  --hm-up-dot: #eef5f0;
+  --hm-check: rgb(230 245 235 / 70%);
+  --hm-display: 'Exo 2 Variable', 'Manrope Variable', 'Segoe UI', sans-serif;
+  --hm-body: 'Manrope Variable', 'Segoe UI', sans-serif;
+}
+
+html.hm-light {
+  color-scheme: light;
+  --hm-bg: #eef3ef;
+  --hm-bg-glow-a: rgb(60 170 105 / 9%);
+  --hm-bg-glow-b: rgb(210 150 60 / 7%);
+  --hm-rail-bg: #f3f6fb;
+  --hm-rail-border: #d3dce9;
+  --hm-rail-text: #66768b;
+  --hm-panel: #ffffff;
+  --hm-panel-2: #f7faf8;
+  --hm-panel-edge: rgb(15 40 25 / 9%);
+  --hm-panel-edge-strong: rgb(15 40 25 / 18%);
+  --hm-text: #0f1a14;
+  --hm-text-2: #3d4d43;
+  --hm-text-3: #637268;
+  --hm-accent: #1f9a55;
+  --hm-accent-hi: #17804a;
+  --hm-accent-soft: rgb(31 154 85 / 9%);
+  --hm-accent-line: rgb(31 154 85 / 40%);
+  --hm-accent-glow: rgb(31 154 85 / 22%);
+  --hm-plate-top: #26a862;
+  --hm-plate-bottom: #17804a;
+  --hm-on-plate: #ffffff;
+  --hm-warm: #b5741a;
+  --hm-warm-glow: rgb(181 116 26 / 35%);
+  --hm-board-top: #17432c;
+  --hm-board-bottom: #0f2f1f;
+  --hm-board-digit: #a6f5c4;
+  --hm-board-dim: rgb(166 245 196 / 50%);
+  --hm-kerb-a: #2fae66;
+  --hm-kerb-b: #ffffff;
+  --hm-kerb-edge: rgb(15 40 25 / 14%);
+  --hm-kerb-outline: rgb(15 40 25 / 14%);
+  --hm-line: #b9c5bd;
+  --hm-meter-off: #dbe4de;
+  --hm-pitch-line: rgb(20 90 50 / 14%);
+  --hm-asphalt: #e2e9e4;
+  --hm-track-edge: rgb(15 40 25 / 20%);
+  --hm-hero-a: #ffffff;
+  --hm-hero-b: #eef4f0;
+  --hm-hero-glow: rgb(31 154 85 / 9%);
+  --hm-side-a: #e6f2ea;
+  --hm-side-b: #d9eadf;
+  --hm-side-c: #e1efe6;
+  --hm-side-d: #d3e5d9;
+  --hm-pool: rgb(255 255 255 / 75%);
+  --hm-ray: rgb(31 154 85 / 4%);
+  --hm-title-shadow: none;
+  --hm-shadow-sm: 0 8px 22px rgb(20 45 30 / 8%);
+  --hm-shadow-lg: 0 14px 36px rgb(20 45 30 / 13%);
+  --hm-ghost: rgb(15 40 25 / 3%);
+  --hm-ghost-hover: rgb(15 40 25 / 7%);
+  --hm-cell-a: rgb(15 40 25 / 6%);
+  --hm-cell-b: rgb(15 40 25 / 2%);
+  --hm-up-dot: #13241a;
+  --hm-check: rgb(15 40 25 / 70%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 520px at 78% -12%, var(--hm-bg-glow-a), transparent 62%),
+    radial-gradient(900px 640px at 8% 108%, var(--hm-bg-glow-b), transparent 60%), var(--hm-bg);
+  color: var(--hm-text);
+  font-family: var(--hm-body);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:where(button, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--hm-accent);
+  outline-offset: 3px;
+}
+
+.hm-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.hm-ico {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Frame: the app's own rail, unchanged ---------- */
+
+.hm-app {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.hm-rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  padding: 16px 8px 12px;
+  background: var(--hm-rail-bg);
+  border-right: 1px solid var(--hm-rail-border);
+}
+
+.hm-brand {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  margin-bottom: 4px;
+  border: 1px solid var(--hm-rail-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hm-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  color: var(--hm-rail-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hm-tab:hover {
+  background: color-mix(in srgb, var(--hm-text) 4%, transparent);
+  color: var(--hm-text);
+}
+
+.hm-tab.is-active {
+  background: color-mix(in srgb, var(--hm-text) 7%, transparent);
+  color: var(--hm-text);
+  box-shadow: inset 2px 0 0 var(--hm-text);
+}
+
+.hm-tab--low {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--hm-rail-border);
+  border-radius: 0 0 8px 8px;
+}
+
+/* ---------- Page ---------- */
+
+.hm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  width: 100%;
+  max-width: 1440px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 22px 34px 26px;
+  container-type: inline-size;
+}
+
+.hm-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.hm-title {
+  margin: 0;
+  font: italic 800 30px/1 var(--hm-display);
+  letter-spacing: -0.01em;
+}
+
+.hm-date {
+  color: var(--hm-text-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hm-seg {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: 10px;
+}
+
+.hm-seg button {
+  position: relative;
+  isolation: isolate;
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: var(--hm-text-2);
+  cursor: pointer;
+  font: italic 700 14px/1 var(--hm-display);
+}
+
+.hm-seg button::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border: 1px solid var(--hm-panel-edge-strong);
+  border-radius: 4px;
+  background: var(--hm-panel);
+  content: '';
+  transform: skewX(-14deg);
+}
+
+.hm-seg button:hover {
+  color: var(--hm-text);
+}
+
+.hm-seg button.is-on {
+  color: var(--hm-on-plate);
+}
+
+.hm-seg button.is-on::before {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--hm-plate-top), var(--hm-plate-bottom));
+  box-shadow: 0 6px 16px var(--hm-accent-glow);
+}
+
+.hm-note {
+  margin-left: auto;
+  padding: 5px 11px;
+  border: 1px dashed var(--hm-panel-edge-strong);
+  border-radius: 999px;
+  color: var(--hm-text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hm-theme {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--hm-panel-edge-strong);
+  border-radius: 8px;
+  background: var(--hm-panel);
+  color: var(--hm-text-2);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- Buttons: slanted plates ---------- */
+
+.hm-btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 26px;
+  border: 0;
+  background: none;
+  color: var(--hm-text);
+  cursor: pointer;
+  font: italic 700 16px/1 var(--hm-display);
+  white-space: nowrap;
+}
+
+.hm-btn::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border: 1.5px solid var(--hm-panel-edge-strong);
+  border-radius: 5px;
+  background: var(--hm-ghost);
+  content: '';
+  transform: skewX(-14deg);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    filter 0.15s;
+}
+
+.hm-btn:hover::before {
+  border-color: var(--hm-text-3);
+  background: var(--hm-ghost-hover);
+}
+
+.hm-btn--primary {
+  color: var(--hm-on-plate);
+}
+
+.hm-btn--primary::before {
+  border: 0;
+  background: linear-gradient(180deg, var(--hm-plate-top), var(--hm-plate-bottom));
+  box-shadow:
+    0 10px 24px var(--hm-accent-glow),
+    inset 0 1px 0 rgb(255 255 255 / 30%);
+}
+
+.hm-btn--primary:hover::before {
+  background: linear-gradient(180deg, var(--hm-plate-top), var(--hm-plate-bottom));
+  box-shadow:
+    0 12px 30px var(--hm-accent-glow),
+    inset 0 1px 0 rgb(255 255 255 / 40%);
+  filter: brightness(1.08);
+}
+
+.hm-btn--sm {
+  height: 38px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+/* ---------- Hero: «Главный матч» ---------- */
+
+.hm-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 316px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    conic-gradient(
+      from 165deg at 78% -30%,
+      transparent 0deg,
+      var(--hm-ray) 6deg,
+      transparent 13deg,
+      var(--hm-ray) 21deg,
+      transparent 27deg,
+      var(--hm-ray) 34deg,
+      transparent 40deg
+    ),
+    radial-gradient(40% 90% at 60% 55%, var(--hm-hero-glow), transparent 70%),
+    linear-gradient(100deg, var(--hm-hero-a) 0%, var(--hm-hero-b) 62%);
+  box-shadow: var(--hm-shadow-lg);
+}
+
+.hm-hero::after {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px var(--hm-panel-edge),
+    inset 0 1px 0 rgb(255 255 255 / 5%);
+  content: '';
+  pointer-events: none;
+}
+
+.hm-split,
+.hm-crests {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 47%;
+  pointer-events: none;
+}
+
+.hm-split {
+  z-index: 1;
+}
+
+.hm-side {
+  position: absolute;
+  inset: 0;
+}
+
+.hm-side--home {
+  background: linear-gradient(180deg, var(--hm-side-a), var(--hm-side-b));
+  clip-path: polygon(17% 0, 60% 0, 47% 100%, 4% 100%);
+}
+
+.hm-side--away {
+  background: linear-gradient(180deg, var(--hm-side-c), var(--hm-side-d));
+  clip-path: polygon(60% 0, 100% 0, 100% 100%, 47% 100%);
+}
+
+/* The glowing left edge of the cut and the seam between the two halves. */
+.hm-split::before,
+.hm-split::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  content: '';
+}
+
+.hm-split::before {
+  background: linear-gradient(180deg, var(--hm-accent-hi), transparent 85%);
+  clip-path: polygon(16.7% 0, 17.3% 0, 4.3% 100%, 3.7% 100%);
+  opacity: 0.85;
+}
+
+.hm-split::after {
+  background: linear-gradient(180deg, var(--hm-accent-line), transparent 80%);
+  clip-path: polygon(59.8% 0, 60.2% 0, 47.2% 100%, 46.8% 100%);
+}
+
+.hm-shine {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgb(255 255 255 / 9%) 50%, transparent 58%);
+  background-size: 250% 100%;
+  animation: hm-shine 9s ease-in-out infinite;
+  clip-path: polygon(17% 0, 100% 0, 100% 100%, 4% 100%);
+}
+
+.hm-hero-art {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hm-stop-accent {
+  stop-color: var(--hm-accent);
+}
+
+.hm-pitch {
+  fill: none;
+  stroke: var(--hm-pitch-line);
+  stroke-width: 1.6;
+}
+
+.hm-pitch .hm-spot {
+  fill: var(--hm-pitch-line);
+  stroke: none;
+}
+
+.hm-streaks rect {
+  fill: url(#hm-streak);
+  opacity: 0.45;
+}
+
+.hm-bed {
+  fill: var(--hm-asphalt);
+}
+
+.hm-track-edge {
+  fill: none;
+  stroke: var(--hm-track-edge);
+  stroke-width: 2;
+}
+
+.hm-kerb-edge {
+  fill: none;
+  stroke: var(--hm-kerb-edge);
+  stroke-width: 11;
+}
+
+.hm-kerb-base,
+.hm-kerb-stripe {
+  fill: none;
+  stroke-width: 8;
+}
+
+.hm-kerb-base {
+  stroke: var(--hm-kerb-b);
+}
+
+.hm-kerb-stripe {
+  stroke: var(--hm-kerb-a);
+  stroke-dasharray: 16 16;
+}
+
+.hm-crests {
+  z-index: 3;
+}
+
+.hm-pool {
+  position: absolute;
+  top: 2%;
+  width: 240px;
+  height: 215px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--hm-pool), transparent);
+  transform: translateX(-50%);
+}
+
+.hm-pool--home {
+  left: 33%;
+}
+
+.hm-pool--away {
+  left: 76%;
+}
+
+.hm-crest {
+  position: absolute;
+  top: 9%;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 20px rgb(0 0 0 / 40%));
+  transform: translateX(-50%);
+  transition: scale 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: hm-float 6s ease-in-out infinite;
+}
+
+.hm-crest--home {
+  left: 33%;
+}
+
+.hm-crest--away {
+  left: 76%;
+  animation-delay: -3s;
+}
+
+.hm-hero:hover .hm-crest {
+  scale: 1.05;
+}
+
+.hm-hero-copy {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 58%;
+  padding: 30px 0 52px 40px;
+}
+
+.hm-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.hm-kicker b {
+  position: relative;
+  isolation: isolate;
+  padding: 6px 18px 6px 14px;
+  color: var(--hm-on-plate);
+  font: italic 800 15px/1.1 var(--hm-display);
+  letter-spacing: 0.01em;
+}
+
+.hm-kicker b::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--hm-plate-top), var(--hm-plate-bottom));
+  box-shadow: 0 6px 16px var(--hm-accent-glow);
+  content: '';
+  transform: skewX(-18deg);
+}
+
+.hm-kicker i,
+.hm-slashes {
+  color: var(--hm-accent);
+  font: italic 900 20px/1 var(--hm-display);
+  letter-spacing: -0.12em;
+}
+
+.hm-hero-title {
+  margin: 2px 0 0;
+  color: var(--hm-text);
+  font: italic 800 clamp(44px, 5cqw, 68px)/0.98 var(--hm-display);
+  letter-spacing: -0.015em;
+  text-shadow: var(--hm-title-shadow);
+}
+
+.hm-hero-title span {
+  padding: 0 0.06em;
+  color: var(--hm-accent);
+}
+
+.hm-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--hm-text-2);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hm-tag {
+  padding: 4px 10px;
+  border: 1px solid var(--hm-accent-line);
+  border-radius: 4px;
+  background: var(--hm-accent-soft);
+  color: var(--hm-text);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.hm-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.hm-timer {
+  display: flex;
+  gap: 6px;
+  margin-right: 4px;
+}
+
+.hm-timer-cell {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 54px;
+  height: 58px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--hm-cell-a), var(--hm-cell-b));
+  box-shadow: inset 0 0 0 1px var(--hm-panel-edge-strong);
+}
+
+.hm-timer-cell b {
+  color: var(--hm-text);
+  font: italic 800 28px/1 var(--hm-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.hm-timer-cell small {
+  color: var(--hm-text-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------- Week track ---------- */
+
+.hm-week {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 16px;
+  margin-top: -6px;
+}
+
+.hm-week > .hm-arrow {
+  margin-top: 31px;
+}
+
+.hm-track {
+  position: relative;
+  height: 100px;
+}
+
+.hm-days {
+  position: absolute;
+  inset: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-days li {
+  color: var(--hm-text-2);
+  font: italic 700 15px/1 var(--hm-display);
+  text-align: center;
+}
+
+.hm-days li b {
+  margin-left: 3px;
+  color: var(--hm-text);
+  font-weight: 800;
+}
+
+.hm-days li.is-past,
+.hm-days li.is-past b {
+  color: var(--hm-text-3);
+}
+
+.hm-days li.is-today b {
+  color: var(--hm-warm);
+}
+
+.hm-line-past {
+  position: absolute;
+  top: 47px;
+  left: 0;
+  width: var(--now);
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--hm-line) 5%);
+  transform-origin: left center;
+  animation: hm-draw 0.8s 0.15s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.hm-line-future {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  left: var(--now);
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--hm-kerb-a) 0 14px, var(--hm-kerb-b) 14px 28px);
+  box-shadow:
+    0 0 0 1px var(--hm-kerb-outline),
+    0 0 14px var(--hm-accent-glow);
+  transform-origin: left center;
+  animation: hm-draw 1s 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.hm-now {
+  position: absolute;
+  top: 18px;
+  left: var(--now);
+  width: 2px;
+  height: 60px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--hm-warm) 45%,
+    var(--hm-warm) 55%,
+    transparent
+  );
+  transform: translateX(-1px);
+}
+
+.hm-now::before {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hm-warm);
+  content: '';
+  transform: translate(-50%, -50%);
+  animation: hm-pulse 2.4s ease-in-out infinite;
+}
+
+.hm-now span {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  color: var(--hm-warm);
+  font: italic 800 13px/1 var(--hm-display);
+  letter-spacing: 0.02em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.hm-ev {
+  position: absolute;
+  z-index: 2;
+  top: 48px;
+  left: var(--at);
+  width: var(--sz, 12px);
+  height: var(--sz, 12px);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--hm-text) 50%, var(--hm-bg));
+  box-shadow: 0 0 0 3px var(--hm-bg);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: box-shadow 0.15s;
+}
+
+.hm-ev.s1 {
+  --sz: 8px;
+}
+
+.hm-ev.s2 {
+  --sz: 11px;
+}
+
+.hm-ev.s3 {
+  --sz: 14px;
+}
+
+.hm-ev.s4 {
+  --sz: 17px;
+}
+
+.hm-ev.s5 {
+  --sz: 20px;
+}
+
+.hm-ev.is-past.s4,
+.hm-ev.is-past.s5 {
+  background: color-mix(in srgb, var(--hm-text) 75%, var(--hm-bg));
+}
+
+.hm-ev:hover,
+.hm-ev:focus-visible {
+  z-index: 5;
+  box-shadow:
+    0 0 0 3px var(--hm-bg),
+    0 0 0 6px color-mix(in srgb, var(--hm-text) 30%, transparent);
+}
+
+/* A dot and its card light up together. */
+.hm-ev.is-linked {
+  z-index: 5;
+  background: var(--hm-text);
+  box-shadow:
+    0 0 0 3px var(--hm-bg),
+    0 0 0 5px var(--hm-accent),
+    0 0 16px 4px var(--hm-accent-glow);
+}
+
+.hm-ev.is-up {
+  --sz: 13px;
+
+  background: var(--hm-up-dot);
+  box-shadow:
+    0 0 0 3px var(--hm-bg),
+    0 0 12px 2px var(--hm-accent-glow);
+}
+
+.hm-ev.is-main {
+  --sz: 22px;
+
+  background: radial-gradient(circle, var(--hm-up-dot) 0 34%, var(--hm-accent) 38% 100%);
+  box-shadow:
+    0 0 0 3px var(--hm-bg),
+    0 0 0 5px var(--hm-accent-line),
+    0 0 22px 5px var(--hm-accent-glow);
+}
+
+.hm-ev-label {
+  position: absolute;
+  top: calc(100% + 11px);
+  left: 50%;
+  color: var(--hm-accent);
+  font: italic 800 12px/1 var(--hm-display);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.hm-flag {
+  position: absolute;
+  z-index: 2;
+  top: 48px;
+  left: var(--at);
+  width: 22px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hm-text-2);
+  cursor: pointer;
+  transform: translate(-2px, -100%);
+}
+
+.hm-flag.is-small {
+  width: 17px;
+  height: 22px;
+}
+
+.hm-flag > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 40%));
+}
+
+.hm-tip {
+  position: absolute;
+  z-index: 10;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--hm-panel-2);
+  box-shadow:
+    var(--hm-shadow-sm),
+    inset 0 0 0 1px var(--hm-panel-edge-strong);
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, 6px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    visibility 0s 0.15s;
+  visibility: hidden;
+}
+
+.hm-tip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-right: 1px solid var(--hm-panel-edge-strong);
+  border-bottom: 1px solid var(--hm-panel-edge-strong);
+  background: var(--hm-panel-2);
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.hm-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hm-tip-head img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.hm-tip-head b {
+  margin-left: 4px;
+}
+
+.hm-tip b {
+  color: var(--hm-text);
+  font: italic 800 14px/1.15 var(--hm-display);
+  white-space: nowrap;
+}
+
+.hm-tip small {
+  color: var(--hm-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hm-ev:hover .hm-tip,
+.hm-ev:focus-visible .hm-tip,
+.hm-flag:hover .hm-tip,
+.hm-flag:focus-visible .hm-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  visibility: visible;
+}
+
+/* ---------- Section heads ---------- */
+
+.hm-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.hm-sec-title {
+  margin: 0;
+  font: italic 800 25px/1 var(--hm-display);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.hm-slashes {
+  margin-left: -4px;
+  font-size: 24px;
+}
+
+.hm-sec-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--hm-accent), transparent);
+  opacity: 0.6;
+}
+
+.hm-arrow {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--hm-panel-edge-strong);
+  border-radius: 8px;
+  background: var(--hm-panel);
+  color: var(--hm-text-2);
+  cursor: pointer;
+}
+
+.hm-arrow:hover:not(:disabled) {
+  border-color: var(--hm-text-3);
+  color: var(--hm-text);
+}
+
+.hm-arrow:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* ---------- Best of the week: score-bug cards ---------- */
+
+.hm-shelf-row {
+  display: grid;
+  grid-auto-columns: calc((100% - 3 * 16px) / 4);
+  grid-auto-flow: column;
+  gap: 16px;
+  margin: -6px -4px -16px;
+  padding: 6px 4px 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.hm-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--hm-panel-2), var(--hm-panel));
+  box-shadow:
+    var(--hm-shadow-sm),
+    inset 0 0 0 1px var(--hm-panel-edge);
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.2s;
+}
+
+.hm-card::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 72px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--hm-accent), transparent);
+  content: '';
+}
+
+.hm-card:hover,
+.hm-card:focus-visible,
+.hm-card.is-linked {
+  box-shadow:
+    var(--hm-shadow-lg),
+    inset 0 0 0 1px var(--hm-accent-line),
+    0 0 28px var(--hm-accent-soft);
+  transform: translateY(-4px);
+}
+
+.hm-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--hm-text-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.hm-bug {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  gap: 12px;
+}
+
+.hm-teams {
+  display: grid;
+  gap: 6px;
+}
+
+.hm-team-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+}
+
+.hm-mini {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.hm-team {
+  overflow: hidden;
+  color: var(--hm-text);
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-team-row.is-lose .hm-team {
+  color: var(--hm-text-3);
+}
+
+.hm-board {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+
+.hm-board::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--hm-board-top), var(--hm-board-bottom));
+  box-shadow:
+    inset 0 0 0 1px var(--hm-accent-line),
+    0 6px 16px rgb(0 0 0 / 25%);
+  content: '';
+  transform: skewX(-10deg);
+}
+
+.hm-board::after {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  left: 8px;
+  height: 1px;
+  background: var(--hm-accent-line);
+  content: '';
+}
+
+.hm-board b {
+  display: grid;
+  place-items: center;
+  color: var(--hm-board-digit);
+  font: italic 800 22px/1 var(--hm-display);
+  text-shadow: 0 0 10px rgb(159 242 192 / 35%);
+}
+
+.hm-board b.is-lose {
+  color: var(--hm-board-dim);
+  text-shadow: none;
+}
+
+.hm-card-why {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hm-meter {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.hm-meter i {
+  width: 12px;
+  height: 8px;
+  border-radius: 1.5px;
+  background: var(--hm-meter-off);
+  transform: skewX(-20deg);
+}
+
+.hm-meter.is-1 i:nth-child(-n + 1),
+.hm-meter.is-2 i:nth-child(-n + 2),
+.hm-meter.is-3 i:nth-child(-n + 3),
+.hm-meter.is-4 i:nth-child(-n + 4),
+.hm-meter.is-5 i {
+  background: var(--hm-accent);
+  box-shadow: 0 0 6px var(--hm-accent-glow);
+}
+
+.hm-chip {
+  padding: 4px 8px;
+  border: 1px solid var(--hm-panel-edge-strong);
+  border-radius: 4px;
+  background: var(--hm-ghost);
+  color: var(--hm-text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Goals by minute: the top team above the line, the bottom team below. */
+.hm-strip {
+  position: relative;
+  height: 32px;
+}
+
+.hm-strip::before {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--hm-line);
+  content: '';
+}
+
+.hm-strip::after {
+  position: absolute;
+  top: 12px;
+  left: 47.9%;
+  width: 1px;
+  height: 9px;
+  background: var(--hm-text-3);
+  content: '';
+}
+
+.hm-g {
+  position: absolute;
+  left: var(--at);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hm-text-2);
+  transform: translateX(-50%);
+}
+
+.hm-g.h {
+  top: 6px;
+}
+
+.hm-g.a {
+  top: 20px;
+}
+
+.hm-g.key {
+  width: 9px;
+  height: 9px;
+  background: var(--hm-warm);
+  box-shadow: 0 0 8px var(--hm-warm-glow);
+}
+
+.hm-g.key.h {
+  top: 4px;
+}
+
+.hm-g.key.a {
+  top: 19px;
+}
+
+.hm-g[data-label]::after {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 5px);
+  color: var(--hm-warm);
+  content: attr(data-label);
+  font: italic 800 11px/1 var(--hm-display);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* ---------- Ahead: slanted cards ---------- */
+
+.hm-ahead-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 0 8px;
+}
+
+.hm-up {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 112px;
+  padding: 14px 30px 14px 30px;
+  cursor: pointer;
+}
+
+.hm-up::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(100deg, var(--hm-accent-soft) 0%, transparent 40%),
+    linear-gradient(180deg, var(--hm-panel-2), var(--hm-panel));
+  box-shadow:
+    var(--hm-shadow-sm),
+    inset 0 0 0 1px var(--hm-panel-edge);
+  content: '';
+  transform: skewX(-10deg);
+  transition: box-shadow 0.2s;
+}
+
+.hm-up:hover::before,
+.hm-up:focus-visible::before {
+  box-shadow:
+    var(--hm-shadow-lg),
+    inset 0 0 0 1px var(--hm-accent-line),
+    0 0 26px var(--hm-accent-soft);
+}
+
+.hm-up-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hm-up-kicker {
+  color: var(--hm-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hm-up-team {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-text);
+  font: italic 800 17px/1.15 var(--hm-display);
+  white-space: nowrap;
+}
+
+.hm-up-team .hm-mini {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.hm-up-flag {
+  flex: none;
+  width: 20px;
+  height: 25px;
+  color: var(--hm-text-2);
+}
+
+.hm-up-session {
+  padding-left: 29px;
+  color: var(--hm-text);
+  font: italic 700 15px/1.15 var(--hm-display);
+}
+
+.hm-up-meta {
+  margin-top: 2px;
+  color: var(--hm-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hm-up-when {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: var(--hm-text);
+  font: italic 800 24px/1 var(--hm-display);
+}
+
+.hm-up-when small {
+  color: var(--hm-text-3);
+  font: 700 11px/1 var(--hm-body);
+  white-space: nowrap;
+}
+
+/* ---------- Formula 1 band ---------- */
+
+.hm-f1 {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto 150px minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-height: 100px;
+  margin: 0 8px;
+  padding-right: 34px;
+}
+
+.hm-f1::before {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, transparent 60%, var(--hm-accent-soft)),
+    linear-gradient(180deg, var(--hm-panel-2), var(--hm-panel));
+  box-shadow:
+    var(--hm-shadow-lg),
+    inset 0 0 0 1px var(--hm-panel-edge);
+  content: '';
+  transform: skewX(-12deg);
+}
+
+.hm-f1-plate {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 14px;
+  padding: 0 30px 0 36px;
+  color: var(--hm-on-plate);
+  font: italic 800 30px/1 var(--hm-display);
+  white-space: nowrap;
+}
+
+.hm-f1-plate::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(90deg, var(--hm-plate-bottom), var(--hm-plate-top));
+  box-shadow: 10px 0 28px var(--hm-accent-glow);
+  content: '';
+  transform: skewX(-12deg);
+}
+
+.hm-f1-plate i {
+  font: italic 900 26px/1 var(--hm-display);
+  letter-spacing: -0.14em;
+  opacity: 0.6;
+}
+
+.hm-f1-checks {
+  align-self: stretch;
+  background: conic-gradient(
+      var(--hm-check) 25%,
+      transparent 0 50%,
+      var(--hm-check) 0 75%,
+      transparent 0
+    )
+    0 0 / 20px 20px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 35%, #000 50%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 35%, #000 50%, transparent);
+  opacity: 0.35;
+  transform: skewX(-12deg);
+}
+
+.hm-f1-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hm-f1-label {
+  color: var(--hm-text-3);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hm-f1-big {
+  color: var(--hm-text);
+  font: italic 800 24px/1.05 var(--hm-display);
+}
+
+.hm-f1-sub {
+  color: var(--hm-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hm-f1-timer {
+  color: var(--hm-text);
+  font: italic 800 40px/1 var(--hm-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.hm-f1-sep {
+  width: 2px;
+  height: 58px;
+  background: linear-gradient(180deg, transparent, var(--hm-accent), transparent);
+  transform: skewX(-12deg);
+}
+
+.hm-foot {
+  margin: -8px 0 0;
+  color: var(--hm-text-3);
+  font-size: 12px;
+}
+
+/* ---------- Narrower windows ---------- */
+
+@container (max-width: 1240px) {
+  .hm-split,
+  .hm-crests {
+    width: 42%;
+  }
+
+  .hm-crest {
+    width: 124px;
+    height: 124px;
+  }
+
+  .hm-pool {
+    width: 200px;
+    height: 180px;
+  }
+
+  .hm-hero-copy {
+    max-width: 62%;
+  }
+
+  .hm-shelf-row {
+    grid-auto-columns: calc((100% - 2 * 16px) / 3);
+  }
+}
+
+/* ---------- Filter: Всё · Футбол · Формула 1 ---------- */
+
+.hm-main[data-view='football'] .is-f1,
+.hm-main[data-view='f1'] .is-football {
+  display: none;
+}
+
+/* ---------- Motion ---------- */
+
+.hm-head,
+.hm-hero,
+.hm-week,
+.hm-shelf,
+.hm-ahead,
+.hm-f1 {
+  animation: hm-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.hm-hero {
+  animation-delay: 0.05s;
+}
+
+.hm-week {
+  animation-delay: 0.12s;
+}
+
+.hm-shelf {
+  animation-delay: 0.2s;
+}
+
+.hm-ahead {
+  animation-delay: 0.28s;
+}
+
+.hm-f1 {
+  animation-delay: 0.36s;
+}
+
+@keyframes hm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hm-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes hm-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgb(231 176 79 / 22%),
+      0 0 16px 2px var(--hm-warm-glow);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 9px rgb(231 176 79 / 0%),
+      0 0 24px 5px var(--hm-warm-glow);
+  }
+}
+
+@keyframes hm-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+@keyframes hm-shine {
+  0%,
+  62% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
