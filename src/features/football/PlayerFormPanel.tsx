@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useViewState } from '../../lib/useViewState';
-import { Button, SegmentedControl, StatTile } from '../../kit';
+import { Button, EmptyState, Panel, PanelHeader, SegmentedControl, StatTile } from '../../kit';
 import {
   fetchPlayerForm,
   selectPlayerFormFixtures,
@@ -96,15 +96,14 @@ export function PlayerFormPanel({
   const average = data?.baseline.metrics[metric].mean ?? null;
   const tz = getUserTimezone();
   return (
-    <section className="panel player-form-panel" aria-label="Форма игрока">
-      <div className="section-title">
-        <div>
-          <h2>
-            <Activity size={18} /> Форма игрока
-          </h2>
-          <p className="analysis-subtitle">{teamName} · последние матчи</p>
-        </div>
-        <div className="analysis-control-group">
+    <Panel className="player-form" aria-label="Форма игрока">
+      <PanelHeader
+        title={
+          <span className="player-form__title">
+            <Activity size={18} aria-hidden="true" /> Форма игрока
+          </span>
+        }
+        action={
           <SegmentedControl
             ariaLabel="Окно формы игрока"
             value={String(windowSize)}
@@ -114,23 +113,19 @@ export function PlayerFormPanel({
               { id: '10', label: '10 матчей' },
             ]}
           />
-        </div>
-      </div>
+        }
+      />
+      <p className="player-form__subtitle">{teamName} · последние матчи</p>
       {!data && !busy && (
-        <Button
-          variant="primary"
-          className="player-form-start"
-          disabled={!candidates.length || !playerId}
-          onClick={() => void load()}
-        >
-          Показать форму игрока <ChevronRight size={15} />
+        <Button disabled={!candidates.length || !playerId} onClick={() => void load()}>
+          Показать форму игрока <ChevronRight size={15} aria-hidden="true" />
         </Button>
       )}
       {!candidates.length && (
-        <p className="muted small">В расписании нет завершённых матчей этого клуба.</p>
+        <p className="players-note">В расписании нет завершённых матчей этого клуба.</p>
       )}
       {busy && (
-        <div className="analysis-progress" role="status">
+        <div className="player-form__progress" role="status">
           <span>
             Собираем показатели: {progress[0]} / {progress[1]}
           </span>
@@ -138,16 +133,19 @@ export function PlayerFormPanel({
         </div>
       )}
       {error && (
-        <p className="season-error" role="alert">
-          {error}{' '}
-          <Button variant="quiet" small onClick={() => void load()}>
-            Повторить
-          </Button>
-        </p>
+        <EmptyState
+          tone="error"
+          message={error}
+          action={
+            <Button variant="quiet" small onClick={() => void load()}>
+              Повторить
+            </Button>
+          }
+        />
       )}
       {data && (
         <>
-          <div className="analysis-coverage">
+          <div className="player-form__coverage">
             <strong>
               Последние {data.recent.fixtures} матчей команды · показатели есть в{' '}
               {data.recent.available}
@@ -158,7 +156,7 @@ export function PlayerFormPanel({
               {data.failed ? ` · не загрузились: ${data.failed}` : ''}
             </span>
           </div>
-          <div className="form-summary-grid">
+          <div className="player-form__summary">
             {METRICS.map((m) => {
               const recent = data.recent.metrics[m.key],
                 base = data.baseline.metrics[m.key];
@@ -167,7 +165,7 @@ export function PlayerFormPanel({
               return (
                 <Button
                   key={m.key}
-                  className={metric === m.key ? 'form-summary-card selected' : 'form-summary-card'}
+                  className="player-form__metric"
                   aria-pressed={metric === m.key}
                   onClick={() => setMetric(m.key)}
                 >
@@ -197,16 +195,16 @@ export function PlayerFormPanel({
               );
             })}
           </div>
-          <div className="analysis-chart-head">
+          <div className="player-form__chart-head">
             <h3>{chosenMetric.label} по матчам</h3>
             <span>Пунктир — среднее базы</span>
           </div>
           <div
-            className="analysis-chart"
+            className="player-form__chart"
             role="img"
             aria-label={`График: ${chosenMetric.label}, последние ${data.recent.fixtures} матчей`}
           >
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={220}>
               <LineChart data={graph} margin={{ top: 15, right: 20, bottom: 12, left: 0 }}>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
                 <XAxis
@@ -261,7 +259,7 @@ export function PlayerFormPanel({
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="ui-table-scroll form-match-table">
+          <div className="ui-table-scroll player-form__table">
             <table className="ui-table">
               <thead>
                 <tr>
@@ -281,7 +279,7 @@ export function PlayerFormPanel({
                       <td>
                         <Button
                           variant="quiet"
-                          className="form-match-open"
+                          className="player-form__match"
                           disabled={!onOpenMatch}
                           onClick={() => onOpenMatch?.(row.id)}
                         >
@@ -309,14 +307,14 @@ export function PlayerFormPanel({
               </tbody>
             </table>
           </div>
-          <div className="analysis-footer">
+          <div className="player-form__footer">
             <span>База — до 60 последних матчей клуба.</span>
             <Button disabled={busy} onClick={() => void load()}>
-              <RefreshCw size={13} /> Повторить подсчёт
+              <RefreshCw size={13} aria-hidden="true" /> Повторить подсчёт
             </Button>
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

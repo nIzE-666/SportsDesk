@@ -2,8 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeft, Star } from 'lucide-react';
 import { api } from '../../lib/bridge';
 import { PersonAvatar } from '../../components/PersonAvatar';
-import { LoadingBlock } from '../../components/StateViews';
-import { Button } from '../../kit';
+import { Button, Panel, Skeleton } from '../../kit';
 import { useFavorites } from './FavoritesProvider';
 import { PlayerProfile } from './MatchPlayers';
 import { SeasonPlayerPanel } from './SeasonPlayerPanel';
@@ -61,48 +60,66 @@ export function SavedPlayerProfile({
     };
   }, [player.id, player.matchId, player.teamId]);
   return (
-    <div className="club-player-detail" ref={top}>
+    <div className="players-profile" ref={top}>
       {state ? (
         <PlayerProfile entry={state.entry} detail={state.detail} onBack={onBack} />
       ) : (
-        <section className="panel">
-          <div className="section-title">
-            <Button onClick={onBack}>
-              <ArrowLeft size={14} /> К игрокам
+        <Panel aria-label={player.name}>
+          <div className="players-profile__actions">
+            <Button onClick={onBack} icon={<ArrowLeft size={14} aria-hidden="true" />}>
+              К игрокам
             </Button>
-            <Button aria-pressed={isPlayerFavorite(player.id)} onClick={() => togglePlayer(player)}>
-              <Star size={14} /> {isPlayerFavorite(player.id) ? 'В избранном' : 'В избранное'}
+            <Button
+              aria-pressed={isPlayerFavorite(player.id)}
+              onClick={() => togglePlayer(player)}
+              icon={
+                <Star
+                  size={14}
+                  fill={isPlayerFavorite(player.id) ? 'currentColor' : 'none'}
+                  aria-hidden="true"
+                />
+              }
+            >
+              {isPlayerFavorite(player.id) ? 'В избранном' : 'В избранное'}
             </Button>
           </div>
-          <div className="player-profile-head">
+          <div className="players-profile__head">
             <PersonAvatar name={player.name} src={player.imageUrl} size={64} />
             <div>
               <h2>{player.name}</h2>
-              <p className="muted">{player.teamName}</p>
+              <p className="players-note">{player.teamName}</p>
             </div>
           </div>
-          {busy && <LoadingBlock label="Загружаем показатели сохранённого матча…" rows={2} />}
+          {busy && (
+            <div className="players-profile__loading" role="status">
+              <Skeleton className="players-profile__skeleton" />
+              <Skeleton className="players-profile__skeleton" />
+              <span>Загружаем показатели сохранённого матча…</span>
+            </div>
+          )}
           {error && (
-            <p role="status" className="muted">
+            <p role="status" className="players-note">
               {error}
             </p>
           )}
-        </section>
+        </Panel>
       )}
-      <PlayerFormPanel
-        playerId={player.id}
-        teamId={player.teamId ?? ''}
-        teamName={player.teamName ?? ''}
-        matches={matches}
-        onOpenMatch={onOpenMatch}
-      />
-      <SeasonPlayerPanel
-        playerId={player.id}
-        teamId={player.teamId ?? ''}
-        teamName={player.teamName ?? ''}
-        matches={matches}
-        onOpenMatch={onOpenMatch}
-      />
+      <div className="players-profile__panels">
+        <PlayerFormPanel
+          playerId={player.id}
+          teamId={player.teamId ?? ''}
+          teamName={player.teamName ?? ''}
+          matches={matches}
+          onOpenMatch={onOpenMatch}
+        />
+        <SeasonPlayerPanel
+          playerId={player.id}
+          teamId={player.teamId ?? ''}
+          teamName={player.teamName ?? ''}
+          matches={matches}
+          onOpenMatch={onOpenMatch}
+        />
+      </div>
     </div>
   );
 }

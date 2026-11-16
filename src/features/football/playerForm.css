@@ -1,60 +1,76 @@
-.player-form-panel {
-  display: grid;
-  gap: var(--space-16);
+/* Player form and season panels, shared by «Игроки» and the match lineups. */
+.player-form {
+  gap: var(--space-12);
   min-width: 0;
 }
-.player-form-panel > .player-form-start,
-.season-player-panel > .player-form-start {
-  justify-self: start;
+
+.player-form__title,
+.player-season__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
 }
-.analysis-subtitle {
+
+.player-form__subtitle,
+.player-season__team {
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--text-12);
   line-height: var(--line-body);
-  margin: var(--space-8) 0 0;
 }
-.analysis-description {
+
+.players-note {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--text-13);
   line-height: var(--line-body);
-  max-width: 900px;
 }
-.analysis-control-group {
-  display: flex;
-  gap: var(--space-8);
-  flex-wrap: wrap;
+
+.player-form > .ui-button,
+.player-season > .ui-button {
+  align-self: flex-start;
 }
-.analysis-progress {
+
+.player-form__progress,
+.player-season__progress {
   display: grid;
   gap: var(--space-8);
   color: var(--color-accent);
   font-size: var(--text-13);
 }
-.analysis-progress progress {
+
+.player-form__progress progress,
+.player-season__progress progress {
   width: 100%;
   accent-color: var(--color-accent);
 }
-.analysis-coverage {
+
+.player-form__coverage,
+.player-season__coverage {
   display: grid;
   gap: var(--space-8);
   padding: var(--space-16);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-1));
   font-size: var(--text-13);
 }
-.analysis-coverage > span {
+
+.player-form__coverage > span,
+.player-season__coverage > span {
   color: var(--color-text-secondary);
   font-size: var(--text-12);
   line-height: var(--line-body);
 }
-.form-summary-grid {
+
+.player-form__summary,
+.player-season__metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--space-12);
 }
-.form-summary-card {
+
+.player-form__metric {
   display: block;
   height: auto;
   min-height: 0;
@@ -64,59 +80,78 @@
   text-align: left;
   white-space: normal;
 }
-.form-summary-card .ui-stat {
+
+.player-form__metric .ui-stat {
   height: 100%;
   align-content: start;
 }
-.form-summary-card .ui-button__label {
+
+.player-form__metric .ui-button__label {
   display: block;
   width: 100%;
 }
-.form-summary-card .ui-stat__label {
+
+.player-form__metric .ui-stat__label {
   min-height: 2.7em;
   line-height: var(--line-body);
 }
-.form-summary-card .ui-stat__note {
+
+.player-form__metric .ui-stat__note {
   display: grid;
   gap: var(--space-4);
   line-height: var(--line-body);
 }
-.form-summary-card[aria-pressed='true'] .ui-stat {
+
+.player-form__metric[aria-pressed='true'] .ui-stat {
   border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-2));
 }
-.analysis-chart-head {
+
+.player-form__chart-head {
   display: flex;
-  gap: var(--space-16);
-  justify-content: space-between;
-  align-items: center;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
 }
-.analysis-chart-head h3 {
-  font-size: var(--text-16);
+
+.player-form__chart-head h3,
+.player-season__subtitle {
   margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-16);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-heading);
 }
-.analysis-chart-head > span {
-  font-size: var(--text-12);
+
+.player-form__chart-head > span {
   color: var(--color-text-secondary);
+  font-size: var(--text-12);
 }
-.analysis-chart {
-  min-width: 0;
+
+.player-form__chart {
   width: 100%;
+  min-width: 0;
 }
-.form-match-table {
-  max-height: 460px;
+
+.player-form__table,
+.player-season__table {
+  max-height: 360px;
 }
-.form-match-table .ui-table td {
+
+.player-form__table .ui-table td,
+.player-season__table .ui-table td {
   padding-top: var(--space-8);
   padding-bottom: var(--space-8);
 }
-.form-match-open {
+
+.player-form__match,
+.player-season__match {
   display: grid;
-  justify-content: flex-start;
-  gap: var(--space-4);
   height: auto;
   min-height: 0;
+  justify-items: start;
+  gap: var(--space-4);
   padding: 0;
   border: 0;
   background: transparent;
@@ -125,70 +160,49 @@
   line-height: var(--line-body);
   text-align: left;
 }
-.form-match-open .ui-button__label {
+
+.player-form__match .ui-button__label,
+.player-season__match .ui-button__label {
   display: grid;
   justify-items: start;
   gap: var(--space-4);
 }
-.form-match-open small {
+
+.player-form__match small,
+.player-season__match small {
   color: var(--color-text-secondary);
   font-size: var(--text-12);
 }
-.form-match-open > span {
+
+.player-form__match > span,
+.player-season__match > span {
   font-size: var(--text-13);
 }
-.form-match-open:disabled {
+
+.player-form__match:disabled {
   cursor: default;
   opacity: 1;
 }
-.analysis-footer {
+
+.player-form__footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-16);
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
 }
-.analysis-footer > span {
+
+.player-form__footer > span {
+  max-width: calc(var(--space-48) * 14);
   color: var(--color-text-secondary);
   font-size: var(--text-12);
   line-height: var(--line-body);
-  max-width: 650px;
 }
-/* The season list keeps its place; only the kit label wrapper needs the columns. */
-.season-player-panel .season-match-list > .season-match-open {
-  display: flex;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  justify-content: stretch;
-  padding: var(--space-12) 0;
-  border: 0;
-  border-top: 1px solid var(--color-border);
-  border-radius: 0;
-  background: none;
-  font-size: var(--text-12);
-  text-align: left;
+
+.player-season__metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
 }
-.season-player-panel .season-match-list > .season-match-open .ui-button__label {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--space-16);
-  min-width: 0;
-  white-space: normal;
-}
-.season-player-panel .season-match-open .ui-button__label > span:first-child {
-  display: grid;
-  flex: 1;
-  gap: var(--space-4);
-  min-width: 0;
-}
-.season-player-panel .season-match-open .ui-button__label strong {
-  color: var(--color-text);
-  font-size: var(--text-13);
-}
-@media (max-width: 1050px) {
-  .form-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+
+.player-season__subtitle {
+  margin-top: var(--space-8);
 }

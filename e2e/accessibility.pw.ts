@@ -338,6 +338,48 @@ test('key screens have one h1, a named rail, named controls and a focus ring', a
   await screen('Футбол · таблица', '.standings-view');
   await tab(page, 'Игроки');
   await screen('Футбол · игроки', '.players-view');
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'sportsdesk.football.favorites.players',
+      JSON.stringify([
+        {
+          id: 'a',
+          name: 'Alex Morgan',
+          teamId: 'arsenal',
+          teamName: 'Arsenal',
+          matchId: 'test-match',
+          matchLabel: 'Arsenal — Chelsea',
+          savedAt: '2026-10-21',
+        },
+        {
+          id: 'c',
+          name: 'Jamie Wilson',
+          teamId: 'chelsea',
+          teamName: 'Chelsea',
+          matchId: 'test-match',
+          matchLabel: 'Arsenal — Chelsea',
+          savedAt: '2026-10-21',
+        },
+      ]),
+    );
+    window.dispatchEvent(new Event('sportsdesk-storage-changed'));
+  });
+  await expect(page.locator('.players-favorites__row').first()).toBeVisible();
+  await screen('Футбол · игроки · избранные', '.players-view');
+  const compare = page.locator('.players-compare-picker');
+  await compare.getByLabel('Первый игрок для сравнения').fill('Alex');
+  await compare.getByRole('option', { name: 'Alex Morgan' }).click();
+  await compare.getByLabel('Второй игрок для сравнения').fill('Jamie');
+  await compare.getByRole('option', { name: 'Jamie Wilson' }).click();
+  await screen('Футбол · игроки · сравнение', '.players-view');
+  const directory = page.locator('.players-directory');
+  await directory.getByLabel('Клуб или игрок').fill('Arsenal');
+  await directory.getByRole('option', { name: 'Arsenal', exact: true }).click();
+  await expect(page.locator('.players-squad__row').first()).toBeVisible();
+  await screen('Футбол · игроки · состав', '.players-view');
+  await page.locator('.players-squad__open').first().click();
+  await screen('Футбол · игроки · профиль', '.players-profile');
+  await page.getByRole('button', { name: 'К составу' }).click();
   await tab(page, 'Клубы');
   await screen('Футбол · клубы', '.team-view');
   const club = page.getByRole('combobox', { name: 'Клуб', exact: true });

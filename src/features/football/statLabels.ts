@@ -111,6 +111,7 @@ const groupNames: Record<string, string> = {
   passes: 'Передачи',
   passing: 'Передачи',
   shots: 'Удары',
+  summary: 'Главное',
   'top stats': 'Основные показатели',
   top_stats: 'Основные показатели',
   attack: 'Атака',

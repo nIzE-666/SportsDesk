@@ -31,3 +31,7 @@ it('displays metres as kilometres with Russian decimal notation without changing
   expect(formatDistanceStat(2078, 11053)).toBe('2,078 км (18,8%)');
   expect(statLabel('top_speed', 'Top speed')).toBe('Максимальная скорость');
 });
+it('translates a known group title and leaves an unknown one as the source sent it', () => {
+  expect(statGroupLabel('summary', 'Summary')).toBe('Главное');
+  expect(statGroupLabel('custom', 'Custom group')).toBe('Custom group');
+});

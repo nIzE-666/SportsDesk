@@ -93,6 +93,68 @@ export async function screenTour(
   for (const title of football) {
     await section(page, 'Футбол');
     await tab(page, title);
+    if (title === 'Игроки') {
+      // The tour visits «Игроки» in four states: favourites, comparison,
+      // a club squad and one player's profile. It starts from the empty state
+      // and restores it at the end, so the next theme sees the same screen.
+      await expect(page.locator('.players-view')).toBeVisible();
+      await stop('Игроки');
+      await page.evaluate(() => {
+        localStorage.setItem(
+          'sportsdesk.football.favorites.players',
+          JSON.stringify([
+            {
+              id: 'a',
+              name: 'Alex Morgan',
+              teamId: 'arsenal',
+              teamName: 'Arsenal',
+              matchId: 'test-match',
+              matchLabel: 'Arsenal — Chelsea',
+              savedAt: '2026-10-21',
+            },
+            {
+              id: 'c',
+              name: 'Jamie Wilson',
+              teamId: 'chelsea',
+              teamName: 'Chelsea',
+              matchId: 'test-match',
+              matchLabel: 'Arsenal — Chelsea',
+              savedAt: '2026-10-21',
+            },
+          ]),
+        );
+        window.dispatchEvent(new Event('sportsdesk-storage-changed'));
+      });
+      await expect(page.locator('.players-favorites__row').first()).toBeVisible();
+      await stop('Игроки: избранные');
+      const compare = page.locator('.players-compare-picker');
+      await compare.getByLabel('Первый игрок для сравнения').fill('Alex');
+      await compare.getByRole('option', { name: 'Alex Morgan' }).click();
+      await compare.getByLabel('Второй игрок для сравнения').fill('Jamie');
+      await compare.getByRole('option', { name: 'Jamie Wilson' }).click();
+      await stop('Игроки: сравнение');
+      const directory = page.locator('.players-directory');
+      await directory.getByLabel('Клуб или игрок').fill('Arsenal');
+      await directory.getByRole('option', { name: 'Arsenal', exact: true }).click();
+      await expect(page.locator('.players-squad__row').first()).toBeVisible();
+      await stop('Игроки: состав');
+      await page.locator('.players-squad__open').first().click();
+      await expect(page.locator('.players-profile').first()).toBeVisible();
+      await stop('Игроки: профиль');
+
+      // Back to the empty state for the next theme.
+      await page.getByRole('button', { name: 'К составу' }).click();
+      const favoritesPanel = page.locator('.players-favorites');
+      await favoritesPanel
+        .getByRole('button', { name: 'Убрать из избранного: Alex Morgan' })
+        .click();
+      await favoritesPanel
+        .getByRole('button', { name: 'Убрать из избранного: Jamie Wilson' })
+        .click();
+      await directory.locator('.search-select-clear').click();
+      await expect(page.locator('.players-favorites__row')).toHaveCount(0);
+      continue;
+    }
     await stop(title);
   }
   await section(page, 'Футбол');

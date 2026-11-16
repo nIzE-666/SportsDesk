@@ -263,7 +263,8 @@ export function PlayerProfile({
             })
           }
         >
-          <Star size={14} /> {favorite ? 'В избранном' : 'В избранное'}
+          <Star size={14} fill={favorite ? 'currentColor' : 'none'} aria-hidden="true" />{' '}
+          {favorite ? 'В избранном' : 'В избранное'}
         </Button>
       </div>
       <div className="player-profile-head">

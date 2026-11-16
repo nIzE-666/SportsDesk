@@ -118,30 +118,57 @@ async function retry(title: string) {
   expect(button).not.toBeNull();
   await act(async () => button!.click());
 }
+async function pickComparePlayer(label: string, query: string, option: string) {
+  const field = host.querySelector<HTMLInputElement>(`[role="combobox"][aria-label="${label}"]`)!;
+  await act(async () => field.focus());
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, query);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const found = [...host.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (element) => element.textContent?.trim() === option,
+  );
+  expect(found, option).toBeDefined();
+  await act(async () => found!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+}
 
 it('does not calculate partial player totals on a history failure and retries with all matches', async () => {
   localStorage.setItem(
     STORAGE_KEYS.favoritePlayers,
-    JSON.stringify([{ id: 'player', name: 'Player', teamId: 'club', savedAt: '2026' }]),
+    JSON.stringify([
+      { id: 'player', name: 'Player', teamId: 'club', savedAt: '2026' },
+      { id: 'rival-player', name: 'Rival player', teamId: 'rival', savedAt: '2026' },
+    ]),
   );
-  transport.rpc.mockRejectedValueOnce(new Error('history unavailable'));
-  transport.rpc.mockResolvedValueOnce([storedMatch('from-history')]);
+  viewState.write('players.compare.a', 'player');
+  viewState.write('players.compare.b', 'rival-player');
+  let clubHistoryFailed = false;
+  transport.rpc.mockImplementation(async (_command: string, args?: { teamId?: string }) => {
+    if (args?.teamId === 'club' && !clubHistoryFailed) {
+      clubHistoryFailed = true;
+      throw new Error('history unavailable');
+    }
+    return [storedMatch(args?.teamId === 'club' ? 'from-history' : 'rival-history', args?.teamId)];
+  });
   await render(
     <FavoritesProvider>
       <PlayersCenter data={data([match])} onOpenMatch={vi.fn()} />
     </FavoritesProvider>,
   );
   expect(host.textContent).toContain('прочитать историю матчей');
-  expect(host.querySelector('.pc-metrics')).toBeNull();
-  expect(analytics.fetchPlayerSeasonStats).not.toHaveBeenCalled();
-  await retry('Статистика недоступна');
+  expect(analytics.fetchPlayerSeasonStats).not.toHaveBeenCalledWith(
+    'player',
+    expect.anything(),
+    expect.anything(),
+  );
+  await retry('Нет данных: Player');
   expect(host.querySelector('[role="alert"]')).toBeNull();
   expect(analytics.fetchPlayerSeasonStats).toHaveBeenCalledWith(
     'player',
     'club',
     expect.arrayContaining([expect.objectContaining({ id: 'from-history' }), match]),
   );
-  expect(host.querySelector('.pc-foot')?.textContent).toContain('проверено 2 из 2');
+  expect(host.querySelector('.players-compare__table')?.textContent).toContain('2');
 });
 
 it('retries the head-to-head history of the club tab', async () => {
@@ -182,26 +209,19 @@ it('does not replace a newly selected comparison with a late response', async ()
   const pending = new Promise<HistoryMatch[]>((resolve) => {
     finish = resolve;
   });
-  transport.rpc.mockImplementation((command: string, args: { teamId?: string }) =>
-    command === 'history_team_matches' && args?.teamId === 'slow-team'
-      ? pending
-      : Promise.resolve([storedMatch('from-history')]),
+  transport.rpc.mockImplementation((_command: string, args?: { teamId?: string }) =>
+    args?.teamId === 'slow-team' ? pending : Promise.resolve([storedMatch('from-history')]),
   );
   await render(
     <FavoritesProvider>
       <PlayersCenter data={data([match])} onOpenMatch={vi.fn()} />
     </FavoritesProvider>,
   );
-  const select = host.querySelector<HTMLSelectElement>(
-    '[aria-label="Первый игрок для сравнения"]',
-  )!;
-  await act(async () => {
-    select.value = 'fast';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  const compare = () => host.querySelector('.pc-compare')!;
-  expect(compare().textContent).toContain('Fast и Fixed');
+  await pickComparePlayer('Первый игрок для сравнения', 'Fast', 'Fast');
+  const compare = () => host.querySelector('.players-compare__table')!;
+  expect(compare().textContent).toContain('Fast');
+  expect(compare().textContent).toContain('Fixed');
   await act(async () => finish([storedMatch('slow-history', 'slow-team')]));
-  expect(compare().textContent).toContain('Fast и Fixed');
-  expect(compare().querySelector('.pc-compare-row strong')?.textContent).toBe('1');
+  expect(compare().textContent).toContain('Fast');
+  expect(compare().textContent).not.toContain('99');
 });

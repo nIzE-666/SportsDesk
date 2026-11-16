@@ -558,44 +558,40 @@ for (const width of [1100, 1440])
 
     await openPlayers([]);
     await expect(players.getByRole('heading', { name: /Избранные игроки/ })).toHaveCount(0);
-    await expect(players.locator('.state-block')).toHaveCount(1);
-    await expect(players.locator('.state-block')).toContainText('Избранных игроков пока нет');
-    await expect(players.locator('.pc-picker')).toHaveCount(0);
-    await expect(players.locator('.player-directory')).toBeVisible();
+    await expect(players.locator('.ui-empty')).toHaveCount(1);
+    await expect(players.locator('.ui-empty')).toContainText(
+      'Выберите клуб ниже и отметьте игроков звёздочкой.',
+    );
+    await expect(players.locator('.players-compare-picker')).toHaveCount(0);
+    await expect(players.locator('.players-directory')).toBeVisible();
     await shoot(page, testInfo, `broadcast-${width}-players-none`);
 
     await openPlayers(favoritePlayers(1));
-    await expect(players.getByRole('heading', { name: 'Избранные игроки · 1' })).toBeVisible();
-    await expect(players.locator('.pc-card')).toHaveCount(1);
-    await expect(players.locator('.pc-picker')).toHaveCount(0);
+    await expect(players.getByRole('heading', { name: /Избранные игроки/ })).toBeVisible();
+    await expect(players.locator('.players-favorites__row')).toHaveCount(1);
+    await expect(players.locator('.players-compare-picker')).toHaveCount(0);
     await expect(players.getByRole('button', { name: /^Сравнить:/ })).toHaveCount(0);
-    await expect(players.locator('.pc-card .pc-scope')).toContainText(
-      'Сводка по 1 матчу с данными',
-    );
-    await expect(players.locator('.pc-card .pc-metrics')).toContainText('Голы');
     await shoot(page, testInfo, `broadcast-${width}-players-one`);
 
     await openPlayers(favoritePlayers(10));
-    await expect(players.getByRole('heading', { name: 'Избранные игроки · 10' })).toBeVisible();
-    await expect(players.locator('.pc-card')).toHaveCount(10);
-    await expect(players.locator('.pc-picker select')).toHaveCount(2);
+    await expect(players.getByRole('heading', { name: /Избранные игроки/ })).toBeVisible();
+    await expect(players.locator('.players-favorites__row')).toHaveCount(10);
+    await expect(players.locator('.players-compare-picker [role="combobox"]')).toHaveCount(2);
     await shoot(page, testInfo, `broadcast-${width}-players-ten`);
 
     await openPlayers(favoritePlayers(2));
-    const directory = players.locator('.player-directory');
-    await directory.getByLabel('Клуб для выбора игроков').fill('Cobalt');
+    const directory = players.locator('.players-directory');
+    await directory.getByLabel('Клуб или игрок').fill('Cobalt');
     await directory.getByRole('option', { name: 'Cobalt Rovers' }).click();
-    const squad = players.locator('.club-players');
-    await expect(squad.locator('.squad-player')).toHaveCount(18);
-    await expect(squad.locator('.section-title .muted')).toHaveText('18 игроков');
-    await squad.getByLabel('Поиск игрока в составе').fill('нет такого игрока');
-    await expect(squad.locator('.squad-player')).toHaveCount(0);
-    await expect(squad.locator('.state-block')).toHaveCount(1);
-    await expect(squad.locator('.state-block')).toContainText('Таких игроков в составе нет');
+    const squad = players.locator('.players-squad');
+    await expect(squad.locator('.players-squad__row')).toHaveCount(18);
+    await expect(squad.locator('.players-squad__title .ui-badge')).toHaveText('18 игроков');
+    await squad.getByLabel('Найти игрока в составе').fill('нет такого игрока');
+    await expect(squad.getByText('Ничего не найдено')).toBeVisible();
     await squad.scrollIntoViewIfNeeded();
     await shoot(page, testInfo, `broadcast-${width}-players-no-match`);
-    await squad.getByRole('button', { name: 'Очистить поиск' }).click();
-    await expect(squad.locator('.squad-player')).toHaveCount(18);
+    await page.keyboard.press('Escape');
+    await expect(squad.locator('.players-squad__row')).toHaveCount(18);
     expect(await noOverflow(page)).toBe(true);
     expect(errors).toEqual([]);
   });

@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, Star, X } from 'lucide-react';
-import { EmptyBlock, ErrorBlock, LoadingBlock } from '../../components/StateViews';
-import { SearchSelect } from '../../components/SearchSelect';
-import { Button, IconButton, StatTile } from '../../kit';
+import { ArrowLeftRight, ChevronRight, Star, X } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  IconButton,
+  Panel,
+  PanelHeader,
+  SearchSelect,
+  Skeleton,
+  type SearchSelectOption,
+} from '../../kit';
 import { fetchTeamHistory, type HistoryMatch } from './history';
 import { fetchPlayerSeasonStats, type PlayerSeasonStats } from './playerAnalytics';
 import { statLabel } from './statLabels';
@@ -19,9 +27,34 @@ import './players.css';
 /**
  * №6: Единый центр игроков — cross-league. Любимые игроки со всех лиг;
  * сезонная статистика собирается по матчам команды из ЛОКАЛЬНОЙ ИСТОРИИ
- * (все загруженные лиги), а не только текущего турнира; два игрока можно
- * сравнить бок о бок.
+ * (все загруженные лиги); два игрока можно сравнить бок о бок.
  */
+
+const CLUB_PREFIX = 'club:';
+const PLAYER_PREFIX = 'player:';
+
+/** Metrics where a smaller number is better; every other metric is better when larger. */
+const LOWER_IS_BETTER = new Set([
+  'fouls',
+  'red_cards',
+  'yellow_cards',
+  'yellow_red_cards',
+  'redcard',
+  'yellowcard',
+  'dispossessed',
+  'own_goals',
+  'penalties_conceded',
+  'penalties_missed',
+  'errors_led_to_goal',
+  'errors_lead_to_shot',
+  'goals_conceded',
+  'shots_off_target',
+  'shotsofftarget',
+  'offsides',
+  'dribbled_past',
+  'duel_lost',
+  'big_chance_missed_title',
+]);
 
 function historyToSummary(m: HistoryMatch): MatchSummary {
   return {
@@ -111,280 +144,6 @@ function usePlayerSeason(
   };
 }
 
-function PlayerCardView({
-  player,
-  onCompare,
-  compareSlot,
-  comparisonFull,
-  canCompare,
-  matches,
-  onOpen,
-  onRemove,
-}: {
-  player: FavoritePlayer;
-  onCompare: () => void;
-  compareSlot: 1 | 2 | null;
-  comparisonFull: boolean;
-  canCompare: boolean;
-  matches: MatchSummary[];
-  onOpen: () => void;
-  onRemove: () => void;
-}) {
-  const { stats, busy, error, retry } = usePlayerSeason(player, matches);
-  // Nothing to summarise: say so once instead of a heading and a foot line full of zeros.
-  const noSummary = !!stats && !busy && stats.metrics.length === 0;
-  return (
-    <section className="panel pc-card">
-      <div className="pc-head">
-        <IconButton
-          className="pc-avatar-button"
-          onClick={onOpen}
-          aria-label={`Статистика: ${player.name}`}
-          icon={<PersonAvatar name={player.name} src={player.imageUrl} size={52} />}
-        />
-        <div className="pc-title">
-          <Button variant="quiet" className="pc-name-button" onClick={onOpen}>
-            <strong>{player.name}</strong>
-            <small>Профиль и статистика →</small>
-          </Button>
-          <span className="muted small">{player.teamName ?? '—'}</span>
-        </div>
-        <IconButton
-          className="is-active"
-          aria-label={`Убрать из избранного: ${player.name}`}
-          onClick={onRemove}
-          icon={<Star size={16} fill="currentColor" />}
-        />
-      </div>
-
-      {!noSummary && (
-        <div className="pc-scope">
-          <strong>
-            {stats
-              ? `Сводка по ${stats.available} ${stats.available % 10 === 1 && stats.available % 100 !== 11 ? 'матчу' : 'матчам'} с данными`
-              : 'Сводка по загруженным матчам'}
-          </strong>
-          <span>
-            Суммы и средние показатели по матчам команды. Это не статистика одной встречи.
-          </span>
-        </div>
-      )}
-
-      {busy && <LoadingBlock label="Собираем статистику по всем лигам…" rows={2} />}
-      {error && <ErrorBlock title="Статистика недоступна" message={error} onRetry={retry} />}
-      {noSummary && (
-        <p className="muted small">Источник не вернул показатели игрока в матчах истории.</p>
-      )}
-      {stats && stats.metrics.length > 0 && (
-        <div className="pc-metrics">
-          {stats.metrics.slice(0, 8).map((m) => (
-            <StatTile
-              key={m.key}
-              label={statLabel(m.key, m.label)}
-              value={`${m.value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${
-                m.kind === 'fraction' ? '%' : ''
-              }`}
-              note={`${m.matches} матч.`}
-            />
-          ))}
-        </div>
-      )}
-      {stats && (
-        <p className="muted small pc-foot">
-          {stats.minutes > 0 ? `${stats.minutes} известных минут · ` : ''}проверено {stats.scanned}{' '}
-          из {stats.totalCandidates} матчей
-          {stats.failed ? ` · ${stats.failed} ответов недоступно` : ''}
-        </p>
-      )}
-      {player.matchLabel && (
-        <p className="pc-origin muted small">
-          Сохранён из матча: <span>{player.matchLabel}</span>
-        </p>
-      )}
-      <div className="pc-actions">
-        <Button onClick={onOpen}>Открыть профиль</Button>
-        {(canCompare || !!compareSlot) && (
-          <Button
-            aria-pressed={!!compareSlot}
-            aria-label={`${compareSlot ? 'Убрать из сравнения' : 'Сравнить'}: ${player.name}`}
-            disabled={!compareSlot && comparisonFull}
-            title={
-              !compareSlot && comparisonFull
-                ? 'Сначала уберите одного игрока из сравнения'
-                : compareSlot
-                  ? 'Убрать игрока из сравнения'
-                  : 'Добавить игрока в сравнение'
-            }
-            onClick={onCompare}
-          >
-            <ArrowLeftRight size={14} /> {compareSlot ? 'В сравнении · убрать' : 'Сравнить'}
-          </Button>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function ComparisonRow({
-  label,
-  a,
-  b,
-  percent,
-}: {
-  label: string;
-  a: number | null;
-  b: number | null;
-  percent: boolean;
-}) {
-  const winner = a !== null && b !== null && a !== b ? (a > b ? 'a' : 'b') : null;
-  return (
-    <div className="pc-compare-row">
-      <strong className={winner === 'a' ? 'pc-win' : ''}>
-        {a?.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) ?? '—'}
-        {percent && a !== null ? '%' : ''}
-      </strong>
-      <span className="muted small">{label}</span>
-      <strong className={winner === 'b' ? 'pc-win' : ''}>
-        {b?.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) ?? '—'}
-        {percent && b !== null ? '%' : ''}
-      </strong>
-    </div>
-  );
-}
-
-function ComparePanel({ a, b, onClose }: { a: PlayerCard; b: PlayerCard; onClose: () => void }) {
-  const labels = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const m of [...(a.stats?.metrics ?? []), ...(b.stats?.metrics ?? [])]) {
-      if (!map.has(m.key)) map.set(m.key, statLabel(m.key, m.label));
-    }
-    return Array.from(map.entries()).slice(0, 12);
-  }, [a.stats, b.stats]);
-
-  return (
-    <section className="panel pc-compare">
-      <div className="section-title">
-        <h2>
-          <ArrowLeftRight size={15} /> {a.player.name} и {b.player.name}
-        </h2>
-        <IconButton onClick={onClose} aria-label="Закрыть сравнение" icon={<X size={16} />} />
-      </div>
-      <p className="muted small">
-        Показатели по загруженным матчам команд. Количество матчей может различаться.
-      </p>
-      {(a.busy || b.busy) && <LoadingBlock label="Собираем данные для сравнения…" rows={2} />}
-      {a.error && (
-        <ErrorBlock title={`Нет данных: ${a.player.name}`} message={a.error} onRetry={a.retry} />
-      )}
-      {b.error && (
-        <ErrorBlock title={`Нет данных: ${b.player.name}`} message={b.error} onRetry={b.retry} />
-      )}
-      <div className="pc-compare-head">
-        <span>
-          {a.player.name}
-          <small>
-            {a.stats
-              ? `Матчей с данными: ${a.stats.available}`
-              : a.error
-                ? 'Данные недоступны'
-                : 'Загружаем данные'}
-          </small>
-        </span>
-        <span className="muted small">показатель</span>
-        <span>
-          {b.player.name}
-          <small>
-            {b.stats
-              ? `Матчей с данными: ${b.stats.available}`
-              : b.error
-                ? 'Данные недоступны'
-                : 'Загружаем данные'}
-          </small>
-        </span>
-      </div>
-      {labels.map(([key, label]) => (
-        <ComparisonRow
-          key={key}
-          label={label}
-          percent={
-            a.stats?.metrics.find((m) => m.key === key)?.kind === 'fraction' ||
-            b.stats?.metrics.find((m) => m.key === key)?.kind === 'fraction'
-          }
-          a={a.stats?.metrics.find((m) => m.key === key)?.value ?? null}
-          b={b.stats?.metrics.find((m) => m.key === key)?.value ?? null}
-        />
-      ))}
-      {labels.length === 0 && !a.busy && !b.busy && !a.error && !b.error && (
-        <p className="muted small">Источник не вернул показатели для сравнения.</p>
-      )}
-    </section>
-  );
-}
-
-function ComparisonPicker({
-  players,
-  a,
-  b,
-  onPick,
-  onClear,
-}: {
-  players: FavoritePlayer[];
-  a: FavoritePlayer | null;
-  b: FavoritePlayer | null;
-  onPick: (side: 0 | 1, id: string) => void;
-  onClear: () => void;
-}) {
-  const count = Number(!!a) + Number(!!b);
-  return (
-    <section className="panel pc-picker" aria-label="Выбор игроков для сравнения">
-      <div className="section-title">
-        <h2>
-          <ArrowLeftRight size={16} /> Сравнение игроков
-        </h2>
-        {count > 0 && <Button onClick={onClear}>Сбросить выбор</Button>}
-      </div>
-      <p className="muted small" role="status">
-        {count === 0
-          ? 'Выберите двух футболистов здесь или нажмите «Сравнить» на их карточках.'
-          : count === 1
-            ? 'Один игрок выбран. Выберите второго футболиста — ниже появится сравнение.'
-            : 'Оба игрока выбраны. Сравнение показано ниже; для замены измените выбор в списке.'}
-      </p>
-      <div className="pc-picker-grid">
-        {([a, b] as const).map((player, side) => (
-          <div className="pc-picker-slot" key={side}>
-            {player && <PersonAvatar name={player.name} src={player.imageUrl} size={44} />}
-            <label>
-              <span>{side === 0 ? 'Первый игрок' : 'Второй игрок'}</span>
-              <select
-                aria-label={`${side === 0 ? 'Первый' : 'Второй'} игрок для сравнения`}
-                value={player?.id ?? ''}
-                onChange={(e) => onPick(side as 0 | 1, e.target.value)}
-              >
-                <option value="">Выберите игрока</option>
-                {players
-                  .filter((p) => p.id !== (side === 0 ? b?.id : a?.id))
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} · {p.teamName ?? 'Клуб не указан'}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            {player && (
-              <IconButton
-                aria-label={`Убрать из сравнения: ${player.name}`}
-                onClick={() => onPick(side as 0 | 1, '')}
-                icon={<X size={16} />}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function useCard(player: FavoritePlayer | null, matches: MatchSummary[]): PlayerCard {
   const { stats, busy, error, retry } = usePlayerSeason(player, matches);
   return useMemo(
@@ -396,6 +155,347 @@ function useCard(player: FavoritePlayer | null, matches: MatchSummary[]): Player
       retry,
     }),
     [player, stats, busy, error, retry],
+  );
+}
+
+function formatNumber(value: number): string {
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+}
+
+function metricText(value: number | null, percent: boolean): string {
+  return value === null ? '—' : `${formatNumber(value)}${percent ? '%' : ''}`;
+}
+
+function FavoritePlayerRow({
+  player,
+  onOpen,
+  onRemove,
+  onCompare,
+  compareSlot,
+  comparisonFull,
+  canCompare,
+}: {
+  player: FavoritePlayer;
+  onOpen: () => void;
+  onRemove: () => void;
+  onCompare: () => void;
+  compareSlot: 1 | 2 | null;
+  comparisonFull: boolean;
+  canCompare: boolean;
+}) {
+  const compareLabel = compareSlot ? 'В сравнении · убрать' : 'Сравнить';
+  return (
+    <li className="players-favorites__row">
+      <Button
+        variant="quiet"
+        className="players-favorites__open"
+        onClick={onOpen}
+        aria-label={`Профиль и статистика: ${player.name}`}
+      >
+        <PersonAvatar name={player.name} src={player.imageUrl} size={32} />
+        <span className="players-favorites__text">
+          <strong>{player.name}</strong>
+          <small>{player.teamName ?? 'Клуб не указан'}</small>
+        </span>
+        <ChevronRight size={15} aria-hidden="true" />
+      </Button>
+      {canCompare && (
+        <Button
+          small
+          variant="quiet"
+          className="players-favorites__compare"
+          aria-pressed={compareSlot !== null}
+          aria-label={`${compareLabel}: ${player.name}`}
+          title={
+            compareSlot
+              ? 'Убрать игрока из сравнения'
+              : comparisonFull
+                ? 'Сначала уберите одного игрока из сравнения'
+                : 'Добавить игрока в сравнение'
+          }
+          disabled={!compareSlot && comparisonFull}
+          onClick={onCompare}
+          icon={<ArrowLeftRight size={14} aria-hidden="true" />}
+        >
+          {compareLabel}
+        </Button>
+      )}
+      <IconButton
+        aria-label={`Убрать из избранного: ${player.name}`}
+        aria-pressed
+        onClick={onRemove}
+        icon={<Star size={16} fill="currentColor" aria-hidden="true" />}
+      />
+    </li>
+  );
+}
+
+function FavoritePlayersPanel({
+  players,
+  onOpen,
+  onRemove,
+  onCompare,
+  compareSlot,
+  comparisonFull,
+  canCompare,
+}: {
+  players: FavoritePlayer[];
+  onOpen: (player: FavoritePlayer) => void;
+  onRemove: (player: FavoritePlayer) => void;
+  onCompare: (player: FavoritePlayer) => void;
+  compareSlot: (player: FavoritePlayer) => 1 | 2 | null;
+  comparisonFull: boolean;
+  canCompare: boolean;
+}) {
+  if (players.length === 0) return null;
+  return (
+    <Panel className="players-favorites" aria-label="Избранные игроки">
+      <PanelHeader
+        title={
+          <span className="players-favorites__title">
+            Избранные игроки <Badge>{players.length}</Badge>
+          </span>
+        }
+      />
+      <ul className="players-favorites__list">
+        {players.map((player) => (
+          <FavoritePlayerRow
+            key={player.id}
+            player={player}
+            onOpen={() => onOpen(player)}
+            onRemove={() => onRemove(player)}
+            onCompare={() => onCompare(player)}
+            compareSlot={compareSlot(player)}
+            comparisonFull={comparisonFull}
+            canCompare={canCompare}
+          />
+        ))}
+      </ul>
+    </Panel>
+  );
+}
+
+function ComparisonRow({
+  label,
+  a,
+  b,
+  percent,
+  keyName,
+}: {
+  label: string;
+  a: number | null;
+  b: number | null;
+  percent: boolean;
+  keyName: string;
+}) {
+  const lower = LOWER_IS_BETTER.has(keyName.trim().toLowerCase());
+  let winner: 'a' | 'b' | null = null;
+  if (a !== null && b !== null && a !== b) {
+    winner = lower ? (a < b ? 'a' : 'b') : a > b ? 'a' : 'b';
+  }
+  const cell = (value: number | null, side: 'a' | 'b') => (
+    <td className="ui-table__num">
+      <span className={winner === side ? 'players-compare__best' : undefined}>
+        {metricText(value, percent)}
+        {winner === side && <span className="visually-hidden">лучше</span>}
+      </span>
+    </td>
+  );
+  return (
+    <tr>
+      <td>{label}</td>
+      {cell(a, 'a')}
+      {cell(b, 'b')}
+    </tr>
+  );
+}
+
+function CompareContent({
+  a,
+  b,
+  onOpen,
+}: {
+  a: PlayerCard;
+  b: PlayerCard;
+  onOpen: (player: FavoritePlayer) => void;
+}) {
+  const labels = useMemo(() => {
+    const map = new Map<string, { label: string; percent: boolean }>();
+    for (const m of [...(a.stats?.metrics ?? []), ...(b.stats?.metrics ?? [])]) {
+      if (map.has(m.key)) {
+        if (m.kind === 'fraction') map.get(m.key)!.percent = true;
+        continue;
+      }
+      map.set(m.key, { label: statLabel(m.key, m.label), percent: m.kind === 'fraction' });
+    }
+    return Array.from(map.entries()).slice(0, 12);
+  }, [a.stats, b.stats]);
+
+  const dataNote = (card: PlayerCard) =>
+    card.stats
+      ? `Матчей с данными: ${card.stats.available}`
+      : card.error
+        ? 'Данные недоступны'
+        : 'Загружаем данные';
+
+  return (
+    <>
+      {(a.busy || b.busy) && (
+        <div className="players-compare__loading" role="status">
+          <Skeleton className="players-compare__skeleton" />
+          <Skeleton className="players-compare__skeleton" />
+          <Skeleton className="players-compare__skeleton" />
+          <span className="visually-hidden">Собираем данные для сравнения…</span>
+        </div>
+      )}
+      {a.error && (
+        <EmptyState
+          tone="error"
+          title={`Нет данных: ${a.player.name}`}
+          message={a.error}
+          action={
+            <Button variant="quiet" onClick={a.retry}>
+              Повторить
+            </Button>
+          }
+        />
+      )}
+      {b.error && (
+        <EmptyState
+          tone="error"
+          title={`Нет данных: ${b.player.name}`}
+          message={b.error}
+          action={
+            <Button variant="quiet" onClick={b.retry}>
+              Повторить
+            </Button>
+          }
+        />
+      )}
+      <div className="ui-table-scroll players-compare__table">
+        <table className="ui-table">
+          <thead>
+            <tr>
+              <th scope="col">Показатель</th>
+              <th scope="col" className="ui-table__num">
+                <Button
+                  small
+                  className="players-compare__open"
+                  onClick={() => onOpen(a.player)}
+                  aria-label={`Открыть профиль: ${a.player.name}`}
+                  title="Открыть профиль"
+                >
+                  {a.player.name}
+                </Button>
+                <span className="players-compare__matches">{dataNote(a)}</span>
+              </th>
+              <th scope="col" className="ui-table__num">
+                <Button
+                  small
+                  className="players-compare__open"
+                  onClick={() => onOpen(b.player)}
+                  aria-label={`Открыть профиль: ${b.player.name}`}
+                  title="Открыть профиль"
+                >
+                  {b.player.name}
+                </Button>
+                <span className="players-compare__matches">{dataNote(b)}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {labels.map(([key, item]) => (
+              <ComparisonRow
+                key={key}
+                keyName={key}
+                label={item.label}
+                percent={item.percent}
+                a={a.stats?.metrics.find((m) => m.key === key)?.value ?? null}
+                b={b.stats?.metrics.find((m) => m.key === key)?.value ?? null}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {labels.length === 0 && !a.busy && !b.busy && !a.error && !b.error && (
+        <p className="players-note">Источник не вернул показатели для сравнения.</p>
+      )}
+    </>
+  );
+}
+
+function ComparisonPanel({
+  players,
+  a,
+  b,
+  cardA,
+  cardB,
+  onPick,
+  onOpen,
+  onClear,
+}: {
+  players: FavoritePlayer[];
+  a: FavoritePlayer | null;
+  b: FavoritePlayer | null;
+  cardA: PlayerCard;
+  cardB: PlayerCard;
+  onPick: (side: 0 | 1, id: string) => void;
+  onOpen: (player: FavoritePlayer) => void;
+  onClear: () => void;
+}) {
+  const options = useMemo<SearchSelectOption[]>(() => {
+    const groups = new Map<string, SearchSelectOption[]>();
+    for (const player of players) {
+      const group = player.teamName ?? 'Клуб не указан';
+      const list = groups.get(group) ?? [];
+      list.push({ value: player.id, label: player.name, group });
+      groups.set(group, list);
+    }
+    return [...groups.values()].flat();
+  }, [players]);
+  const count = Number(!!a) + Number(!!b);
+  return (
+    <Panel className="players-compare-picker" aria-label="Сравнение игроков">
+      <PanelHeader
+        title="Сравнение игроков"
+        action={
+          count > 0 ? (
+            <Button variant="quiet" onClick={onClear}>
+              <X size={14} aria-hidden="true" /> Сбросить выбор
+            </Button>
+          ) : undefined
+        }
+      />
+      <div className="players-compare-picker__fields">
+        <div className="players-compare-picker__field">
+          <span className="players-compare-picker__label">Первый игрок</span>
+          <SearchSelect
+            ariaLabel="Первый игрок для сравнения"
+            value={a?.id ?? ''}
+            options={options.filter((option) => option.value !== b?.id)}
+            onChange={(id) => onPick(0, id)}
+            placeholder="Выберите игрока"
+          />
+        </div>
+        <div className="players-compare-picker__field">
+          <span className="players-compare-picker__label">Второй игрок</span>
+          <SearchSelect
+            ariaLabel="Второй игрок для сравнения"
+            value={b?.id ?? ''}
+            options={options.filter((option) => option.value !== a?.id)}
+            onChange={(id) => onPick(1, id)}
+            placeholder="Выберите игрока"
+          />
+        </div>
+      </div>
+      {a && b ? (
+        <CompareContent a={{ ...cardA, player: a }} b={{ ...cardB, player: b }} onOpen={onOpen} />
+      ) : (
+        <p className="players-note" role="status">
+          Выберите двух игроков здесь или нажмите «Сравнить» в их строке.
+        </p>
+      )}
+    </Panel>
   );
 }
 
@@ -433,40 +533,90 @@ export function PlayersCenter({
     (v) => v === null || typeof v === 'string',
   );
   const selected = favoritePlayers.find((p) => p.id === selectedId);
-  const [requestedPlayer] = useViewState<FavoritePlayer | null>('players.requested', null);
+  const [requestedPlayer, setRequestedPlayer] = useViewState<FavoritePlayer | null>(
+    'players.requested',
+    null,
+  );
   const profilePlayer = selected ?? (requestedPlayer?.id === selectedId ? requestedPlayer : null);
   const club = data.teams.find((t) => t.id === clubId);
+  const [clubDetailOpen, setClubDetailOpen] = useState(false);
 
-  const clubOptions = useMemo(
-    () =>
-      data.leagues.flatMap((league) =>
-        data.teams
-          .filter((team) => team.leagueId === league.id)
-          .map((team) => ({ value: team.id, label: team.name, group: league.name })),
-      ),
-    [data.leagues, data.teams],
-  );
+  const directoryOptions = useMemo<SearchSelectOption[]>(() => {
+    const options: SearchSelectOption[] = favoritePlayers.map((player) => ({
+      value: `${PLAYER_PREFIX}${player.id}`,
+      label: player.name,
+      group: 'Избранные игроки',
+    }));
+    for (const team of data.teams)
+      options.push({
+        value: `${CLUB_PREFIX}${team.id}`,
+        label: team.name,
+        group: team.leagueName,
+      });
+    return options;
+  }, [data.teams, favoritePlayers]);
 
-  const shown = favoritePlayers;
+  const directoryValue = selectedId
+    ? `${PLAYER_PREFIX}${selectedId}`
+    : club && clubId
+      ? `${CLUB_PREFIX}${clubId}`
+      : '';
 
-  const setSlot = (p: FavoritePlayer) => {
-    if (slotA?.id === p.id) {
+  const pickDirectory = (value: string) => {
+    if (value.startsWith(PLAYER_PREFIX)) {
+      const player = favoritePlayers.find((p) => p.id === value.slice(PLAYER_PREFIX.length));
+      if (!player) return;
+      setSelectedId(player.id);
+      if (player.teamId && data.teams.some((t) => t.id === player.teamId)) setClubId(player.teamId);
+      return;
+    }
+    if (value.startsWith(CLUB_PREFIX)) {
+      setClubId(value.slice(CLUB_PREFIX.length));
+      setSelectedId(null);
+      return;
+    }
+    setClubId('');
+    setSelectedId(null);
+  };
+
+  const openProfile = (player: FavoritePlayer) => {
+    setRequestedPlayer(player);
+    setSelectedId(player.id);
+  };
+
+  const toggleCompare = (player: FavoritePlayer) => {
+    if (slotA?.id === player.id) {
       setSlotAId(null);
       return;
     }
-    if (slotB?.id === p.id) {
+    if (slotB?.id === player.id) {
       setSlotBId(null);
       return;
     }
     if (!slotA) {
-      setSlotAId(p.id);
+      setSlotAId(player.id);
       return;
     }
-    if (!slotB) setSlotBId(p.id);
+    if (!slotB) setSlotBId(player.id);
+  };
+  const compareSlotFor = (player: FavoritePlayer): 1 | 2 | null =>
+    slotA?.id === player.id ? 1 : slotB?.id === player.id ? 2 : null;
+
+  const setSlot = (side: 0 | 1, id: string) => {
+    if (id && !favoritePlayers.some((p) => p.id === id)) return;
+    if (id && id === (side === 0 ? slotBId : slotAId)) return;
+    (side === 0 ? setSlotAId : setSlotBId)(id || null);
   };
   const clearComparison = () => {
     setSlotAId(null);
     setSlotBId(null);
+  };
+
+  const removeFavorite = (player: FavoritePlayer) => {
+    togglePlayer(player);
+    if (slotAId === player.id) setSlotAId(null);
+    if (slotBId === player.id) setSlotBId(null);
+    if (selectedId === player.id) setSelectedId(null);
   };
 
   if (profilePlayer)
@@ -480,97 +630,98 @@ export function PlayersCenter({
       />
     );
 
+  const catalogueLoading = (data.matchesLoading || data.leaguesLoading) && data.teams.length === 0;
+  const catalogueError = data.matchesError && data.teams.length === 0 ? data.matchesError : null;
+
   return (
     <div className="players-view">
-      <div className="dashboard-head">
-        <div>
-          <h2 className="screen-title">Игроки</h2>
-          <p className="muted small">Избранные футболисты и сравнение.</p>
-        </div>
-      </div>
-
-      {shown.length > 0 && <h2>Избранные игроки · {shown.length}</h2>}
-      {shown.length > 1 && (
-        <ComparisonPicker
-          players={shown}
-          a={slotA}
-          b={slotB}
-          onClear={clearComparison}
-          onPick={(side, id) => {
-            if (
-              id &&
-              (!favoritePlayers.some((p) => p.id === id) ||
-                id === (side === 0 ? slotB?.id : slotA?.id))
-            )
-              return;
-            (side === 0 ? setSlotAId : setSlotBId)(id || null);
-          }}
-        />
-      )}
-      {slotA && slotB && <ComparePanel a={cardA} b={cardB} onClose={clearComparison} />}
-
-      {shown.length === 0 && (
-        <EmptyBlock
-          title="Избранных игроков пока нет"
-          message="Выберите клуб ниже и отметьте игроков звёздочкой."
-        />
+      {!clubDetailOpen && (
+        <header className="players-head">
+          <h2 className="ui-page-title">Игроки</h2>
+          <p className="players-head__note">Избранные футболисты и сравнение.</p>
+        </header>
       )}
 
-      <div className="pc-grid">
-        {shown.map((p) => (
-          <PlayerCardView
-            key={p.id}
-            player={p}
-            matches={data.allMatches}
-            onOpen={() => setSelectedId(p.id)}
-            onRemove={() => {
-              togglePlayer(p);
-              if (slotA?.id === p.id) setSlotAId(null);
-              if (slotB?.id === p.id) setSlotBId(null);
-              if (selectedId === p.id) setSelectedId(null);
-            }}
-            onCompare={() => setSlot(p)}
-            compareSlot={slotA?.id === p.id ? 1 : slotB?.id === p.id ? 2 : null}
+      {!clubDetailOpen &&
+        (favoritePlayers.length === 0 ? (
+          <EmptyState
+            message={
+              directoryOptions.length > 0
+                ? 'Выберите клуб ниже и отметьте игроков звёздочкой.'
+                : 'Клубов для выбора пока нет.'
+            }
+          />
+        ) : (
+          <FavoritePlayersPanel
+            players={favoritePlayers}
+            onOpen={openProfile}
+            onRemove={removeFavorite}
+            onCompare={toggleCompare}
+            compareSlot={compareSlotFor}
             comparisonFull={!!slotA && !!slotB}
-            canCompare={shown.length > 1}
+            canCompare={favoritePlayers.length > 1}
           />
         ))}
-      </div>
 
-      <section className="panel player-directory">
-        <h2>Найти игрока</h2>
-        {!data.teams.length && (data.matchesLoading || data.leaguesLoading) && (
-          <LoadingBlock label="Загружаем каталог клубов…" rows={1} />
-        )}
-        {!data.teams.length && data.matchesError && (
-          <ErrorBlock
-            title="Каталог клубов недоступен"
-            message={data.matchesError}
-            onRetry={data.reload}
-          />
-        )}
-        <div className="player-directory-field">
-          <span className="player-directory-label">Клуб</span>
-          <SearchSelect
-            ariaLabel="Клуб для выбора игроков"
-            value={clubId}
-            options={clubOptions}
-            onChange={(id) => {
-              setClubId(id);
-              setSelectedId(null);
-            }}
-            placeholder="Выберите клуб"
-          />
-        </div>
-      </section>
+      {!clubDetailOpen && (directoryOptions.length > 0 || catalogueLoading || catalogueError) && (
+        <Panel className="players-directory">
+          <PanelHeader title="Найти игрока" />
+          {catalogueLoading && (
+            <div className="players-directory__loading" role="status">
+              <Skeleton className="players-directory__skeleton" />
+              <span className="visually-hidden">Загружаем каталог клубов…</span>
+            </div>
+          )}
+          {catalogueError && (
+            <EmptyState
+              tone="error"
+              title="Каталог клубов недоступен"
+              message={catalogueError}
+              action={
+                <Button variant="quiet" onClick={data.reload}>
+                  Повторить
+                </Button>
+              }
+            />
+          )}
+          {directoryOptions.length > 0 && (
+            <div className="players-directory__field">
+              <span className="players-directory__label">Клуб или игрок</span>
+              <SearchSelect
+                ariaLabel="Клуб или игрок"
+                value={directoryValue}
+                options={directoryOptions}
+                onChange={pickDirectory}
+                placeholder="Выберите клуб или игрока"
+              />
+            </div>
+          )}
+        </Panel>
+      )}
+
       {club && (
         <ClubPlayers
           key={club.id}
           team={club}
           matches={data.allMatches}
           onOpenMatch={onOpenMatch}
+          onDetailChange={setClubDetailOpen}
         />
       )}
+
+      {!clubDetailOpen && favoritePlayers.length > 1 && (
+        <ComparisonPanel
+          players={favoritePlayers}
+          a={slotA}
+          b={slotB}
+          cardA={cardA}
+          cardB={cardB}
+          onPick={setSlot}
+          onOpen={openProfile}
+          onClear={clearComparison}
+        />
+      )}
+
       <SourceLine sources={['pitch']} fetchedAt={data.fetchedAt} stale={data.stale} />
     </div>
   );
