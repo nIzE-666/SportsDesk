@@ -6,6 +6,7 @@ import './kit/kit.css';
 import './styles.css';
 import './design.css';
 import '@fontsource-variable/manrope';
+import './kit/showcaseFonts';
 import './productivity.css';
 
 const container = document.getElementById('root');

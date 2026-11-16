@@ -2,6 +2,8 @@
    Every colour, size, radius, spacing and duration comes from src/tokens.css.
    The classes never change screens by themselves: the screens opt in later. */
 
+@import './showcase.css';
+
 .ui-button,
 .ui-tabs,
 .ui-tab,

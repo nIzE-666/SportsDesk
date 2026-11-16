@@ -24,8 +24,18 @@ body {
 .kit-gallery-inner {
   display: grid;
   gap: var(--space-32);
-  max-width: calc(var(--space-48) * 22);
+  /* Wide enough for the «Витрина» section to show 2 to 4 cards at 1100–1920. */
+  max-width: calc(var(--space-48) * 40);
   margin: 0 auto;
+}
+
+/* Every old section keeps its previous 1056 px column; only the showcase spans wider. */
+.kit-gallery-header,
+.kit-gallery-section:not(#kit-showcase),
+.kit-gallery-footer {
+  width: 100%;
+  max-width: calc(var(--space-48) * 22);
+  margin-inline: auto;
 }
 
 .kit-gallery-header {
@@ -139,4 +149,103 @@ body {
 .kit-gallery-footer {
   color: var(--color-text-tertiary);
   font-size: var(--text-12);
+}
+
+/* The «Витрина» demo around the showcase components. */
+
+.kit-showcase {
+  display: grid;
+  gap: var(--space-24);
+  padding: var(--space-24);
+  border: 1px solid var(--showcase-panel-border);
+  border-radius: var(--radius-lg);
+  background: var(--showcase-bg);
+}
+
+.kit-showcase-card {
+  display: grid;
+  gap: var(--space-8);
+  width: 100%;
+  padding: var(--space-12);
+  border: 1px solid var(--showcase-panel-border);
+  border-radius: var(--radius-md);
+  background: var(--showcase-panel);
+  color: var(--showcase-text);
+  font-family: var(--font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kit-showcase-card:hover,
+.kit-showcase-card:focus-visible {
+  border-color: var(--showcase-accent);
+}
+
+.kit-showcase-card:focus-visible {
+  outline: 2px solid var(--showcase-now);
+  outline-offset: 2px;
+}
+
+.kit-showcase-card__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.kit-showcase-card__line .ui-showcase-score {
+  justify-self: center;
+}
+
+.kit-showcase-card__team {
+  overflow: hidden;
+  font-size: var(--text-14);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kit-showcase-card__team--away {
+  text-align: right;
+}
+
+.kit-showcase-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.kit-showcase-card__reason {
+  overflow: hidden;
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--showcase-panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--showcase-text-secondary);
+  font-size: var(--text-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kit-showcase-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  border: 1px solid var(--showcase-panel-border);
+  border-radius: var(--radius-md);
+  background: var(--showcase-panel);
+  color: var(--showcase-text);
+  font-size: var(--text-14);
+}
+
+.kit-showcase-preview__kind {
+  color: var(--showcase-text-secondary);
+  font-size: var(--text-12);
+  font-weight: var(--weight-semibold);
+}
+
+.kit-showcase-preview__text {
+  min-width: 0;
 }

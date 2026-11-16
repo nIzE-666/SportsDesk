@@ -59,8 +59,28 @@
   --color-tyre-wet: #5aabff;
   --color-tyre-unknown: #8190a2;
 
+  /* «Витрина»: the broadcast layer of the «Главное» screen only. */
+  --showcase-bg: #0b0d10;
+  --showcase-panel: #141a20;
+  --showcase-panel-border: #6b7682;
+  --showcase-accent: #e8151b;
+  --showcase-on-accent: #ffffff;
+  --showcase-text: #f2f5fb;
+  --showcase-text-secondary: #c3c9d2;
+  --showcase-line-muted: #66707c;
+  --showcase-now: #ff6257;
+  --showcase-now-glow: #ff3b30;
+  --showcase-kerb-stripe: #e8151b;
+  --showcase-kerb-base: #f4f7fb;
+  --showcase-track: #616b77;
+  --showcase-split-a: #242c35;
+  --showcase-split-b: #1b222a;
+  --showcase-pitch-tint: #17231c;
+  --showcase-pitch-line: #93a58f;
+
   /* Font. */
   --font-family: 'Manrope Variable', 'Segoe UI', sans-serif;
+  --showcase-font-display: 'Exo 2 Variable', 'Manrope Variable', 'Segoe UI', sans-serif;
   --text-12: 12px;
   --text-13: 13px;
   --text-14: 14px;
@@ -148,6 +168,24 @@
   --color-chart-6: #8a5a00;
   --color-chart-7: #c62f28;
   --color-chart-8: #0d7d6a;
+
+  --showcase-bg: #eef1f5;
+  --showcase-panel: #ffffff;
+  --showcase-panel-border: #7a8492;
+  --showcase-accent: #e8151b;
+  --showcase-on-accent: #ffffff;
+  --showcase-text: #171b21;
+  --showcase-text-secondary: #4b5563;
+  --showcase-line-muted: #5f6976;
+  --showcase-now: #c21b16;
+  --showcase-now-glow: #e8151b;
+  --showcase-kerb-stripe: #d21a21;
+  --showcase-kerb-base: #ffffff;
+  --showcase-track: #6a7481;
+  --showcase-split-a: #dfe5ed;
+  --showcase-split-b: #cdd6e1;
+  --showcase-pitch-tint: #e6efe8;
+  --showcase-pitch-line: #4f6a57;
 
   --shadow-1: 0 4px 14px rgb(27 40 57 / 5%);
   --shadow-2: 0 24px 80px rgb(0 0 0 / 25%);

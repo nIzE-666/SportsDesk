@@ -2,28 +2,37 @@ import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AlertTriangle, ArrowRight, Bell, EyeOff, Inbox, Search, Star } from 'lucide-react';
 import '@fontsource-variable/manrope';
+import '../src/kit/showcaseFonts';
 import '../src/tokens.css';
 import '../src/kit/kit.css';
 import './kitGallery.css';
 import {
   Badge,
   Button,
+  Countdown,
   Dialog,
   Disclosure,
   EmptyState,
   Field,
   IconButton,
+  InterestMeter,
   MatchRow,
+  MatchStrip,
   Panel,
   PanelHeader,
   SearchSelect,
   SegmentedControl,
+  ShowcaseHero,
+  ShowcaseShelf,
   Skeleton,
   StatTile,
   Switch,
   Tabs,
   Toast,
   Tooltip,
+  WeekTrack,
+  type MatchStripGoal,
+  type WeekTrackEvent,
 } from '../src/kit';
 import TeamBadge from '../src/components/TeamBadge';
 
@@ -64,6 +73,156 @@ const SEARCH_OPTIONS = [
   { value: 'real', label: 'Реал Мадрид', group: 'Испания' },
 ];
 
+/* The «Витрина» demo: the current week with «сейчас» on Thursday evening. */
+function showcaseWeek(): { weekStart: string; now: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const thursday = new Date(monday);
+  thursday.setDate(monday.getDate() + 3);
+  thursday.setHours(19, 30, 0, 0);
+  return { weekStart: monday.toISOString(), now: thursday.toISOString() };
+}
+
+const SHOWCASE_WEEK = showcaseWeek();
+
+function showcaseTime(day: number, hour: number, minute = 0): string {
+  const date = new Date(SHOWCASE_WEEK.weekStart);
+  date.setDate(date.getDate() + day);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+const SHOWCASE_EVENTS: WeekTrackEvent[] = [
+  {
+    id: 'showcase-mon',
+    kind: 'match',
+    start: showcaseTime(0, 20),
+    interest: 3,
+    label: 'Тоттенхэм — Ньюкасл, понедельник, 20:00',
+  },
+  {
+    id: 'showcase-tue',
+    kind: 'match',
+    start: showcaseTime(1, 21, 30),
+    interest: 5,
+    label: 'Барселона — Реал Мадрид, вторник, 21:30',
+  },
+  {
+    id: 'showcase-wed-race',
+    kind: 'race',
+    start: showcaseTime(2, 18),
+    interest: null,
+    label: 'Квалификация Формулы 1, среда, 18:00',
+  },
+  {
+    id: 'showcase-thu',
+    kind: 'match',
+    start: showcaseTime(3, 21),
+    interest: 4,
+    mine: true,
+    label: 'Арсенал — Челси, четверг, 21:00',
+  },
+  {
+    id: 'showcase-fri',
+    kind: 'match',
+    start: showcaseTime(4, 20, 30),
+    interest: 2,
+    label: 'Бавария — Боруссия, пятница, 20:30',
+  },
+  {
+    id: 'showcase-sat-race',
+    kind: 'race',
+    start: showcaseTime(5, 16),
+    interest: null,
+    label: 'Гонка Формулы 1, суббота, 16:00',
+  },
+  {
+    id: 'showcase-sat',
+    kind: 'match',
+    start: showcaseTime(5, 19),
+    interest: 5,
+    label: 'Милан — Интер, суббота, 19:00',
+  },
+  {
+    id: 'showcase-sun',
+    kind: 'match',
+    start: showcaseTime(6, 18),
+    interest: null,
+    label: 'Атлетико — Севилья, воскресенье, 18:00',
+  },
+];
+
+interface ShowcaseCard {
+  home: string;
+  away: string;
+  score: string;
+  interest: number;
+  reason: string;
+  goals: MatchStripGoal[];
+}
+
+const SHOWCASE_CARDS: ShowcaseCard[] = [
+  {
+    home: 'Ливерпуль',
+    away: 'Ньюкасл',
+    score: '3:2',
+    interest: 4,
+    reason: 'камбэк с 0:2',
+    goals: [
+      { minute: 12, side: 'away' },
+      { minute: 18, side: 'away' },
+      { minute: 56, side: 'home' },
+      { minute: 68, side: 'home' },
+      { minute: 84, side: 'home' },
+    ],
+  },
+  {
+    home: 'Барселона',
+    away: 'Атлетико',
+    score: '2:1',
+    interest: 3,
+    reason: 'гол на 90+2',
+    goals: [
+      { minute: 27, side: 'home' },
+      { minute: 63, side: 'away' },
+      { minute: 90, extra: 2, side: 'home' },
+    ],
+  },
+  {
+    home: 'Бавария',
+    away: 'Боруссия',
+    score: '3:3',
+    interest: 5,
+    reason: 'шесть голов',
+    goals: [
+      { minute: 8, side: 'home' },
+      { minute: 24, side: 'home' },
+      { minute: 41, side: 'home' },
+      { minute: 67, side: 'away' },
+      { minute: 88, side: 'away' },
+      { minute: 90, extra: 1, side: 'away' },
+    ],
+  },
+  {
+    home: 'Милан',
+    away: 'Интер',
+    score: '2:1',
+    interest: 2,
+    reason: 'поздний гол',
+    goals: [
+      { minute: 33, side: 'home' },
+      { minute: 58, side: 'away' },
+      { minute: 88, side: 'home' },
+    ],
+  },
+];
+
+const SHOWCASE_HERO_TARGET = new Date(
+  Date.now() + 2 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000 + 5 * 60 * 1000 + 32 * 1000,
+).toISOString();
+
 export function KitGallery() {
   const initial = initialFromQuery();
   const [scheme, setScheme] = useState<Scheme>(initial.scheme);
@@ -77,6 +236,10 @@ export function KitGallery() {
   const [toastOpen, setToastOpen] = useState(true);
   const [player, setPlayer] = useState('arsenal');
   const [switchOn, setSwitchOn] = useState(true);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = new Date(SHOWCASE_WEEK.weekStart);
+  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+  const weekEvents = weekOffset === 0 ? SHOWCASE_EVENTS : [];
 
   return (
     <div
@@ -118,6 +281,80 @@ export function KitGallery() {
             </div>
           </div>
         </header>
+
+        <section className="kit-gallery-section" id="kit-showcase">
+          <h2>Витрина</h2>
+          <p className="kit-gallery-note">
+            Слой «Главное»: эфирная плашка, полка с прокруткой, неделя-трасса и карточка матча. Всё
+            действует только внутри класса `showcase`, остальные экраны не меняются.
+          </p>
+          <div className="showcase kit-showcase">
+            <ShowcaseHero
+              kicker="Главный матч"
+              title="Арсенал — Челси"
+              meta={<Countdown target={SHOWCASE_HERO_TARGET} endedLabel="Матч начался" />}
+              actions={
+                <>
+                  <Button variant="primary">Буду смотреть</Button>
+                  <Button>Напомнить</Button>
+                </>
+              }
+              home={{ name: 'Арсенал' }}
+              away={{ name: 'Челси' }}
+              homeColor="#c8102e"
+              awayColor="#1d4f9e"
+            />
+
+            <ShowcaseShelf title="Лучшее за неделю" emptyText="Прошедших матчей пока нет.">
+              {SHOWCASE_CARDS.map((card) => (
+                <div
+                  key={card.home}
+                  className="kit-showcase-card"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${card.home} — ${card.away}, ${card.score}`}
+                >
+                  <span className="kit-showcase-card__line">
+                    <span className="kit-showcase-card__team">{card.home}</span>
+                    <span className="ui-showcase-score">{card.score}</span>
+                    <span className="kit-showcase-card__team kit-showcase-card__team--away">
+                      {card.away}
+                    </span>
+                  </span>
+                  <span className="kit-showcase-card__meta">
+                    <InterestMeter value={card.interest} />
+                    <span className="kit-showcase-card__reason">{card.reason}</span>
+                  </span>
+                  <MatchStrip goals={card.goals} length={90} />
+                </div>
+              ))}
+            </ShowcaseShelf>
+
+            <WeekTrack
+              weekStart={weekStart.toISOString()}
+              now={SHOWCASE_WEEK.now}
+              events={weekEvents}
+              onOpen={() => undefined}
+              onPrevWeek={() => setWeekOffset((value) => value - 1)}
+              onNextWeek={() => setWeekOffset((value) => value + 1)}
+              renderPreview={(id) => {
+                const event = SHOWCASE_EVENTS.find((item) => item.id === id);
+                if (!event) return null;
+                return (
+                  <div className="kit-showcase-preview">
+                    <span className="kit-showcase-preview__kind">
+                      {event.kind === 'race' ? 'Гонка' : 'Матч'}
+                    </span>
+                    <span className="kit-showcase-preview__text">{event.label}</span>
+                    <InterestMeter value={event.interest} />
+                  </div>
+                );
+              }}
+            />
+
+            <ShowcaseShelf title="Главное впереди" emptyText="Ближайших матчей пока нет." />
+          </div>
+        </section>
 
         <section className="kit-gallery-section" id="kit-buttons">
           <h2>Кнопки</h2>
@@ -185,6 +422,7 @@ export function KitGallery() {
             active={nav}
             onChange={setNav}
             items={[
+              { id: 'showcase', label: 'Витрина', href: '#kit-showcase' },
               { id: 'buttons', label: 'Кнопки', href: '#kit-buttons' },
               { id: 'tabs', label: 'Вкладки', href: '#kit-tabs' },
               { id: 'controls', label: 'Поля', href: '#kit-controls' },
