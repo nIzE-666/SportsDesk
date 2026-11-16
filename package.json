@@ -22,6 +22,7 @@
     "test:visual:update": "playwright test e2e/visual.pw.ts e2e/matchAnalysis.pw.ts e2e/tactics.pw.ts e2e/diary.pw.ts e2e/offline.pw.ts --update-snapshots"
   },
   "dependencies": {
+    "@fontsource-variable/exo-2": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-dialog": "^2.8.3",
