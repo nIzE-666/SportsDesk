@@ -1,9 +1,10 @@
 import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { setupVisualFixture } from './uiFixture';
+import { mockWatchAccount, seedWatchPreferences } from './watchFixture';
 
 // Запускается только явно: $env:SPORTSDESK_METRICS_OUTPUT='...'; npx playwright test e2e/uiMetrics.pw.ts
-test('measure twelve screens with deterministic fixtures', async ({ page }) => {
+test('measure the screens with deterministic fixtures', async ({ page }) => {
   const output = process.env.SPORTSDESK_METRICS_OUTPUT;
   test.skip(!output, 'Set SPORTSDESK_METRICS_OUTPUT to write the measurements.');
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -93,6 +94,7 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
     .getByRole('radio', { name: 'Сейчас идут', exact: true })
     .click();
   await capture('Матчи: сейчас идут', '.live-panel');
+  await capture('Матчи: сейчас идут: страница', '.matches-view');
   await tab('Игроки');
   await capture('Игроки', '.players-view');
   await tab('Клубы');
@@ -114,6 +116,112 @@ test('measure twelve screens with deterministic fixtures', async ({ page }) => {
     .getByRole('button', { name: 'Основное', exact: true })
     .click();
   await capture('Настройки', '.settings-view');
+
+  // «Игроки» после U4: избранные, сравнение, состав и профиль.
+  await section('Футбол');
+  await tab('Игроки');
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'sportsdesk.football.favorites.players',
+      JSON.stringify([
+        {
+          id: 'a',
+          name: 'Alex Morgan',
+          teamId: 'arsenal',
+          teamName: 'Arsenal',
+          matchId: 'test-match',
+          matchLabel: 'Arsenal — Chelsea',
+          savedAt: '2026-10-21',
+        },
+        {
+          id: 'c',
+          name: 'Jamie Wilson',
+          teamId: 'chelsea',
+          teamName: 'Chelsea',
+          matchId: 'test-match',
+          matchLabel: 'Arsenal — Chelsea',
+          savedAt: '2026-10-21',
+        },
+      ]),
+    );
+    window.dispatchEvent(new Event('sportsdesk-storage-changed'));
+  });
+  await expect(page.locator('.players-favorites__row').first()).toBeVisible();
+  await capture('Игроки: избранные', '.players-view');
+  const compare = page.locator('.players-compare-picker');
+  await compare.getByLabel('Первый игрок для сравнения').fill('Alex');
+  await compare.getByRole('option', { name: 'Alex Morgan' }).click();
+  await compare.getByLabel('Второй игрок для сравнения').fill('Jamie');
+  await compare.getByRole('option', { name: 'Jamie Wilson' }).click();
+  await capture('Игроки: сравнение', '.players-view');
+  const directory = page.locator('.players-directory');
+  await directory.getByLabel('Клуб или игрок').fill('Arsenal');
+  await directory.getByRole('option', { name: 'Arsenal', exact: true }).click();
+  await expect(page.locator('.players-squad__row').first()).toBeVisible();
+  await capture('Игроки: состав', '.players-view');
+  await page.locator('.players-squad__open').first().click();
+  await expect(page.locator('.players-profile').first()).toBeVisible();
+  await capture('Игроки: профиль', '.players-view');
+
+  // Клуб после U4: четыре вкладки.
+  await section('Футбол');
+  await tab('Клубы');
+  await page.locator('.team-favorites').getByRole('button', { name: 'Arsenal' }).click();
+  const clubTabs = page.getByRole('tablist', { name: 'Разделы клуба' });
+  for (const title of ['Обзор', 'Матчи', 'Состав', 'Личные встречи']) {
+    await clubTabs.getByRole('tab', { name: title, exact: true }).click();
+    await capture(`Клуб: ${title}`, '.team-view');
+  }
+
+  // Турнир после U4: пять вкладок Лиги чемпионов.
+  await page.locator('.competition-switcher-trigger').click();
+  await page.getByRole('menuitemradio', { name: 'Лига чемпионов' }).click();
+  for (const title of ['Матчи', 'Таблица', 'Сетка', 'Клубы', 'Игроки']) {
+    await tab(title);
+    await capture(`Турнир: ${title}`, '.ucl-view');
+  }
+
+  // «Смотреть» после U4: без входа, каталог, список и плеер.
+  const signedOut = await mockWatchAccount(page, false);
+  await section('Смотреть');
+  await expect(page.locator('.watch-root-signed-out')).toBeVisible();
+  await capture('Смотреть', '.watch-root');
+  await page.unroute('**/bridge/command', signedOut);
+  const signedIn = await mockWatchAccount(page, true);
+  await seedWatchPreferences(page);
+  await page.reload();
+  await expect(page.locator('.today-view')).toBeVisible();
+  await section('Смотреть');
+  await expect(page.locator('.watch-catalog')).toBeVisible();
+  await capture('Смотреть: каталог', '.watch-root');
+  await page.getByRole('button', { name: 'Список каналов', exact: true }).click();
+  await expect(page.locator('.watch-catalog--list')).toBeVisible();
+  await capture('Смотреть: каталог списком', '.watch-root');
+  await page
+    .locator('.watch-catalog--list')
+    .getByRole('button', { name: 'OKKO Football', exact: true })
+    .click();
+  await expect(page.locator('.watch-player-shell')).toBeVisible();
+  await capture('Смотреть: плеер', '.watch-root');
+  await page.unroute('**/bridge/command', signedIn);
+
+  // Настройки после U4: девять категорий.
+  await section('Настройки');
+  const settingsNav = page.getByRole('navigation', { name: 'Категории настроек' });
+  for (const category of [
+    'Основное',
+    'Избранное',
+    'Уведомления',
+    'Внешний вид',
+    'Модули',
+    'Просмотр',
+    'Данные',
+    'Источники',
+    'О программе',
+  ]) {
+    await settingsNav.getByRole('button', { name: category, exact: true }).click();
+    await capture(`Настройки: ${category}`, '.settings-view');
+  }
   await writeFile(
     output!,
     JSON.stringify(

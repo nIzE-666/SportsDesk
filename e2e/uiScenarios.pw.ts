@@ -18,6 +18,11 @@ test('measure user journeys from launch', async ({ page }) => {
       JSON.stringify([{ id: 'arsenal', name: 'Arsenal' }]),
     );
   });
+  // The shared fixture remembers the F1 calendar for other specs. A fresh
+  // profile has no remembered F1 tab, and «Формула 1» opens «Обзор».
+  await page.addInitScript(() => {
+    sessionStorage.removeItem('sportsdesk.view.navigation.f1.tab');
+  });
   await page.goto('/');
   const results: Array<{ scenario: string; clicks: number | null; note: string }> = [];
   let clicks = 0;
@@ -30,7 +35,7 @@ test('measure user journeys from launch', async ({ page }) => {
   const tab = (name: string) => page.locator('.shell-tabs').getByRole('tab', { name, exact: true });
   const openFootballMatches = async () => {
     await click(rail('Футбол'));
-    await click(tab('Матчи'));
+    await expect(tab('Матчи')).toHaveAttribute('aria-selected', 'true');
   };
   const openMatch = async () => {
     await openFootballMatches();
@@ -53,15 +58,20 @@ test('measure user journeys from launch', async ({ page }) => {
   await start();
   await expect(page.locator('[data-block="upcoming"]')).toContainText('Arsenal');
   await click(rail('Формула 1'));
-  await click(tab('Календарь'));
-  await expect(page.locator('.calendar-board')).toContainText('Circuit 2');
-  save('Следующие матч клуба и гонка', 'Матч на главной, ближайшая гонка в календаре F1.');
+  await expect(tab('Обзор')).toHaveAttribute('aria-selected', 'true');
+  const nextRace = page.locator('.event-cover').first();
+  await expect(nextRace).toContainText('Circuit 2');
+  await expect(nextRace).toContainText('1 нояб.');
+  save('Следующие матч клуба и гонка', 'Матч на главной, ближайшая гонка на обзоре F1.');
 
   await start();
   await openMatch();
-  await click(page.getByRole('tab', { name: 'Статистика' }));
+  await expect(page.getByRole('tab', { name: 'Статистика', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await expect(page.locator('.match-statistics')).toContainText('62');
-  save('Статистика матча', 'Открыты показатели конкретного матча.');
+  save('Статистика матча', 'Открыты показатели конкретного матча кнопкой «Разбор».');
 
   await start();
   await click(rail('Футбол'));

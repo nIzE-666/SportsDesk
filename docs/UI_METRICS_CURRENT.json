@@ -1,110 +1,325 @@
 {
   "viewport": "1440x900",
-  "design": "classic",
   "scheme": "dark",
   "fixture": "e2e/uiFixture.ts",
   "screens": [
     {
-      "name": "Футбол: обзор",
-      "height": 804,
-      "viewport": 822,
-      "buttons": 10,
+      "name": "Сегодня",
+      "height": 412,
+      "viewport": 530,
+      "buttons": 8,
       "fields": 0,
-      "words": 81
+      "words": 74
     },
     {
       "name": "Матч",
-      "height": 581,
-      "viewport": 822,
-      "buttons": 12,
+      "height": 644,
+      "viewport": 762,
+      "buttons": 9,
       "fields": 0,
-      "words": 48
+      "words": 55
     },
     {
       "name": "Матчи",
-      "height": 399,
-      "viewport": 822,
-      "buttons": 10,
-      "fields": 4,
-      "words": 60
+      "height": 436,
+      "viewport": 554,
+      "buttons": 11,
+      "fields": 1,
+      "words": 47
     },
     {
       "name": "Таблица",
-      "height": 311,
-      "viewport": 822,
+      "height": 263,
+      "viewport": 381,
       "buttons": 3,
       "fields": 0,
-      "words": 22
+      "words": 39
     },
     {
-      "name": "Счёт и события",
-      "height": 380,
-      "viewport": 822,
-      "buttons": 6,
+      "name": "Матчи: сейчас идут",
+      "height": 256,
+      "viewport": 558,
+      "buttons": 5,
       "fields": 0,
-      "words": 44
+      "words": 26
+    },
+    {
+      "name": "Матчи: сейчас идут: страница",
+      "height": 440,
+      "viewport": 558,
+      "buttons": 9,
+      "fields": 0,
+      "words": 38
     },
     {
       "name": "Игроки",
-      "height": 447,
-      "viewport": 822,
+      "height": 397,
+      "viewport": 515,
       "buttons": 0,
       "fields": 1,
-      "words": 28
+      "words": 25
     },
     {
       "name": "Клубы",
-      "height": 269,
-      "viewport": 822,
+      "height": 306,
+      "viewport": 424,
       "buttons": 2,
       "fields": 1,
-      "words": 18
+      "words": 9
     },
     {
       "name": "Формула 1",
-      "height": 964,
-      "viewport": 822,
-      "buttons": 1,
+      "height": 930,
+      "viewport": 811,
+      "buttons": 4,
       "fields": 1,
-      "words": 129
+      "words": 105
     },
     {
       "name": "Календарь F1",
-      "height": 1022,
-      "viewport": 822,
+      "height": 948,
+      "viewport": 811,
       "buttons": 12,
       "fields": 1,
-      "words": 123
+      "words": 110
     },
     {
       "name": "Планировщик",
-      "height": 924,
-      "viewport": 822,
-      "buttons": 9,
+      "height": 620,
+      "viewport": 738,
+      "buttons": 6,
       "fields": 1,
-      "words": 79
+      "words": 64
     },
     {
       "name": "Дневник",
-      "height": 404,
-      "viewport": 822,
+      "height": 373,
+      "viewport": 491,
       "buttons": 2,
       "fields": 0,
       "words": 44
     },
     {
       "name": "Настройки",
-      "height": 4995,
-      "viewport": 822,
-      "buttons": 39,
-      "fields": 86,
-      "words": 656
+      "height": 565,
+      "viewport": 683,
+      "buttons": 11,
+      "fields": 3,
+      "words": 46
+    },
+    {
+      "name": "Игроки: избранные",
+      "height": 656,
+      "viewport": 774,
+      "buttons": 6,
+      "fields": 3,
+      "words": 47
+    },
+    {
+      "name": "Игроки: сравнение",
+      "height": 1182,
+      "viewport": 807,
+      "buttons": 13,
+      "fields": 3,
+      "words": 74
+    },
+    {
+      "name": "Игроки: состав",
+      "height": 1450,
+      "viewport": 807,
+      "buttons": 19,
+      "fields": 4,
+      "words": 103
+    },
+    {
+      "name": "Игроки: профиль",
+      "height": 434,
+      "viewport": 552,
+      "buttons": 6,
+      "fields": 0,
+      "words": 53
+    },
+    {
+      "name": "Клуб: Обзор",
+      "height": 591,
+      "viewport": 709,
+      "buttons": 7,
+      "fields": 1,
+      "words": 73
+    },
+    {
+      "name": "Клуб: Матчи",
+      "height": 480,
+      "viewport": 598,
+      "buttons": 9,
+      "fields": 1,
+      "words": 74
+    },
+    {
+      "name": "Клуб: Состав",
+      "height": 713,
+      "viewport": 807,
+      "buttons": 13,
+      "fields": 1,
+      "words": 93
+    },
+    {
+      "name": "Клуб: Личные встречи",
+      "height": 678,
+      "viewport": 796,
+      "buttons": 7,
+      "fields": 1,
+      "words": 93
+    },
+    {
+      "name": "Турнир: Матчи",
+      "height": 3113,
+      "viewport": 807,
+      "buttons": 34,
+      "fields": 1,
+      "words": 363
+    },
+    {
+      "name": "Турнир: Таблица",
+      "height": 720,
+      "viewport": 807,
+      "buttons": 12,
+      "fields": 0,
+      "words": 140
+    },
+    {
+      "name": "Турнир: Сетка",
+      "height": 646,
+      "viewport": 764,
+      "buttons": 9,
+      "fields": 0,
+      "words": 121
+    },
+    {
+      "name": "Турнир: Клубы",
+      "height": 269,
+      "viewport": 387,
+      "buttons": 12,
+      "fields": 0,
+      "words": 36
+    },
+    {
+      "name": "Турнир: Игроки",
+      "height": 534,
+      "viewport": 652,
+      "buttons": 8,
+      "fields": 0,
+      "words": 60
+    },
+    {
+      "name": "Смотреть",
+      "height": 799,
+      "viewport": 847,
+      "buttons": 4,
+      "fields": 0,
+      "words": 21
+    },
+    {
+      "name": "Смотреть: каталог",
+      "height": 799,
+      "viewport": 847,
+      "buttons": 19,
+      "fields": 1,
+      "words": 53
+    },
+    {
+      "name": "Смотреть: каталог списком",
+      "height": 799,
+      "viewport": 847,
+      "buttons": 19,
+      "fields": 1,
+      "words": 53
+    },
+    {
+      "name": "Смотреть: плеер",
+      "height": 799,
+      "viewport": 847,
+      "buttons": 25,
+      "fields": 2,
+      "words": 40
+    },
+    {
+      "name": "Настройки: Основное",
+      "height": 565,
+      "viewport": 683,
+      "buttons": 11,
+      "fields": 3,
+      "words": 46
+    },
+    {
+      "name": "Настройки: Избранное",
+      "height": 1069,
+      "viewport": 847,
+      "buttons": 30,
+      "fields": 1,
+      "words": 95
+    },
+    {
+      "name": "Настройки: Уведомления",
+      "height": 667,
+      "viewport": 785,
+      "buttons": 17,
+      "fields": 9,
+      "words": 65
+    },
+    {
+      "name": "Настройки: Внешний вид",
+      "height": 356,
+      "viewport": 474,
+      "buttons": 16,
+      "fields": 0,
+      "words": 27
+    },
+    {
+      "name": "Настройки: Модули",
+      "height": 519,
+      "viewport": 637,
+      "buttons": 10,
+      "fields": 13,
+      "words": 61
+    },
+    {
+      "name": "Настройки: Просмотр",
+      "height": 587,
+      "viewport": 705,
+      "buttons": 11,
+      "fields": 3,
+      "words": 38
+    },
+    {
+      "name": "Настройки: Данные",
+      "height": 477,
+      "viewport": 595,
+      "buttons": 12,
+      "fields": 0,
+      "words": 38
+    },
+    {
+      "name": "Настройки: Источники",
+      "height": 741,
+      "viewport": 847,
+      "buttons": 16,
+      "fields": 1,
+      "words": 65
+    },
+    {
+      "name": "Настройки: О программе",
+      "height": 356,
+      "viewport": 474,
+      "buttons": 11,
+      "fields": 1,
+      "words": 28
     }
   ],
   "shell": {
-    "topbarButtons": 11,
-    "sidebarButtons": 34,
-    "matchTabs": 7,
-    "matchTabsTop": 453
+    "railButtons": 7,
+    "headerButtons": 5,
+    "matchTabs": 4,
+    "matchTabsTop": 259
   }
 }
