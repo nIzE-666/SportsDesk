@@ -324,6 +324,6 @@ describe('WhatsNewDialog', () => {
     expect(dialog?.classList.contains('ui-dialog')).toBe(true);
     expect(dialog?.textContent).toContain('SportsDesk 2.0.0');
     expect(dialog?.textContent).toContain('Пять разделов');
-    expect(dialog?.textContent).toContain('LiveScore');
+    expect(dialog?.textContent).toContain('четыре вкладки');
   });
 });
