@@ -77,4 +77,9 @@ it('separates the coverage and per-90 parts of a season tile note', async () => 
     'Есть данные в 1 матче · 2 / 90 минут',
     'Есть данные в 1 матче · 1 / 90 минут',
   ]);
+  const raw = [...host.querySelectorAll<HTMLElement>('.ui-stat__note')].map(
+    (note) => note.textContent ?? '',
+  );
+  expect(raw[0]).toContain('2\u00A0/\u00A090\u00A0минут');
+  expect(raw[1]).toContain('1\u00A0/\u00A090\u00A0минут');
 });

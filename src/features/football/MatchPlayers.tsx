@@ -316,7 +316,9 @@ function StatPlayerGroup({ group, minutes }: { group: PlayerStatGroup; minutes: 
               <strong>{formatStatValue(stat)}</strong>
               {per90Value !== null && (
                 <span className="muted tiny">
-                  {per90Value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} / 90
+                  {`${per90Value.toLocaleString('ru-RU', {
+                    maximumFractionDigits: 2,
+                  })}\u00A0/\u00A090`}
                 </span>
               )}
             </div>
@@ -438,9 +440,11 @@ export function MatchPlayersComparison({
                   {statLabel(row.key, row.title)}
                   {lPer90 !== null && rPer90 !== null && (
                     <span className="muted tiny">
-                      {' '}
-                      / 90: {lPer90.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} /{' '}
-                      {rPer90.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}
+                      {`\u00A0/\u00A090: ${lPer90.toLocaleString('ru-RU', {
+                        maximumFractionDigits: 2,
+                      })}\u00A0/\u00A0${rPer90.toLocaleString('ru-RU', {
+                        maximumFractionDigits: 2,
+                      })}`}
                     </span>
                   )}
                 </span>

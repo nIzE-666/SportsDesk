@@ -73,7 +73,7 @@ function whenLabel(
     return { primary: 'Отменён', secondary: null };
   }
   if (status === 'unknown') {
-    return { primary: 'Статус уточняется', secondary: null };
+    return { primary: 'Уточняется', secondary: null };
   }
   return {
     primary: time ?? '—',

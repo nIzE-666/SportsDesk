@@ -27,6 +27,7 @@ import { Badge, Button, IconButton, Panel, PanelHeader, Tooltip } from '../../ki
 import { useNow } from '../../lib/useNow';
 import { EventCover } from '../../components/EventCover';
 import { grandPrixTitle, racePresentation } from './calendarModel';
+import { resultStatusLabel } from './analysisLabels';
 
 /**
  * Latest verified race results.
@@ -371,7 +372,7 @@ function FavoriteDriverRow({
                   </span>
                   <span>
                     Финиш: <b>{latestEntry.positionText ?? latestEntry.position ?? DASH}</b>
-                    {latestEntry.status ? ` (${latestEntry.status})` : ''}
+                    {latestEntry.status ? ` (${resultStatusLabel(latestEntry.status)})` : ''}
                   </span>
                   <span>
                     Очки: <b>{latestEntry.points ?? DASH}</b> · Старт:{' '}

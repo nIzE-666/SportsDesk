@@ -78,7 +78,7 @@ describe('MatchRow', () => {
     expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Отменён');
 
     await app.render(<MatchRow home={HOME} away={AWAY} status="unknown" />);
-    expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Статус уточняется');
+    expect(app.host.querySelector('.ui-match-row__time')?.textContent).toBe('Уточняется');
 
     await app.render(
       <MatchRow home={HOME} away={AWAY} status="finished" score={{ home: 0, away: 0 }} />,

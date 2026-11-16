@@ -1,4 +1,5 @@
 import { positionText } from './parsing';
+import { resultStatusLabel } from './analysisLabels';
 import { DriverName, TeamDot } from './shared';
 import { teamColor } from './teamColors';
 import type { JolpicaQualifyingEntry, JolpicaResultEntry } from './types';
@@ -31,7 +32,7 @@ export function RaceResultsTable({ rows }: { rows: JolpicaResultEntry[] }) {
               </td>
               <td className="ui-table__num">{row.points ?? '—'}</td>
               <td>
-                {row.status ?? '—'}
+                {(row.status ? resultStatusLabel(row.status) : null) ?? '—'}
                 {row.Time?.time ? ` · ${row.Time.time}` : ''}
               </td>
             </tr>

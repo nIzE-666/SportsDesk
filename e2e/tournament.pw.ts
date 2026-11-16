@@ -40,14 +40,14 @@ async function expectNoCutText(page: Page, selector: string) {
   expect(clipped, `${selector} is cut off`).toEqual([]);
 }
 
-async function expectNoCutClock(page: Page) {
+async function expectNoCutTime(page: Page) {
   const clipped = await page.locator('.ui-match-row__time').evaluateAll((elements) =>
     elements
-      .filter((element) => /^\d{2}:\d{2}$/u.test((element as HTMLElement).innerText.trim()))
+      .filter((element) => (element as HTMLElement).offsetParent !== null)
       .filter((element) => element.scrollWidth > element.clientWidth + 1)
       .map((element) => (element as HTMLElement).innerText.trim()),
   );
-  expect(clipped, 'a kick-off time is cut off').toEqual([]);
+  expect(clipped, 'a match time or status is cut off').toEqual([]);
 }
 
 async function expectBracketFits(page: Page, columns: number) {
@@ -100,10 +100,8 @@ test('the table, the bracket with real home sides and the player dialog', async 
   await expect(page.locator('.match-list__day').first()).toBeVisible();
   await expect(page.locator('.match-list__heading').first()).not.toBeEmpty();
   await expect(page.locator('.ui-match-row').filter({ hasText: 'Отменён' })).toHaveCount(2);
-  await expect(page.locator('.ui-match-row').filter({ hasText: 'Статус уточняется' })).toHaveCount(
-    1,
-  );
-  await expectNoCutClock(page);
+  await expect(page.locator('.ui-match-row').filter({ hasText: 'Уточняется' })).toHaveCount(1);
+  await expectNoCutTime(page);
   await expectNoCutText(page, '.ui-match-row__state');
   await expectNoCutText(page, '.match-list__heading');
   await expect(page.locator('.ucl-season__value')).toHaveText('Сезон 2026/2027');
@@ -199,6 +197,29 @@ test('the table, the bracket with real home sides and the player dialog', async 
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('.scorer-card').first()).toBeFocused();
   await noHorizontalOverflow(page);
+});
+
+test('the unknown status fits its column at 1100 and 1440', async ({ page }) => {
+  await setupVisualFixture(page, 'dark');
+  await page.goto('/');
+  await expect(page.locator('.today-view')).toBeVisible();
+
+  for (const width of [1100, 1440] as const) {
+    await page.setViewportSize({ width, height: width === 1100 ? 720 : 900 });
+    await openCompetition(page, 'Лига чемпионов');
+    const unknown = page.locator('.ui-match-row__time').filter({ hasText: 'Уточняется' });
+    await expect(unknown).toHaveCount(1);
+    const metrics = await unknown.evaluate((element) => ({
+      text: (element as HTMLElement).innerText.trim(),
+      width: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(metrics.text).toBe('Уточняется');
+    expect(metrics.scrollWidth, 'the unknown status is cut off').toBeLessThanOrEqual(
+      metrics.width + 1,
+    );
+    await noHorizontalOverflow(page);
+  }
 });
 
 test('a cup without a table hides «Таблица» and old tabs open the new places', async ({ page }) => {

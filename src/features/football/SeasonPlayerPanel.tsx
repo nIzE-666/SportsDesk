@@ -130,10 +130,9 @@ export function SeasonPlayerPanel({
                       !['minutes', 'minutes_played', 'appearances'].includes(m.key) && (
                         <span>
                           {' · '}
-                          {((m.value / stats.minutes) * 90).toLocaleString('ru-RU', {
+                          {`${((m.value / stats.minutes) * 90).toLocaleString('ru-RU', {
                             maximumFractionDigits: 2,
-                          })}{' '}
-                          / 90 минут
+                          })}\u00A0/\u00A090\u00A0минут`}
                         </span>
                       )}
                   </>

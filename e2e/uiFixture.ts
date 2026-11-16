@@ -23,6 +23,15 @@ const match = {
   score_home: 2,
   score_away: 1,
 };
+const nextMatch = {
+  ...match,
+  id: 'next-match',
+  status: 'scheduled',
+  time_utc: '2026-10-23T18:00:00Z',
+  date: '2026-10-23',
+  score_home: null,
+  score_away: null,
+};
 const stats = {
   periods: [
     {
@@ -99,24 +108,16 @@ export async function setupVisualFixture(page: Page, scheme: string, scenarioDat
           payload = {
             data: {
               league: { id: 'l_4WFCIZ', name: 'Premier League' },
-              matches: scenarioData
-                ? [
-                    match,
-                    {
-                      ...match,
-                      id: 'next-match',
-                      status: 'scheduled',
-                      time_utc: '2026-10-23T18:00:00Z',
-                      date: '2026-10-23',
-                      score_home: null,
-                      score_away: null,
-                    },
-                  ]
-                : [match],
+              matches: scenarioData ? [match, nextMatch] : [match],
             },
           };
         else if (path === `matches/${match.id}`) payload = { data: match };
-        else if (path.endsWith('/stats')) payload = { data: stats };
+        else if (path === `matches/${nextMatch.id}` && scenarioData) payload = { data: nextMatch };
+        else if (path.endsWith('/stats'))
+          payload = {
+            // A match that has not started has no statistics to show.
+            data: path === `matches/${nextMatch.id}/stats` ? { periods: [] } : stats,
+          };
         else if (path.endsWith('/lineups')) payload = { data: lineups };
         else if (path.endsWith('/players')) payload = { data: [] };
         else if (path.endsWith('/events')) payload = { data: { events: [] } };

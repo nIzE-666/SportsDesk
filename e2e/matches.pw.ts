@@ -173,6 +173,20 @@ test('the live feed keeps its own filter with counts', async ({ page }) => {
   await expect(page.locator('.live-panel')).toContainText('Попробуйте другой фильтр.');
 });
 
+test('a match that has not started has no statistics', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setupVisualFixture(page, 'dark', true);
+  await page.goto('/');
+  await openMatches(page);
+  await page.locator('[data-match-id="next-match"] .mt-open').first().click();
+  await expect(page.getByRole('tab', { name: 'Статистика' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByText('Матч ещё не начался')).toBeVisible();
+  await expect(page.locator('.match-statistics')).toHaveCount(0);
+});
+
 test('the calendar export is an action of the «Матчи» menu', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await setupVisualFixture(page, 'dark', true);

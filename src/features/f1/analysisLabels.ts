@@ -1,3 +1,4 @@
+import { countRu, LAPS } from '../../lib/plural';
 import { grandPrixTitle } from './calendarModel';
 import { formatShort, parseUtc } from './time';
 import type { OpenF1Meeting, OpenF1Session } from './types';
@@ -40,4 +41,27 @@ export function sessionLabel(session: OpenF1Session): string {
   const name = sessionNameLabel(session.session_name) ?? `Сессия ${session.session_key}`;
   const date = sessionShortDate(session);
   return date ? `${name} · ${date}` : name;
+}
+
+const RESULT_STATUSES: Record<string, string> = {
+  finished: 'Финиш',
+  dnf: 'Сход',
+  retired: 'Сход',
+  accident: 'Авария',
+  collision: 'Столкновение',
+  engine: 'Двигатель',
+  gearbox: 'Коробка передач',
+  disqualified: 'Дисквалификация',
+  'did not start': 'Не стартовал',
+  dns: 'Не стартовал',
+  withdrew: 'Снялся',
+};
+
+/** Jolpica sends race result statuses in English; show the common ones in Russian. */
+export function resultStatusLabel(status: string | null | undefined): string | null {
+  const value = status?.trim();
+  if (!value) return null;
+  const lap = /^\+(\d+)\s*laps?$/iu.exec(value);
+  if (lap) return `+${countRu(Number(lap[1]), LAPS)}`;
+  return RESULT_STATUSES[value.toLowerCase()] ?? value;
 }

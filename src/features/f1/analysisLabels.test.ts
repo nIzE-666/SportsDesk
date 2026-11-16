@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionLabel, sessionNameLabel } from './analysisLabels';
+import { resultStatusLabel, sessionLabel, sessionNameLabel } from './analysisLabels';
 
 describe('session names', () => {
   it.each([
@@ -40,5 +40,36 @@ describe('session names', () => {
         date_start: '2026-10-02T04:00:00Z',
       }),
     ).toMatch(/^Квалификация · /u);
+  });
+});
+
+describe('race result statuses', () => {
+  it.each([
+    ['Finished', 'Финиш'],
+    ['+1 Lap', '+1 круг'],
+    ['+2 Laps', '+2 круга'],
+    ['+5 Laps', '+5 кругов'],
+    ['+11 Laps', '+11 кругов'],
+    ['+21 Laps', '+21 круг'],
+    ['DNF', 'Сход'],
+    ['Accident', 'Авария'],
+    ['Collision', 'Столкновение'],
+    ['Engine', 'Двигатель'],
+    ['Gearbox', 'Коробка передач'],
+    ['Disqualified', 'Дисквалификация'],
+    ['Did not start', 'Не стартовал'],
+    ['Withdrew', 'Снялся'],
+  ])('translates %s', (source, expected) => {
+    expect(resultStatusLabel(source)).toBe(expected);
+  });
+
+  it('keeps an unknown status as it comes', () => {
+    expect(resultStatusLabel('Safety car finished')).toBe('Safety car finished');
+  });
+
+  it('returns nothing for a missing or blank status', () => {
+    expect(resultStatusLabel(undefined)).toBeNull();
+    expect(resultStatusLabel(null)).toBeNull();
+    expect(resultStatusLabel('  ')).toBeNull();
   });
 });
