@@ -547,6 +547,11 @@ export function useLiveMatches({
   useEffect(() => {
     mountedRef.current = true;
     const ids = leagueKey.split(',').filter(Boolean);
+    if (!ids.length) {
+      mountedRef.current = false;
+      setLoading(false);
+      return;
+    }
     nextDayAtRef.current = Date.now() + DAY_INTERVAL_MS;
     nextLiveAtRef.current = 0;
     void loadDay(false);
@@ -583,6 +588,7 @@ export function useLiveMatches({
   }, [leagueKey, loadDay, loadLive, merged, push]);
 
   const refresh = useCallback(() => {
+    if (!leagueKeyRef.current) return;
     dayFailuresRef.current = 0;
     liveFailuresRef.current = 0;
     nextDayAtRef.current = 0;

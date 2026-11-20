@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { LEAGUE_MODULES, readModules } from '../../../lib/modules';
+import { CORE_MODULES, LEAGUE_MODULES, readModules } from '../../../lib/modules';
 import { ModulesSettings } from './ModulesSettings';
 
 let host: HTMLDivElement;
@@ -40,6 +40,7 @@ it('shows a switch for every module and groups the league switches', async () =>
     expect(checkboxFor(league.label)?.checked).toBe(true);
   }
   for (const label of [
+    'Главное',
     'Просмотр',
     'Еврокубки и сборные',
     'Прогнозы',
@@ -51,7 +52,7 @@ it('shows a switch for every module and groups the league switches', async () =>
     expect(checkboxFor(label)?.checked).toBe(true);
   }
   expect(host.querySelectorAll('.module-switch input[type="checkbox"]')).toHaveLength(
-    7 + LEAGUE_MODULES.length,
+    CORE_MODULES.length + LEAGUE_MODULES.length,
   );
 });
 

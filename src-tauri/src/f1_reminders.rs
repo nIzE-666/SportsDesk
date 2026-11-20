@@ -6,7 +6,7 @@
 //!   exponentially up to 15 minutes, disabled config pauses for 2 seconds.
 //! - Schedule comes from the shared Jolpica cache via `fetch_with_cache`;
 //!   stale replies never drive notifications.
-//! - The opt-in flags (`enabled && f1_reminders`) are re-checked immediately
+//! - Notification preferences and selected sessions are re-checked immediately
 //!   before each delivery, after the async fetch.
 //! - Persistent de-dup lives in the shared SQLite cache under synthetic
 //!   source `f1-reminders` (30-day prune), so restarts never replay a
@@ -361,9 +361,9 @@ impl DeliveryGate {
     }
 }
 
-fn reminders_enabled(poller: &Poller) -> bool {
+fn reminders_enabled(poller: &Poller, key: &str) -> bool {
     let cfg = poller.config();
-    cfg.enabled && cfg.f1_reminders && poller.delivery_allowed("reminder", &[])
+    cfg.includes_f1_reminder(key) && poller.delivery_allowed("reminder", &[])
 }
 
 /// One reminder cycle. On successful fetch, returns the earliest start time
@@ -397,10 +397,10 @@ async fn tick(
     let mut failed_start: Option<i64> = None;
     for reminder in due {
         // The session preference controls the feed independently of OS delivery.
-        if !poller.config().f1_reminders {
-            break;
-        }
         let cfg = poller.config();
+        if !cfg.includes_f1_reminder(&reminder.key) {
+            continue;
+        }
         let reminder = if cfg.f1_radio {
             radio_styled(reminder, &cfg.timezone, &cfg.f1_radio_name)
         } else {
@@ -426,11 +426,12 @@ async fn tick(
                 round,
             },
         );
-        if !reminders_enabled(poller) || !gate.can_send(&state.cache, &reminder.key) {
+        if !reminders_enabled(poller, &reminder.key) || !gate.can_send(&state.cache, &reminder.key)
+        {
             continue;
         }
         let delivered = gate.deliver(&state.cache, &reminder.key, now, || {
-            reminders_enabled(poller)
+            reminders_enabled(poller, &reminder.key)
                 && app
                     .notification()
                     .builder()
@@ -440,7 +441,9 @@ async fn tick(
                     .is_ok()
         });
         if !delivered {
-            if reminders_enabled(poller) && gate.can_send(&state.cache, &reminder.key) {
+            if reminders_enabled(poller, &reminder.key)
+                && gate.can_send(&state.cache, &reminder.key)
+            {
                 failed_start = Some(
                     failed_start.map_or(reminder.start_ms, |start| start.min(reminder.start_ms)),
                 );

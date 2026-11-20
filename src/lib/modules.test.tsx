@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  CORE_MODULES,
   DEFAULT_MODULES,
   isCompetitionVisible,
   isValidModulesValue,
@@ -37,7 +38,8 @@ describe('modules', () => {
   it('starts with every module and league switch on', () => {
     expect(readModules()).toEqual(DEFAULT_MODULES);
     expect(Object.values(DEFAULT_MODULES).every(Boolean)).toBe(true);
-    expect(Object.keys(DEFAULT_MODULES)).toHaveLength(7 + LEAGUE_MODULES.length);
+    expect(Object.keys(DEFAULT_MODULES)).toHaveLength(CORE_MODULES.length + LEAGUE_MODULES.length);
+    expect(isModuleOn('home')).toBe(true);
     expect(isModuleOn('watch')).toBe(true);
     expect(isModuleOn(leagueModuleId(PL))).toBe(true);
   });

@@ -7,6 +7,13 @@ import { VERIFIED_LEAGUES } from './useFootballData';
 import { SPOILERS_CHANGED_EVENT, SPOILERS_KEY, hiddenFootballIds } from '../spoilers/spoilerStore';
 import { ATMOSPHERE_KEY } from '../atmosphere/atmosphereStore';
 import { readTeamRadio } from '../atmosphere/teamRadio';
+import { HOME_REMINDERS_KEY, readHomeReminders } from '../home/homePreferences';
+import {
+  isCompetitionVisibleWith,
+  MODULES_CHANGED_EVENT,
+  MODULES_KEY,
+  readModules,
+} from '../../lib/modules';
 
 /**
  * Bridge to the Rust background poller. The UI owns localStorage settings;
@@ -127,6 +134,16 @@ export function usePollerSync(): void {
             timezone = getUserTimezone();
           // Rust не должен присылать счёт матчей из режима «без спойлеров».
           const hiddenResults = hiddenFootballIds();
+          const modules = readModules();
+          const selected = readHomeReminders();
+          const footballReminders = Object.fromEntries(
+            selected.flatMap(({ fixture }) =>
+              fixture && isCompetitionVisibleWith(fixture.leagueId, modules)
+                ? [[fixture.id, fixture.leagueId]]
+                : [],
+            ),
+          );
+          const f1ReminderIds = selected.filter((item) => !item.fixture).map((item) => item.key);
           let trayValue = getString(STORAGE_KEYS.trayMode);
           if (trayValue === null) {
             try {
@@ -146,6 +163,8 @@ export function usePollerSync(): void {
             policy,
             timezone,
             hiddenResults,
+            footballReminders,
+            f1ReminderIds,
             f1Radio,
             f1RadioName,
           });
@@ -160,6 +179,8 @@ export function usePollerSync(): void {
                 policy,
                 timezone,
                 hiddenResults,
+                footballReminders,
+                f1ReminderIds,
                 f1Radio,
                 f1RadioName,
               },
@@ -191,6 +212,8 @@ export function usePollerSync(): void {
         key === STORAGE_KEYS.trayMode ||
         key === SPOILERS_KEY ||
         key === ATMOSPHERE_KEY ||
+        key === HOME_REMINDERS_KEY ||
+        key === MODULES_KEY ||
         key.startsWith('sportsdesk.notifications') ||
         key.toLowerCase().includes('timezone')
       )
@@ -200,6 +223,7 @@ export function usePollerSync(): void {
     window.addEventListener('sportsdesk-storage-changed', onStorage);
     window.addEventListener('sportsdesk-favorites-changed', onStorage);
     window.addEventListener(SPOILERS_CHANGED_EVENT, onStorage);
+    window.addEventListener(MODULES_CHANGED_EVENT, onStorage);
     window.addEventListener('sportsdesk-atmosphere-changed', onStorage);
     return () => {
       active = false;
@@ -207,6 +231,7 @@ export function usePollerSync(): void {
       window.removeEventListener('sportsdesk-storage-changed', onStorage);
       window.removeEventListener('sportsdesk-favorites-changed', onStorage);
       window.removeEventListener(SPOILERS_CHANGED_EVENT, onStorage);
+      window.removeEventListener(MODULES_CHANGED_EVENT, onStorage);
       window.removeEventListener('sportsdesk-atmosphere-changed', onStorage);
     };
   }, [favoritesKey]);

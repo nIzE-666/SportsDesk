@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Section } from '../lib/navigation';
 import { NavRail } from './NavRail';
+import { setModule } from '../lib/modules';
 
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>;
 
@@ -34,6 +35,7 @@ async function renderRail(
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   host = document.createElement('div');
+  localStorage.clear();
   document.body.append(host);
   root = createRoot(host);
 });
@@ -43,11 +45,12 @@ afterEach(async () => {
   host.remove();
 });
 
-it('shows five sections and the two bottom items', async () => {
+it('shows the six sections and the two bottom items', async () => {
   await renderRail({ kind: 'today', mode: 'today' });
   const nav = host.querySelector('nav[aria-label="Разделы"]');
   expect(nav).not.toBeNull();
   expect([...nav!.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual([
+    'Главное',
     'Сегодня',
     'Футбол',
     'Формула 1',
@@ -56,6 +59,13 @@ it('shows five sections and the two bottom items', async () => {
     'События',
     'Настройки',
   ]);
+});
+
+it('hides the home section when its module is off', async () => {
+  setModule('home', false);
+  await renderRail({ kind: 'today' });
+  expect(host.querySelector('#rail-home')).toBeNull();
+  expect(button('Сегодня').getAttribute('aria-current')).toBe('page');
 });
 
 it('marks only the active section and opens the remembered place on click', async () => {

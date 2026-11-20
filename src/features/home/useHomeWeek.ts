@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../lib/bridge';
 import { isCompetitionVisibleWith, useModules } from '../../lib/modules';
 import { getUserTimezone } from '../football/storage';
 import type { MatchSummary } from '../football/types';
+import {
+  archiveDay,
+  archiveEvents,
+  pruneWeekArchive,
+  readArchivedDay,
+  readArchivedEvents,
+} from './weekArchive';
 import {
   appendError,
   buildWeekDays,
@@ -25,13 +32,9 @@ import {
 } from './weekData';
 
 export interface HomeWeekData {
-  /** Fifteen local days, oldest first; matches appear as their day list arrives. */
+  /** Local days, oldest first; includes the week selected on the track. */
   days: WeekDay[];
-  /**
-   * Details of every finished match of the window, keyed by match id. They
-   * live in memory only: the request cache keeps an events reply for 60
-   * seconds and the local history has no events table.
-   */
+  /** Details of finished matches, keyed by match id. */
   events: Record<string, WeekEventState>;
   /** Season matches of every followed competition, keyed by league id. */
   seasonMatches: Record<string, MatchSummary[]>;
@@ -45,6 +48,7 @@ export interface HomeWeekData {
   /** A day list, a season list or an event request is still running. */
   loading: boolean;
   timezone: string;
+  reload: () => void;
 }
 
 interface WeekState {
@@ -89,23 +93,29 @@ function calendarDay(now: number, timeZone: string): string {
  * used by the interest model. Results arrive progressively; nothing waits for
  * the whole week.
  */
-export function useHomeWeek(now: number): HomeWeekData {
+export function useHomeWeek(now: number, weekStart?: string, enabled = true): HomeWeekData {
   const timeZone = getUserTimezone();
   const modules = useModules();
   const followedIds = useMemo(
-    () => FOLLOWED_COMPETITION_IDS.filter((id) => isCompetitionVisibleWith(id, modules)),
-    [modules],
+    () =>
+      enabled ? FOLLOWED_COMPETITION_IDS.filter((id) => isCompetitionVisibleWith(id, modules)) : [],
+    [enabled, modules],
   );
   const followedKey = followedIds.join(',');
   const today = calendarDay(now, timeZone);
-  const window = useMemo(() => resolveWeekWindow(now, timeZone), [today, timeZone]);
+  const window = useMemo(
+    () => resolveWeekWindow(now, timeZone, weekStart),
+    [today, timeZone, weekStart],
+  );
   const windowKey = `${window.startMs}:${window.endMs}:${window.days[0] ?? ''}:${followedKey}`;
   const [state, setState] = useState<WeekState>(emptyState);
+  const [retry, setRetry] = useState(0);
   const [queue] = useState(() => createTaskQueue(EVENTS_CONCURRENCY));
   const generationRef = useRef(0);
   const mountedRef = useRef(false);
   const matchesRef = useRef(new Map<string, WeekMatch>());
   const requestedSeasonsRef = useRef(new Set<string>());
+  const reload = useCallback(() => setRetry((value) => value + 1), []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -113,6 +123,8 @@ export function useHomeWeek(now: number): HomeWeekData {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => pruneWeekArchive(Date.now()), [today]);
 
   // Day lists: every UTC date that overlaps the local window. They are
   // requested through the same pool as details, so the app never exceeds four
@@ -131,40 +143,58 @@ export function useHomeWeek(now: number): HomeWeekData {
       eventsTotal: 0,
       fetchedAt: null,
       stale: false,
-      datesPending: window.utcDates.length,
+      datesPending: followed.size ? window.utcDates.length : 0,
       errors: prev.errors.filter((error) => error.scope === 'season'),
     }));
 
+    if (!followed.size) return;
+
+    const addDay = (
+      summaries: Parameters<typeof selectWeekMatches>[0],
+      fetchedAt: string,
+      stale: boolean,
+    ) => {
+      const selected = selectWeekMatches(summaries, followed, window);
+      for (const match of selected) matchesRef.current.set(match.summary.id, match);
+      setState((prev) => {
+        const matches = { ...prev.matches };
+        const events = { ...prev.events };
+        let added = 0;
+        for (const match of selected) {
+          matches[match.summary.id] = match;
+          if (match.state === 'finished' && !events[match.summary.id]) {
+            events[match.summary.id] = { status: 'pending', events: [] };
+            added += 1;
+          }
+        }
+        return {
+          ...prev,
+          matches,
+          events,
+          eventsTotal: prev.eventsTotal + added,
+          fetchedAt: earlierFetchedAt(prev.fetchedAt, fetchedAt),
+          stale: prev.stale || stale,
+        };
+      });
+    };
+
     const loadDay = async (date: string) => {
       try {
-        const reply = await queue.run(() => api('pitch', `date/${date}?status=all`));
+        const reply = await queue.run(async () =>
+          alive() ? api('pitch', `date/${date}?status=all`) : null,
+        );
+        if (!alive() || !reply) return;
         const summaries = parseDateMatches(reply.payload);
         if (!summaries) throw new Error('Не удалось прочитать расписание.');
-        if (!alive()) return;
-        const selected = selectWeekMatches(summaries, followed, window);
-        for (const match of selected) matchesRef.current.set(match.summary.id, match);
-        setState((prev) => {
-          const matches = { ...prev.matches };
-          const events = { ...prev.events };
-          let added = 0;
-          for (const match of selected) {
-            matches[match.summary.id] = match;
-            if (match.state === 'finished' && !events[match.summary.id]) {
-              events[match.summary.id] = { status: 'pending', events: [] };
-              added += 1;
-            }
-          }
-          return {
-            ...prev,
-            matches,
-            events,
-            eventsTotal: prev.eventsTotal + added,
-            fetchedAt: earlierFetchedAt(prev.fetchedAt, reply.fetchedAt),
-            stale: prev.stale || reply.stale,
-          };
-        });
+        archiveDay(date, summaries, reply.fetchedAt);
+        addDay(summaries, reply.fetchedAt, reply.stale);
       } catch (error) {
         if (!alive()) return;
+        const saved = readArchivedDay(date);
+        if (saved) {
+          addDay(saved.matches, saved.fetchedAt, true);
+          return;
+        }
         const message = messageOf(error);
         setState((prev) => {
           const errors = appendError(prev.errors, { scope: 'day', key: date, message });
@@ -195,12 +225,21 @@ export function useHomeWeek(now: number): HomeWeekData {
       });
       for (const match of finished) {
         const id = match.summary.id;
+        const saved = readArchivedEvents(match.summary);
+        if (saved) {
+          setState((prev) => ({
+            ...prev,
+            events: { ...prev.events, [id]: { status: 'loaded', events: saved } },
+          }));
+          continue;
+        }
         void queue
-          .run(() => api('pitch', `matches/${id}/events`))
+          .run(async () => (alive() ? api('pitch', `matches/${id}/events`) : null))
           .then((reply) => {
+            if (!alive() || !reply) return;
             const events = parseEvents(reply.payload);
             if (!events) throw new Error('Не удалось прочитать события матча.');
-            if (!alive()) return;
+            if (!reply.stale) archiveEvents(match.summary, events);
             setState((prev) => ({
               ...prev,
               events: {
@@ -234,7 +273,7 @@ export function useHomeWeek(now: number): HomeWeekData {
           });
       }
     });
-  }, [windowKey, followedKey, queue]);
+  }, [windowKey, followedKey, queue, retry]);
 
   // Season matches: one request per league, never repeated on rerenders. The
   // interest model computes the table before each match from these rows.
@@ -245,6 +284,7 @@ export function useHomeWeek(now: number): HomeWeekData {
       setState((prev) => ({
         ...prev,
         seasonLoading: { ...prev.seasonLoading, [leagueId]: true },
+        errors: prev.errors.filter((error) => error.scope !== 'season' || error.key !== leagueId),
       }));
       void queue
         .run(() => api('pitch', `leagues/${leagueId}/matches?status=all`))
@@ -262,6 +302,7 @@ export function useHomeWeek(now: number): HomeWeekData {
         })
         .catch((error) => {
           if (!mountedRef.current) return;
+          requestedSeasonsRef.current.delete(leagueId);
           const message = messageOf(error);
           setState((prev) => ({
             ...prev,
@@ -270,7 +311,7 @@ export function useHomeWeek(now: number): HomeWeekData {
           }));
         });
     }
-  }, [followedKey, queue]);
+  }, [followedKey, queue, retry]);
 
   const days = useMemo(
     () => buildWeekDays(window, Object.values(state.matches), timeZone),
@@ -295,5 +336,6 @@ export function useHomeWeek(now: number): HomeWeekData {
     stale: state.stale,
     loading,
     timezone: timeZone,
+    reload,
   };
 }

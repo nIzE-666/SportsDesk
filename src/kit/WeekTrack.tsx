@@ -26,10 +26,13 @@ export interface WeekTrackProps {
   weekStart: string;
   /** The current moment, ISO. */
   now: string;
+  timezone?: string;
   events: WeekTrackEvent[];
   onOpen: (id: string) => void;
   onPrevWeek: () => void;
   onNextWeek: () => void;
+  canPrevWeek?: boolean;
+  canNextWeek?: boolean;
   /** The hint shown above an event on hover and keyboard focus. */
   renderPreview: (id: string) => ReactNode;
   className?: string;
@@ -37,8 +40,20 @@ export interface WeekTrackProps {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-const MONTH = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
-const WEEKDAY = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
+const MONTH = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const WEEKDAY = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', timeZone: 'UTC' });
+
+/** Use UTC arithmetic on the displayed wall time so DST and the host zone do not shift a day. */
+function wallTime(iso: string, format: Intl.DateTimeFormat): Date {
+  const instant = new Date(iso);
+  if (!Number.isFinite(instant.getTime())) return instant;
+  const parts = Object.fromEntries(
+    format.formatToParts(instant).map(({ type, value }) => [type, value]),
+  );
+  return new Date(
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`,
+  );
+}
 
 /** The Russian month in the genitive case, as used in a date. */
 function monthName(date: Date): string {
@@ -47,44 +62,42 @@ function monthName(date: Date): string {
 
 function startOfDay(date: Date): Date {
   const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
+  day.setUTCHours(0, 0, 0, 0);
   return day;
 }
 
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
-  result.setDate(result.getDate() + days);
+  result.setUTCDate(result.getUTCDate() + days);
   return result;
 }
 
 function calendarDiff(later: Date, earlier: Date): number {
-  const first = Date.UTC(later.getFullYear(), later.getMonth(), later.getDate());
-  const second = Date.UTC(earlier.getFullYear(), earlier.getMonth(), earlier.getDate());
-  return Math.round((first - second) / DAY_MS);
+  return Math.floor(later.getTime() / DAY_MS) - Math.floor(earlier.getTime() / DAY_MS);
 }
 
 function weekdayIndex(date: Date): number {
-  return (date.getDay() + 6) % 7;
+  return (date.getUTCDay() + 6) % 7;
 }
 
 function weekRange(start: Date, end: Date): string {
-  const first = start.getDate();
-  const last = end.getDate();
+  const first = start.getUTCDate();
+  const last = end.getUTCDate();
   const firstMonth = monthName(start);
   const lastMonth = monthName(end);
-  if (start.getFullYear() !== end.getFullYear()) {
-    return `${first} ${firstMonth} ${start.getFullYear()} — ${last} ${lastMonth} ${end.getFullYear()}`;
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    return `${first} ${firstMonth} ${start.getUTCFullYear()} — ${last} ${lastMonth} ${end.getUTCFullYear()}`;
   }
   if (firstMonth !== lastMonth) return `${first} ${firstMonth} — ${last} ${lastMonth}`;
   return `${first}–${last} ${lastMonth}`;
 }
 
 function nowText(date: Date): string {
-  return `${WEEKDAY.format(date)}, ${date.getDate()} ${monthName(date)}`;
+  return `${WEEKDAY.format(date)}, ${date.getUTCDate()} ${monthName(date)}`;
 }
 
 function clockText(date: Date): string {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 const DAY_MINUTES = 24 * 60;
@@ -92,9 +105,11 @@ const DAY_MINUTES = 24 * 60;
 const POSITION_STEPS = 200;
 /** The smallest distance between two marks, in the same steps (14% of a day). */
 const MIN_GAP_STEPS = 28;
+/** Keep 24 px hit areas apart at the minimum supported window width. */
+const MIN_TARGET_GAP_STEPS = 44;
 
 function positionOf(date: Date): number {
-  const minutes = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+  const minutes = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
   const clamped = Math.min(DAY_MINUTES, Math.max(0, minutes));
   return Math.round((clamped / DAY_MINUTES) * POSITION_STEPS);
 }
@@ -146,13 +161,14 @@ function spreadEvents(items: PlacedEvent[], lower: number, upper: number): Map<s
 
 function placeDayEvents(
   events: WeekTrackEvent[],
+  starts: ReadonlyMap<string, Date>,
   nowDate: Date,
   nowMs: number,
   withNow: boolean,
 ): Map<string, number> {
   const items = events.map((event) => ({
     event,
-    base: positionOf(new Date(event.start)),
+    base: positionOf(starts.get(event.id)!),
   }));
   if (!withNow) return spreadEvents(items, 0, POSITION_STEPS);
 
@@ -204,10 +220,13 @@ function RaceFlag() {
 export function WeekTrack({
   weekStart,
   now,
+  timezone,
   events,
   onOpen,
   onPrevWeek,
   onNextWeek,
+  canPrevWeek = true,
+  canNextWeek = true,
   renderPreview,
   className,
 }: WeekTrackProps) {
@@ -215,8 +234,18 @@ export function WeekTrack({
   const plotRef = useRef<HTMLDivElement>(null);
   const tipBase = `ui-week-tip-${useId().replace(/:/g, '')}`;
 
-  const firstDay = startOfDay(new Date(weekStart));
-  const nowDate = new Date(now);
+  const format = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const firstDay = startOfDay(wallTime(weekStart, format));
+  const nowDate = wallTime(now, format);
   const nowMs = nowDate.getTime();
   const weekStartMs = firstDay.getTime();
   const weekEndMs = addDays(firstDay, 7).getTime();
@@ -233,8 +262,9 @@ export function WeekTrack({
         new Date(left.start).getTime() - new Date(right.start).getTime() ||
         left.id.localeCompare(right.id),
     );
+  const starts = new Map(ordered.map((event) => [event.id, wallTime(event.start, format)]));
   for (const event of ordered) {
-    const index = calendarDiff(startOfDay(new Date(event.start)), firstDay);
+    const index = calendarDiff(starts.get(event.id)!, firstDay);
     if (index >= 0 && index < 7) eventsByDay[index]!.push(event);
   }
 
@@ -248,7 +278,7 @@ export function WeekTrack({
   const nowDay = nowInWeek ? calendarDiff(startOfDay(nowDate), firstDay) : -1;
   const nowBase = positionOf(nowDate);
   const placedByDay = eventsByDay.map((dayEvents, index) =>
-    placeDayEvents(dayEvents, nowDate, nowMs, index === nowDay),
+    placeDayEvents(dayEvents, starts, nowDate, Date.parse(now), index === nowDay),
   );
   const range = weekRange(days[0]!, days[6]!);
   const label = nowInWeek ? `Неделя ${range}, сейчас — ${nowText(nowDate)}` : `Неделя ${range}`;
@@ -285,6 +315,7 @@ export function WeekTrack({
           aria-label="Предыдущая неделя"
           title="Предыдущая неделя"
           small
+          disabled={!canPrevWeek}
           icon={<ChevronLeft size={16} aria-hidden="true" />}
           onClick={onPrevWeek}
         />
@@ -300,6 +331,7 @@ export function WeekTrack({
           <ol className="ui-week-track__days">
             {days.map((day, index) => {
               const isPast = addDays(day, 1).getTime() <= nowMs;
+              const lastPosition = [-Infinity, -Infinity, -Infinity];
               return (
                 <li
                   key={index}
@@ -312,19 +344,30 @@ export function WeekTrack({
                   <span className="ui-week-track__day-head">
                     <span className="ui-week-track__day-label">{WEEKDAYS[weekdayIndex(day)]}</span>
                     <span className="ui-week-track__day-date" aria-hidden="true">
-                      {day.getDate()}
+                      {day.getUTCDate()}
                     </span>
                   </span>
                   <div className="ui-week-track__day-events">
                     {eventsByDay[index]!.map((event) => {
-                      const passed = new Date(event.start).getTime() < nowMs;
+                      const passed = Date.parse(event.start) < Date.parse(now);
                       const open = previewId === event.id;
                       const tipId = `${tipBase}-${event.id}`;
                       const position =
-                        placedByDay[index]?.get(event.id) ?? positionOf(new Date(event.start));
+                        placedByDay[index]?.get(event.id) ?? positionOf(starts.get(event.id)!);
+                      const crowded =
+                        index === nowDay && Math.abs(position - nowBase) < MIN_GAP_STEPS;
+                      const lane = Math.max(
+                        0,
+                        lastPosition.findIndex((last) => position - last >= MIN_TARGET_GAP_STEPS),
+                      );
+                      lastPosition[lane] = position;
                       return (
                         <div
-                          className={cx('ui-week-track__slot', atClass(position))}
+                          className={cx(
+                            'ui-week-track__slot',
+                            atClass(position),
+                            lane > 0 && `ui-week-track__slot--lane-${lane}`,
+                          )}
                           key={event.id}
                         >
                           <button
@@ -353,7 +396,7 @@ export function WeekTrack({
                               />
                             )}
                           </button>
-                          {event.featured && event.kind === 'match' && (
+                          {event.featured && event.kind === 'match' && !crowded && (
                             <span className="ui-week-track__featured" aria-hidden="true">
                               главный матч
                             </span>
@@ -386,6 +429,7 @@ export function WeekTrack({
           aria-label="Следующая неделя"
           title="Следующая неделя"
           small
+          disabled={!canNextWeek}
           icon={<ChevronRight size={16} aria-hidden="true" />}
           onClick={onNextWeek}
         />

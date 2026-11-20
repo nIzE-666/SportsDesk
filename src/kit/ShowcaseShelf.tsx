@@ -1,5 +1,6 @@
 import {
   Children,
+  isValidElement,
   useCallback,
   useEffect,
   useId,
@@ -19,6 +20,7 @@ export interface ShowcaseShelfProps {
   children?: ReactNode;
   /** Shown instead of the row when there are no cards. */
   emptyText: string;
+  headingLevel?: 2 | 3;
   className?: string;
 }
 
@@ -43,12 +45,19 @@ function focusCard(item: HTMLElement): void {
  * A titled horizontal row of cards with scroll snap and the two page arrows.
  * Left and Right move focus between the cards, Home and End jump to the ends.
  */
-export function ShowcaseShelf({ title, children, emptyText, className }: ShowcaseShelfProps) {
+export function ShowcaseShelf({
+  title,
+  children,
+  emptyText,
+  headingLevel = 3,
+  className,
+}: ShowcaseShelfProps) {
   const titleId = useId();
   const rowRef = useRef<HTMLUListElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(true);
   const cards = Children.toArray(children);
+  const Heading = headingLevel === 2 ? 'h2' : 'h3';
 
   const updateEnds = useCallback(() => {
     const row = rowRef.current;
@@ -103,12 +112,12 @@ export function ShowcaseShelf({ title, children, emptyText, className }: Showcas
   return (
     <section className={cx('ui-showcase-shelf', className)} aria-labelledby={titleId}>
       <header className="ui-showcase-shelf__head">
-        <h3 className="ui-showcase-shelf__title" id={titleId}>
+        <Heading className="ui-showcase-shelf__title" id={titleId}>
           <span className="ui-showcase-shelf__mark" aria-hidden="true">
             //
           </span>
           <span className="ui-showcase-shelf__title-text">{title}</span>
-        </h3>
+        </Heading>
         <span className="ui-showcase-shelf__rule" aria-hidden="true" />
         <div className="ui-showcase-shelf__arrows">
           <IconButton
@@ -139,7 +148,10 @@ export function ShowcaseShelf({ title, children, emptyText, className }: Showcas
           onKeyDown={onKeyDown}
         >
           {cards.map((card, index) => (
-            <li className="ui-showcase-shelf__item" key={index}>
+            <li
+              className="ui-showcase-shelf__item"
+              key={isValidElement(card) ? (card.key ?? index) : index}
+            >
               {card}
             </li>
           ))}

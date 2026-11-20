@@ -3,9 +3,9 @@ import { LEAGUES } from './navigationMetadata';
 import { CUP_COMPETITIONS } from '../features/ucl/cupMetadata';
 
 /**
- * Navigation model of the five-section shell (U2.1).
+ * Navigation model of the application shell.
  *
- * Sections: «Сегодня», «Футбол», «Формула 1», «Смотреть», «Моё». A competition
+ * Sections: «Главное», «Сегодня», «Футбол», «Формула 1», «Смотреть», «Моё». A competition
  * is a parameter of «Футбол»: one of LEAGUES, the Champions League
  * (l_0bfbkO) or a cup from CUP_COMPETITIONS. The old ucl/cup route kinds are
  * migrated into that parameter and are not part of the new union.
@@ -15,7 +15,8 @@ import { CUP_COMPETITIONS } from '../features/ucl/cupMetadata';
  * and offline seasons stay separate routes until U2.7/U2.8/U2.11.
  */
 export type Sport = 'football' | 'f1' | 'ucl' | 'cup';
-export type Section = 'today' | 'football' | 'f1' | 'watch' | 'my';
+export type Section = 'home' | 'today' | 'football' | 'f1' | 'watch' | 'my';
+export type StartSection = 'today' | 'home';
 export type CompetitionKind = 'league' | 'ucl' | 'cup';
 export type TodayMode = 'today' | 'week' | 'plan';
 /** The «Сейчас идут» tab became a filter of «Матчи» in U4.2. */
@@ -41,6 +42,7 @@ export type SettingsCategory =
   | 'about';
 
 export type ShellRoute =
+  | { kind: 'home' }
   | { kind: 'today'; mode?: TodayMode }
   | {
       kind: 'football';
@@ -56,10 +58,7 @@ export type ShellRoute =
   | { kind: 'settings'; category?: SettingsCategory }
   | { kind: 'events' };
 
-export type ContentRoute = Extract<
-  ShellRoute,
-  { kind: 'today' | 'football' | 'football-match' | 'f1' | 'watch' | 'my' }
->;
+export type ContentRoute = Extract<ShellRoute, { kind: Section | 'football-match' }>;
 export type AuxiliaryRoute = Extract<ShellRoute, { kind: 'settings' | 'events' }>;
 
 /** The remembered place and the legacy context of old saved values. */
@@ -74,7 +73,8 @@ export interface Location {
 export const CHAMPIONS_LEAGUE_ID = 'l_0bfbkO';
 export const DEFAULT_LEAGUE_ID: string = LEAGUES[0].id;
 export const DEFAULT_CUP_ID = 'l_38d9HA';
-export const START_SECTION: Section = 'today';
+export const START_SECTION: StartSection = 'today';
+export const START_SECTION_KEY = 'sportsdesk.start.section';
 
 export const TODAY_MODES = ['today', 'week', 'plan'] as const;
 export const LEAGUE_TABS = ['matches', 'standings', 'team', 'players'] as const;
@@ -114,7 +114,11 @@ const TABS_BY_COMPETITION: Record<CompetitionKind, readonly string[]> = {
   ucl: CHAMPIONS_TABS,
   cup: CUP_TABS,
 };
-const SECTIONS: readonly string[] = ['today', 'football', 'f1', 'watch', 'my'];
+const SECTIONS: readonly string[] = ['home', 'today', 'football', 'f1', 'watch', 'my'];
+
+export function isStartSection(value: unknown): value is StartSection {
+  return value === 'today' || value === 'home';
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -288,6 +292,8 @@ function isValidWatchIntent(value: unknown): value is WatchIntent {
 export function isValidShellRoute(value: unknown): value is ShellRoute {
   if (!isRecord(value)) return false;
   switch (value.kind) {
+    case 'home':
+      return true;
     case 'today':
       return value.mode === undefined || includes(TODAY_MODES, value.mode);
     case 'football':
@@ -330,6 +336,8 @@ export const isContentRoute = isSectionRoute;
 
 export function sectionOfRoute(route: ShellRoute): Section | undefined {
   switch (route.kind) {
+    case 'home':
+      return 'home';
     case 'today':
       return 'today';
     case 'football':
@@ -382,6 +390,7 @@ export function defaultRouteOf(
   section: Section,
   competitionId: string = DEFAULT_LEAGUE_ID,
 ): ShellRoute {
+  if (section === 'home') return { kind: 'home' };
   if (section === 'today') return { kind: 'today', mode: 'today' };
   if (section === 'football') {
     const id = isCompetitionId(competitionId) ? competitionId : DEFAULT_LEAGUE_ID;
@@ -392,19 +401,19 @@ export function defaultRouteOf(
   return { kind: 'my', tab: 'favorites' };
 }
 
-/** Decision 3 of section 9: a new shell starts on «Сегодня». */
-export function startRoute(): ShellRoute {
-  return { kind: 'today', mode: 'today' };
+export function startRoute(section: StartSection = START_SECTION): ShellRoute {
+  return defaultRouteOf(section);
 }
 
 export function startLocation(
   leagueId: unknown = DEFAULT_LEAGUE_ID,
   cupId: unknown = DEFAULT_CUP_ID,
   sport: unknown = 'football',
+  section: StartSection = START_SECTION,
 ): Location {
   return {
-    section: START_SECTION,
-    route: startRoute(),
+    section,
+    route: startRoute(section),
     sport: migrateSport(sport),
     leagueId: migrateLeagueId(leagueId),
     cupId: migrateCupId(cupId),

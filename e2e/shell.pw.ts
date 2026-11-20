@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { setupVisualFixture } from './uiFixture';
 
-const SECTIONS = ['Сегодня', 'Футбол', 'Формула 1', 'Смотреть', 'Моё'];
+const SECTIONS = ['Главное', 'Сегодня', 'Футбол', 'Формула 1', 'Смотреть', 'Моё'];
 
 async function openShell(page: import('@playwright/test').Page) {
   await page.setViewportSize({ width: 1100, height: 720 });
@@ -10,7 +10,7 @@ async function openShell(page: import('@playwright/test').Page) {
   return page.getByRole('navigation', { name: 'Разделы' });
 }
 
-test('shows five sections and two bottom items inside a frame of 12 buttons', async ({ page }) => {
+test('shows six sections and two bottom items inside a frame of 12 buttons', async ({ page }) => {
   const rail = await openShell(page);
   await expect(rail).toBeVisible();
   for (const name of SECTIONS)
@@ -33,6 +33,10 @@ test(`opens every section, switches league tabs and the F1 analysis`, async ({ p
   const rail = await openShell(page);
   await expect(page.getByRole('heading', { name: 'Сегодня', exact: true })).toBeVisible();
   await expect(page.locator('.today-view')).toBeVisible();
+
+  await rail.getByRole('button', { name: 'Главное', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Главное', exact: true })).toBeVisible();
+  await expect(page.getByRole('radiogroup', { name: 'Вид спорта' })).toBeVisible();
 
   await rail.getByRole('button', { name: 'Футбол', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Premier League', exact: true })).toBeVisible();

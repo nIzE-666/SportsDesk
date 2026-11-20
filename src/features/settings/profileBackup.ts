@@ -27,6 +27,7 @@ export const PROFILE_EXACT_KEYS = [
   'league',
   'density',
   'timezone',
+  'start.section',
   'sidebar.collapsed',
   'sidebar.competitionsOpen',
   'sidebar.teamsOpen',

@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getString, setString } from '../features/football/storage';
+import { isModuleOn } from './modules';
 import { viewState } from './viewState';
 import {
   competitionKind,
+  isStartSection,
   migrateCupId,
   migrateLeagueId,
   migrateSport,
   rememberedLocation,
   sectionOfRoute,
   sportOfRoute,
+  START_SECTION,
+  START_SECTION_KEY,
   startLocation,
   type Location,
   type RememberedSources,
@@ -38,12 +42,13 @@ function sourcesForSection(section: Section): RememberedSources {
   return { location: readRaw(`navigation2.${section}`) };
 }
 
-/** The app always starts on «Сегодня»; the saved sport only feeds section memory. */
 function initial(): State {
   const savedSport = migrateSport(getString('sportsdesk.sport'));
   const leagueId = migrateLeagueId(getString('sportsdesk.league'));
   const cupId = migrateCupId(getString('sportsdesk.cup.current'));
-  return { entries: [startLocation(leagueId, cupId, savedSport)], cursor: 0 };
+  const preferred = getString(START_SECTION_KEY);
+  const section = isModuleOn('home') && isStartSection(preferred) ? preferred : START_SECTION;
+  return { entries: [startLocation(leagueId, cupId, savedSport, section)], cursor: 0 };
 }
 
 export function useShellNavigation() {

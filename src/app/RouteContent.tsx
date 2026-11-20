@@ -46,6 +46,9 @@ const WatchView = lazy(() =>
 const TodayView = lazy(() =>
   import('../features/today/TodayView').then((m) => ({ default: m.TodayView })),
 );
+const HomeView = lazy(() =>
+  import('../features/home/HomeView').then((m) => ({ default: m.HomeView })),
+);
 const EventCenter = lazy(() =>
   import('../features/events/EventCenter').then((m) => ({ default: m.EventCenter })),
 );
@@ -62,7 +65,7 @@ interface RouteContentProps {
   onOpenWeekend: (season: string | number, round: string | number) => void;
 }
 
-/** One route-to-screen mapping of the five-section frame. */
+/** One route-to-screen mapping of the application frame. */
 export function RouteContent({
   route,
   sport,
@@ -115,7 +118,7 @@ export function RouteContent({
     <>
       <ConnectivityBanner
         sources={
-          route.kind === 'today'
+          route.kind === 'today' || route.kind === 'home'
             ? ['pitch', 'jolpica']
             : route.kind === 'settings' ||
                 route.kind === 'watch' ||
@@ -129,6 +132,11 @@ export function RouteContent({
       />
       <UpdateNotice />
       <Suspense fallback={<LoadingBlock label="Открываем раздел…" rows={3} />}>
+        {route.kind === 'home' && (
+          <SectionBoundary name="Главное" resetKey="home">
+            <HomeView onOpenMatch={onOpenMatch} onOpenWeekend={onOpenWeekend} />
+          </SectionBoundary>
+        )}
         {!auxiliary && route.kind === 'today' && (
           <SectionBoundary name="Сегодня" resetKey={`today.${route.mode ?? 'today'}`}>
             <TodayView

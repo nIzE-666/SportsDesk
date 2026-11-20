@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Clock, Minimize2, Sparkles } from 'lucide-react';
 import { rpc } from '../../../lib/bridge';
+import { START_SECTION_KEY, type StartSection } from '../../../lib/navigation';
+import { useModules } from '../../../lib/modules';
 import { Badge, Button, Field, Panel, PanelHeader, Switch } from '../../../kit';
 import { getString, setString, STORAGE_KEYS } from '../../football/storage';
+import { HIDE_HOME_INTEREST_KEY } from '../../home/homePreferences';
 import { ShortcutControl } from '../ShortcutControl';
 import { openFirstRunWizard } from '../../onboarding/onboarding';
 
@@ -23,6 +26,11 @@ export function GeneralSettings() {
     () => getString(STORAGE_KEYS.timezone) ?? 'Asia/Yakutsk',
   );
   const [trayMode, setTrayMode] = useState<boolean>(() => getString(STORAGE_KEYS.trayMode) !== '0');
+  const [startSection, setStartSection] = useState<StartSection>(() =>
+    getString(START_SECTION_KEY) === 'home' ? 'home' : 'today',
+  );
+  const [hideInterest, setHideInterest] = useState(() => getString(HIDE_HOME_INTEREST_KEY) === '1');
+  const modules = useModules();
 
   const onTimezoneChange = (value: string) => {
     setTimezone(value);
@@ -41,6 +49,33 @@ export function GeneralSettings() {
 
   return (
     <>
+      {modules.home && (
+        <Panel>
+          <PanelHeader title="Главное" />
+          <Field label="Стартовый экран" htmlFor="start-section-select" inline>
+            <select
+              id="start-section-select"
+              value={startSection}
+              onChange={(event) => {
+                const value = event.target.value === 'home' ? 'home' : 'today';
+                setStartSection(value);
+                setString(START_SECTION_KEY, value);
+              }}
+            >
+              <option value="today">Сегодня</option>
+              <option value="home">Главное</option>
+            </select>
+          </Field>
+          <Switch
+            label="Скрывать значок интереса вместе со счётом"
+            checked={hideInterest}
+            onChange={(enabled) => {
+              setHideInterest(enabled);
+              setString(HIDE_HOME_INTEREST_KEY, enabled ? '1' : '0');
+            }}
+          />
+        </Panel>
+      )}
       <Panel>
         <PanelHeader
           title={

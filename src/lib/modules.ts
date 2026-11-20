@@ -19,7 +19,7 @@ export const MODULES_CHANGED_EVENT = 'sportsdesk-modules-changed';
 const LEGACY_ATMOSPHERE_KEY = 'sportsdesk.view.atmosphere';
 
 export type CoreModuleId =
-  'watch' | 'europe' | 'predictions' | 'games' | 'atmosphere' | 'diary' | 'tactics';
+  'home' | 'watch' | 'europe' | 'predictions' | 'games' | 'atmosphere' | 'diary' | 'tactics';
 type LeagueId = (typeof LEAGUES)[number]['id'];
 export type LeagueModuleId = `league.${LeagueId}`;
 export type ModuleId = CoreModuleId | LeagueModuleId;
@@ -33,6 +33,11 @@ export interface CoreModuleDefinition {
 }
 
 export const CORE_MODULES: readonly CoreModuleDefinition[] = [
+  {
+    id: 'home',
+    label: 'Главное',
+    description: '',
+  },
   {
     id: 'watch',
     label: 'Просмотр',
@@ -91,6 +96,7 @@ const leagueDefaults = Object.fromEntries(
 ) as Record<LeagueModuleId, boolean>;
 
 export const DEFAULT_MODULES: ModulesState = {
+  home: true,
   watch: true,
   europe: true,
   predictions: true,

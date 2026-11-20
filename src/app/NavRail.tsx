@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Flag, Goal, Settings, Tv, UserRound } from 'lucide-react';
+import { Bell, CalendarDays, Flag, Goal, Radio, Settings, Tv, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { RefObject } from 'react';
 import { Tabs } from '../kit';
@@ -6,6 +6,7 @@ import { useModules } from '../lib/modules';
 import { sectionOfRoute, type Section, type ShellRoute } from '../lib/navigation';
 
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: LucideIcon }> = [
+  { id: 'home', label: 'Главное', icon: Radio },
   { id: 'today', label: 'Сегодня', icon: CalendarDays },
   { id: 'football', label: 'Футбол', icon: Goal },
   { id: 'f1', label: 'Формула 1', icon: Flag },
@@ -27,7 +28,7 @@ interface NavRailProps {
 }
 
 /**
- * The permanent narrow rail of the five-section frame. It shows no sport
+ * The permanent narrow rail of the frame. It shows no sport
  * colours: its greys come from the shell tokens, not from the page theme.
  */
 export function NavRail({
@@ -41,7 +42,11 @@ export function NavRail({
 }: NavRailProps) {
   const modules = useModules();
   const section = sectionOfRoute(route);
-  const sections = SECTIONS.filter(({ id }) => id !== 'watch' || modules.watch);
+  const sections = SECTIONS.filter(({ id }) => {
+    if (id === 'home') return modules.home;
+    if (id === 'watch') return modules.watch;
+    return true;
+  });
   const active: RailItem | undefined =
     eventsOpen || route.kind === 'events'
       ? 'events'

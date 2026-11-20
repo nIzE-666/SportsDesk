@@ -16,7 +16,7 @@
 //!   persists a per-goal dedup key in the cache DB so reopening a match or
 //!   restarting the app cannot replay goals.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -72,6 +72,10 @@ pub struct PollConfig {
     /// Event Center entries are produced for them until the user reveals them.
     #[serde(default, rename = "hiddenResults")]
     pub hidden_results: Vec<String>,
+    #[serde(default, rename = "footballReminders")]
+    pub football_reminders: BTreeMap<String, String>,
+    #[serde(default, rename = "f1ReminderIds")]
+    pub f1_reminder_ids: Vec<String>,
     /// F1 session reminders styled as SportsDesk "team radio" (off by default).
     #[serde(default, rename = "f1Radio")]
     pub f1_radio: bool,
@@ -82,6 +86,10 @@ pub struct PollConfig {
 impl PollConfig {
     pub fn result_hidden(&self, match_id: &str) -> bool {
         !match_id.is_empty() && self.hidden_results.iter().any(|id| id == match_id)
+    }
+
+    pub fn includes_f1_reminder(&self, id: &str) -> bool {
+        self.f1_reminders || self.f1_reminder_ids.iter().any(|selected| selected == id)
     }
 }
 
@@ -109,6 +117,8 @@ impl Default for PollConfig {
             policy: Default::default(),
             timezone: default_timezone(),
             hidden_results: Vec::new(),
+            football_reminders: BTreeMap::new(),
+            f1_reminder_ids: Vec::new(),
             f1_radio: false,
             f1_radio_name: String::new(),
         }
@@ -500,6 +510,7 @@ fn goal_batch(keys: &HashSet<String>) -> String {
 enum NotificationTarget {
     Favorite,
     Watch { match_id: String, generation: u64 },
+    Fixture { match_id: String, start: i64 },
 }
 
 #[derive(Debug, Clone, serde::Serialize, Deserialize)]
@@ -526,7 +537,8 @@ struct PendingNotification {
 /// Match id a queued notification belongs to (favourite keys are `kind|match|...`).
 fn notification_match_id(item: &PendingNotification) -> &str {
     match &item.target {
-        NotificationTarget::Watch { match_id, .. } => match_id.as_str(),
+        NotificationTarget::Watch { match_id, .. }
+        | NotificationTarget::Fixture { match_id, .. } => match_id.as_str(),
         NotificationTarget::Favorite => item.key.split('|').nth(1).unwrap_or_default(),
     }
 }
@@ -645,10 +657,16 @@ impl NotificationQueue {
     fn process(
         &mut self,
         cache: &crate::cache::Cache,
+        available: impl Fn(&PendingNotification) -> bool,
         mut allowed: impl FnMut(&PendingNotification) -> bool,
         mut send: impl FnMut(&PendingNotification) -> bool,
     ) -> Vec<PendingNotification> {
-        let mut items: Vec<_> = self.pending.values().cloned().collect();
+        let mut items: Vec<_> = self
+            .pending
+            .values()
+            .filter(|item| available(item))
+            .cloned()
+            .collect();
         items.sort_by(|a, b| match (a.sequence, b.sequence) {
             (Some(a_seq), Some(b_seq)) => a_seq
                 .cmp(&b_seq)
@@ -1019,6 +1037,12 @@ fn pending_allowed(
         return false;
     }
     let ids: Vec<&str> = match &item.target {
+        NotificationTarget::Fixture { match_id, start } => {
+            if *start <= now || !cfg.football_reminders.contains_key(match_id) {
+                return false;
+            }
+            item.ids.iter().map(String::as_str).collect()
+        }
         NotificationTarget::Favorite => item
             .ids
             .iter()
@@ -1058,6 +1082,14 @@ fn pending_allowed(
     cfg.policy.allows(&item.kind, &ids, &cfg.timezone, now)
 }
 
+fn selected_fixture_start(m: &FlatMatch, now: i64, lead: i64) -> Option<i64> {
+    if !canonical_status(m).2 {
+        return None;
+    }
+    let start = m.time.as_deref().and_then(parse_time_ms)?;
+    (start > now && start - now <= lead).then_some(start)
+}
+
 impl Poller {
     pub fn new(state: Arc<AppStateInner>) -> Self {
         let notifications = NotificationQueue::load(&state.cache);
@@ -1080,7 +1112,14 @@ impl Poller {
         let enabled = cfg.enabled;
         self.revision.fetch_add(1, Ordering::Relaxed);
         let changed = if let Ok(mut guard) = self.config.lock() {
-            let changed = serde_json::to_string(&*guard).ok() != serde_json::to_string(&cfg).ok();
+            // A selection in «Главное» does not invalidate the score baseline.
+            let mut baseline = cfg.clone();
+            baseline
+                .football_reminders
+                .clone_from(&guard.football_reminders);
+            baseline.f1_reminder_ids.clone_from(&guard.f1_reminder_ids);
+            let changed =
+                serde_json::to_string(&*guard).ok() != serde_json::to_string(&baseline).ok();
             *guard = cfg;
             changed
         } else {
@@ -1152,7 +1191,7 @@ impl Poller {
     /// genuinely new goals observed after the silent baseline, on a
     /// non-finished match, with the enabled flag read at delivery time.
     async fn tick_watch(&self, app: &AppHandle) {
-        self.retry_notifications(app);
+        self.retry_notifications(app, None);
         let watch = match self.watch.lock().ok().and_then(|g| g.clone()) {
             Some(w) => w,
             None => return,
@@ -1354,7 +1393,7 @@ impl Poller {
                 queue.enqueue(&self.state.cache, item);
             }
         }
-        self.retry_notifications(app);
+        self.retry_notifications(app, None);
     }
 
     pub fn revision(&self) -> u64 {
@@ -1545,17 +1584,31 @@ impl Poller {
         pending_allowed(item, &cfg, watch.as_ref(), now_ms())
     }
 
-    /// Retry independently of source availability. Recheck current settings,
-    /// favourites and watch generation before any delayed native delivery.
-    fn retry_notifications(&self, app: &AppHandle) {
+    /// Score alerts retry independently of the source. A queued fixture reminder
+    /// requires a fresh schedule confirming it is still due at the same time.
+    fn retry_notifications(&self, app: &AppHandle, due_fixtures: Option<&HashMap<&str, i64>>) {
         if !self.config_initialized.load(Ordering::Relaxed) {
             return;
         }
         let Ok(mut queue) = self.notifications.lock() else {
             return;
         };
+        let now = now_ms();
+        let pending = queue.pending.len();
+        queue.pending.retain(|_, item| {
+            !matches!(item.target, NotificationTarget::Fixture { start, .. } if start <= now)
+        });
+        if pending != queue.pending.len() {
+            queue.persist(&self.state.cache);
+        }
         let delivered = queue.process(
             &self.state.cache,
+            |item| match &item.target {
+                NotificationTarget::Fixture { match_id, start } => {
+                    due_fixtures.and_then(|due| due.get(match_id.as_str())) == Some(start)
+                }
+                _ => true,
+            },
             |item| self.notification_allowed_now(item),
             |item| {
                 app.notification()
@@ -1577,7 +1630,7 @@ impl Poller {
         }
     }
     async fn tick(&self, app: &AppHandle) -> Result<(), crate::bridge::ApiFailure> {
-        self.retry_notifications(app);
+        self.retry_notifications(app, None);
         let revision = self.revision();
         let cfg = self.config();
         // A full league schedule supplies the next event even when no club
@@ -1631,6 +1684,7 @@ impl Poller {
             return Ok(());
         }
         self.ingest(app, &matches, &batch.fetched_at, batch.failure.is_none());
+        self.remind_selected_fixtures(app, &batch);
         // Retain the last displayed rows when any day is unavailable, but
         // never use those saved rows to detect new match events.
         if batch.failure.is_some() {
@@ -1666,6 +1720,71 @@ impl Poller {
             Ok(())
         }
     }
+    fn remind_selected_fixtures(&self, app: &AppHandle, batch: &DailyBatch) {
+        let cfg = self.config();
+        let now = now_ms();
+        let mut due = HashMap::new();
+        for (id, league_id) in &cfg.football_reminders {
+            let Some(m) = batch.matches.get(id) else {
+                continue;
+            };
+            if batch.ambiguous.contains(id) || !batch.fetched_at.contains_key(id) {
+                continue;
+            }
+            let Some(start) = selected_fixture_start(m, now, cfg.policy.lead_ms()) else {
+                continue;
+            };
+            due.insert(id.as_str(), start);
+            let key = format!("reminder|{id}|{start}");
+            let title = "Скоро матч".to_string();
+            let body = format!(
+                "{} · через {} мин.",
+                match_label(m),
+                (start - now + 59_999) / 60_000
+            );
+            crate::event_center::record(
+                app,
+                &self.state.cache,
+                &crate::event_center::Event {
+                    id: format!("football|{key}"),
+                    sport: "football".into(),
+                    kind: "reminder".into(),
+                    title: title.clone(),
+                    body: body.clone(),
+                    occurred_at: now,
+                    read: false,
+                    match_id: Some(id.clone()),
+                    league_id: Some(league_id.clone()),
+                    season: None,
+                    round: None,
+                },
+            );
+            let ids = favorite_ids(m, &cfg);
+            if self.delivery_allowed(
+                "reminder",
+                &ids.iter().map(String::as_str).collect::<Vec<_>>(),
+            ) {
+                self.queue_notification(PendingNotification {
+                    kind: "reminder".into(),
+                    key,
+                    title,
+                    body: match_label(m),
+                    ids,
+                    team_names: Vec::new(),
+                    score_dedup: None,
+                    score_batch: None,
+                    target: NotificationTarget::Fixture {
+                        match_id: id.clone(),
+                        start,
+                    },
+                    created_at: now,
+                    sequence: None,
+                });
+            }
+        }
+        self.retry_notifications(app, Some(&due));
+    }
+
     fn ingest(
         &self,
         app: &AppHandle,
@@ -1762,7 +1881,7 @@ impl Poller {
                         away_score: snapshot_away,
                     },
                 );
-                if scheduled {
+                if scheduled && !cfg.football_reminders.contains_key(&key) {
                     if let Some(start) = m.time.as_deref().and_then(parse_time_ms) {
                         let delta = start - now;
                         if delta > 0 && delta <= cfg.policy.lead_ms() {
@@ -1846,7 +1965,7 @@ impl Poller {
                 });
             }
         }
-        self.retry_notifications(app);
+        self.retry_notifications(app, None);
     }
 }
 
@@ -2242,6 +2361,36 @@ mod tests {
     }
 
     #[test]
+    fn selected_reminders_require_a_scheduled_fixture_and_expire_at_kickoff() {
+        let m = flat("Scheduled", "", "");
+        let start = parse_time_ms(m.time.as_deref().unwrap()).unwrap();
+        assert_eq!(selected_fixture_start(&m, start - 1, 900_000), Some(start));
+        assert_eq!(selected_fixture_start(&m, start, 900_000), None);
+        assert_eq!(selected_fixture_start(&m, start - 900_001, 900_000), None);
+        let moved = flat("Postponed", "", "");
+        assert_eq!(selected_fixture_start(&moved, start - 1, 900_000), None);
+
+        let mut cfg = PollConfig {
+            enabled: true,
+            f1_reminders: false,
+            ..Default::default()
+        };
+        let mut item = pending("reminder|m|start");
+        item.kind = "reminder".into();
+        item.target = NotificationTarget::Fixture {
+            match_id: "m".into(),
+            start,
+        };
+        assert!(!pending_allowed(&item, &cfg, None, start - 1));
+        cfg.football_reminders.insert("m".into(), "league".into());
+        assert!(pending_allowed(&item, &cfg, None, start - 1));
+        assert!(!pending_allowed(&item, &cfg, None, start));
+        cfg.f1_reminder_ids.push("2026|21|qualifying".into());
+        assert!(cfg.includes_f1_reminder("2026|21|qualifying"));
+        assert!(!cfg.includes_f1_reminder("2026|21|race"));
+    }
+
+    #[test]
     fn failed_football_delivery_survives_reload_and_success_is_deduplicated() {
         let cache = crate::cache::Cache::open_in_memory();
         let mut queue = NotificationQueue::load(&cache);
@@ -2591,6 +2740,7 @@ mod tests {
         let delivered = queue.process(
             &cache,
             |_| true,
+            |_| true,
             |item| {
                 attempted.push(item.key.clone());
                 false
@@ -2604,6 +2754,7 @@ mod tests {
         let mut sent = Vec::new();
         let delivered = restored.process(
             &cache,
+            |_| true,
             |_| true,
             |item| {
                 sent.push(item.key.clone());
@@ -2656,6 +2807,7 @@ mod tests {
         let mut sent = Vec::new();
         restored.process(
             &cache,
+            |_| true,
             |_| true,
             |item| {
                 sent.push(item.key.clone());

@@ -16,7 +16,7 @@ import './focus.css';
 
 const TODAY: ShellRoute = { kind: 'today', mode: 'today' };
 
-/** The new five-section frame: permanent rail, thin header and page content. */
+/** Permanent rail, thin header and page content. */
 export function AppShell(props: FrameProps) {
   const {
     route,
@@ -39,8 +39,8 @@ export function AppShell(props: FrameProps) {
   const unread = useUnreadEvents();
   const [eventsOpen, setEventsOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
-  // «Смотреть» is gone with its module off, so a direct link lands on «Сегодня».
-  const normalizedRoute: ShellRoute = route.kind === 'watch' && !modules.watch ? TODAY : route;
+  const hiddenSection = (route.kind === 'watch' || route.kind === 'home') && !modules[route.kind];
+  const normalizedRoute = hiddenSection ? TODAY : route;
   const previousRoute = useRef<ShellRoute>(
     normalizedRoute.kind === 'events' ? TODAY : normalizedRoute,
   );
@@ -48,11 +48,16 @@ export function AppShell(props: FrameProps) {
     if (normalizedRoute.kind !== 'events') previousRoute.current = normalizedRoute;
   }, [normalizedRoute]);
   useEffect(() => {
-    if (route.kind === 'watch' && !modules.watch) navigate(TODAY);
-  }, [route.kind, modules.watch, navigate]);
+    if (hiddenSection) navigate(TODAY);
+  }, [hiddenSection, navigate]);
   useEffect(() => setEventsOpen(false), [route]);
   // The events route of search and old links is a drawer over the last page.
-  const pageRoute = route.kind === 'events' ? previousRoute.current : normalizedRoute;
+  const rememberedPage = route.kind === 'events' ? previousRoute.current : normalizedRoute;
+  const pageRoute =
+    (rememberedPage.kind === 'home' || rememberedPage.kind === 'watch') &&
+    !modules[rememberedPage.kind]
+      ? TODAY
+      : rememberedPage;
   const drawerOpen = eventsOpen || route.kind === 'events';
   const closeEvents = () => {
     setEventsOpen(false);

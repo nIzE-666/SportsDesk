@@ -75,6 +75,7 @@ const nameKey = canonicalTeamName;
 const eventOrder = (a: ViewingEvent, b: ViewingEvent) =>
   a.start - b.start || a.id.localeCompare(b.id);
 const key = (...parts: string[]) => parts.map(encodeURIComponent).join(':');
+export const footballPlannerId = (id: string) => key('football', id);
 
 function validDate(value: string | undefined): string | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -85,7 +86,7 @@ function validDate(value: string | undefined): string | null {
 }
 
 /** UTC-labelled timestamps without an offset are explicitly UTC, never host-local. */
-function footballStart(match: MatchSummary): number | null {
+export function footballStart(match: Pick<MatchSummary, 'time_utc' | 'date'>): number | null {
   const raw = (match.time_utc || match.date || '').trim();
   const parts =
     /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})?$/i.exec(
@@ -123,12 +124,14 @@ export function buildViewingEvents(
   favoriteIds: readonly string[],
   favoriteNames: readonly string[] = [],
   now: number = Date.now(),
+  planned: readonly string[] = [],
 ): ViewingPlan {
   const events: ViewingEvent[] = [];
   const unscheduled: UnscheduledViewingEvent[] = [];
   if (!Number.isFinite(now)) return { events, unscheduled };
   const ids = new Set(favoriteIds.filter(Boolean));
   const names = new Set(favoriteNames.map(nameKey).filter(Boolean));
+  const plannedIds = new Set(planned);
   // Date-only records have no UTC instant. Keep a one-day boundary margin so a
   // current local-date fixture is not discarded solely due to the user's zone.
   const oldestUnknownDate = new Date(now - 24 * 60 * MINUTE).toISOString().slice(0, 10);
@@ -179,14 +182,15 @@ export function buildViewingEvents(
       !ids.has(match.home_team.id) &&
       !ids.has(match.away_team.id) &&
       !names.has(nameKey(match.home_team.name)) &&
-      !names.has(nameKey(match.away_team.name))
+      !names.has(nameKey(match.away_team.name)) &&
+      !plannedIds.has(footballPlannerId(match.id))
     )
       continue;
     const status = statusKey(match.status);
     if (terminalStatuses.has(status)) continue;
     const source: FootballSource = {
       kind: 'football',
-      id: key('football', match.id),
+      id: footballPlannerId(match.id),
       title: `${match.home_team.name} — ${match.away_team.name}`,
       match,
     };

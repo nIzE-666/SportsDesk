@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   CalendarClock,
   Check,
@@ -19,7 +19,10 @@ import { SourceLine } from '../../components/SourceLine';
 import { Badge, Button, SegmentedControl, StatTile } from '../../kit';
 import TeamBadge from '../../components/TeamBadge';
 import { FavoritesProvider, useFavorites } from '../football/FavoritesProvider';
-import { getJson, getUserTimezone, setJson } from '../football/storage';
+import { getUserTimezone } from '../football/storage';
+import { isCompetitionVisible, useModules } from '../../lib/modules';
+import { archivedPlannedFixtures } from '../home/weekArchive';
+import { usePlannerPriorities } from '../today/todayData';
 import { useFootballData } from '../football/useFootballData';
 import { useApiResource } from '../f1/api';
 import { parseSchedule } from '../f1/parsing';
@@ -30,6 +33,7 @@ import {
   calendarDaysBetween,
   filterViewingEventsByDay,
   findViewingConflicts,
+  footballPlannerId,
   groupViewingEventsByDay,
   inDaysLabel,
   periodChoiceUseful,
@@ -41,7 +45,6 @@ import {
 } from './plannerData';
 import './planner.css';
 
-const PRIORITIES_KEY = 'sportsdesk.planner.priorities';
 function time(timestamp: number, tz: string) {
   return new Intl.DateTimeFormat('ru-RU', {
     hour: '2-digit',
@@ -93,10 +96,25 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
     () => [...(schedule.data?.races ?? []), ...(nextSchedule.data?.races ?? [])],
     [schedule.data, nextSchedule.data],
   );
-  const plan = useMemo(
-    () => buildViewingEvents(football.allMatches, races, teamIds, favoriteTeamNames, now),
-    [football.allMatches, races, teamIds, favoriteTeamNames, now],
-  );
+  const [priorities, togglePriority] = usePlannerPriorities();
+  const modules = useModules();
+  const picked = useMemo(() => {
+    const keys = new Set(priorities);
+    return archivedPlannedFixtures(today, (id) => keys.has(footballPlannerId(id)));
+  }, [priorities, today]);
+  const plan = useMemo(() => {
+    const saved = [...picked.values()].filter(
+      (match) => match.league?.id && isCompetitionVisible(match.league.id),
+    );
+    return buildViewingEvents(
+      [...saved, ...football.allMatches],
+      races,
+      teamIds,
+      favoriteTeamNames,
+      now,
+      priorities,
+    );
+  }, [picked, modules, football.allMatches, races, teamIds, favoriteTeamNames, now, priorities]);
   const [range, setRange] = useViewState<'week' | 'day'>(
     'planner.range',
     'week',
@@ -112,13 +130,6 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
     false,
     (v) => typeof v === 'boolean',
   );
-  const [priorities, setPriorities] = useState<string[]>(() => {
-    const raw = getJson<unknown>(PRIORITIES_KEY, []);
-    return Array.isArray(raw)
-      ? [...new Set(raw.filter((v): v is string => typeof v === 'string'))].slice(-500)
-      : [];
-  });
-  useEffect(() => setJson(PRIORITIES_KEY, priorities), [priorities]);
   const weekEnd = new Date(`${today}T00:00:00Z`);
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
   const weekEndDay = weekEnd.toISOString().slice(0, 10);
@@ -140,19 +151,14 @@ function PlannerBody({ onOpenMatch, onOpenWeekend }: Props) {
   const selected = inRange.filter((e) => priorities.includes(e.id));
   const selectedConflicts = findViewingConflicts(selected);
   const tiles = plannerTiles(inRange.length, selected.length, conflicts.length, !!nextDay);
-  const toggle = (event: ViewingEvent) =>
-    setPriorities((prev) =>
-      prev.includes(event.id)
-        ? prev.filter((id) => id !== event.id)
-        : [...prev, event.id].slice(-500),
-    );
+  const toggle = (event: ViewingEvent) => togglePriority(event.id);
   const open = (event: ViewingEvent) => {
     if (event.kind === 'f1') onOpenWeekend(event.race);
     else {
       const league = football.leagues.find((l) =>
         football.matchesForLeague(l.id).some((m) => m.id === event.match.id),
       );
-      onOpenMatch(event.match.id, league?.id);
+      onOpenMatch(event.match.id, league?.id ?? picked.get(event.match.id)?.league?.id);
     }
   };
   const fetchedTimes = [

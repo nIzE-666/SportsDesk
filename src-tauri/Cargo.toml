@@ -1,6 +1,6 @@
 [package]
 name = "sportsdesk"
-version = "2.0.0"
+version = "2.1.0"
 description = "SportsDesk - personal desktop sports, F1 and live TV hub"
 authors = ["SportsDesk"]
 edition = "2021"

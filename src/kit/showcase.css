@@ -696,6 +696,19 @@
   transform: translateX(-50%);
 }
 
+.showcase .ui-week-track__slot--lane-1 {
+  top: calc(-1 * var(--space-24));
+}
+
+.showcase .ui-week-track__slot--lane-2 {
+  top: var(--space-24);
+}
+
+.showcase .ui-week-track__slot:focus-within,
+.showcase .ui-week-track__slot:hover {
+  z-index: 5;
+}
+
 .showcase .ui-week-track__event {
   position: relative;
   z-index: 2;

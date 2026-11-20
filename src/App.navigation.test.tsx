@@ -5,6 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { api } from './lib/bridge';
 import { viewState } from './lib/viewState';
+import { START_SECTION_KEY } from './lib/navigation';
+import { setModule } from './lib/modules';
 import { diaryFootballEntry, diaryFixture } from './test/fixtures/diary';
 import { schemeFromLineups } from './features/tactics/tacticsModel';
 import { tacticLineups, tacticMatch } from './test/fixtures/tactics';
@@ -102,6 +104,8 @@ async function renderApp() {
     import('./features/games/StartLightsGame'),
     import('./features/ucl/ChampionsView'),
     import('./features/ucl/CupsView'),
+    import('./features/today/TodayView'),
+    import('./features/home/HomeView'),
   ]);
   await act(async () => root.render(<App />));
   await act(async () => {
@@ -219,6 +223,18 @@ it('starts on «Сегодня» whatever sport an old profile saved', async () 
   expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
   expect(host.querySelector('.shell-page-title')?.textContent).toBe('Сегодня');
   expect(host.querySelector('.today-view')).not.toBeNull();
+});
+
+it('starts on «Главное» only while the selected module is enabled', async () => {
+  localStorage.setItem(START_SECTION_KEY, 'home');
+  await renderApp();
+  expect(railButton('Главное').getAttribute('aria-current')).toBe('page');
+  expect(host.querySelector('.home-screen')).not.toBeNull();
+  await act(async () => {
+    setModule('home', false);
+  });
+  expect(host.querySelector('#rail-home')).toBeNull();
+  expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
 });
 
 it('keeps the remembered place of each section and moves back through the header', async () => {

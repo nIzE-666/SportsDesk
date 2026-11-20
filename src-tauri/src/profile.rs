@@ -29,6 +29,7 @@ pub const EXACT_KEYS: &[&str] = &[
     "league",
     "density",
     "timezone",
+    "start.section",
     "sidebar.collapsed",
     "sidebar.competitionsOpen",
     "sidebar.teamsOpen",

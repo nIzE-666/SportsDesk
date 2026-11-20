@@ -45,6 +45,8 @@ export function competitionName(id: string): string {
 
 export function pageTitle(route: ShellRoute, leagueId: string): string {
   switch (route.kind) {
+    case 'home':
+      return 'Главное';
     case 'today':
       return 'Сегодня';
     case 'football':

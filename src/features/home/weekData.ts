@@ -2,6 +2,7 @@ import { classifyMatchStatus, type MatchState } from '../../lib/sportsIdentity';
 import { LEAGUES } from '../../lib/navigationMetadata';
 import { CUP_COMPETITIONS } from '../ucl/cupMetadata';
 import type { LeagueRef, MatchEvent, MatchSummary } from '../football/types';
+import { footballStart } from '../planner/plannerData';
 
 /** The first and last local day of the «Главное» window, inclusive. */
 export const WEEK_PAST_DAYS = 7;
@@ -156,16 +157,18 @@ function utcDay(ms: number): string {
  * Seven local days back and seven ahead around `now`. PitchAPI day lists are
  * keyed by UTC date, so every UTC date overlapping the local window is listed.
  */
-export function resolveWeekWindow(now: number, timeZone: string): WeekWindow {
+export function resolveWeekWindow(now: number, timeZone: string, weekStart?: string): WeekWindow {
   const today = localDayKey(now, timeZone);
   if (!today) {
     return { days: [], startMs: Number.NaN, endMs: Number.NaN, utcDates: [] };
   }
+  const baseFirst = shiftDayKey(today, -WEEK_PAST_DAYS);
+  const baseLast = shiftDayKey(today, WEEK_FUTURE_DAYS);
+  const showWeek = weekStart ? shiftDayKey(weekStart, 6) : '';
+  const first = weekStart && showWeek && weekStart < baseFirst ? weekStart : baseFirst;
+  const last = showWeek > baseLast ? showWeek : baseLast;
   const days: string[] = [];
-  for (let offset = -WEEK_PAST_DAYS; offset <= WEEK_FUTURE_DAYS; offset += 1)
-    days.push(shiftDayKey(today, offset));
-  const first = days[0]!;
-  const last = days[days.length - 1]!;
+  for (let day = first; day <= last; day = shiftDayKey(day, 1)) days.push(day);
   const startMs = localMidnightUtc(first, timeZone);
   const endMs = localMidnightUtc(shiftDayKey(last, 1), timeZone);
   const utcDates: string[] = [];
@@ -179,9 +182,7 @@ export function resolveWeekWindow(now: number, timeZone: string): WeekWindow {
 
 /** Kickoff of a summary in UTC milliseconds; null when the provider gave no time. */
 export function matchStartMs(summary: Pick<MatchSummary, 'time_utc'>): number | null {
-  if (!summary.time_utc) return null;
-  const ms = Date.parse(summary.time_utc);
-  return Number.isFinite(ms) ? ms : null;
+  return footballStart(summary);
 }
 
 /**
