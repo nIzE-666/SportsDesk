@@ -25,8 +25,8 @@ export interface SignalOptions {
 export function shortSignalAllowed(options: SignalOptions = {}): boolean {
   if (!soundsAllowed()) return false;
   if (options.preview) return true;
-  if (typeof document !== 'undefined' && document.hidden) return false;
-  if (getPlaybackContext().videoAudible) return false;
+  const { windowHidden, videoAudible } = getPlaybackContext();
+  if (windowHidden || videoAudible) return false;
   return !isQuietNow(options.now);
 }
 

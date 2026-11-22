@@ -374,6 +374,57 @@ interface SheetMeta {
   stale: boolean;
 }
 
+interface LiveSnapshot {
+  match: LiveMatch;
+  fetchedAt: string | null;
+}
+
+function fetchedAtMs(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function isOlderReply(
+  candidateFetchedAt: string | null | undefined,
+  currentFetchedAt: string | null | undefined,
+): boolean {
+  const candidateMs = fetchedAtMs(candidateFetchedAt);
+  const currentMs = fetchedAtMs(currentFetchedAt);
+  return candidateMs !== null && currentMs !== null && candidateMs < currentMs;
+}
+
+function isTerminalState(state: LiveMatch['state']): boolean {
+  return state === 'finished' || state === 'postponed' || state === 'cancelled';
+}
+
+function minuteProgress(minute: string | null): number {
+  if (!minute) return -1;
+  const trimmed = minute.trim().toUpperCase();
+  if (trimmed === 'HT') return 45.5;
+  const match = /^(\d{1,3})'?(?:\+(\d{1,2}))?'?$/.exec(trimmed);
+  if (!match) return -1;
+  const base = Number(match[1]);
+  const added = match[2] ? Number(match[2]) / 100 : 0;
+  return base + added;
+}
+
+function isLiveProgressAhead(candidate: LiveMatch, reference: LiveMatch): boolean {
+  const candidateHome = candidate.score.home ?? -1;
+  const candidateAway = candidate.score.away ?? -1;
+  const referenceHome = reference.score.home ?? -1;
+  const referenceAway = reference.score.away ?? -1;
+  if (candidateHome < referenceHome || candidateAway < referenceAway) return false;
+  const candidateGoals = Math.max(0, candidateHome) + Math.max(0, candidateAway);
+  const referenceGoals = Math.max(0, referenceHome) + Math.max(0, referenceAway);
+  const candidateMinute = minuteProgress(candidate.minute);
+  const referenceMinute = minuteProgress(reference.minute);
+  return (
+    (candidateGoals > referenceGoals && candidateMinute >= referenceMinute) ||
+    (candidateGoals >= referenceGoals && candidateMinute > referenceMinute)
+  );
+}
+
 /**
  * One day sheet and one live sheet. Successful answers replace their own sheet; failures
  * keep both the matches and the fetch time already shown.
@@ -396,15 +447,19 @@ export function useLiveMatches({
 
   const dayRef = useRef<LiveMatch[]>([]);
   const liveRef = useRef<LiveMatch[]>([]);
+  const liveSnapshotsRef = useRef<Map<string, LiveSnapshot>>(new Map());
   const dayMetaRef = useRef<SheetMeta>({ source: null, fetchedAt: null, stale: false });
   const liveMetaRef = useRef<SheetMeta>({ source: null, fetchedAt: null, stale: false });
   const dayDateRef = useRef<string | null>(null);
+  const lastDayAtRef = useRef(0);
   const nextDayAtRef = useRef(0);
   const nextLiveAtRef = useRef(0);
   const dayFailuresRef = useRef(0);
   const liveFailuresRef = useRef(0);
   const dayInFlightRef = useRef(false);
   const liveInFlightRef = useRef(false);
+  const daySeqRef = useRef(0);
+  const liveSeqRef = useRef(0);
   const firstDayDoneRef = useRef(false);
   const mountedRef = useRef(true);
   const leagueKeyRef = useRef(leagueKey);
@@ -414,11 +469,41 @@ export function useLiveMatches({
     const byId = new Map<string, LiveMatch>();
     for (const match of dayRef.current) byId.set(match.id, match);
     // Only a live sheet from the same source as the day sheet may update it.
-    if (
-      dayMetaRef.current.source !== null &&
-      liveMetaRef.current.source === dayMetaRef.current.source
-    ) {
-      for (const match of liveRef.current) byId.set(match.id, match);
+    const daySource = dayMetaRef.current.source;
+    if (daySource !== null) {
+      const liveSourceMatches = liveMetaRef.current.source === daySource ? liveRef.current : [];
+      const activeLiveById = new Map<string, LiveMatch>();
+      for (const match of liveSourceMatches) activeLiveById.set(match.id, match);
+
+      for (const [id, snapshot] of liveSnapshotsRef.current.entries()) {
+        if (snapshot.match.source !== daySource) continue;
+        const dayMatch = byId.get(id);
+        if (!dayMatch) {
+          byId.set(id, snapshot.match);
+          continue;
+        }
+        if (
+          isTerminalState(dayMatch.state) &&
+          !dayMetaRef.current.stale &&
+          !isOlderReply(dayMetaRef.current.fetchedAt, snapshot.fetchedAt)
+        ) {
+          continue;
+        }
+        const activeLive = activeLiveById.get(id);
+        if (activeLive) {
+          byId.set(id, activeLive);
+          continue;
+        }
+        if (
+          dayMatch.state === 'live' &&
+          !dayMetaRef.current.stale &&
+          isLiveProgressAhead(dayMatch, snapshot.match)
+        ) {
+          byId.set(id, dayMatch);
+        } else {
+          byId.set(id, snapshot.match);
+        }
+      }
     }
     return sortMatches([...byId.values()]);
   }, []);
@@ -440,11 +525,14 @@ export function useLiveMatches({
     if (mountedRef.current) setRefreshing(dayInFlightRef.current || liveInFlightRef.current);
   }, []);
 
+  const loadDayRef = useRef<(automatic: boolean, force?: boolean) => Promise<void>>(async () => {});
+
   const loadLive = useCallback(
     async (automatic: boolean) => {
       if (liveInFlightRef.current) return;
       const source = dayMetaRef.current.source;
       if (!source) return;
+      const seq = ++liveSeqRef.current;
       liveInFlightRef.current = true;
       syncBusy();
       const startedAt = Date.now();
@@ -458,10 +546,79 @@ export function useLiveMatches({
           automatic,
           source,
         });
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || seq !== liveSeqRef.current) return;
         const currentDay = localDayIso(new Date(), timeZone);
         if (requestedDay && currentDay && requestedDay !== currentDay) return;
         if (dayMetaRef.current.source !== source) return;
+
+        const sameLiveSource = liveMetaRef.current.source === result.source;
+        if (
+          result.stale &&
+          sameLiveSource &&
+          (liveMetaRef.current.fetchedAt !== null ||
+            isOlderReply(result.fetchedAt, dayMetaRef.current.fetchedAt))
+        ) {
+          liveMetaRef.current = {
+            source: result.source,
+            fetchedAt: liveMetaRef.current.fetchedAt ?? result.fetchedAt,
+            stale: true,
+          };
+          liveFailuresRef.current = 0;
+          nextLiveAtRef.current = Date.now() + LIVE_INTERVAL_MS;
+          setError(null);
+          push();
+          return;
+        }
+        if (sameLiveSource && isOlderReply(result.fetchedAt, liveMetaRef.current.fetchedAt)) {
+          return;
+        }
+
+        const previousLive = sameLiveSource ? liveRef.current : [];
+        const nextIds = new Set(result.matches.map((match) => match.id));
+        const droppedFromLive =
+          !result.stale &&
+          previousLive.some((match) => match.state === 'live' && !nextIds.has(match.id));
+        const followed = new Set(leagueKeyRef.current.split(',').filter(Boolean));
+        const unconfirmedMissing =
+          !result.stale &&
+          startedAt - lastDayAtRef.current >= LIVE_INTERVAL_MS &&
+          merged().some(
+            (match) =>
+              match.state === 'live' &&
+              (!match.leagueId || followed.has(match.leagueId)) &&
+              !nextIds.has(match.id),
+          );
+
+        const dayById = new Map(dayRef.current.map((match) => [match.id, match]));
+        for (const match of result.matches) {
+          const dayMatch = dayById.get(match.id);
+          if (
+            dayMatch &&
+            isTerminalState(dayMatch.state) &&
+            !dayMetaRef.current.stale &&
+            (result.stale || isOlderReply(result.fetchedAt, dayMetaRef.current.fetchedAt))
+          ) {
+            continue;
+          }
+          const existing = liveSnapshotsRef.current.get(match.id);
+          if (result.stale && existing && !isLiveProgressAhead(match, existing.match)) {
+            continue;
+          }
+          if (
+            isTerminalState(match.state) &&
+            !result.stale &&
+            dayMatch &&
+            isTerminalState(dayMatch.state)
+          ) {
+            liveSnapshotsRef.current.delete(match.id);
+          } else {
+            liveSnapshotsRef.current.set(match.id, {
+              match,
+              fetchedAt: result.fetchedAt,
+            });
+          }
+        }
+
         liveRef.current = result.matches;
         liveMetaRef.current = {
           source: result.source,
@@ -472,8 +629,12 @@ export function useLiveMatches({
         nextLiveAtRef.current = Date.now() + LIVE_INTERVAL_MS;
         setError(null);
         push();
+        if (droppedFromLive || unconfirmedMissing) {
+          nextDayAtRef.current = Date.now();
+          void loadDayRef.current(automatic, true);
+        }
       } catch (caught) {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || seq !== liveSeqRef.current) return;
         const currentDay = localDayIso(new Date(), timeZone);
         if (requestedDay && currentDay && requestedDay !== currentDay) return;
         if (dayMetaRef.current.source !== source) return;
@@ -481,21 +642,27 @@ export function useLiveMatches({
         nextLiveAtRef.current = Date.now() + backoffMs(liveFailuresRef.current);
         setError(caught instanceof Error ? caught.message : 'Матчи недоступны');
       } finally {
-        liveInFlightRef.current = false;
-        syncBusy();
+        if (seq === liveSeqRef.current) {
+          liveInFlightRef.current = false;
+          syncBusy();
+        }
       }
     },
-    [push, syncBusy],
+    [merged, push, syncBusy],
   );
 
   const loadDay = useCallback(
-    async (automatic: boolean) => {
-      if (dayInFlightRef.current) return;
+    async (automatic: boolean, force = false) => {
+      if (!force && dayInFlightRef.current) return;
+      const seq = ++daySeqRef.current;
       dayInFlightRef.current = true;
       syncBusy();
       const startedAt = Date.now();
+      lastDayAtRef.current = startedAt;
       const timeZone = getUserTimezone();
       const requestedDay = localDayIso(new Date(startedAt), timeZone);
+      const sameLocalDay = () =>
+        timeZone === getUserTimezone() && requestedDay === localDayIso(new Date(), timeZone);
       try {
         const result = await loadLiveDay({
           leagueIds: leagueKeyRef.current.split(',').filter(Boolean),
@@ -503,19 +670,79 @@ export function useLiveMatches({
           now: new Date(startedAt),
           automatic,
         });
-        if (!mountedRef.current) return;
-        if (dayDateRef.current && requestedDay && dayDateRef.current !== requestedDay) return;
+        if (!mountedRef.current || seq !== daySeqRef.current) return;
+        if (!sameLocalDay()) return;
         const previousSource = dayMetaRef.current.source;
-        dayRef.current = result.matches;
+        const sameDayAndSource =
+          dayDateRef.current === requestedDay && previousSource === result.source;
+
+        if (!sameDayAndSource) {
+          liveRef.current = [];
+          liveSnapshotsRef.current.clear();
+          liveMetaRef.current = { source: null, fetchedAt: null, stale: false };
+        }
+
+        if (
+          sameDayAndSource &&
+          result.stale &&
+          !dayMetaRef.current.stale &&
+          dayMetaRef.current.fetchedAt !== null
+        ) {
+          dayMetaRef.current = { ...dayMetaRef.current, stale: true };
+          dayFailuresRef.current = 0;
+          nextDayAtRef.current = Date.now() + DAY_INTERVAL_MS;
+          setError(null);
+          push();
+          return;
+        }
+        if (sameDayAndSource && isOlderReply(result.fetchedAt, dayMetaRef.current.fetchedAt)) {
+          return;
+        }
+
+        if (sameDayAndSource) {
+          const previousById = new Map(dayRef.current.map((match) => [match.id, match]));
+          dayRef.current = result.matches.map((match) => {
+            const prev = previousById.get(match.id);
+            if (
+              prev &&
+              !dayMetaRef.current.stale &&
+              isTerminalState(prev.state) &&
+              !isTerminalState(match.state)
+            ) {
+              return prev;
+            }
+            return match;
+          });
+        } else {
+          dayRef.current = result.matches;
+        }
+
+        if (!result.stale) {
+          for (const match of dayRef.current) {
+            const existing = liveSnapshotsRef.current.get(match.id);
+            if (isTerminalState(match.state)) {
+              if (existing && !isOlderReply(result.fetchedAt, existing.fetchedAt)) {
+                liveSnapshotsRef.current.delete(match.id);
+                if (isOlderReply(liveMetaRef.current.fetchedAt, result.fetchedAt)) {
+                  liveRef.current = liveRef.current.filter((item) => item.id !== match.id);
+                }
+              }
+            } else if (match.state === 'live') {
+              if (!existing || isLiveProgressAhead(match, existing.match)) {
+                liveSnapshotsRef.current.set(match.id, {
+                  match,
+                  fetchedAt: result.fetchedAt,
+                });
+              }
+            }
+          }
+        }
+
         dayMetaRef.current = {
           source: result.source,
           fetchedAt: result.fetchedAt,
           stale: result.stale,
         };
-        if (previousSource !== result.source) {
-          liveRef.current = [];
-          liveMetaRef.current = { source: null, fetchedAt: null, stale: false };
-        }
         dayDateRef.current = requestedDay;
         dayFailuresRef.current = 0;
         nextDayAtRef.current = Date.now() + DAY_INTERVAL_MS;
@@ -527,22 +754,25 @@ export function useLiveMatches({
         )
           void loadLive(automatic);
       } catch (caught) {
-        if (!mountedRef.current) return;
-        if (dayDateRef.current && requestedDay && dayDateRef.current !== requestedDay) return;
+        if (!mountedRef.current || seq !== daySeqRef.current) return;
+        if (!sameLocalDay()) return;
         dayFailuresRef.current += 1;
         nextDayAtRef.current = Date.now() + backoffMs(dayFailuresRef.current);
         setError(caught instanceof Error ? caught.message : 'Матчи недоступны');
       } finally {
-        dayInFlightRef.current = false;
-        if (!firstDayDoneRef.current) {
-          firstDayDoneRef.current = true;
-          if (mountedRef.current) setLoading(false);
+        if (seq === daySeqRef.current) {
+          dayInFlightRef.current = false;
+          if (!firstDayDoneRef.current) {
+            firstDayDoneRef.current = true;
+            if (mountedRef.current) setLoading(false);
+          }
+          syncBusy();
         }
-        syncBusy();
       }
     },
     [loadLive, merged, push, syncBusy],
   );
+  loadDayRef.current = loadDay;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -550,6 +780,7 @@ export function useLiveMatches({
     if (!ids.length) {
       mountedRef.current = false;
       setLoading(false);
+      setRefreshing(false);
       return;
     }
     nextDayAtRef.current = Date.now() + DAY_INTERVAL_MS;
@@ -563,12 +794,15 @@ export function useLiveMatches({
       const day = localDayIso(new Date(now), timeZone);
       if (day && dayDateRef.current && day !== dayDateRef.current) {
         dayDateRef.current = day;
+        dayRef.current = [];
+        dayMetaRef.current = { source: null, fetchedAt: null, stale: false };
         liveRef.current = [];
+        liveSnapshotsRef.current.clear();
         liveMetaRef.current = { source: null, fetchedAt: null, stale: false };
         nextDayAtRef.current = 0;
         nextLiveAtRef.current = 0;
         push();
-        void loadDay(true);
+        void loadDay(true, true);
         return;
       }
       if (now >= nextDayAtRef.current) void loadDay(true);
@@ -582,6 +816,10 @@ export function useLiveMatches({
     window.addEventListener('sportsdesk-live-refresh', onLiveRefresh);
     return () => {
       mountedRef.current = false;
+      daySeqRef.current += 1;
+      liveSeqRef.current += 1;
+      dayInFlightRef.current = false;
+      liveInFlightRef.current = false;
       window.clearInterval(timer);
       window.removeEventListener('sportsdesk-live-refresh', onLiveRefresh);
     };
@@ -594,7 +832,7 @@ export function useLiveMatches({
     nextDayAtRef.current = 0;
     nextLiveAtRef.current = 0;
     setError(null);
-    void loadDay(false);
+    void loadDay(false, true);
   }, [loadDay]);
 
   return { ...data, loading, refreshing, error, refresh };

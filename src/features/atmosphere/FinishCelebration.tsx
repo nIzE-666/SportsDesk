@@ -15,6 +15,7 @@ import {
   parseFinish,
   type FinishPayload,
 } from './finishRules';
+import { getPlaybackContext } from './playbackContext';
 import './atmosphere.css';
 
 interface Shown {
@@ -91,7 +92,7 @@ export function FinishCelebration() {
         const off = await listen<unknown>(FINISH_EVENT, (event) => {
           const payload = parseFinish(event.payload);
           if (!payload) return;
-          const decision = decideFinish(payload, { windowHidden: document.hidden });
+          const decision = decideFinish(payload, getPlaybackContext());
           if (decision === 'seen') return;
           rememberCelebrated([payload.id]);
           if (decision !== 'show') return;

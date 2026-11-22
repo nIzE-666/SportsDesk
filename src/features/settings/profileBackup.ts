@@ -267,6 +267,11 @@ export async function recoverInterruptedRestore(): Promise<boolean> {
 
 export async function restoreFullBackup(path: string): Promise<void> {
   await withProfileMirrorPaused(async () => {
+    const preview = await rpc<{ profile: { settings: Record<string, string> }; sha256: string }>(
+      'inspect_backup_restore',
+      { path },
+    );
+    validateProfile(preview.profile.settings);
     const original = profileEntries();
     const observer = observeProfileWrites();
     try {
@@ -275,7 +280,11 @@ export async function restoreFullBackup(path: string): Promise<void> {
         profile: { settings: Record<string, string> };
         safetyFile: string;
         safetyWarning?: string | null;
-      }>('prepare_backup_restore', { path, settings: original });
+      }>('prepare_backup_restore', {
+        path,
+        settings: original,
+        expectedSha256: preview.sha256,
+      });
       let undo: ((writes?: Map<string, string | null>) => void) | undefined;
       let committed = false;
       try {
@@ -349,7 +358,12 @@ export function useProfileMirror() {
         running = false;
       }
     };
-    const changed = () => {
+    const changed = (event: Event) => {
+      const key =
+        event instanceof StorageEvent
+          ? event.key
+          : (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (key && !allowedProfileKey(key)) return;
       clearTimeout(timer);
       timer = setTimeout(() => void save(), 1500);
     };

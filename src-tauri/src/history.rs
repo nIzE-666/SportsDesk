@@ -331,7 +331,7 @@ impl History {
             .lock()
             .map_err(|_| "История недоступна.".to_string())?;
         let filter = if finished_only {
-            "AND status = 'finished' AND home_score >= 0 AND away_score >= 0"
+            "AND home_score >= 0 AND away_score >= 0"
         } else {
             ""
         };
@@ -340,16 +340,21 @@ impl History {
                     home_score, away_score, status, date, round
              FROM history_matches
              WHERE (home_id = ?1 OR away_id = ?1) {filter}
-             ORDER BY date DESC, id DESC
-             LIMIT 200"
+             ORDER BY date DESC, id DESC"
         );
         let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        let rows = stmt
+        let mut rows = stmt
             .query_map(rusqlite::params![team_id], row_to_match)
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
-        Ok(rows)
+        let mut matches = Vec::new();
+        while matches.len() < 200 {
+            let Some(row) = rows.next() else { break };
+            let row = row.map_err(|e| e.to_string())?;
+            if !finished_only || crate::sports::status(&[&row.status]) == "finished" {
+                matches.push(row);
+            }
+        }
+        Ok(matches)
     }
 
     /// League seasons we have stored, with match counts.
@@ -523,13 +528,12 @@ mod tests {
     #[test]
     fn team_matches_and_seasons() {
         let h = temp_history();
+        let mut finished_alias = m("k2", "E", "C", 3, 0, "2026-03-08");
+        finished_alias.status = "FT".into();
         h.upsert_season(&batch(
             "l_y",
             "2026",
-            vec![
-                m("k1", "C", "D", 1, 1, "2026-03-01"),
-                m("k2", "E", "C", 3, 0, "2026-03-08"),
-            ],
+            vec![m("k1", "C", "D", 1, 1, "2026-03-01"), finished_alias],
         ))
         .unwrap();
         let team = h.team_matches("C", true).unwrap();

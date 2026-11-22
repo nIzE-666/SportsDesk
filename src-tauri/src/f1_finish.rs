@@ -275,8 +275,12 @@ fn announce(
 }
 
 async fn tick(app: &AppHandle, poller: &Poller, state: &Arc<AppStateInner>, watcher: &mut Watcher) {
-    // Лента F1 выключена пользователем: итоги не нужны.
-    if !poller.config().f1_reminders {
+    if !poller.config_ready() {
+        return;
+    }
+    let config = poller.config();
+    if !config.f1_reminders && config.f1_reminder_ids.is_empty() {
+        watcher.retain(&Default::default());
         return;
     }
     let schedule =
@@ -284,7 +288,10 @@ async fn tick(app: &AppHandle, poller: &Poller, state: &Arc<AppStateInner>, watc
             Ok(reply) if !reply.stale => reply.payload,
             _ => return,
         };
-    let sessions = live_sessions(&schedule, now_ms());
+    let sessions: Vec<_> = live_sessions(&schedule, now_ms())
+        .into_iter()
+        .filter(|session| config.includes_f1_reminder(&session_key(session)))
+        .collect();
     watcher.retain(&sessions.iter().map(session_key).collect());
     for session in sessions {
         let key = session_key(&session);
@@ -299,6 +306,9 @@ async fn tick(app: &AppHandle, poller: &Poller, state: &Arc<AppStateInner>, watc
                     continue;
                 }
             };
+        if !poller.config().includes_f1_reminder(&key) {
+            continue;
+        }
         match podium(&session, &reply.payload) {
             None => watcher.unpublished(&key, now_ms()),
             Some(podium) => {

@@ -65,6 +65,11 @@ pub struct PreparedRestore {
     safety_file: String,
     safety_warning: Option<String>,
 }
+#[derive(Serialize)]
+pub struct InspectedRestore {
+    profile: Profile,
+    sha256: String,
+}
 const JOURNAL_FILE: &str = "restore-journal.json";
 const JOURNAL_VERSION: u32 = 1;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -404,7 +409,11 @@ impl BackupState {
         })?;
         Ok((path.to_string_lossy().into_owned(), history_generation))
     }
-    fn read_restore(&self, path: &str) -> Result<(Profile, Option<Vec<u8>>), String> {
+    fn read_restore(
+        &self,
+        path: &str,
+        expected_sha256: Option<&str>,
+    ) -> Result<(InspectedRestore, Option<Vec<u8>>), String> {
         if std::fs::metadata(path)
             .map_err(|_| "Файл недоступен.")?
             .len()
@@ -415,6 +424,10 @@ impl BackupState {
         let text = std::fs::read(path).map_err(|_| "Файл не читается.")?;
         if text.len() as u64 > MAX_BYTES {
             return Err("Файл слишком большой.".into());
+        }
+        let sha256 = digest(&text);
+        if expected_sha256.is_some_and(|expected| expected != sha256) {
+            return Err("Файл копии изменился. Выберите его заново.".into());
         }
         let value: serde_json::Value =
             serde_json::from_slice(&text).map_err(|_| "Некорректный файл копии.")?;
@@ -439,7 +452,7 @@ impl BackupState {
                     .map(|(k, v)| (k.clone(), v.clone()))
                     .collect::<Vec<_>>(),
             )?;
-            return Ok((profile, None));
+            return Ok((InspectedRestore { profile, sha256 }, None));
         }
         let b: Bundle =
             serde_json::from_value(value).map_err(|_| "Неподдерживаемая резервная копия.")?;
@@ -463,7 +476,13 @@ impl BackupState {
         if bytes.len() > 64 * 1024 * 1024 || digest(&bytes) != b.history_sha256 {
             return Err("Контрольная сумма истории не совпадает.".into());
         }
-        Ok((b.profile, Some(bytes)))
+        Ok((
+            InspectedRestore {
+                profile: b.profile,
+                sha256,
+            },
+            Some(bytes),
+        ))
     }
     fn with_snapshot<T>(
         &self,
@@ -481,6 +500,7 @@ impl BackupState {
         history: &History,
         path: &str,
         entries: Vec<(String, String)>,
+        expected_sha256: Option<&str>,
     ) -> Result<PreparedRestore, String> {
         let _guard = self
             .operation
@@ -488,7 +508,7 @@ impl BackupState {
             .map_err(|_| "Копирование уже выполняется.")?;
         self.ensure_no_restore()?;
         let previous_profile = build_profile(&entries)?;
-        let (profile, bytes) = self.read_restore(path)?;
+        let (InspectedRestore { profile, .. }, bytes) = self.read_restore(path, expected_sha256)?;
         if let Some(bytes) = &bytes {
             self.with_snapshot(bytes, History::validate_snapshot)?;
         }
@@ -610,7 +630,7 @@ impl BackupState {
     }
     /// Re-apply the history of a copy. Idempotent, so it is safe after a crash.
     fn replay(&self, history: &History, path: &str, expected: &Profile) -> Result<(), String> {
-        let (profile, bytes) = self.read_restore(path)?;
+        let (InspectedRestore { profile, .. }, bytes) = self.read_restore(path, None)?;
         if profile.settings != expected.settings {
             return Err("Файл копии изменился после начала восстановления.".into());
         }
@@ -759,17 +779,32 @@ pub async fn create_backup(
         .map_err(|_| "Ошибка копирования.")?
 }
 #[tauri::command]
+pub async fn inspect_backup_restore(
+    path: String,
+    state: tauri::State<'_, Arc<BackupState>>,
+) -> Result<InspectedRestore, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        state.read_restore(&path, None).map(|(source, _)| source)
+    })
+    .await
+    .map_err(|_| "Ошибка чтения копии.")?
+}
+#[tauri::command]
 pub async fn prepare_backup_restore(
     path: String,
     settings: Vec<(String, String)>,
+    expected_sha256: String,
     state: tauri::State<'_, Arc<BackupState>>,
     history: tauri::State<'_, crate::history::HistoryState>,
 ) -> Result<PreparedRestore, String> {
     let state = state.inner().clone();
     let h = history.0.clone();
-    tauri::async_runtime::spawn_blocking(move || state.prepare_restore(&h, &path, settings))
-        .await
-        .map_err(|_| "Ошибка восстановления.")?
+    tauri::async_runtime::spawn_blocking(move || {
+        state.prepare_restore(&h, &path, settings, Some(&expected_sha256))
+    })
+    .await
+    .map_err(|_| "Ошибка восстановления.")?
 }
 #[tauri::command]
 pub async fn commit_backup_restore(
@@ -921,7 +956,12 @@ mod tests {
         newer.matches[0].home_score = Some(9);
         h.upsert_season(&newer).unwrap();
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         assert_eq!(prepared.profile.settings["sportsdesk.scheme"], "light");
         b.commit_restore(&h, prepared.id).unwrap();
@@ -948,7 +988,8 @@ mod tests {
             .prepare_restore(
                 &h,
                 badpath.to_str().unwrap(),
-                vec![("sportsdesk.scheme".into(), "dark".into())]
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
             )
             .is_err());
         assert_eq!(h.team_matches("t_a", true).unwrap()[0].home_score, 2);
@@ -957,6 +998,40 @@ mod tests {
             crate::profile::build_profile(&[("sportsdesk.api_key".into(), "x".into())]).is_err()
         );
     }
+    #[test]
+    fn changed_restore_file_is_rejected_before_writing_a_safety_copy() {
+        let (state, history, folder) = fixture("changed-preview");
+        let path = state.create(&history).unwrap();
+        let (preview, _) = state.read_restore(&path, None).unwrap();
+        let mut contents = std::fs::read(&path).unwrap();
+        contents.push(b'\n');
+        std::fs::write(&path, contents).unwrap();
+
+        let error = state
+            .prepare_restore(
+                &history,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                Some(&preview.sha256),
+            )
+            .err()
+            .unwrap();
+        assert!(error.contains("Файл копии изменился"));
+        assert!(state.pending.lock().unwrap().is_none());
+        assert_eq!(
+            std::fs::read_dir(folder)
+                .unwrap()
+                .filter_map(Result::ok)
+                .filter(|entry| entry
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".sdbackup.json"))
+                .count(),
+            1
+        );
+        assert_eq!(state.settings().last_file.as_deref(), Some(path.as_str()));
+    }
+
     #[test]
     fn rotation_keeps_seven_and_legacy_profile_is_supported() {
         let (b, h, folder) = fixture("rotation");
@@ -977,6 +1052,7 @@ mod tests {
                 &h,
                 legacy.to_str().unwrap(),
                 vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
             )
             .unwrap();
         assert_eq!(prepared.profile.version, 1);
@@ -1002,6 +1078,7 @@ mod tests {
                 &h,
                 &selected,
                 vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
             )
             .unwrap();
         assert!(Path::new(&selected).exists());
@@ -1022,7 +1099,12 @@ mod tests {
         let (b, h, _) = fixture("cancel");
         let path = b.create(&h).unwrap();
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         assert!(b
             .mirror(vec![("sportsdesk.scheme".into(), "dark".into())])
@@ -1068,7 +1150,12 @@ mod tests {
         batch.matches[0].home_score = Some(2);
         h.upsert_season(&batch).unwrap();
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         batch.matches[0].home_score = Some(3);
         h.upsert_season(&batch).unwrap();
@@ -1151,7 +1238,8 @@ mod tests {
             .prepare_restore(
                 &h,
                 badpath.to_str().unwrap(),
-                vec![("sportsdesk.scheme".into(), "dark".into())]
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
             )
             .is_err());
         assert_eq!(
@@ -1163,7 +1251,12 @@ mod tests {
             1
         );
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         b.pending.lock().unwrap().as_mut().unwrap().history = Some(bad.to_vec());
         assert!(b.commit_restore(&h, prepared.id).is_err());
@@ -1202,7 +1295,12 @@ mod tests {
                 *v.pointer_mut(field).unwrap() = 99.into();
             });
             let err = b
-                .prepare_restore(&h, &out, vec![("sportsdesk.scheme".into(), "dark".into())])
+                .prepare_restore(
+                    &h,
+                    &out,
+                    vec![("sportsdesk.scheme".into(), "dark".into())],
+                    None,
+                )
                 .err()
                 .unwrap();
             assert!(err.contains("более новой версией"), "{err}");
@@ -1224,13 +1322,19 @@ mod tests {
                 &h,
                 &newer,
                 vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
             )
             .err()
             .unwrap();
         assert!(err.contains("более новой версией"), "{err}");
         assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 9);
         let prepared = b
-            .prepare_restore(&h, &old, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &old,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         b.commit_restore(&h, prepared.id).unwrap();
         assert_eq!(h.team_matches("a", true).unwrap()[0].home_score, 2);
@@ -1270,8 +1374,13 @@ mod tests {
     fn crash_before_history_commit_is_finished_on_next_start() {
         let (b, h, _) = fixture("crash-forward");
         let path = seed_two_scores(&b, &h);
-        b.prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
-            .unwrap();
+        b.prepare_restore(
+            &h,
+            &path,
+            vec![("sportsdesk.scheme".into(), "dark".into())],
+            None,
+        )
+        .unwrap();
         // Simulate a crash right after the journal was written.
         let plan = b.pending.lock().unwrap().take().unwrap();
         b.write_journal(&RestoreJournal::new(&plan, JournalStage::Committing))
@@ -1299,7 +1408,12 @@ mod tests {
         let (b, h, _) = fixture("crash-back");
         let path = seed_two_scores(&b, &h);
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         let journal = RestoreJournal::new(
             b.pending.lock().unwrap().as_ref().unwrap(),
@@ -1325,13 +1439,18 @@ mod tests {
         let (b, h, _) = fixture("journal-stages");
         let path = seed_two_scores(&b, &h);
         let prepared = b
-            .prepare_restore(&h, &path, vec![("sportsdesk.scheme".into(), "dark".into())])
+            .prepare_restore(
+                &h,
+                &path,
+                vec![("sportsdesk.scheme".into(), "dark".into())],
+                None,
+            )
             .unwrap();
         b.pending.lock().unwrap().as_mut().unwrap().history = Some(b"broken".to_vec());
         assert!(b.commit_restore(&h, prepared.id).is_err());
         let journal = b.read_journal().unwrap().unwrap();
         assert_eq!(journal.stage, JournalStage::RolledBack);
-        assert!(b.prepare_restore(&h, &path, vec![]).is_err());
+        assert!(b.prepare_restore(&h, &path, vec![], None).is_err());
         b.finish_restore(prepared.id).unwrap();
         // A journal that is still "committing" can only be resolved by recovery.
         b.write_journal(&RestoreJournal {

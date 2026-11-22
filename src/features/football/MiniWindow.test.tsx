@@ -66,3 +66,25 @@ it('keeps showing the matches of favourite clubs and marks saved data', async ()
   expect(host.querySelector('.ui-empty--error')).not.toBeNull();
   expect(host.querySelector('.ui-empty:not(.ui-empty--error)')).toBeNull();
 });
+
+it('syncs theme and density from storage and appearance events', async () => {
+  vi.mocked(loadLiveFeed).mockResolvedValue({
+    matches: [],
+    fetchedAt: '2026-11-12T10:00:00Z',
+    stale: false,
+  });
+  localStorage.setItem('sportsdesk.scheme', 'light');
+  localStorage.setItem('sportsdesk.density', 'compact');
+  await act(async () => root.render(<MiniWindow />));
+  const miniRoot = host.querySelector('.mini-root');
+  expect(miniRoot?.getAttribute('data-scheme')).toBe('light');
+  expect(miniRoot?.getAttribute('data-density')).toBe('compact');
+  expect(document.documentElement.dataset.scheme).toBe('light');
+
+  await act(async () => {
+    localStorage.setItem('sportsdesk.scheme', 'dark');
+    window.dispatchEvent(new Event('sportsdesk-appearance-changed'));
+  });
+  expect(miniRoot?.getAttribute('data-scheme')).toBe('dark');
+  expect(document.documentElement.dataset.scheme).toBe('dark');
+});

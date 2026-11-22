@@ -13,6 +13,7 @@ import {
   rememberCelebrated,
 } from './celebrationRules';
 import { Confetti } from './Confetti';
+import { getPlaybackContext } from './playbackContext';
 import { playGoalHorn } from './soundEngine';
 import './atmosphere.css';
 
@@ -81,7 +82,7 @@ export function GoalCelebration() {
         });
         if (!fresh.length) return;
         rememberCelebrated(fresh.map((e) => e.id));
-        if (!celebrationsAllowed() || document.hidden) return;
+        if (!celebrationsAllowed() || getPlaybackContext().windowHidden) return;
         const latest = fresh.reduce((a, b) => (b.occurredAt > a.occurredAt ? b : a));
         show({
           key: latest.id,

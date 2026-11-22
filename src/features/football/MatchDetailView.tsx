@@ -52,6 +52,17 @@ type OptionalKey = 'players' | 'lineups' | 'stats' | 'events';
 const EMPTY: Loaded = { detail: null, players: [], lineups: null, stats: null, events: null };
 const matchStatusLabel = matchStateLabel;
 
+let watchIpcQueue: Promise<void> = Promise.resolve();
+
+function enqueueWatchIpc(task: () => Promise<void>): Promise<void> {
+  const next = watchIpcQueue.then(task, task);
+  watchIpcQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return watchIpcQueue;
+}
+
 /**
  * Cell keys that are additive counting stats. Only these are mathematically
  * meaningful when normalised per 90 minutes. Ratios/scores/minutes must be
@@ -234,30 +245,47 @@ export function MatchDetailView({
   // присылает sportsdesk://match-update при изменениях — обновляем экран.
   const [liveTick, setLiveTick] = useState(0);
   const [manualTick, setManualTick] = useState(0);
+  const lastLiveTick = useRef(0);
   const lastManualTick = useRef(0);
+  const tabRef = useRef<MatchTab>(tab);
+  tabRef.current = tab;
   const [liveAt, setLiveAt] = useState<string | null>(null);
   useEffect(() => {
     if (!isTauriRuntime()) return; // dev-браузер: обычная загрузка без слежения
     let stop: (() => void) | null = null;
     let active = true;
+    let minGeneration = 0;
 
     // Рефреш без сброса state: тихо перезагружаем деталь и события.
     const softRefresh = () => {
       setLiveTick((n) => n + 1);
     };
 
-    void (async () => {
+    void enqueueWatchIpc(async () => {
       try {
-        await rpc('watch_match', { matchId });
+        const gen = await rpc<number>('watch_match', { matchId });
+        if (!active) return;
+        if (typeof gen === 'number' && Number.isFinite(gen) && gen > 0) {
+          minGeneration = gen;
+        }
         const mod = await import('@tauri-apps/api/event');
-        const un = await mod.listen<{ matchId: string; fetchedAt: string }>(
-          'sportsdesk://match-update',
-          (e) => {
-            if (!active || e.payload?.matchId !== matchId) return;
-            setLiveAt(e.payload.fetchedAt ?? null);
-            softRefresh();
-          },
-        );
+        if (!active) return;
+        const un = await mod.listen<{
+          matchId?: string;
+          fetchedAt?: string;
+          generation?: number;
+        }>('sportsdesk://match-update', (e) => {
+          if (!active || e.payload?.matchId !== matchId) return;
+          const eventGen = e.payload?.generation;
+          if (typeof eventGen === 'number' && Number.isFinite(eventGen)) {
+            if (eventGen < minGeneration) return;
+            minGeneration = eventGen;
+          } else if (minGeneration > 0) {
+            return;
+          }
+          setLiveAt(e.payload.fetchedAt ?? null);
+          softRefresh();
+        });
         if (!active) {
           un();
           return;
@@ -266,27 +294,34 @@ export function MatchDetailView({
       } catch {
         /* watch недоступен: остаётся статичная страница */
       }
-    })();
+    });
 
     return () => {
       active = false;
       stop?.();
-      void rpc('unwatch_match').catch(() => undefined);
+      stop = null;
+      void enqueueWatchIpc(async () => {
+        await rpc('unwatch_match').catch(() => undefined);
+      });
     };
   }, [matchId]);
 
   // Тихий рефреш: деталь + события, без спиннеров и сброса вкладки.
   useEffect(() => {
-    if (liveTick === 0 && manualTick === 0) return;
+    const liveChanged = liveTick !== lastLiveTick.current;
+    const manualChanged = manualTick !== lastManualTick.current;
+    lastLiveTick.current = liveTick;
+    lastManualTick.current = manualTick;
+    if (!liveChanged && !manualChanged) return;
     let active = true;
     const requestId = reqRef.current;
-    const automatic = manualTick === lastManualTick.current;
-    lastManualTick.current = manualTick;
+    const automatic = !manualChanged;
+    const currentTab = tabRef.current;
     void loadOptional('events', automatic).catch(() => undefined);
-    if (!automatic || tab === 'stats') void loadOptional('stats', automatic);
-    if (!automatic || tab === 'lineups') {
+    if (!automatic || currentTab === 'stats') void loadOptional('stats', automatic);
+    if (!automatic || currentTab === 'lineups') {
       void loadOptional('lineups', automatic);
-      if (automatic) void loadOptional('players', automatic);
+      void loadOptional('players', automatic);
     }
     setRefreshingDetail(true);
     void (async () => {
@@ -314,7 +349,7 @@ export function MatchDetailView({
     return () => {
       active = false;
     };
-  }, [liveTick, manualTick, matchId, loadOptional, tab]);
+  }, [liveTick, manualTick, matchId, loadOptional]);
 
   const detail = loaded.detail;
   const tacticsOn = modules.tactics;
@@ -618,7 +653,7 @@ function Overview({
   const allGroups: StatGroup[] = allPeriod?.groups ?? [];
 
   const summaryLines: string[] = [];
-  if (detail.status === 'finished') {
+  if (classifyMatchStatus(detail.status) === 'finished') {
     summaryLines.push(
       `${detail.home_team.name} — ${detail.away_team.name}, счёт ${detail.score_home ?? '—'}:${detail.score_away ?? '—'}.`,
     );

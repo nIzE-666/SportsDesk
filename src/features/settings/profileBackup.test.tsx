@@ -39,6 +39,17 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+function mockRestore(
+  handler: (name: string, args?: Record<string, unknown>) => Promise<unknown>,
+  settings: Record<string, string> = { 'sportsdesk.scheme': 'light' },
+) {
+  vi.mocked(rpc).mockImplementation(async (name, args) =>
+    name === 'inspect_backup_restore'
+      ? { profile: { settings }, sha256: 'backup-sha256' }
+      : handler(name, args),
+  );
+}
+
 it('round-trips the module switches and rejects a damaged value', () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
   const modules = JSON.stringify({
@@ -112,7 +123,7 @@ it('validates all keys before changing the existing profile', () => {
   expect(localStorage.getItem('sportsdesk.api_key')).toBeNull();
 });
 
-it('rejects an invalid timezone before applying a profile or committing restored history', async () => {
+it('rejects an invalid timezone before applying a profile or preparing a full restore', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
   localStorage.setItem('sportsdesk.timezone', 'UTC');
   const settings = { 'sportsdesk.scheme': 'light', 'sportsdesk.timezone': 'Not/A_Zone' };
@@ -121,15 +132,11 @@ it('rejects an invalid timezone before applying a profile or committing restored
   expect(localStorage.getItem('sportsdesk.timezone')).toBe('UTC');
   expect(rpc).not.toHaveBeenCalled();
 
-  vi.mocked(rpc).mockImplementation(async (name) => {
-    if (name === 'prepare_backup_restore')
-      return { id: 55, profile: { settings }, safetyFile: 'safe.json' };
-  });
+  mockRestore(async () => undefined, settings);
   await expect(restoreFullBackup('bad.json')).rejects.toThrow('неверный часовой пояс');
   expect(localStorage.getItem('sportsdesk.scheme')).toBe('dark');
   expect(localStorage.getItem('sportsdesk.timezone')).toBe('UTC');
-  expect(rpc).toHaveBeenCalledWith('cancel_backup_restore', { id: 55 });
-  expect(rpc).not.toHaveBeenCalledWith('commit_backup_restore', expect.anything());
+  expect(vi.mocked(rpc).mock.calls).toEqual([['inspect_backup_restore', { path: 'bad.json' }]]);
 });
 
 it('rolls back all profile keys after a quota failure and keeps unrelated keys', () => {
@@ -174,7 +181,7 @@ it('rolls back a standalone profile import when its mirror cannot be saved', asy
 
 it('reverts the profile and cancels the prepared restore when history commit fails', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
-  vi.mocked(rpc).mockImplementation(async (name) => {
+  mockRestore(async (name) => {
     if (name === 'prepare_backup_restore')
       return {
         id: 42,
@@ -195,7 +202,7 @@ it('reports profile rollback and cancellation failures together with the safety 
     if (value === 'dark') throw new Error('rollback unavailable');
     original.call(this, key, value);
   });
-  vi.mocked(rpc).mockImplementation(async (name) => {
+  mockRestore(async (name) => {
     if (name === 'prepare_backup_restore')
       return {
         id: 42,
@@ -213,7 +220,7 @@ it('reports profile rollback and cancellation failures together with the safety 
 it('aborts before changing anything when the profile changes while its safety copy is prepared', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
   let finish!: (value: unknown) => void;
-  vi.mocked(rpc).mockImplementation(async (name) => {
+  mockRestore(async (name) => {
     if (name === 'prepare_backup_restore')
       return new Promise((resolve) => {
         finish = resolve;
@@ -237,20 +244,23 @@ it('preserves edits during a failed history commit, including a write matching t
   localStorage.setItem('sportsdesk.scheme', 'dark');
   localStorage.setItem('sportsdesk.timezone', 'UTC');
   let fail!: (error: Error) => void;
-  vi.mocked(rpc).mockImplementation(async (name) => {
-    if (name === 'prepare_backup_restore')
-      return {
-        id: 42,
-        profile: {
-          settings: { 'sportsdesk.scheme': 'light', 'sportsdesk.timezone': 'Europe/London' },
-        },
-        safetyFile: 'safe.json',
-      };
-    if (name === 'commit_backup_restore')
-      return new Promise((_resolve, reject) => {
-        fail = reject;
-      });
-  });
+  mockRestore(
+    async (name) => {
+      if (name === 'prepare_backup_restore')
+        return {
+          id: 42,
+          profile: {
+            settings: { 'sportsdesk.scheme': 'light', 'sportsdesk.timezone': 'Europe/London' },
+          },
+          safetyFile: 'safe.json',
+        };
+      if (name === 'commit_backup_restore')
+        return new Promise((_resolve, reject) => {
+          fail = reject;
+        });
+    },
+    { 'sportsdesk.scheme': 'light', 'sportsdesk.timezone': 'Europe/London' },
+  );
   const restoring = restoreFullBackup('old.json');
   await vi.waitFor(() => expect(fail).toBeTypeOf('function'));
   setString('sportsdesk.scheme', 'light'); // no-op in storage, but still a user intent
@@ -265,7 +275,7 @@ it('preserves edits during a failed history commit, including a write matching t
 it('reports a failed concurrent-write replay after commit without rolling back only the profile', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
   let finish!: () => void;
-  vi.mocked(rpc).mockImplementation(async (name) => {
+  mockRestore(async (name) => {
     if (name === 'prepare_backup_restore')
       return {
         id: 42,
@@ -440,13 +450,14 @@ it('keeps the journal open when the recovered profile cannot be applied', async 
 
 it('closes the journal after a successful restore', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
-  vi.mocked(rpc).mockImplementation(async (name) => {
+  mockRestore(async (name) => {
     if (name === 'prepare_backup_restore')
       return { id: 9, profile: { settings: { 'sportsdesk.scheme': 'light' } }, safetyFile: 's' };
   });
   await restoreFullBackup('copy.json');
   const names = vi.mocked(rpc).mock.calls.map(([name]) => name);
   expect(names).toEqual([
+    'inspect_backup_restore',
     'prepare_backup_restore',
     'commit_backup_restore',
     'finish_backup_restore',
@@ -455,16 +466,19 @@ it('closes the journal after a successful restore', async () => {
 
 it('restores an old profile with the removed design choice without errors', async () => {
   localStorage.setItem('sportsdesk.scheme', 'dark');
-  vi.mocked(rpc).mockImplementation(async (name) => {
-    if (name === 'prepare_backup_restore')
-      return {
-        id: 10,
-        profile: {
-          settings: { 'sportsdesk.scheme': 'light', 'sportsdesk.design': 'classic' },
-        },
-        safetyFile: 'safe.json',
-      };
-  });
+  mockRestore(
+    async (name) => {
+      if (name === 'prepare_backup_restore')
+        return {
+          id: 10,
+          profile: {
+            settings: { 'sportsdesk.scheme': 'light', 'sportsdesk.design': 'classic' },
+          },
+          safetyFile: 'safe.json',
+        };
+    },
+    { 'sportsdesk.scheme': 'light', 'sportsdesk.design': 'classic' },
+  );
   await expect(restoreFullBackup('old-profile.json')).resolves.toBeUndefined();
   expect(localStorage.getItem('sportsdesk.scheme')).toBe('light');
   expect(localStorage.getItem('sportsdesk.design')).toBe('classic');

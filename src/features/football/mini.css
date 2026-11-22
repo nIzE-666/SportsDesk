@@ -1,8 +1,6 @@
 /* Мини-окно live-счёта (№7) */
-:root {
-  color-scheme: dark;
-}
 .mini-root {
+  color-scheme: dark;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -11,6 +9,9 @@
   font-family: var(--font-family);
   font-size: var(--text-13);
   overflow: hidden;
+}
+.mini-root[data-scheme='light'] {
+  color-scheme: light;
 }
 .mini-top {
   display: flex;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pin, Radio, WifiOff, X } from 'lucide-react';
 import { isTauriRuntime, rpc } from '../../lib/bridge';
 import { formatHumanDateTime } from '../../lib/humanDate';
-import { getUserTimezone, formatUpdatedAt } from './storage';
+import { getString, getUserTimezone, formatUpdatedAt } from './storage';
 import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import { Button, EmptyState, IconButton, MatchRow, type MatchRowStatus } from '../../kit';
 import { loadLiveFeed, minuteLabel, type LiveMatch } from './liveFeed';
@@ -41,9 +41,35 @@ export function MiniWindow() {
   const [matches, setMatches] = useState<FlatMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [scheme, setScheme] = useState<'dark' | 'light'>(() =>
+    getString('sportsdesk.scheme') === 'light' ? 'light' : 'dark',
+  );
+  const [density, setDensity] = useState<'default' | 'compact'>(() =>
+    getString('sportsdesk.density') === 'compact' ? 'compact' : 'default',
+  );
   const mounted = useRef(true);
   // Список «без спойлеров» общий с главным окном через localStorage.
   const spoilers = useSpoilerSet();
+
+  useEffect(() => {
+    document.documentElement.dataset.scheme = scheme;
+    document.documentElement.style.colorScheme = scheme;
+  }, [scheme]);
+
+  useEffect(() => {
+    const syncAppearance = () => {
+      setScheme(getString('sportsdesk.scheme') === 'light' ? 'light' : 'dark');
+      setDensity(getString('sportsdesk.density') === 'compact' ? 'compact' : 'default');
+    };
+    window.addEventListener('storage', syncAppearance);
+    window.addEventListener('sportsdesk-storage-changed', syncAppearance);
+    window.addEventListener('sportsdesk-appearance-changed', syncAppearance);
+    return () => {
+      window.removeEventListener('storage', syncAppearance);
+      window.removeEventListener('sportsdesk-storage-changed', syncAppearance);
+      window.removeEventListener('sportsdesk-appearance-changed', syncAppearance);
+    };
+  }, []);
 
   const load = useCallback(async (automatic = false) => {
     try {
@@ -103,7 +129,7 @@ export function MiniWindow() {
   };
 
   return (
-    <div className="mini-root app-root">
+    <div className="mini-root app-root" data-scheme={scheme} data-density={density}>
       <header className="mini-top">
         <span className="mini-title">
           <Radio size={13} aria-hidden /> Live-мини

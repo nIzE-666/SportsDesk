@@ -104,10 +104,14 @@ export function TournamentView({
   competitionId,
   tab,
   onTabChange,
+  matchId,
+  onOpenMatch,
 }: {
   competitionId: string;
   tab: TournamentTab;
   onTabChange: (tab: TournamentTab) => void;
+  matchId?: string | null;
+  onOpenMatch?: (matchId: string, competitionId?: string) => void;
 }) {
   const isUcl = competitionId === CHAMPIONS_LEAGUE_ID;
   const cup = isUcl
@@ -168,8 +172,9 @@ export function TournamentView({
   );
   const [selectedPlayer, setSelectedPlayer] = useState<UclScorer | null>(null);
   const [playerInfo, setPlayerInfo] = useState<Record<string, unknown> | null>(null);
+  const activeMatch = matchId !== undefined ? matchId : selectedMatch;
 
-  usePageScroll(`${viewScope}.${season}.${selectedMatch ? `match.${selectedMatch}` : tab}`);
+  usePageScroll(`${viewScope}.${season}.${activeMatch ? `match.${activeMatch}` : tab}`);
   const previousContext = useRef(`${tab}.${season}`);
   useEffect(() => {
     const context = `${tab}.${season}`;
@@ -380,20 +385,26 @@ export function TournamentView({
     setSelectedMatch(null);
     onTabChange('matches');
   };
-  const openMatch = (id: string) => setSelectedMatch(id);
+  const openMatch = (id: string) => {
+    if (matchId !== undefined && onOpenMatch) {
+      onOpenMatch(id, competitionId);
+      return;
+    }
+    setSelectedMatch(id);
+  };
   const chooseTab = (nextTab: TournamentTab) => {
     setSelectedMatch(null);
     onTabChange(nextTab);
   };
 
-  if (selectedMatch) {
+  if (activeMatch) {
     return (
       <MatchDetailView
-        key={selectedMatch}
-        matchId={selectedMatch}
+        key={activeMatch}
+        matchId={activeMatch}
         seasonMatches={matches}
         onOpenMatch={openMatch}
-        onBack={() => setSelectedMatch(null)}
+        onBack={matchId !== undefined ? undefined : () => setSelectedMatch(null)}
       />
     );
   }

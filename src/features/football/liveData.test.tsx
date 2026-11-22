@@ -573,6 +573,154 @@ describe('useLiveMatches', () => {
     expect(latest?.matches.map((match) => match.id)).toEqual(['livescore:new-day']);
     expect(latest?.source).toBe('livescore');
   });
+
+  it('keeps the latest score and minute when a match leaves the live feed, refreshes the day sheet immediately, and adopts finished only when confirmed', async () => {
+    vi.setSystemTime(new Date('2026-11-14T15:00:00Z'));
+    let dayCalls = 0;
+    let liveCalls = 0;
+
+    const makeStage = (eps: string, tr1: string, tr2: string) => ({
+      Stages: [
+        {
+          CompN: 'Premier League',
+          CompD: 'England',
+          Cnm: 'England',
+          Events: [
+            {
+              Eid: 'ev_100',
+              Eps: eps,
+              Esd: 20261115000000,
+              T1: [{ Nm: 'Arsenal' }],
+              T2: [{ Nm: 'Liverpool' }],
+              Tr1: tr1,
+              Tr2: tr2,
+            },
+          ],
+        },
+      ],
+    });
+
+    vi.mocked(api).mockImplementation(async (source, path) => {
+      const nowIso = new Date().toISOString();
+      if (source === 'livescore' && path.startsWith('date/')) {
+        dayCalls += 1;
+        // First two day calls (initial mount + first immediate refresh after disappearance) still lag at 65' 1:0;
+        // third day call confirms FT 2:1.
+        if (dayCalls < 3) return reply(makeStage("65'", '1', '0'), nowIso);
+        return reply(makeStage('FT', '2', '1'), nowIso);
+      }
+      if (source === 'livescore' && path.startsWith('live/')) {
+        liveCalls += 1;
+        if (liveCalls === 1) return reply(makeStage("85'", '2', '1'), nowIso);
+        return reply({ Stages: [] }, nowIso);
+      }
+      return reply({}, nowIso);
+    });
+
+    await render();
+    expect(dayCalls).toBe(1);
+    expect(liveCalls).toBe(1);
+    expect(latest?.matches[0]).toMatchObject({
+      id: 'livescore:ev_100',
+      state: 'live',
+      minute: "85'",
+      score: { home: 2, away: 1 },
+    });
+
+    // At +60s, the match disappears from /live/soccer/.
+    // Day sheet refreshes immediately without waiting an hour, and while date/ lags at 65' 1:0,
+    // the visible match keeps 85' and 2:1 instead of regressing or inventing a finished status.
+    await advance(60_000);
+    expect(liveCalls).toBe(2);
+    expect(dayCalls).toBe(2);
+    expect(latest?.matches[0]).toMatchObject({
+      id: 'livescore:ev_100',
+      state: 'live',
+      minute: "85'",
+      score: { home: 2, away: 1 },
+    });
+
+    // At +120s, the next live check sees the match still unconfirmed and refreshes date/, which now confirms FT 2:1.
+    await advance(60_000);
+    expect(liveCalls).toBe(3);
+    expect(dayCalls).toBe(3);
+    expect(latest?.matches[0]).toMatchObject({
+      id: 'livescore:ev_100',
+      state: 'finished',
+      minute: null,
+      score: { home: 2, away: 1 },
+    });
+    expect(needsLiveUpdates(latest!.matches, HOOK_LEAGUES, Date.now())).toBe(false);
+
+    // Once confirmed finished, no more 1-minute live polls occur.
+    await advance(60_000);
+    expect(liveCalls).toBe(3);
+  });
+
+  it('ignores stale and older reordered replies so live or finished scores do not regress', async () => {
+    vi.setSystemTime(new Date('2026-11-14T15:00:00Z'));
+    let liveCalls = 0;
+    const makeStage = (eps: string, tr1: string, tr2: string) => ({
+      Stages: [
+        {
+          CompN: 'Premier League',
+          CompD: 'England',
+          Cnm: 'England',
+          Events: [
+            {
+              Eid: 'ev_200',
+              Eps: eps,
+              Esd: 20261115000000,
+              T1: [{ Nm: 'Arsenal' }],
+              T2: [{ Nm: 'Chelsea' }],
+              Tr1: tr1,
+              Tr2: tr2,
+            },
+          ],
+        },
+      ],
+    });
+
+    vi.mocked(api).mockImplementation(async (source, path) => {
+      if (source === 'livescore' && path.startsWith('date/')) {
+        return reply(makeStage("50'", '1', '0'), '2026-11-14T15:00:00.000Z');
+      }
+      if (source === 'livescore' && path.startsWith('live/')) {
+        liveCalls += 1;
+        if (liveCalls === 1) {
+          return reply(makeStage("80'", '2', '1'), '2026-11-14T15:00:30.000Z', false);
+        }
+        if (liveCalls === 2) {
+          // Older reordered reply
+          return reply(makeStage("60'", '1', '1'), '2026-11-14T15:00:10.000Z', false);
+        }
+        // Stale empty reply
+        return reply({ Stages: [] }, '2026-11-14T14:55:00.000Z', true);
+      }
+      return reply({});
+    });
+
+    await render();
+    expect(latest?.matches[0]).toMatchObject({
+      minute: "80'",
+      score: { home: 2, away: 1 },
+    });
+
+    // Older reordered reply at +60s is ignored
+    await advance(60_000);
+    expect(latest?.matches[0]).toMatchObject({
+      minute: "80'",
+      score: { home: 2, away: 1 },
+    });
+
+    // Stale empty reply at +120s does not drop the match or regress to 50' 1:0
+    await advance(60_000);
+    expect(latest?.matches[0]).toMatchObject({
+      minute: "80'",
+      score: { home: 2, away: 1 },
+    });
+    expect(latest?.stale).toBe(true);
+  });
 });
 
 describe('fixture parser stays compatible', () => {

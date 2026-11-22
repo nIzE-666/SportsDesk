@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /* Section 5.2 of the UI plan: no raw colors, font sizes or radii outside
-   src/tokens.css. Every font size is one of the seven text tokens, every
+   src/tokens.css. Every font size uses a text or showcase token, every
    radius one of the four radius tokens, and no old button class survives. */
 
 const ROOT = process.cwd();
@@ -42,6 +42,9 @@ const TEXT_TOKENS = new Set([
   '--text-20',
   '--text-24',
   '--text-32',
+  ...[
+    ...readFileSync(join(ROOT, TOKENS_FILE), 'utf8').matchAll(/^\s*(--showcase-font-[\d-]+):/gm),
+  ].map((match) => match[1]!),
 ]);
 const RADIUS_TOKENS = new Set(['--radius-sm', '--radius-md', '--radius-lg', '--radius-round']);
 const TOKEN_VALUE = /^var\((--[a-z0-9-]+)\)$/i;

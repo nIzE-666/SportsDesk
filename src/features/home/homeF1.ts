@@ -135,7 +135,7 @@ export function useHomeF1(now: number, timezone: string, enabled: boolean) {
     latest,
     stale: resources.some((resource) => resource.stale),
     loading: resources.some((resource) => resource.loading),
-    error: resources.some((resource) => resource.error),
+    error: Boolean(schedule.error || results.error),
     fetchedAt: resources.map((resource) => resource.fetchedAt),
     reload: () => resources.forEach((resource) => resource.reload()),
   };

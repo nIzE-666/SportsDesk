@@ -4,7 +4,7 @@ import { rpc } from '../../../lib/bridge';
 import { START_SECTION_KEY, type StartSection } from '../../../lib/navigation';
 import { useModules } from '../../../lib/modules';
 import { Badge, Button, Field, Panel, PanelHeader, Switch } from '../../../kit';
-import { getString, setString, STORAGE_KEYS } from '../../football/storage';
+import { getString, getUserTimezone, setString, STORAGE_KEYS } from '../../football/storage';
 import { HIDE_HOME_INTEREST_KEY } from '../../home/homePreferences';
 import { ShortcutControl } from '../ShortcutControl';
 import { openFirstRunWizard } from '../../onboarding/onboarding';
@@ -22,9 +22,7 @@ const TIMEZONES = [
 ];
 
 export function GeneralSettings() {
-  const [timezone, setTimezone] = useState<string>(
-    () => getString(STORAGE_KEYS.timezone) ?? 'Asia/Yakutsk',
-  );
+  const [timezone, setTimezone] = useState(getUserTimezone);
   const [trayMode, setTrayMode] = useState<boolean>(() => getString(STORAGE_KEYS.trayMode) !== '0');
   const [startSection, setStartSection] = useState<StartSection>(() =>
     getString(START_SECTION_KEY) === 'home' ? 'home' : 'today',
@@ -90,6 +88,7 @@ export function GeneralSettings() {
             value={timezone}
             onChange={(e) => onTimezoneChange(e.target.value)}
           >
+            {!TIMEZONES.includes(timezone) && <option value={timezone}>{timezone}</option>}
             {TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>
                 {tz}

@@ -48,7 +48,7 @@ export function DiagnosticsPanel() {
             : 'Загрузка состояния…'}
         </p>
         <div className="diagnostics-grid">
-          {['pitch', 'sportscore', 'espn', 'jolpica', 'openf1'].map((source) => {
+          {['pitch', 'sportscore', 'espn', 'livescore', 'jolpica', 'openf1'].map((source) => {
             const cache = backend?.cache?.find((c) => c.source === source),
               rows = resources.filter((r) => r.key.startsWith(source + ':')),
               failed = rows.filter((r) => r.failed);

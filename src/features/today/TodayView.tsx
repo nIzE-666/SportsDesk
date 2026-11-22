@@ -30,7 +30,7 @@ import {
   type ViewingEvent,
 } from '../planner/plannerData';
 import { ViewingPlanner } from '../planner/ViewingPlanner';
-import { useResultHidden } from '../spoilers/spoilerStore';
+import { spoilerKey, useResultHidden, useSpoilerSet } from '../spoilers/spoilerStore';
 import { usePlannerPriorities, useTodayPlanData, type TodayPlanData } from './todayData';
 import {
   buildLeagueTable,
@@ -126,18 +126,22 @@ function useEventActions(
   onOpenWeekend: (race: JolpicaRace) => void,
 ) {
   return useMemo(() => {
-    const leagueFor = (matchId: string) => {
+    const leagueIdFor = (matchId: string): string | undefined => {
       for (const league of data.football.leagues) {
         if (data.football.matchesForLeague(league.id).some((match) => match.id === matchId))
-          return data.football.leagueName(league.id);
+          return league.id;
       }
-      return 'Футбол';
+      return undefined;
+    };
+    const leagueFor = (matchId: string) => {
+      const id = leagueIdFor(matchId);
+      return id ? data.football.leagueName(id) : 'Футбол';
     };
     return {
       leagueFor,
       open: (event: ViewingEvent) => {
         if (event.kind === 'f1') onOpenWeekend(event.race);
-        else onOpenMatch(event.match.id, leagueFor(event.match.id));
+        else onOpenMatch(event.match.id, leagueIdFor(event.match.id));
       },
     };
   }, [data.football, onOpenMatch, onOpenWeekend]);
@@ -267,6 +271,7 @@ function LiveNowBlock({
   pitchMatches: readonly PitchMatchReference[];
   onOpenMatch: (matchId: string, leagueId?: string) => void;
 }) {
+  const spoilers = useSpoilerSet();
   if (!matches.length) return null;
   return (
     <section className="panel today-block" data-block="live">
@@ -277,6 +282,9 @@ function LiveNowBlock({
         {matches.map((match) => {
           const minute = minuteLabel(match.minute);
           const pitchMatchId = findPitchMatchId(match, pitchMatches);
+          const hidden =
+            spoilers.has(spoilerKey('football', pitchMatchId ?? match.id)) ||
+            spoilers.has(spoilerKey('football', match.id));
           return (
             <li key={match.id}>
               <MatchRow
@@ -286,6 +294,7 @@ function LiveNowBlock({
                 home={{ name: match.home.name }}
                 away={{ name: match.away.name }}
                 score={{ home: match.score.home, away: match.score.away }}
+                hideScore={hidden}
                 competition={competitionLabel(match)}
                 actions={
                   <>

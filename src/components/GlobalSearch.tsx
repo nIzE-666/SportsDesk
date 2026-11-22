@@ -32,12 +32,13 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
     [items, setItems] = useState<SearchItem[]>([]);
   const modules = useModules();
   const panel = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !e.isComposing) {
-        const modal = document.querySelector('[aria-modal="true"]');
-        if (modal && modal !== panel.current) return;
+        const modals = [...document.querySelectorAll('[aria-modal="true"]')];
+        if (modals.some((modal) => !panel.current || !modal.contains(panel.current))) return;
         e.preventDefault();
         if (!e.repeat) setOpen((v) => !v);
       }
@@ -64,10 +65,11 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
   );
   const selected = Math.min(active, Math.max(0, results.length - 1));
   useEffect(() => {
-    panel.current
-      ?.querySelector(`#search-result-${selected}`)
+    if (!open) return;
+    resultsRef.current
+      ?.querySelector<HTMLElement>(`#search-result-${selected}`)
       ?.scrollIntoView?.({ block: 'nearest' });
-  }, [selected, query]);
+  }, [open, selected, query]);
   const choose = (item: SearchItem) => {
     rememberSearchVisit(item.key);
     setOpen(false);
@@ -126,6 +128,7 @@ export function GlobalSearch({ onNavigate }: { onNavigate: (target: SearchTarget
             {query ? 'Результаты по загруженным данным' : 'Недавние переходы и разделы'}
           </p>
           <div
+            ref={resultsRef}
             className="command-results"
             id="global-search-results"
             role="listbox"

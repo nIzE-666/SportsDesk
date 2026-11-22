@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { writeModules } from '../../lib/modules';
 import { POLICY_KEY } from '../settings/notificationPolicy';
 import { resetAudioContextForTests } from './audioContext';
 import { writeAtmosphere } from './atmosphereStore';
 import { FakeAudioContext, installFakeAudio, removeFakeAudio, theFakeContext } from './fakeAudio';
-import { reportVideoAudible, resetPlaybackContextForTests } from './playbackContext';
+import {
+  reportVideoAudible,
+  resetPlaybackContextForTests,
+  subscribePlaybackContext,
+} from './playbackContext';
 import {
   playGoalHorn,
   playRadioSignal,
@@ -15,6 +19,19 @@ import {
 
 const NOON = Date.UTC(2026, 10, 9, 12, 0);
 const NIGHT = Date.UTC(2026, 10, 9, 23, 30);
+const native = vi.hoisted(() => ({
+  onVisibility: undefined as ((event: { payload: { visible: boolean } }) => void) | undefined,
+}));
+
+vi.mock('../../lib/bridge', () => ({ isTauriRuntime: () => true }));
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: async (_event: string, callback: typeof native.onVisibility) => {
+    native.onVisibility = callback;
+    return () => {
+      native.onVisibility = undefined;
+    };
+  },
+}));
 
 function setHidden(hidden: boolean) {
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
@@ -89,6 +106,21 @@ it('does not play over a video with sound or from a hidden window', () => {
   expect(playRadioSignal(NOON)).toBe(false);
   setHidden(false);
   expect(playRadioSignal(NOON)).toBe(true);
+});
+
+it('silences automatic signals while the native window is hidden and the document stays visible', async () => {
+  writeAtmosphere({ sounds: true });
+  setHidden(false);
+  const unsubscribe = subscribePlaybackContext(() => undefined);
+  try {
+    await vi.waitFor(() => expect(native.onVisibility).toBeTypeOf('function'));
+    native.onVisibility!({ payload: { visible: false } });
+    expect(shortSignalAllowed({ now: NOON })).toBe(false);
+    native.onVisibility!({ payload: { visible: true } });
+    expect(shortSignalAllowed({ now: NOON })).toBe(true);
+  } finally {
+    unsubscribe();
+  }
 });
 
 it('lets a preview from the settings through, but never when sounds are off', () => {

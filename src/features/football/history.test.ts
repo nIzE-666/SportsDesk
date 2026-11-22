@@ -6,6 +6,7 @@ import {
   fetchTeamHistory,
   h2hSummary,
   pointsProgression,
+  saveSeasonToHistory,
   teamForm,
   type HistoryMatch,
 } from './history';
@@ -119,5 +120,43 @@ describe('pointsProgression', () => {
       hm('m3', 'C', 'A', 1, 1, '2026-01-03'),
     ];
     expect(pointsProgression(matches, 'A').map((p) => p.points)).toEqual([3, 4]);
+  });
+
+  it('recognizes finished status aliases across teamForm, h2hSummary, pointsProgression and saveSeasonToHistory', async () => {
+    const matches = [
+      { ...hm('m1', 'A', 'B', 2, 0, '2026-01-01'), status: 'FT' },
+      { ...hm('m2', 'B', 'A', 1, 1, '2026-01-08'), status: 'Finished' },
+      { ...hm('m3', 'A', 'B', 0, 1, '2026-01-15'), status: 'AET' },
+    ];
+    expect(teamForm(matches, 'A')).toEqual(['W', 'D', 'L']);
+    expect(h2hSummary(matches, 'A', 'B')).toEqual({
+      played: 3,
+      aWins: 1,
+      bWins: 1,
+      draws: 1,
+      aGoals: 3,
+      bGoals: 2,
+    });
+    expect(pointsProgression(matches, 'A').map((p) => p.points)).toEqual([3, 4, 4]);
+
+    await saveSeasonToHistory('l_4WFCIZ', 'Premier League', '2026/2027', [
+      {
+        id: 'm1',
+        status: 'FT',
+        home_team: { id: 'A', name: 'Club A' },
+        away_team: { id: 'B', name: 'Club B' },
+        score_home: 2,
+        score_away: 0,
+        date: '2026-01-01',
+      },
+    ]);
+    expect(rpc).toHaveBeenCalledWith(
+      'history_upsert',
+      expect.objectContaining({
+        batch: expect.objectContaining({
+          matches: [expect.objectContaining({ id: 'm1', status: 'finished' })],
+        }),
+      }),
+    );
   });
 });

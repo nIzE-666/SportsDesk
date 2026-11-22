@@ -83,7 +83,7 @@ pub struct KinoChannel {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 struct ClientConfig {
     #[serde(rename = "baseUrl")]
     base_url: String,
@@ -280,15 +280,8 @@ fn ctx() -> Result<Arc<KinoCtx>, KinoError> {
 fn load_config() -> Result<ClientConfig, KinoError> {
     let raw = secrets::read_secret(SecretName::KinoClient).map_err(|_| KinoError::MissingConfig)?;
     let cfg: ClientConfig = serde_json::from_str(&raw).map_err(|_| KinoError::MissingConfig)?;
-    let base = cfg.base_url.trim_end_matches('/').to_string();
-    if !base.starts_with("https://") || cfg.client_id.is_empty() || cfg.client_secret.is_empty() {
-        return Err(KinoError::MissingConfig);
-    }
-    Ok(ClientConfig {
-        base_url: base,
-        client_id: cfg.client_id,
-        client_secret: cfg.client_secret,
-    })
+    normalize_client_config(&cfg.base_url, &cfg.client_id, &cfg.client_secret)
+        .map_err(|_| KinoError::MissingConfig)
 }
 
 const MAX_CLIENT_FIELD_LEN: usize = 512;
@@ -302,9 +295,18 @@ fn normalize_client_config(
     let base = base_url.trim().trim_end_matches('/').to_string();
     let id = client_id.trim().to_string();
     let secret = client_secret.trim().to_string();
-    let host_ok = base
-        .strip_prefix("https://")
-        .is_some_and(|rest| !rest.is_empty() && !rest.chars().any(char::is_whitespace));
+    let host_ok = base.strip_prefix("https://").is_some_and(|rest| {
+        !rest.starts_with('/')
+            && !rest.contains('\\')
+            && !rest.chars().any(char::is_whitespace)
+            && url::Url::parse(&base).is_ok_and(|url| {
+                url.host_str().is_some()
+                    && url.username().is_empty()
+                    && url.password().is_none()
+                    && url.query().is_none()
+                    && url.fragment().is_none()
+            })
+    });
     let too_long = [&base, &id, &secret]
         .iter()
         .any(|v| v.len() > MAX_CLIENT_FIELD_LEN);
@@ -331,6 +333,13 @@ pub fn save_client_config(
 ) -> Result<(), KinoError> {
     let cfg = normalize_client_config(base_url, client_id, client_secret)?;
     let raw = serde_json::to_string(&cfg).map_err(|_| KinoError::Secret)?;
+    let ctx = ctx()?;
+    let mut session = ctx.session.lock().map_err(|_| KinoError::Network)?;
+    if load_config().is_ok_and(|current| current == cfg) {
+        return Ok(());
+    }
+    // Cancel requests tied to the old client before accepting a new client.
+    session.logout(replace_tokens)?;
     secrets::write_secret(SecretName::KinoClient, &raw).map_err(|_| KinoError::Secret)
 }
 
@@ -414,50 +423,58 @@ async fn form_post(
 
 pub async fn tokens_exist(_state: &Arc<AppStateInner>) -> bool {
     // Only a boolean flag reaches the UI; never the token material itself.
-    ctx()
-        .ok()
-        .and_then(|ctx| ctx.session.lock().ok().map(|mut s| s.tokens().is_some()))
-        .unwrap_or(false)
+    tauri::async_runtime::spawn_blocking(|| {
+        let Ok(config) = load_config() else {
+            return false;
+        };
+        ctx().ok().is_some_and(|ctx| {
+            ctx.session.lock().is_ok_and(|mut s| {
+                s.tokens()
+                    .is_some_and(|token| token_matches(&token, &config))
+            })
+        })
+    })
+    .await
+    .unwrap_or(false)
+}
+
+async fn session_command<T: Send + 'static>(
+    command: impl FnOnce(&mut SessionState) -> Result<T, KinoError> + Send + 'static,
+) -> Result<T, KinoError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let ctx = ctx()?;
+        let mut session = ctx.session.lock().map_err(|_| KinoError::Network)?;
+        command(&mut session)
+    })
+    .await
+    .map_err(|_| KinoError::Network)?
 }
 
 pub async fn begin_auth(_state: &Arc<AppStateInner>) -> Result<AuthSession, KinoError> {
-    let kctx = ctx()?;
-    let session_id = kctx
-        .session
-        .lock()
-        .map_err(|_| KinoError::Network)?
-        .begin()?;
+    let session_id = session_command(SessionState::begin).await?;
     Ok(AuthSession { session_id })
 }
 
 pub async fn cancel_auth(_state: &Arc<AppStateInner>, id: &str) -> Result<(), KinoError> {
-    let kctx = ctx()?;
-    let result = kctx
-        .session
-        .lock()
-        .map_err(|_| KinoError::Network)?
-        .cancel(id, replace_tokens);
-    result
+    let id = id.to_string();
+    session_command(move |session| session.cancel(&id, replace_tokens)).await
 }
 
 pub async fn finish_auth(_state: &Arc<AppStateInner>, id: &str) -> Result<(), KinoError> {
-    let kctx = ctx()?;
-    let mut session = kctx.session.lock().map_err(|_| KinoError::Network)?;
-    session.attempts.remove(id);
-    if session.active_attempt.as_deref() == Some(id) {
-        session.active_attempt = None;
-    }
-    Ok(())
+    let id = id.to_string();
+    session_command(move |session| {
+        session.attempts.remove(&id);
+        if session.active_attempt.as_deref() == Some(id.as_str()) {
+            session.active_attempt = None;
+        }
+        Ok(())
+    })
+    .await
 }
 
 pub async fn commit_auth(_state: &Arc<AppStateInner>, id: &str) -> Result<(), KinoError> {
-    let kctx = ctx()?;
-    let result = kctx
-        .session
-        .lock()
-        .map_err(|_| KinoError::Network)?
-        .commit(id, replace_tokens);
-    result
+    let id = id.to_string();
+    session_command(move |session| session.commit(&id, replace_tokens)).await
 }
 
 pub async fn start_auth(_state: &Arc<AppStateInner>, id: &str) -> Result<DeviceCode, KinoError> {
@@ -635,18 +652,23 @@ async fn refresh_token(cfg: &ClientConfig, stale: &Tokens) -> Result<Tokens, Kin
     let _guard = kctx.refresh_guard.lock().await;
     let (base, revision) = {
         let mut session = kctx.session.lock().map_err(|_| KinoError::Network)?;
-        let current = session.tokens().ok_or(KinoError::NoSession)?;
+        let current = session
+            .tokens()
+            .filter(|token| token_matches(token, cfg))
+            .ok_or(KinoError::NoSession)?;
         if current.refresh_token != stale.refresh_token && now_ms() < current.expires_at {
             return Ok(current);
         }
         (current, session.credential_revision)
     };
-    let base_url = if cfg.base_url.is_empty() {
-        base.base_url.clone()
-    } else {
-        cfg.base_url.clone()
-    };
-    refresh_locked(cfg, &Tokens { base_url, ..base }, revision).await
+    let refreshed = refresh_locked(cfg, &base, revision).await?;
+    token_matches(&refreshed, cfg)
+        .then_some(refreshed)
+        .ok_or(KinoError::NoSession)
+}
+
+fn token_matches(token: &Tokens, cfg: &ClientConfig) -> bool {
+    token.base_url.is_empty() || token.base_url == cfg.base_url
 }
 
 async fn active_tokens(cfg: &ClientConfig) -> Result<Tokens, KinoError> {
@@ -656,6 +678,7 @@ async fn active_tokens(cfg: &ClientConfig) -> Result<Tokens, KinoError> {
         .lock()
         .map_err(|_| KinoError::Network)?
         .tokens()
+        .filter(|token| token_matches(token, cfg))
         .ok_or(KinoError::NoSession)?;
     if now_ms() < tokens.expires_at {
         return Ok(tokens);
@@ -752,13 +775,7 @@ pub async fn channels(_state: &Arc<AppStateInner>) -> Result<Vec<KinoChannel>, K
 }
 
 pub async fn logout(_state: &Arc<AppStateInner>) -> Result<(), KinoError> {
-    let kctx = ctx()?;
-    let result = kctx
-        .session
-        .lock()
-        .map_err(|_| KinoError::Network)?
-        .logout(replace_tokens);
-    result
+    session_command(|session| session.logout(replace_tokens)).await
 }
 
 #[cfg(test)]
@@ -776,6 +793,8 @@ mod tests {
             ("http://api.example.test", "id", "secret"),
             ("https://", "id", "secret"),
             ("https://bad host", "id", "secret"),
+            ("https://api.example.test?version=1", "id", "secret"),
+            ("https://api.example.test/#valid", "id", "secret"),
             ("https://api.example.test", " ", "secret"),
             ("https://api.example.test", "id", ""),
         ] {

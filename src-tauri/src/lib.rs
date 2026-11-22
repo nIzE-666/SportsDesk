@@ -279,14 +279,20 @@ async fn export_profile(
     if settings.is_empty() {
         return Err("Нет настроек для экспорта.".into());
     }
-    let profile = profile::build_profile(&settings)?;
-    profile::write_profile(&path, &profile)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let profile = profile::build_profile(&settings)?;
+        profile::write_profile(&path, &profile)
+    })
+    .await
+    .map_err(|_| "Не удалось сохранить профиль.")??;
     Ok(bridge::native::OkReply { ok: true })
 }
 
 #[tauri::command]
 async fn import_profile(path: String) -> Result<profile::Profile, String> {
-    profile::read_profile(&path)
+    tauri::async_runtime::spawn_blocking(move || profile::read_profile(&path))
+        .await
+        .map_err(|_| "Не удалось прочитать профиль.")?
 }
 
 /// The UI opened a match: the Rust side starts following it live (60s tick,
@@ -337,7 +343,17 @@ async fn export_calendar(
 async fn offline_list(
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<Vec<offline::Summary>, String> {
-    state.0.offline_list()
+    history_operation(state, history::History::offline_list).await
+}
+
+async fn history_operation<T: Send + 'static>(
+    state: tauri::State<'_, history::HistoryState>,
+    operation: impl FnOnce(&history::History) -> Result<T, String> + Send + 'static,
+) -> Result<T, String> {
+    let history = state.0.clone();
+    tauri::async_runtime::spawn_blocking(move || operation(&history))
+        .await
+        .map_err(|_| "Операция с историей не удалась.")?
 }
 #[tauri::command]
 async fn offline_get(
@@ -345,14 +361,14 @@ async fn offline_get(
     season: String,
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<Option<offline::OfflineSeason>, String> {
-    state.0.offline_get(&league_id, &season)
+    history_operation(state, move |db| db.offline_get(&league_id, &season)).await
 }
 #[tauri::command]
 async fn offline_put(
     package: offline::OfflineSeason,
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<offline::Summary, String> {
-    state.0.offline_put(&package)
+    history_operation(state, move |db| db.offline_put(&package)).await
 }
 #[tauri::command]
 async fn offline_pin(
@@ -361,7 +377,7 @@ async fn offline_pin(
     pinned: bool,
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<(), String> {
-    state.0.offline_pin(&league_id, &season, pinned)
+    history_operation(state, move |db| db.offline_pin(&league_id, &season, pinned)).await
 }
 #[tauri::command]
 async fn offline_remove(
@@ -369,7 +385,7 @@ async fn offline_remove(
     season: String,
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<(), String> {
-    state.0.offline_remove(&league_id, &season)
+    history_operation(state, move |db| db.offline_remove(&league_id, &season)).await
 }
 
 #[tauri::command]
@@ -386,20 +402,23 @@ async fn history_upsert(
     if batch.league_id.trim().is_empty() || batch.season.trim().is_empty() {
         return Err("Не указана лига или сезон.".into());
     }
-    let stored = state.0.upsert_season(&batch)?;
-    Ok(history::HistorySeasonInfo {
-        league_id: batch.league_id,
-        league_name: batch.league_name,
-        season: batch.season,
-        matches: stored as i64,
+    history_operation(state, move |db| {
+        let stored = db.upsert_season(&batch)?;
+        Ok(history::HistorySeasonInfo {
+            league_id: batch.league_id,
+            league_name: batch.league_name,
+            season: batch.season,
+            matches: stored as i64,
+        })
     })
+    .await
 }
 
 #[tauri::command]
 async fn history_seasons(
     state: tauri::State<'_, history::HistoryState>,
 ) -> Result<Vec<history::HistorySeasonInfo>, String> {
-    state.0.list_seasons()
+    history_operation(state, history::History::list_seasons).await
 }
 
 #[tauri::command]
@@ -411,7 +430,10 @@ async fn history_season_matches(
     if league_id.trim().is_empty() || season.trim().is_empty() {
         return Err("Не указана лига или сезон.".into());
     }
-    state.0.season_matches(league_id.trim(), season.trim())
+    history_operation(state, move |db| {
+        db.season_matches(league_id.trim(), season.trim())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -423,7 +445,10 @@ async fn history_head_to_head(
     if team_a.trim().is_empty() || team_b.trim().is_empty() {
         return Err("Не указаны команды.".into());
     }
-    state.0.head_to_head(team_a.trim(), team_b.trim())
+    history_operation(state, move |db| {
+        db.head_to_head(team_a.trim(), team_b.trim())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -435,7 +460,10 @@ async fn history_team_matches(
     if team_id.trim().is_empty() {
         return Err("Не указана команда.".into());
     }
-    state.0.team_matches(team_id.trim(), finished_only)
+    history_operation(state, move |db| {
+        db.team_matches(team_id.trim(), finished_only)
+    })
+    .await
 }
 
 pub fn run() {
@@ -473,18 +501,6 @@ pub fn run() {
 
             tray::setup_tray(app.handle())?;
             shortcut::setup(app.handle());
-
-            // №8: Mica-эффект главного окна (Windows 11; на Win10 тихо пропускаем).
-            // При успехе сообщаем фронту классом для полупрозрачных слоёв.
-            #[cfg(windows)]
-            if let Some(window) = app.get_webview_window("main") {
-                use window_vibrancy::apply_mica;
-                if apply_mica(&window, None).is_ok() {
-                    if let Some(webview) = app.get_webview_window("main") {
-                        let _ = webview.eval("document.documentElement.classList.add('mica')");
-                    }
-                }
-            }
 
             f1_reminders::start(app.handle().clone(), poller.clone(), state.clone());
             f1_finish::start(app.handle().clone(), poller.clone(), state.clone());
@@ -545,6 +561,7 @@ pub fn run() {
             backup::provide_backup_profile,
             backup::configure_backup,
             backup::create_backup,
+            backup::inspect_backup_restore,
             backup::prepare_backup_restore,
             backup::commit_backup_restore,
             backup::cancel_backup_restore,

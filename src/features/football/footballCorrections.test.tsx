@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { FavoritesProvider } from './FavoritesProvider';
@@ -12,8 +12,29 @@ import type { UseFootballResult } from './useFootballData';
 import { viewState } from '../../lib/viewState';
 import { STORAGE_KEYS } from './storage';
 
-const transport = vi.hoisted(() => ({ api: vi.fn(), rpc: vi.fn(), isTauriRuntime: () => false }));
+const tauriListeners = vi.hoisted(
+  () => new Map<string, Array<(event: { payload: unknown }) => void>>(),
+);
+const transport = vi.hoisted(() => ({
+  api: vi.fn(),
+  rpc: vi.fn(),
+  isTauriRuntime: vi.fn(() => false),
+}));
 vi.mock('../../lib/bridge', () => transport);
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async (eventName: string, handler: (event: { payload: unknown }) => void) => {
+    const list = tauriListeners.get(eventName) ?? [];
+    list.push(handler);
+    tauriListeners.set(eventName, list);
+    return () => {
+      const current = tauriListeners.get(eventName) ?? [];
+      tauriListeners.set(
+        eventName,
+        current.filter((item) => item !== handler),
+      );
+    };
+  }),
+}));
 
 const home = { id: 'home', name: 'Atlético F.C.' };
 const makeMatch = (id: string, status: string, time?: string): MatchSummary => ({
@@ -56,6 +77,8 @@ beforeEach(() => {
   transport.api.mockReset();
   transport.rpc.mockReset();
   transport.rpc.mockResolvedValue([]);
+  transport.isTauriRuntime.mockReturnValue(false);
+  tauriListeners.clear();
   host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -275,4 +298,375 @@ it('retries the failed match request without navigating back', async () => {
   expect(onBack).not.toHaveBeenCalled();
   expect(transport.api.mock.calls.filter((call) => call[1] === 'matches/match')).toHaveLength(2);
   expect(host.querySelector('.md-header')?.textContent).toContain('Atlético F.C.');
+});
+
+it('refreshes players on manual refresh, does not refetch detail or events on tab switch, and supports finished status aliases in overview', async () => {
+  const calls: string[] = [];
+  transport.api.mockImplementation(async (_source: string, path: string) => {
+    calls.push(path);
+    const fetchedAt = '2026-11-22T12:00:00Z';
+    if (path === 'matches/m1') {
+      return {
+        payload: {
+          data: {
+            id: 'm1',
+            home_team: home,
+            away_team: { id: 'away-m1', name: 'Opponent m1' },
+            score_home: 2,
+            score_away: 1,
+            status: 'FT',
+            date: '2026-11-22',
+            time_utc: '2026-11-22T10:00:00Z',
+          },
+        },
+        fetchedAt,
+        stale: false,
+      };
+    }
+    if (path.endsWith('/events')) {
+      return {
+        payload: {
+          data: {
+            events: [
+              {
+                event_type: 'goal',
+                minute: 23,
+                team_id: 'home',
+                player: { id: 'p1', name: 'Griezmann' },
+                score_home: 1,
+                score_away: 0,
+              },
+            ],
+          },
+        },
+        fetchedAt,
+        stale: false,
+      };
+    }
+    if (path.endsWith('/lineups'))
+      return { payload: { data: { home: [], away: [] } }, fetchedAt, stale: false };
+    if (path.endsWith('/players')) return { payload: { data: [] }, fetchedAt, stale: false };
+    if (path.endsWith('/stats'))
+      return { payload: { data: { periods: [] } }, fetchedAt, stale: false };
+    return { payload: { data: [] }, fetchedAt, stale: false };
+  });
+
+  await render(<MatchDetailView matchId="m1" />);
+  await act(async () => {
+    for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  });
+
+  // Status alias "FT" is classified as finished in the overview summary:
+  expect(host.querySelector('.md-summary')?.textContent).toContain(
+    'Atlético F.C. — Opponent m1, счёт 2:1.',
+  );
+  expect(host.querySelector('.md-summary')?.textContent).toContain('Голы: 23′ Griezmann.');
+
+  // Switch to «Составы» and trigger manual refresh:
+  const lineupsTab = [...host.querySelectorAll<HTMLElement>('[role="tab"]')].find((el) =>
+    el.textContent?.includes('Составы'),
+  )!;
+  await act(async () => lineupsTab.click());
+  calls.length = 0;
+
+  const refreshBtn = host.querySelector<HTMLButtonElement>('button[aria-label="Обновить данные"]')!;
+  await act(async () => refreshBtn.click());
+  await act(async () => {
+    for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  });
+
+  expect(calls).toContain('matches/m1');
+  expect(calls).toContain('matches/m1/lineups');
+  expect(calls).toContain('matches/m1/players');
+
+  // Switching tabs after a manual refresh must not re-request match detail or events:
+  calls.length = 0;
+  const statsTab = [...host.querySelectorAll<HTMLElement>('[role="tab"]')].find((el) =>
+    el.textContent?.includes('Статистика'),
+  )!;
+  await act(async () => statsTab.click());
+  const overviewTab = [...host.querySelectorAll<HTMLElement>('[role="tab"]')].find((el) =>
+    el.textContent?.includes('Обзор'),
+  )!;
+  await act(async () => overviewTab.click());
+  expect(calls).not.toContain('matches/m1');
+  expect(calls).not.toContain('matches/m1/events');
+
+  // Switching tabs while a manual detail refresh is in flight does not cancel the in-flight detail request:
+  let resolveInFlightDetail: ((value: unknown) => void) | null = null;
+  transport.api.mockImplementation(
+    async (_source: string, path: string, options?: { automatic?: boolean }) => {
+      const fetchedAt = '2026-11-22T12:02:00Z';
+      if (path === 'matches/m1' && options && 'automatic' in options) {
+        return new Promise((resolve) => {
+          resolveInFlightDetail = resolve;
+        });
+      }
+      return {
+        payload: { data: path.endsWith('/events') ? { events: [] } : [] },
+        fetchedAt,
+        stale: false,
+      };
+    },
+  );
+  await act(async () => refreshBtn.click());
+  expect(resolveInFlightDetail).toBeTypeOf('function');
+  // Switch tab while matches/m1 refresh is in flight:
+  await act(async () => statsTab.click());
+  await act(async () => {
+    resolveInFlightDetail?.({
+      payload: {
+        data: {
+          id: 'm1',
+          home_team: home,
+          away_team: { id: 'away-m1', name: 'Opponent m1' },
+          score_home: 4,
+          score_away: 1,
+          status: 'FT',
+          date: '2026-11-22',
+          time_utc: '2026-11-22T10:00:00Z',
+        },
+      },
+      fetchedAt: '2026-11-22T12:03:00Z',
+      stale: false,
+    });
+    for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  });
+  expect(host.querySelector('.md-score')?.textContent).toContain('4 : 1');
+  expect(
+    host.querySelector<HTMLButtonElement>('button[aria-label="Обновить данные"]')?.disabled,
+  ).toBe(false);
+
+  // Navigating to match m2 while m1's manual refresh is in flight cancels m1's stale response and preserves m2's loaded state:
+  let resolveStaleM1Refresh: ((value: unknown) => void) | null = null;
+  transport.api.mockImplementation(
+    async (_source: string, path: string, options?: { automatic?: boolean }) => {
+      const fetchedAt = '2026-11-22T12:05:00Z';
+      if (path === 'matches/m1' && options && 'automatic' in options) {
+        return new Promise((resolve) => {
+          resolveStaleM1Refresh = resolve;
+        });
+      }
+      if (path === 'matches/m2') {
+        return {
+          payload: {
+            data: {
+              id: 'm2',
+              home_team: { id: 'real', name: 'Real Madrid' },
+              away_team: { id: 'barca', name: 'Barcelona' },
+              score_home: 3,
+              score_away: 2,
+              status: 'Finished',
+              date: '2026-11-22',
+              time_utc: '2026-11-22T11:00:00Z',
+            },
+          },
+          fetchedAt,
+          stale: false,
+        };
+      }
+      return {
+        payload: { data: path.endsWith('/events') ? { events: [] } : [] },
+        fetchedAt,
+        stale: false,
+      };
+    },
+  );
+
+  await act(async () => refreshBtn.click());
+  expect(resolveStaleM1Refresh).toBeTypeOf('function');
+
+  // Navigate to m2 before m1's refresh resolves:
+  await render(<MatchDetailView matchId="m2" />);
+  await act(async () => {
+    for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  });
+  expect(host.querySelector('.md-header')?.textContent).toContain('Real Madrid');
+  expect(host.querySelector('.md-summary')?.textContent).toContain(
+    'Real Madrid — Barcelona, счёт 3:2.',
+  );
+
+  // Resolve the stale m1 refresh now; m2's loaded state must remain intact:
+  await act(async () => {
+    resolveStaleM1Refresh?.({
+      payload: {
+        data: {
+          id: 'm1',
+          home_team: home,
+          away_team: { id: 'away-m1', name: 'Opponent m1' },
+          score_home: 9,
+          score_away: 9,
+          status: 'FT',
+        },
+      },
+      fetchedAt: '2026-11-22T12:06:00Z',
+      stale: false,
+    });
+    for (let i = 0; i < 4; i += 1) await Promise.resolve();
+  });
+  expect(host.querySelector('.md-header')?.textContent).toContain('Real Madrid');
+  expect(host.querySelector('.md-score')?.textContent).toContain('3 : 2');
+});
+
+it('serializes watch_match and unwatch_match across match lifetimes and filters match-update events by generation', async () => {
+  transport.isTauriRuntime.mockReturnValue(true);
+  transport.api.mockImplementation(async (_source: string, path: string) => {
+    const fetchedAt = '2026-11-22T12:00:00Z';
+    if (path === 'matches/mA' || path === 'matches/mB') {
+      const id = path.slice('matches/'.length);
+      return {
+        payload: {
+          data: {
+            id,
+            home_team: { id: `${id}-h`, name: `Home ${id}` },
+            away_team: { id: `${id}-a`, name: `Away ${id}` },
+            score_home: 1,
+            score_away: 0,
+            status: 'live',
+            date: '2026-11-22',
+            time_utc: '2026-11-22T11:30:00Z',
+          },
+        },
+        fetchedAt,
+        stale: false,
+      };
+    }
+    return {
+      payload: { data: path.endsWith('/events') ? { events: [] } : [] },
+      fetchedAt,
+      stale: false,
+    };
+  });
+
+  const ipcCalls: Array<{ cmd: string; args?: unknown }> = [];
+  let resolveWatchA: ((gen: number) => void) | null = null;
+  let resolveUnwatchA: ((res: { ok: boolean }) => void) | null = null;
+  let resolveWatchB: ((gen: number) => void) | null = null;
+  let nextGen = 10;
+
+  transport.rpc.mockImplementation((cmd: string, args?: unknown) => {
+    ipcCalls.push({ cmd, args });
+    if (
+      cmd === 'watch_match' &&
+      (args as { matchId?: string })?.matchId === 'mA' &&
+      !resolveWatchA
+    ) {
+      return new Promise<number>((resolve) => {
+        resolveWatchA = resolve;
+      });
+    }
+    if (cmd === 'unwatch_match' && !resolveUnwatchA) {
+      return new Promise<{ ok: boolean }>((resolve) => {
+        resolveUnwatchA = resolve;
+      });
+    }
+    if (
+      cmd === 'watch_match' &&
+      (args as { matchId?: string })?.matchId === 'mB' &&
+      !resolveWatchB
+    ) {
+      return new Promise<number>((resolve) => {
+        resolveWatchB = resolve;
+      });
+    }
+    if (cmd === 'watch_match') {
+      nextGen += 1;
+      return Promise.resolve(nextGen);
+    }
+    return Promise.resolve({ ok: true });
+  });
+
+  // 1. Mount Match A -> watch_match(mA) starts and is slow (pending)
+  await render(<MatchDetailView matchId="mA" />);
+  await act(async () => {
+    for (let i = 0; i < 4; i += 1) await Promise.resolve();
+  });
+  expect(ipcCalls).toEqual([{ cmd: 'watch_match', args: { matchId: 'mA' } }]);
+  expect(tauriListeners.get('sportsdesk://match-update') ?? []).toHaveLength(0);
+
+  // 2. Navigate to Match B before watch_match(mA) finishes:
+  // unwatch_match() and watch_match(mB) must wait in the serialized queue behind watch_match(mA).
+  await render(<MatchDetailView matchId="mB" />);
+  await act(async () => {
+    for (let i = 0; i < 4; i += 1) await Promise.resolve();
+  });
+  expect(ipcCalls).toEqual([{ cmd: 'watch_match', args: { matchId: 'mA' } }]);
+
+  // 3. Resolve slow watch_match(mA) -> A must NOT subscribe since A unmounted, and unwatch_match() starts next:
+  await act(async () => {
+    resolveWatchA?.(1);
+    for (let i = 0; i < 4; i += 1) await Promise.resolve();
+  });
+  expect(tauriListeners.get('sportsdesk://match-update') ?? []).toHaveLength(0);
+  expect(ipcCalls).toEqual([
+    { cmd: 'watch_match', args: { matchId: 'mA' } },
+    { cmd: 'unwatch_match', args: undefined },
+  ]);
+
+  // 4. Resolve slow unwatch_match() for A -> watch_match(mB) starts next (cannot be disabled by A's slow unwatch):
+  await act(async () => {
+    resolveUnwatchA?.({ ok: true });
+    for (let i = 0; i < 4; i += 1) await Promise.resolve();
+  });
+  expect(ipcCalls).toEqual([
+    { cmd: 'watch_match', args: { matchId: 'mA' } },
+    { cmd: 'unwatch_match', args: undefined },
+    { cmd: 'watch_match', args: { matchId: 'mB' } },
+  ]);
+  expect(tauriListeners.get('sportsdesk://match-update') ?? []).toHaveLength(0);
+
+  // 5. Resolve watch_match(mB) with generation 2 -> registers one initialized subscription for mounted Match B:
+  await act(async () => {
+    resolveWatchB?.(2);
+    for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  });
+  expect(tauriListeners.get('sportsdesk://match-update') ?? []).toHaveLength(1);
+
+  // 6. Verify generation filtering and advancement on sportsdesk://match-update:
+  const detailCallsForB = () =>
+    transport.api.mock.calls.filter((call) => call[1] === 'matches/mB').length;
+  const baselineCalls = detailCallsForB();
+
+  const emitUpdate = async (payload: unknown) => {
+    await act(async () => {
+      for (const listener of tauriListeners.get('sportsdesk://match-update') ?? []) {
+        listener({ payload });
+      }
+      for (let i = 0; i < 4; i += 1) await Promise.resolve();
+    });
+  };
+
+  // Late event from older generation (1 < 2) or another match is ignored:
+  await emitUpdate({ matchId: 'mB', fetchedAt: '2026-11-22T12:01:00Z', generation: 1 });
+  await emitUpdate({ matchId: 'mA', fetchedAt: '2026-11-22T12:01:00Z', generation: 2 });
+  expect(detailCallsForB()).toBe(baselineCalls);
+
+  // Current generation (2) triggers refresh:
+  await emitUpdate({ matchId: 'mB', fetchedAt: '2026-11-22T12:02:00Z', generation: 2 });
+  expect(detailCallsForB()).toBe(baselineCalls + 1);
+
+  // Advanced generation (3, e.g. after poller settings change) is accepted and advances minimum generation:
+  await emitUpdate({ matchId: 'mB', fetchedAt: '2026-11-22T12:03:00Z', generation: 3 });
+  expect(detailCallsForB()).toBe(baselineCalls + 2);
+
+  // Late event from previous generation (2 < 3) is now ignored:
+  await emitUpdate({ matchId: 'mB', fetchedAt: '2026-11-22T12:04:00Z', generation: 2 });
+  expect(detailCallsForB()).toBe(baselineCalls + 2);
+
+  // 7. Reopening the same match under StrictMode serializes unwatch/watch and keeps one active listener:
+  ipcCalls.length = 0;
+  await render(
+    <StrictMode>
+      <MatchDetailView matchId="mB" />
+    </StrictMode>,
+  );
+  await act(async () => {
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  });
+  expect(ipcCalls[0]).toEqual({ cmd: 'unwatch_match', args: undefined });
+  expect(ipcCalls.at(-1)).toEqual({ cmd: 'watch_match', args: { matchId: 'mB' } });
+  for (let i = 1; i < ipcCalls.length; i += 1) {
+    expect(ipcCalls[i]?.cmd).not.toBe(ipcCalls[i - 1]?.cmd);
+  }
+  expect(tauriListeners.get('sportsdesk://match-update') ?? []).toHaveLength(1);
 });

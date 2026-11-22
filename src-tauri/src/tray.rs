@@ -44,6 +44,7 @@ pub fn report_window_visibility(app: &AppHandle, visible: bool) {
 
 pub fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        crate::appearance::mark_main_revealed(app);
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -117,12 +118,17 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
         );
         let app_handle = app.clone();
         window.on_window_event(move |event| match event {
-            // Only intercept when tray mode is active (default on).
-            WindowEvent::CloseRequested { api, .. } if tray_mode_enabled() => {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
-                if let Some(w) = app_handle.get_webview_window("main") {
-                    let _ = w.hide();
-                    report_window_visibility(&app_handle, false);
+                crate::appearance::mark_main_revealed(&app_handle);
+                if tray_mode_enabled() {
+                    if let Some(w) = app_handle.get_webview_window("main") {
+                        let _ = w.hide();
+                        report_window_visibility(&app_handle, false);
+                    }
+                } else {
+                    // A hidden mini window can still keep the process alive.
+                    app_handle.exit(0);
                 }
             }
             // Сворачивание и восстановление приходят как изменение размера.
@@ -178,7 +184,11 @@ fn rebuild(app: &AppHandle, timezone: &str) {
     };
     add("show", "Открыть SportsDesk", true);
     add("mini", &mini, true);
-    add("heading", "Ближайшие события", false);
+    if events.is_empty() {
+        add("empty", "Ближайших событий нет", false);
+    } else {
+        add("heading", "Ближайшие события", false);
+    }
     let zone = timezone.parse::<chrono_tz::Tz>().unwrap_or(chrono_tz::UTC);
     for e in events {
         if let Some(date) = chrono::DateTime::from_timestamp_millis(e.start) {
@@ -189,9 +199,6 @@ fn rebuild(app: &AppHandle, timezone: &str) {
             );
             add(&e.id, &label, true);
         }
-    }
-    if state.football.is_empty() && state.f1.is_empty() {
-        add("empty", "Расписание пока не загружено", false);
     }
     add("quit", "Выход", true);
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
@@ -209,9 +216,7 @@ pub fn update_football(app: &AppHandle, matches: &[crate::poller::FlatMatch], ti
     let events = matches
         .iter()
         .filter_map(|m| {
-            let start = chrono::DateTime::parse_from_rfc3339(m.time.as_deref()?)
-                .ok()?
-                .timestamp_millis();
+            let start = crate::poller::parse_time_ms(m.time.as_deref()?)?;
             let state = crate::sports::status(&[m.status.as_deref().unwrap_or("")]);
             if state != "scheduled" && state != "live" {
                 return None;

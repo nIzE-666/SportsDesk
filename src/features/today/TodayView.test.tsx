@@ -380,10 +380,11 @@ it('builds club tiles from results and opens the club page, with a Formula 1 til
   expect(onOpenF1).toHaveBeenCalled();
 });
 
-it('hides a result in spoiler mode', async () => {
+it('hides a result in spoiler mode, including live scores in «Сейчас»', async () => {
   follow(['club-one']);
   vi.mocked(rpc).mockResolvedValue(null);
   const finished = match('old', 'finished', clubOne, clubTwo, 2, 1, '2026-11-09T12:00:00Z');
+  const pitchLive = match('live-pitch', 'live', clubOne, clubTwo, 2, 1, '2026-11-10T08:55:00Z');
   localStorage.setItem(
     'sportsdesk.view.spoilers',
     JSON.stringify({
@@ -395,14 +396,80 @@ it('hides a result in spoiler mode', async () => {
           addedAt: '2026-11-09T00:00:00Z',
           eventTime: '2026-11-09T12:00:00Z',
         },
+        {
+          kind: 'football',
+          id: 'live-pitch',
+          addedAt: '2026-11-10T00:00:00Z',
+          eventTime: '2026-11-10T08:55:00Z',
+        },
       ],
     }),
   );
-  state.football = footballData([finished]);
+  state.football = footballData([finished, pitchLive]);
+  state.live.matches = [liveMatch()];
   await render();
   const tile = host.querySelector('.today-team-tile');
   expect(tile?.textContent).toContain('? : ?');
   expect(tile?.textContent).not.toContain('2:1');
+
+  const liveBlock = host.querySelector('[data-block="live"]');
+  expect(liveBlock).not.toBeNull();
+  expect(liveBlock?.textContent).toContain('? : ?');
+  expect(liveBlock?.textContent).not.toContain('2 : 1');
+  const hiddenScore = liveBlock?.querySelector('.ui-match-row__score--hidden');
+  expect(hiddenScore?.getAttribute('title')).toBe('Результат скрыт');
+});
+
+it('passes the real competition ID for a non-default league while keeping the league label as display text', async () => {
+  const laligaId = 'l_0ErfuF';
+  const real = team('real', 'Real Madrid');
+  const barca = team('barca', 'Barcelona');
+  follow(['real'], []);
+  vi.mocked(rpc).mockResolvedValue(null);
+  const upcoming = match(
+    'laliga-next',
+    'scheduled',
+    real,
+    barca,
+    null,
+    null,
+    '2026-11-10T18:00:00Z',
+  );
+  const base = footballData();
+  state.football = {
+    ...base,
+    leagues: [
+      ...base.leagues,
+      { id: laligaId, name: 'LaLiga', season: '2026/27', seasons: ['2026/27'] },
+    ],
+    allMatches: [upcoming],
+    teams: [
+      { ...real, leagueId: laligaId, leagueName: 'LaLiga' },
+      { ...barca, leagueId: laligaId, leagueName: 'LaLiga' },
+    ],
+    matchesForLeague: (id: string) => (id === laligaId ? [upcoming] : []),
+    leagueName: (id: string) => (id === laligaId ? 'LaLiga' : 'Premier League'),
+  };
+
+  await render({ mode: 'today' });
+  const upcomingBlock = host.querySelector('[data-block="upcoming"]');
+  expect(upcomingBlock?.textContent).toContain('LaLiga');
+  const openToday = [...(upcomingBlock?.querySelectorAll('button') ?? [])].find((button) =>
+    button.textContent?.includes('Real Madrid — Barcelona'),
+  );
+  expect(openToday).toBeDefined();
+  await act(async () => openToday!.click());
+  expect(onOpenMatch).toHaveBeenCalledWith('laliga-next', laligaId);
+
+  onOpenMatch.mockClear();
+  await render({ mode: 'week' });
+  expect(host.querySelector('.today-week')?.textContent).toContain('LaLiga');
+  const openWeek = [...host.querySelectorAll<HTMLButtonElement>('.today-week button')].find(
+    (button) => button.textContent?.includes('Real Madrid — Barcelona'),
+  );
+  expect(openWeek).toBeDefined();
+  await act(async () => openWeek!.click());
+  expect(onOpenMatch).toHaveBeenCalledWith('laliga-next', laligaId);
 });
 
 it('renders the week grouped by day and the planner as the third mode', async () => {

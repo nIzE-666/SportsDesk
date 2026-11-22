@@ -152,3 +152,57 @@ it('does not open over another modal dialog', async () => {
     host.remove();
   }
 });
+
+it('toggles closed on a second Ctrl+K and scrolls the active result into view on ArrowDown/ArrowUp', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  localStorage.clear();
+  const scrollSpy = vi.fn();
+  Element.prototype.scrollIntoView = scrollSpy;
+  const host = document.createElement('div');
+  host.className = 'app-root';
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<GlobalSearch onNavigate={() => {}} />));
+    const trigger = host.querySelector('button')!;
+    trigger.focus();
+
+    // First Ctrl+K opens dialog
+    await act(async () =>
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+      ),
+    );
+    expect(host.querySelector('[role=dialog]')).not.toBeNull();
+    const input = host.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+    expect(document.activeElement).toBe(input);
+
+    // ArrowDown and ArrowUp scroll active option into view
+    scrollSpy.mockClear();
+    await act(async () =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })),
+    );
+    expect(input.getAttribute('aria-activedescendant')).toBe('search-result-1');
+    expect(scrollSpy).toHaveBeenCalledWith({ block: 'nearest' });
+
+    scrollSpy.mockClear();
+    await act(async () =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })),
+    );
+    expect(input.getAttribute('aria-activedescendant')).toBe('search-result-0');
+    expect(scrollSpy).toHaveBeenCalledWith({ block: 'nearest' });
+
+    // Second Ctrl+K closes dialog and restores focus to trigger
+    await act(async () =>
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+      ),
+    );
+    expect(host.querySelector('[role=dialog]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    localStorage.clear();
+  }
+});

@@ -488,6 +488,9 @@ async fn wait_for_tick(pause: Duration, current: impl Fn() -> bool) {
 pub fn start(app: AppHandle, poller: Arc<Poller>, state: Arc<AppStateInner>) {
     tauri::async_runtime::spawn(async move {
         sleep(STARTUP_DELAY).await;
+        while !poller.config_ready() {
+            sleep(Duration::from_secs(2)).await;
+        }
         let mut pause = TICK;
         let mut gate = DeliveryGate::new();
         let mut failed_start = None;

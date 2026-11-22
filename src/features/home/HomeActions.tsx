@@ -1,4 +1,4 @@
-import { Bell, CalendarPlus } from 'lucide-react';
+import { Bell, BellOff, CalendarPlus } from 'lucide-react';
 import { Button } from '../../kit';
 import type { HomeReminder } from './homePreferences';
 
@@ -7,6 +7,7 @@ export interface HomeActionsState {
   reminders: readonly HomeReminder[];
   togglePlan: (id: string) => void;
   toggleReminder: (reminder: HomeReminder) => void;
+  isReminderDeliverable: (reminder: HomeReminder) => boolean;
 }
 
 export function HomeActions({
@@ -24,6 +25,7 @@ export function HomeActions({
 }) {
   const planned = actions.planned.includes(plannerId);
   const reminded = actions.reminders.some((item) => item.key === reminder.key);
+  const deliveryBlocked = reminded && !actions.isReminderDeliverable(reminder);
   return (
     <>
       <Button
@@ -40,11 +42,18 @@ export function HomeActions({
         small
         variant={quiet ? 'quiet' : 'default'}
         aria-pressed={reminded}
-        aria-label={`${reminded ? 'Отменить напоминание' : 'Напомнить'}, ${title}`}
-        icon={<Bell size={14} aria-hidden />}
+        aria-label={
+          reminded
+            ? deliveryBlocked
+              ? `Отменить напоминание, ${title} (уведомления выключены)`
+              : `Отменить напоминание, ${title}`
+            : `Напомнить, ${title}`
+        }
+        title={deliveryBlocked ? 'Уведомления выключены в настройках' : undefined}
+        icon={deliveryBlocked ? <BellOff size={14} aria-hidden /> : <Bell size={14} aria-hidden />}
         onClick={() => actions.toggleReminder(reminder)}
       >
-        {reminded ? 'Напомню' : 'Напомнить'}
+        {reminded ? (deliveryBlocked ? 'Уведомления выключены' : 'Напомню') : 'Напомнить'}
       </Button>
     </>
   );

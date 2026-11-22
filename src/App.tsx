@@ -19,7 +19,7 @@ import {
   isValidSettingsCategory,
   MATCHES_FILTER_VIEW_KEY,
 } from './lib/navigation';
-import { isCompetitionVisible } from './lib/modules';
+import { isCompetitionVisible, isModuleOn } from './lib/modules';
 import { isTauriRuntime, rpc } from './lib/bridge';
 import { useShellNavigation } from './lib/useShellNavigation';
 import { viewState } from './lib/viewState';
@@ -149,7 +149,10 @@ function MainApp() {
           navigate({ kind: 'settings', category: target.category });
         break;
       case 'section':
-        if (target.id === 'football.live') {
+        if (target.id === 'home') {
+          if (isModuleOn('home')) navigate({ kind: 'home' });
+          else navigate({ kind: 'today', mode: 'today' });
+        } else if (target.id === 'football.live') {
           viewState.write(MATCHES_FILTER_VIEW_KEY, 'live');
           navigate({ kind: 'football', competitionId: leagueId, tab: 'matches' });
         } else if (target.id.startsWith('football.')) {

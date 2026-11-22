@@ -7,8 +7,9 @@ import { isCompetitionVisibleWith, type ModulesState } from './modules';
 import type { SettingsCategory } from './navigation';
 import { LEAGUES } from './navigationMetadata';
 
-/** «Раздел» targets of the five-section model. Competition stays a parameter. */
+/** «Раздел» targets of the application shell. Competition stays a parameter. */
 export type SearchSectionId =
+  | 'home'
   | 'today'
   | 'today.week'
   | 'today.plan'
@@ -51,6 +52,7 @@ const INDEX_KEY = 'sportsdesk.search.index';
 const RECENT_KEY = 'sportsdesk.search.recent';
 export const SEARCH_CHANGED = 'sportsdesk-search-changed';
 const SEARCH_SECTION_IDS: readonly string[] = [
+  'home',
   'today',
   'today.week',
   'today.plan',
@@ -176,6 +178,7 @@ function sectionItem(
 
 /** Sections, «Моё» tabs and F1 tabs: everything that is a fixed screen. */
 export const searchSections: SearchItem[] = [
+  sectionItem('home', 'Главное', 'Обзор недели', 'витрина неделя'),
   sectionItem('today', 'Сегодня', 'Главная', 'матчи дня сейчас'),
   sectionItem('football', 'Футбол', 'Матчи, таблицы и клубы', 'турниры лиги'),
   sectionItem('f1', 'Формула 1', 'Гонки и зачёты', 'f1 паддок'),
@@ -255,6 +258,7 @@ export function isSearchItemVisible(item: SearchItem, modules: ModulesState): bo
   if (target.kind === 'channel') return modules.watch;
   if (target.kind === 'competition') return isCompetitionVisibleWith(target.id, modules);
   if (target.kind === 'section') {
+    if (target.id === 'home') return modules.home;
     if (target.id === 'watch') return modules.watch;
     if (target.id === 'my.diary') return modules.diary;
     if (target.id === 'my.games') return modules.games || modules.predictions;
@@ -375,7 +379,7 @@ export function indexSportsPayload(source: string, path: string, payload: any) {
   const items: SearchItem[] = [];
   if (source === 'pitch') {
     const data = payload?.data ?? payload;
-    const leagueId = path.match(/^leagues\/([^/]+)/)?.[1] ?? data?.league?.id;
+    const topLeagueId = path.match(/^leagues\/([^/]+)/)?.[1] ?? data?.league?.id;
     const matches = Array.isArray(data?.matches)
       ? data.matches
       : data?.home_team && data?.away_team
@@ -383,13 +387,12 @@ export function indexSportsPayload(source: string, path: string, payload: any) {
         : [];
     for (const m of matches)
       if (clean(m.id) && clean(m.home_team?.name) && clean(m.away_team?.name)) {
+        const leagueId = clean(m.league?.id) ? m.league.id : topLeagueId;
+        const leagueName = clean(m.league?.name) ? m.league.name : data?.league?.name;
         items.push({
           key: `match:${m.id}`,
           title: `${m.home_team.name} — ${m.away_team.name}`,
-          subtitle: [
-            data.league?.name,
-            formatHumanDateTime(m.time_utc ?? m.date, getUserTimezone()),
-          ]
+          subtitle: [leagueName, formatHumanDateTime(m.time_utc ?? m.date, getUserTimezone())]
             .filter(Boolean)
             .join(' · '),
           target: { kind: 'match', id: m.id, leagueId },
@@ -399,7 +402,7 @@ export function indexSportsPayload(source: string, path: string, payload: any) {
             items.push({
               key: `team:${t.id}`,
               title: t.name,
-              subtitle: data.league?.name ?? 'Клуб',
+              subtitle: leagueName ?? 'Клуб',
               target: { kind: 'team', id: t.id, leagueId },
             });
       }

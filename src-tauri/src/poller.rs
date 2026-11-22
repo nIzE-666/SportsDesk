@@ -297,6 +297,18 @@ pub(crate) fn score_text(v: &Option<Value>) -> String {
     }
 }
 
+fn score_increased(old_home: &str, old_away: &str, home: &str, away: &str) -> bool {
+    let (Ok(old_home), Ok(old_away), Ok(home), Ok(away)) = (
+        old_home.parse::<u64>(),
+        old_away.parse::<u64>(),
+        home.parse::<u64>(),
+        away.parse::<u64>(),
+    ) else {
+        return false;
+    };
+    home >= old_home && away >= old_away && (home > old_home || away > old_away)
+}
+
 pub(crate) fn canonical_status(m: &FlatMatch) -> (bool, bool, bool) {
     let status = crate::sports::status(&[
         m.status.as_deref().unwrap_or(""),
@@ -1202,12 +1214,8 @@ impl Poller {
         else {
             return;
         };
-        let Some(detail) = reply
-            .payload
-            .get("data")
-            .unwrap_or(&reply.payload)
-            .as_object()
-        else {
+        let detail_payload = reply.payload.get("data").unwrap_or(&reply.payload);
+        let Some(detail) = detail_payload.as_object() else {
             return;
         };
         let home_score = detail.get("score_home").and_then(Value::as_i64);
@@ -1249,6 +1257,27 @@ impl Poller {
         let observed_keys = (next.event_snapshot_revision != watch.event_snapshot_revision)
             .then(|| next.event_keys.clone());
         let batch = observed_keys.as_ref().map(goal_batch);
+        let team_id = |side: &str| {
+            detail
+                .get(side)
+                .and_then(|team| team.get("id"))
+                .and_then(Value::as_str)
+                .unwrap_or("")
+        };
+        let home_id = team_id("home_team");
+        let away_id = team_id("away_team");
+        let match_summary = pitch_match(detail_payload);
+        let watch_is_favorite = |config: &PollConfig| {
+            config
+                .favorite_teams
+                .iter()
+                .any(|team| team.id == home_id || team.id == away_id)
+                || match_summary
+                    .as_ref()
+                    .is_some_and(|m| !favorite_ids(m, config).is_empty())
+        };
+        // The scheduled day feed owns the score baseline for favorite teams.
+        let watch_owns_score = !watch_is_favorite(&self.config());
         let mut score_epoch = None;
         let mut correction = false;
         // A response from an old subscription or settings revision cannot change state.
@@ -1262,7 +1291,7 @@ impl Poller {
             if current.match_id != watch.match_id || current.generation != watch.generation {
                 return;
             }
-            if observed_keys.is_some() {
+            if watch_owns_score && observed_keys.is_some() {
                 let (Some(home), Some(away), Some(fetched_at)) =
                     (home_score, away_score, parse_time_ms(&reply.fetched_at))
                 else {
@@ -1278,7 +1307,7 @@ impl Poller {
             }
             *current = next;
         }
-        if let Some(keys) = observed_keys {
+        if let Some(keys) = observed_keys.filter(|_| watch_owns_score) {
             if correction {
                 self.cancel_corrected_score_notifications(
                     &watch.match_id,
@@ -1297,26 +1326,8 @@ impl Poller {
         let _=app.emit("sportsdesk://match-update",serde_json::json!({"matchId":watch.match_id,"fetchedAt":reply.fetched_at,"stale":reply.stale,"generation":watch.generation}));
         let mut pending_goals = Vec::new();
         for goal in goals {
-            let config = self.config();
-            let home_id = detail
-                .get("home_team")
-                .and_then(|t| t.get("id"))
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            let away_id = detail
-                .get("away_team")
-                .and_then(|t| t.get("id"))
-                .and_then(Value::as_str)
-                .unwrap_or("");
             // Favourite scores are delivered by the global feed, once.
-            if config
-                .favorite_teams
-                .iter()
-                .any(|t| t.id == home_id || t.id == away_id)
-                || pitch_match(&Value::Object(detail.clone()))
-                    .map(|m| !favorite_ids(&m, &config).is_empty())
-                    .unwrap_or(false)
-            {
+            if !watch_owns_score || watch_is_favorite(&self.config()) {
                 break;
             }
             let current = self
@@ -1836,11 +1847,7 @@ impl Poller {
                     }
                     if (live || finished)
                         && !prev.finished
-                        && !home.is_empty()
-                        && !away.is_empty()
-                        && !prev.home_score.is_empty()
-                        && !prev.away_score.is_empty()
-                        && (home != prev.home_score || away != prev.away_score)
+                        && score_increased(&prev.home_score, &prev.away_score, &home, &away)
                     {
                         events.push((
                             "goal".into(),
@@ -2175,6 +2182,14 @@ mod tests {
         let score_changed = !home_score.is_empty() && home_score != prev.home_score;
         assert!(score_changed);
         assert!(!prev.finished);
+    }
+
+    #[test]
+    fn score_rollback_is_never_a_new_goal() {
+        assert!(!score_increased("1", "0", "0", "0"));
+        assert!(!score_increased("2", "0", "1", "1"));
+        assert!(!score_increased("", "0", "1", "0"));
+        assert!(score_increased("1", "0", "1", "1"));
     }
 
     #[test]

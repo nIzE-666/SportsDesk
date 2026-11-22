@@ -57,6 +57,7 @@ function attach(): void {
     void import('@tauri-apps/api/event')
       .then(({ listen }) =>
         listen<{ visible?: boolean }>('sportsdesk://window-visibility', (event) => {
+          if (disposed || typeof event.payload?.visible !== 'boolean') return;
           nativeHidden = event.payload?.visible === false;
           publish();
         }),

@@ -22,7 +22,7 @@ impl Cache {
         let Ok(conn) = self.conn.lock() else {
             return Vec::new();
         };
-        let Ok(mut q)=conn.prepare("SELECT source,count(*),max(fetched_at),min(fetched_at) FROM api_cache WHERE source IN ('pitch','sportscore','espn','jolpica','openf1') GROUP BY source")else{return Vec::new()};
+        let Ok(mut q)=conn.prepare("SELECT source,count(*),max(fetched_at),min(fetched_at) FROM api_cache WHERE source IN ('pitch','sportscore','espn','livescore','jolpica','openf1') GROUP BY source")else{return Vec::new()};
         q.query_map([],|r|Ok(serde_json::json!({"source":r.get::<_,String>(0)?,"entries":r.get::<_,i64>(1)?,"latestAt":r.get::<_,i64>(2)?,"oldestAt":r.get::<_,i64>(3)?}))).map(|rows|rows.filter_map(Result::ok).collect()).unwrap_or_default()
     }
     pub fn open(dir: &Path) -> Result<Self, Box<dyn std::error::Error>> {
@@ -96,6 +96,26 @@ impl Cache {
         tx.execute("DELETE FROM event_center WHERE id IN (SELECT id FROM event_center ORDER BY occurred_at DESC, id DESC LIMIT -1 OFFSET 500)", []).map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
         Ok(inserted)
+    }
+
+    /// Complete a previously saved result without making the event unread again.
+    pub(crate) fn complete_football_result(
+        &self,
+        event: &crate::event_center::Event,
+        missing_score_suffix: &str,
+    ) -> Result<bool, String> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| "Кеш недоступен.".to_string())?;
+        let payload = serde_json::to_string(event).map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE event_center SET payload = ?2, occurred_at = ?3
+             WHERE id = ?1 AND substr(json_extract(payload, '$.body'), -length(?4)) = ?4",
+            params![event.id, payload, event.occurred_at, missing_score_suffix],
+        )
+        .map(|changed| changed > 0)
+        .map_err(|e| e.to_string())
     }
 
     pub fn list_events(&self, now: i64) -> Result<Vec<crate::event_center::Event>, String> {

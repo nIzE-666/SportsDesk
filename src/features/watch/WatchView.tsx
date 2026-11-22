@@ -697,7 +697,7 @@ export function WatchView({
           </div>
         </aside>
 
-        <main className="watch-stage">
+        <section className="watch-stage" aria-label="Трансляция">
           {contextPanel}
           {requestedChannelId &&
             channelsState === 'ready' &&
@@ -734,7 +734,7 @@ export function WatchView({
               <Skeleton className="watch-center-skeleton" />
             </div>
           ) : null}
-        </main>
+        </section>
       </div>
 
       {showLogout && (

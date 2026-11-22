@@ -1,4 +1,5 @@
 import { rpc } from '../../lib/bridge';
+import { classifyMatchStatus } from '../../lib/sportsIdentity';
 import type { MatchSummary } from './types';
 
 /**
@@ -44,18 +45,21 @@ export async function saveSeasonToHistory(
         leagueId,
         leagueName,
         season,
-        matches: matches.map((m) => ({
-          id: m.id,
-          homeId: m.home_team.id,
-          homeName: m.home_team.name,
-          awayId: m.away_team.id,
-          awayName: m.away_team.name,
-          homeScore: m.score_home ?? null,
-          awayScore: m.score_away ?? null,
-          status: m.status,
-          date: (m.date ?? m.time_utc ?? '').slice(0, 10),
-          round: m.round_name ?? '',
-        })),
+        matches: matches.map((m) => {
+          const state = classifyMatchStatus(m.status, m.status_text);
+          return {
+            id: m.id,
+            homeId: m.home_team.id,
+            homeName: m.home_team.name,
+            awayId: m.away_team.id,
+            awayName: m.away_team.name,
+            homeScore: m.score_home ?? null,
+            awayScore: m.score_away ?? null,
+            status: state === 'unknown' ? m.status : state === 'scheduled' ? 'not_started' : state,
+            date: (m.date ?? m.time_utc ?? '').slice(0, 10),
+            round: m.round_name ?? '',
+          };
+        }),
       },
     });
   } catch {
@@ -105,7 +109,8 @@ export type FormResult = 'W' | 'D' | 'L';
 export function teamForm(matches: HistoryMatch[], teamId: string): FormResult[] {
   const out: FormResult[] = [];
   for (const m of matches) {
-    if (m.status !== 'finished' || m.homeScore < 0 || m.awayScore < 0) continue;
+    if (classifyMatchStatus(m.status) !== 'finished' || m.homeScore < 0 || m.awayScore < 0)
+      continue;
     const isHome = m.homeId === teamId;
     const own = isHome ? m.homeScore : m.awayScore;
     const opp = isHome ? m.awayScore : m.homeScore;
@@ -129,7 +134,8 @@ export interface H2HSummary {
 export function h2hSummary(matches: HistoryMatch[], aId: string, bId: string): H2HSummary {
   const s: H2HSummary = { played: 0, aWins: 0, bWins: 0, draws: 0, aGoals: 0, bGoals: 0 };
   for (const m of matches) {
-    if (m.status !== 'finished' || m.homeScore < 0 || m.awayScore < 0) continue;
+    if (classifyMatchStatus(m.status) !== 'finished' || m.homeScore < 0 || m.awayScore < 0)
+      continue;
     s.played += 1;
     const aIsHome = m.homeId === aId;
     const a = aIsHome ? m.homeScore : m.awayScore;
@@ -157,7 +163,7 @@ export function pointsProgression(
   const ordered = [...matches]
     .filter(
       (m) =>
-        m.status === 'finished' &&
+        classifyMatchStatus(m.status) === 'finished' &&
         m.homeScore >= 0 &&
         m.awayScore >= 0 &&
         (m.homeId === teamId || m.awayId === teamId),

@@ -88,6 +88,7 @@ export function DataSettings() {
         input.accept = 'application/json,.json';
         const file = await new Promise<File | null>((resolve) => {
           input.onchange = () => resolve(input.files?.[0] ?? null);
+          input.oncancel = () => resolve(null);
           input.click();
         });
         if (!file) return;

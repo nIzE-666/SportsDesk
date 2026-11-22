@@ -368,6 +368,43 @@ it('opens the same live filter from the search item «Сейчас идут»', 
   expect(host.querySelector('.live-panel')).not.toBeNull();
 });
 
+it('navigates to «Главное» from global search and blocks the target when the home module is disabled', async () => {
+  await renderApp();
+  expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
+
+  await act(async () =>
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })),
+  );
+  let dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+  let input = dialog?.querySelector<HTMLInputElement>('[role="combobox"]');
+  expect(input).toBeTruthy();
+  await change(input!, 'Главное');
+  const homeOption = [...(dialog?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find(
+    (entry) => entry.textContent?.includes('Главное'),
+  );
+  expect(homeOption).toBeTruthy();
+  await click(homeOption!);
+  expect(railButton('Главное').getAttribute('aria-current')).toBe('page');
+  expect(host.querySelector('.home-screen')).not.toBeNull();
+
+  await act(async () => {
+    setModule('home', false);
+  });
+  expect(railButton('Сегодня').getAttribute('aria-current')).toBe('page');
+
+  await act(async () =>
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })),
+  );
+  dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+  input = dialog?.querySelector<HTMLInputElement>('[role="combobox"]');
+  expect(input).toBeTruthy();
+  await change(input!, 'Главное');
+  const blockedOption = [...(dialog?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find(
+    (entry) => entry.textContent?.includes('Главное'),
+  );
+  expect(blockedOption).toBeUndefined();
+});
+
 it('opens the F1 cover weekend in its actual season and round', async () => {
   viewState.write('f1.year', 2025);
   viewState.write('navigation2.f1', { kind: 'f1', tab: 'overview' });

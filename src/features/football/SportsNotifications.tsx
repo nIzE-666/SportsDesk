@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { subscribePlaybackContext } from '../atmosphere/playbackContext';
 import { usePollerSync } from './usePoller';
 import { useProfileMirror } from '../settings/profileBackup';
 
@@ -21,6 +22,7 @@ export function SportsNotifications() {
   useProfileMirror();
 
   useEffect(() => {
+    const stopTrackingVisibility = subscribePlaybackContext(() => undefined);
     let unlisten: (() => void) | null = null;
     let active = true;
 
@@ -50,6 +52,7 @@ export function SportsNotifications() {
     return () => {
       active = false;
       unlisten?.();
+      stopTrackingVisibility();
     };
   }, []);
 

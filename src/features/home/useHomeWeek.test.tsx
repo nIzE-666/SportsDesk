@@ -4,8 +4,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, type ApiReply } from '../../lib/bridge';
 import { LEAGUES } from '../../lib/navigationMetadata';
+import { getHealthSnapshot, recordFailure } from '../../lib/resourceHealth';
 import { CUP_COMPETITIONS } from '../ucl/cupMetadata';
 import { useHomeWeek, type HomeWeekData } from './useHomeWeek';
+import { archiveEvents, readArchivedEvents } from './weekArchive';
 import { FOLLOWED_COMPETITION_IDS } from './weekData';
 
 vi.mock('../../lib/bridge', () => ({ api: vi.fn() }));
@@ -128,6 +130,77 @@ afterEach(async () => {
 });
 
 describe('useHomeWeek', () => {
+  it('refreshes a loaded season and retains its original timestamp when the refresh fails', async () => {
+    const seasonPath = `leagues/${EPL}/matches?status=all`;
+    let version = 0;
+    vi.mocked(api).mockImplementation(async (_source, path) => {
+      if (path !== seasonPath) return reply({ data: { matches: [] } });
+      version += 1;
+      if (version === 2) throw new Error('Нет связи.');
+      return reply(
+        { data: { matches: [fixture(`season-${version}`, EPL, '2026-10-01T12:00:00Z')] } },
+        {
+          fetchedAt: version === 1 ? '2026-11-15T20:00:00Z' : '2026-11-16T12:00:00Z',
+          stale: version === 1,
+        },
+      );
+    });
+    await act(async () => root.render(<Probe now={NOW} />));
+    await flush();
+    await act(async () => current.reload());
+    await flush();
+    expect(version).toBe(2);
+    expect(current.stale).toBe(true);
+    expect(current.fetchedAt).toBe('2026-11-15T20:00:00Z');
+    expect(current.seasonMatches[EPL]?.[0]?.id).toBe('season-1');
+
+    await act(async () => current.reload());
+    await flush();
+    expect(current.seasonMatches[EPL]?.[0]?.id).toBe('season-3');
+    expect(current.stale).toBe(false);
+    expect(current.fetchedAt).toBe('2026-11-16T12:00:00Z');
+  });
+
+  it('releases failed day resources and skips queued requests after leaving Home', async () => {
+    const requests = new Map<string, Deferred<ApiReply>>();
+    vi.mocked(api).mockImplementation((source, path) => {
+      if (path.startsWith('date/')) {
+        const request = deferred<ApiReply>();
+        requests.set(path, request);
+        return request.promise.catch((error) => {
+          recordFailure(source, path, error);
+          throw error;
+        });
+      }
+      return Promise.resolve(reply({ data: { matches: [] } }));
+    });
+    await act(async () => root.render(<Probe now={NOW} />));
+    const [failedPath, request] = [...requests.entries()][0]!;
+    requests.delete(failedPath);
+    await act(async () => request.reject(new Error('Нет связи.')));
+    expect(getHealthSnapshot().failures.map(({ key }) => key)).toContain(`pitch:${failedPath}`);
+    const requestCount = vi.mocked(api).mock.calls.length;
+
+    await act(async () => root.render(null));
+    await drainDates(requests);
+    await flush();
+    expect(getHealthSnapshot().failures.map(({ key }) => key)).not.toContain(`pitch:${failedPath}`);
+    expect(vi.mocked(api)).toHaveBeenCalledTimes(requestCount);
+  });
+
+  it('discards legacy archives without a usable scoring sequence', () => {
+    const match = fixture('incomplete', EPL, new Date().toISOString());
+    const date = new Date().toISOString().slice(0, 10);
+    const key = `sportsdesk.home.archive.events.${date}.${match.id}`;
+    const missingTeam = { event_type: 'goal', minute: 8 };
+    localStorage.setItem(key, JSON.stringify({ result: '1:0', events: [missingTeam] }));
+    expect(readArchivedEvents(match)).toBeNull();
+
+    const goal = { ...missingTeam, team_id: match.home_team.id };
+    archiveEvents(match, [goal]);
+    expect(readArchivedEvents(match)).toEqual([goal]);
+  });
+
   it('shows a day as soon as its reply arrives and fills the rest progressively', async () => {
     const pendingDates = new Map<string, Deferred<ApiReply>>();
     vi.mocked(api).mockImplementation((_source, path) => {

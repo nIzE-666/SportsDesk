@@ -33,6 +33,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 1400,
   },
   test: {
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    exclude: [...configDefaults.exclude, '.claude/**', '.scratch/**'],
   },
 });

@@ -85,6 +85,52 @@ it('uses the app planner, tracks selected reminders and opens the actual event',
   expect(openMatch).toHaveBeenCalledWith('home-next', 'l_0bfbkO');
 });
 
+it('visibly indicates when a selected reminder will not be delivered due to global or team settings and still allows removing it', async () => {
+  await mount();
+
+  // Default install: global notifications are disabled ('sportsdesk.notifications.enabled' absent).
+  await act(async () => button(/Напомнить, Аякс — Интер/).click());
+  expect(readHomeReminders()).toHaveLength(1);
+  const blockedGlobalBtn = button(/Отменить напоминание, Аякс — Интер/);
+  expect(blockedGlobalBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(blockedGlobalBtn.textContent).toBe('Уведомления выключены');
+  expect(blockedGlobalBtn.getAttribute('title')).toBe('Уведомления выключены в настройках');
+
+  // Enable global notifications -> button switches to «Напомню»:
+  await act(async () => {
+    localStorage.setItem('sportsdesk.notifications.enabled', '1');
+    window.dispatchEvent(new Event('sportsdesk-favorites-changed'));
+  });
+  expect(button(/Отменить напоминание, Аякс — Интер/).textContent).toBe('Напомню');
+
+  // Mute the club's reminder notifications in notification policy -> button indicates delivery is disabled:
+  await act(async () => {
+    localStorage.setItem('sportsdesk.football.favorites.teams', JSON.stringify({ ids: ['ajax'] }));
+    localStorage.setItem(
+      'sportsdesk.football.catalogue',
+      JSON.stringify([{ id: 'ajax', name: 'Аякс', leagueId: 'l_0bfbkO' }]),
+    );
+    localStorage.setItem(
+      'sportsdesk.notifications.policy',
+      JSON.stringify({
+        events: { goals: true, start: true, end: true, reminder: true },
+        teams: {
+          ajax: { enabled: false, goals: true, start: true, end: true, reminder: true },
+        },
+      }),
+    );
+    window.dispatchEvent(new Event('sportsdesk-favorites-changed'));
+  });
+  const blockedTeamBtn = button(/Отменить напоминание, Аякс — Интер/);
+  expect(blockedTeamBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(blockedTeamBtn.textContent).toBe('Уведомления выключены');
+
+  // Clicking the selected reminder while delivery is disabled still removes it:
+  await act(async () => blockedTeamBtn.click());
+  expect(readHomeReminders()).toEqual([]);
+  expect(button(/Напомнить, Аякс — Интер/).getAttribute('aria-pressed')).toBe('false');
+});
+
 it('reveals a hidden result only on its card and keeps the sport filter keyboard accessible', async () => {
   hideResult({ kind: 'football', id: 'home-finished', eventTime: '2026-11-16T19:00:00Z' });
   localStorage.setItem('sportsdesk.view.home.hideInterest', '1');

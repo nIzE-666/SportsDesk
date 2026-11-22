@@ -1,5 +1,6 @@
 import { classifyMatchStatus, type MatchState } from '../../lib/sportsIdentity';
 import { LEAGUES } from '../../lib/navigationMetadata';
+import type { MatchStripGoal } from '../../kit';
 import { CUP_COMPETITIONS } from '../ucl/cupMetadata';
 import type { LeagueRef, MatchEvent, MatchSummary } from '../football/types';
 import { footballStart } from '../planner/plannerData';
@@ -332,6 +333,48 @@ export function parseEvents(payload: unknown): MatchEvent[] | null {
   const data = unwrap(payload);
   if (!data || !Array.isArray(data.events)) return null;
   return data.events.filter((event): event is MatchEvent => !!event && typeof event === 'object');
+}
+
+export function scoreValue(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+export function goalSteps(summary: MatchSummary, events: MatchEvent[]): MatchStripGoal[] {
+  const steps = events
+    .filter(
+      (event) => event.event_type === 'goal' && Number.isFinite(event.minute) && event.minute >= 0,
+    )
+    .sort((a, b) => a.minute - b.minute || (a.minute_added ?? 0) - (b.minute_added ?? 0));
+  let home = 0;
+  let away = 0;
+  const goals: MatchStripGoal[] = [];
+  for (const event of steps) {
+    const nextHome = scoreValue(event.score_home);
+    const nextAway = scoreValue(event.score_away);
+    if (nextHome === null || nextAway === null) {
+      const side =
+        event.team_id === summary.home_team.id
+          ? 'home'
+          : event.team_id === summary.away_team.id
+            ? 'away'
+            : undefined;
+      if (!side || event.is_own_goal) continue;
+      goals.push({ minute: event.minute, extra: event.minute_added, side });
+      if (side === 'home') home += 1;
+      else away += 1;
+      continue;
+    }
+    const side =
+      nextHome === home + 1 && nextAway === away
+        ? 'home'
+        : nextAway === away + 1 && nextHome === home
+          ? 'away'
+          : undefined;
+    home = nextHome;
+    away = nextAway;
+    if (side) goals.push({ minute: event.minute, extra: event.minute_added, side });
+  }
+  return goals;
 }
 
 export function earlierFetchedAt(

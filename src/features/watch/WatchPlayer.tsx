@@ -225,7 +225,56 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
     video.volume = volume;
 
     let disposed = false;
+    let failed = false;
     const nativeHls = video.canPlayType('application/vnd.apple.mpegurl') !== '';
+
+    const onPlayable = () => {
+      if (disposed || failed || retryTimer.current !== null) return;
+      retryCount.current = 0;
+      setStatus('ready');
+    };
+    const startPlayback = () => {
+      if (!disposed && !failed)
+        video.play().catch(() => {
+          if (!disposed && !failed) setPlaying(false);
+        });
+    };
+    const fail = (message: string) => {
+      if (disposed || failed) return;
+      failed = true;
+      clearRetry();
+      setStatus('error');
+      setError(message);
+      destroyHls();
+    };
+    const recover = (operation: () => void, backoff: number, message: string) => {
+      if (disposed || failed || retryTimer.current !== null) return;
+      if (retryCount.current >= 2) {
+        fail(message);
+        return;
+      }
+      retryCount.current += 1;
+      setStatus('loading');
+      setError(null);
+      retryTimer.current = window.setTimeout(() => {
+        retryTimer.current = null;
+        if (disposed || failed) return;
+        try {
+          operation();
+        } catch {
+          fail(message);
+        }
+      }, backoff * retryCount.current);
+    };
+    const onNativeError = () =>
+      recover(
+        () => video.load(),
+        900,
+        'Поток недоступен. Попробуйте ещё раз или откройте на сайте.',
+      );
+
+    video.addEventListener('canplay', onPlayable);
+    video.addEventListener('playing', onPlayable);
 
     const attachHlsJs = () => {
       // Dynamic import keeps hls.js out of the initial auth screens.
@@ -234,8 +283,7 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
           if (disposed) return;
           const Hls = mod.default;
           if (!Hls.isSupported()) {
-            setStatus('error');
-            setError('Этот браузер/движок не поддерживает HLS-воспроизведение.');
+            fail('Этот браузер/движок не поддерживает HLS-воспроизведение.');
             return;
           }
           const hls = new Hls({
@@ -244,9 +292,11 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
             backBufferLength: 90,
           });
           hlsRef.current = hls;
+          let manifestParsed = false;
 
           hls.on(Hls.Events.MANIFEST_PARSED, (_evt, data) => {
-            if (disposed) return;
+            if (disposed || failed) return;
+            manifestParsed = true;
             const parsed = data.levels.map((l, i) => ({
               index: i,
               height: l.height,
@@ -254,107 +304,61 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
             }));
             setLevels(parsed);
             setLevelsUseful(parsed.length > 1);
-            setStatus('ready');
-            // Attempt muted autoplay only; unmuted needs a click.
-            video.play().catch(() => {
-              setPlaying(false);
-            });
+            startPlayback();
+          });
+
+          hls.on(Hls.Events.FRAG_BUFFERED, (_evt, { frag }) => {
+            if (
+              frag.type === 'main' &&
+              frag.sn !== 'initSegment' &&
+              video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+            ) {
+              onPlayable();
+            }
           });
 
           hls.on(Hls.Events.LEVEL_SWITCHED, (_evt, data) => {
-            if (disposed) return;
+            if (disposed || failed) return;
             if (hls.autoLevelEnabled) setCurrentLevel(-1);
             else setCurrentLevel(data.level);
           });
 
           hls.on(Hls.Events.ERROR, (_evt, data) => {
-            if (disposed || !data.fatal) return;
-            // Bounded retry: 2 attempts with backoff, then honest failure.
-            if (retryCount.current < 2) {
-              retryCount.current += 1;
-              const delay = 800 * retryCount.current;
-              setStatus('loading');
-              setError(null);
-              clearRetry();
-              retryTimer.current = window.setTimeout(() => {
-                if (disposed) return;
-                try {
-                  hls.startLoad();
-                  setStatus('ready');
-                } catch {
-                  setStatus('error');
-                  setError('Не удалось восстановить поток.');
-                }
-              }, delay);
-            } else {
-              setStatus('error');
-              setError(
-                data.type === 'networkError'
-                  ? 'Поток недоступен (сеть или регион).'
-                  : 'Ошибка воспроизведения потока.',
+            if (!data.fatal) return;
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              recover(
+                () => (manifestParsed ? hls.startLoad() : hls.loadSource(url)),
+                800,
+                'Поток недоступен (сеть или регион).',
               );
-              destroyHls();
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              recover(() => hls.recoverMediaError(), 800, 'Не удалось восстановить поток.');
+            } else {
+              fail('Ошибка воспроизведения потока.');
             }
           });
 
           hls.loadSource(url);
           hls.attachMedia(video);
         })
-        .catch(() => {
-          if (!disposed) {
-            setStatus('error');
-            setError('Не удалось загрузить видеодвижок HLS.');
-          }
-        });
+        .catch(() => fail('Не удалось загрузить видеодвижок HLS.'));
     };
 
     if (nativeHls) {
       // Native HLS path (Safari/WebKit-style engines in Tauri on some OSes).
+      video.addEventListener('loadedmetadata', startPlayback);
+      video.addEventListener('error', onNativeError);
       video.src = url;
-      const onLoaded = () => {
-        if (disposed) return;
-        setStatus('ready');
-        setLevelsUseful(false);
-        setLevels([]);
-        video.play().catch(() => setPlaying(false));
-      };
-      const onErr = () => {
-        if (disposed) return;
-        if (retryCount.current < 2) {
-          retryCount.current += 1;
-          clearRetry();
-          retryTimer.current = window.setTimeout(() => {
-            if (!disposed) {
-              video.load();
-              video.play().catch(() => setPlaying(false));
-            }
-          }, 900 * retryCount.current);
-        } else {
-          setStatus('error');
-          setError('Поток недоступен. Попробуйте ещё раз или откройте на сайте.');
-        }
-      };
-      video.addEventListener('loadedmetadata', onLoaded, { once: true });
-      video.addEventListener('error', onErr);
-      return () => {
-        disposed = true;
-        video.removeEventListener('loadedmetadata', onLoaded);
-        video.removeEventListener('error', onErr);
-        clearRetry();
-        try {
-          video.pause();
-          video.removeAttribute('src');
-          video.load();
-        } catch {
-          // ignore
-        }
-      };
+    } else {
+      attachHlsJs();
     }
-
-    attachHlsJs();
 
     return () => {
       disposed = true;
+      video.removeEventListener('canplay', onPlayable);
+      video.removeEventListener('playing', onPlayable);
+      video.removeEventListener('loadedmetadata', startPlayback);
+      video.removeEventListener('error', onNativeError);
       clearRetry();
       destroyHls();
       try {
@@ -507,13 +511,19 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
     };
   }, [playing, bumpControls]);
 
-  // Keyboard shortcuts (skip when typing in inputs).
+  // Player shortcuts leave dialogs and interactive controls in charge of their own keys.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
       if (
-        target &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+        e.defaultPrevented ||
+        e.ctrlKey ||
+        e.altKey ||
+        e.metaKey ||
+        document.querySelector('[aria-modal="true"]') ||
+        (e.target instanceof Element &&
+          e.target.closest(
+            'input, textarea, select, button, a[href], [contenteditable], [role="button"]',
+          ))
       ) {
         return;
       }
@@ -526,8 +536,6 @@ export function PlayerPane({ channel, onOpenSite, onOpenSitePage }: PlayerPanePr
         bumpControls();
       } else if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') {
         toggleFullscreen();
-      } else if (e.key === 'Escape') {
-        // Browser handles Escape to exit native fullscreen; nothing extra needed.
       }
     };
     window.addEventListener('keydown', onKey);

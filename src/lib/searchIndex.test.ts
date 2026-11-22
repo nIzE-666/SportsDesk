@@ -132,6 +132,7 @@ it('offers the five sections, «Моё» tabs, settings, competitions and F1 tab
   const target = (query: string) => findSearchItems(items, query)[0]?.target;
 
   expect(target('Футбол')).toEqual({ kind: 'section', id: 'football' });
+  expect(target('Главное')).toEqual({ kind: 'section', id: 'home' });
   expect(target('Моё')).toEqual({ kind: 'section', id: 'my' });
   expect(target('Дневник')).toEqual({ kind: 'section', id: 'my.diary' });
   expect(target('Схемы')).toEqual({ kind: 'section', id: 'my.schemes' });
@@ -147,6 +148,7 @@ it('hides search results of modules and competitions that are switched off', () 
   const items = readSearchIndex();
   const modules = {
     ...DEFAULT_MODULES,
+    home: false,
     watch: false,
     diary: false,
     games: false,
@@ -158,6 +160,9 @@ it('hides search results of modules and competitions that are switched off', () 
   const visible = (query: string) =>
     findSearchItems(items, query).filter((item) => isSearchItemVisible(item, modules));
 
+  expect(
+    visible('Главное').some((item) => item.target.kind === 'section' && item.target.id === 'home'),
+  ).toBe(false);
   expect(visible('Смотреть')).toEqual([]);
   expect(
     visible('Дневник').some(
@@ -215,4 +220,31 @@ it('keeps old saved search items and recent keys after the catalogue grows', () 
       (item) => item.target.kind === 'section' && item.target.id === 'today.plan',
     ),
   ).toBe(true);
+});
+
+it('indexes per-match leagueId and league name from Pitch date/{day} payloads for module filtering', () => {
+  indexSportsPayload('pitch', 'date/2026-11-22', {
+    data: {
+      matches: [
+        {
+          id: 'date-laliga-1',
+          league: { id: 'l_0ErfuF', name: 'LaLiga' },
+          home_team: { id: 'rm', name: 'Real Madrid' },
+          away_team: { id: 'fcb', name: 'Barcelona' },
+          time_utc: '2026-11-22T20:00:00Z',
+        },
+      ],
+    },
+  });
+  const items = readSearchIndex();
+  const matchItem = findSearchItems(items, 'Real Madrid Barcelona')[0];
+  expect(matchItem?.target).toEqual({
+    kind: 'match',
+    id: 'date-laliga-1',
+    leagueId: 'l_0ErfuF',
+  });
+  expect(matchItem?.subtitle).toContain('LaLiga');
+
+  const offModules = { ...DEFAULT_MODULES, [leagueModuleId('l_0ErfuF')]: false };
+  expect(isSearchItemVisible(matchItem!, offModules)).toBe(false);
 });

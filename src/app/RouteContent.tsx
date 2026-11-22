@@ -30,6 +30,9 @@ import { resolveMyTab } from '../features/my/myTabs';
 const FootballView = lazy(() =>
   import('../features/football/FootballView').then((m) => ({ default: m.FootballView })),
 );
+const TournamentView = lazy(() =>
+  import('../features/ucl/TournamentView').then((m) => ({ default: m.TournamentView })),
+);
 const F1View = lazy(() => import('../features/f1/F1View').then((m) => ({ default: m.F1View })));
 const SettingsView = lazy(() =>
   import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })),
@@ -119,7 +122,7 @@ export function RouteContent({
       <ConnectivityBanner
         sources={
           route.kind === 'today' || route.kind === 'home'
-            ? ['pitch', 'jolpica']
+            ? ['pitch', 'jolpica', 'livescore', 'espn']
             : route.kind === 'settings' ||
                 route.kind === 'watch' ||
                 route.kind === 'events' ||
@@ -127,7 +130,7 @@ export function RouteContent({
               ? []
               : sport === 'f1'
                 ? ['jolpica', 'openf1']
-                : ['pitch', 'sportscore', 'espn']
+                : ['pitch', 'sportscore', 'livescore', 'espn']
         }
       />
       <UpdateNotice />
@@ -156,8 +159,8 @@ export function RouteContent({
           </SectionBoundary>
         )}
         {!auxiliary &&
-          ((route.kind === 'football' && competition === 'league') ||
-            route.kind === 'football-match') && (
+          (route.kind === 'football' || route.kind === 'football-match') &&
+          competition === 'league' && (
             <SectionBoundary
               name="Футбол"
               resetKey={`football.${competitionId}.${JSON.stringify(route)}`}
@@ -173,7 +176,11 @@ export function RouteContent({
                 matchId={route.kind === 'football-match' ? route.matchId : null}
                 onOpenMatch={onOpenMatch}
                 onOpenTeam={(id, _name, teamLeagueId) => {
-                  const teamLeague = isLeagueId(teamLeagueId) ? teamLeagueId : competitionId;
+                  const teamLeague = isLeagueId(teamLeagueId)
+                    ? teamLeagueId
+                    : isLeagueId(competitionId)
+                      ? competitionId
+                      : leagueId;
                   onNavigate(
                     { kind: 'football', competitionId: teamLeague, tab: 'team', teamId: id },
                     { leagueId: teamLeague },
@@ -182,6 +189,22 @@ export function RouteContent({
               />
             </SectionBoundary>
           )}
+        {!auxiliary && route.kind === 'football-match' && competition !== 'league' && (
+          <SectionBoundary name="Раздел" resetKey={`tournament.${competitionId}.${route.matchId}`}>
+            <TournamentView
+              key={competitionId}
+              competitionId={competitionId}
+              tab="matches"
+              onTabChange={(next) => {
+                if (competition === 'ucl') setUclTab(next);
+                else if (next === 'matches' || next === 'table' || next === 'bracket')
+                  setCupTab(next);
+              }}
+              matchId={route.matchId}
+              onOpenMatch={onOpenMatch}
+            />
+          </SectionBoundary>
+        )}
         {!auxiliary && route.kind === 'football' && competition === 'ucl' && (
           <SectionBoundary name="Раздел" resetKey={`ucl.${uclTab}.${cupId}`}>
             <ChampionsView tab={uclTab} onTabChange={setUclTab} />

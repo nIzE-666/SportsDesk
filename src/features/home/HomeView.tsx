@@ -8,7 +8,13 @@ import { useNow } from '../../lib/useNow';
 import { useViewState } from '../../lib/useViewState';
 import { useFavorites } from '../football/FavoritesProvider';
 import { useLiveMatches } from '../football/liveData';
-import { formatShortDate, getString, getUserTimezone } from '../football/storage';
+import { formatShortDate, getString, getUserTimezone, STORAGE_KEYS } from '../football/storage';
+import {
+  readNotificationsEnabled,
+  resolveFavoriteTeamNames,
+  resolveFavoriteTeams,
+} from '../football/usePoller';
+import { readPolicy } from '../settings/notificationPolicy';
 import { spoilerKey, useSpoilerSet } from '../spoilers/spoilerStore';
 import { usePlannerPriorities } from '../today/todayData';
 import {
@@ -30,7 +36,12 @@ import {
   selectLiveMatches,
   selectUpcoming,
 } from './homeModel';
-import { HIDE_HOME_INTEREST_KEY, readHomeReminders, toggleHomeReminder } from './homePreferences';
+import {
+  HIDE_HOME_INTEREST_KEY,
+  HOME_REMINDERS_KEY,
+  readHomeReminders,
+  toggleHomeReminder,
+} from './homePreferences';
 import { useHomeWeek } from './useHomeWeek';
 import {
   earlierFetchedAt,
@@ -63,6 +74,31 @@ export function HomeView({
   const [offset, setOffset] = useState(0);
   const [reminders, setReminders] = useState(readHomeReminders);
   const [planned, togglePlan] = usePlannerPriorities();
+  useEffect(() => {
+    const sync = (event: Event) => {
+      const key =
+        event instanceof StorageEvent
+          ? event.key
+          : (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (
+        key &&
+        !key.startsWith('sportsdesk.notifications') &&
+        key !== HOME_REMINDERS_KEY &&
+        key !== STORAGE_KEYS.favoritesTeams &&
+        key !== STORAGE_KEYS.catalogue
+      )
+        return;
+      setReminders(readHomeReminders());
+    };
+    window.addEventListener('storage', sync);
+    window.addEventListener('sportsdesk-storage-changed', sync);
+    window.addEventListener('sportsdesk-favorites-changed', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('sportsdesk-storage-changed', sync);
+      window.removeEventListener('sportsdesk-favorites-changed', sync);
+    };
+  }, []);
   const showFootball = filter !== 'f1';
   const showF1 = filter !== 'football';
   const weekStart = shiftDayKey(mondayOf(today), offset * 7);
@@ -106,25 +142,55 @@ export function HomeView({
         (team) => teamIds.includes(team.id) || teamMatchesFavorite(team.name, favoriteTeamNames),
       ),
   };
+  const matches = useMemo(
+    () => collectHomeMatches(week),
+    [week.days, week.events, week.seasonMatches],
+  );
+  const notificationsEnabled = readNotificationsEnabled();
+  const notificationPolicy = readPolicy();
+  const notifiedTeams = resolveFavoriteTeams();
+  const unresolvedNames = resolveFavoriteTeamNames().filter(
+    (name) => !notifiedTeams.some((team) => teamMatchesFavorite(team.name, [name])),
+  );
+  const matchById = useMemo(
+    () => new Map(matches.map((match) => [match.summary.id, match])),
+    [matches],
+  );
+  const isReminderDeliverable = (item: (typeof reminders)[number]): boolean => {
+    if (!notificationsEnabled || !notificationPolicy.events.reminder) return false;
+    if (!item.fixture) return true;
+    const target = matchById.get(item.fixture.id);
+    if (!target) return true;
+    const teams = [target.summary.home_team, target.summary.away_team];
+    const applicableTeams = [
+      ...notifiedTeams.filter(({ id }) => teams.some((team) => team.id === id)).map(({ id }) => id),
+      ...unresolvedNames.filter((name) =>
+        teams.some((team) => teamMatchesFavorite(team.name, [name])),
+      ),
+    ];
+    return (
+      applicableTeams.length === 0 ||
+      applicableTeams.some((id) => {
+        const teamPolicy = notificationPolicy.teams[id];
+        return !teamPolicy || (teamPolicy.enabled !== false && teamPolicy.reminder !== false);
+      })
+    );
+  };
   const actions = {
     planned,
     reminders,
     togglePlan,
     toggleReminder: (item: (typeof reminders)[number]) =>
       setReminders(toggleHomeReminder(item, now)),
+    isReminderDeliverable,
   };
-  const matches = useMemo(
-    () => collectHomeMatches(week),
-    [week.days, week.events, week.seasonMatches],
-  );
   const visibleMatches = matches.filter(({ leagueId }) => leagueIds.includes(leagueId));
-  const live =
-    showFootball && !liveData.stale && !liveData.error
-      ? selectLiveMatches(
-          liveData.matches.filter(({ leagueId }) => leagueId && leagueIds.includes(leagueId)),
-          visibleMatches,
-        )
-      : [];
+  const live = showFootball
+    ? selectLiveMatches(
+        liveData.matches.filter(({ leagueId }) => leagueId && leagueIds.includes(leagueId)),
+        visibleMatches,
+      )
+    : [];
   const hiddenUnmatched = [...spoilerIds].some((key) => key.startsWith('football:'));
   const from = localMidnightUtc(shiftDayKey(today, -7), timezone);
   const through = localMidnightUtc(shiftDayKey(today, 8), timezone);
@@ -159,7 +225,9 @@ export function HomeView({
     ...(showFootball && liveData.fetchedAt && liveData.source ? [liveData.source] : []),
     ...(showF1 && f1.fetchedAt.some(Boolean) ? ['jolpica'] : []),
   ];
-  const stale = (showFootball && (week.stale || liveData.stale)) || (showF1 && f1.stale);
+  const stale =
+    (showFootball && (week.stale || liveData.stale || (live.length > 0 && !!liveData.error))) ||
+    (showF1 && f1.stale);
   const reload = () => {
     if (showFootball && leagueIds.length) {
       week.reload();

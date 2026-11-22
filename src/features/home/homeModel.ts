@@ -8,7 +8,9 @@ import type { MatchEvent, TeamRef } from '../football/types';
 import { levelForPoints, rateFinished, rateUpcoming, type InterestStage } from './interest';
 import { tableBefore } from './standings';
 import type { HomeWeekData } from './useHomeWeek';
-import { matchStartMs, shiftDayKey, type WeekMatch } from './weekData';
+import { goalSteps, matchStartMs, scoreValue, shiftDayKey, type WeekMatch } from './weekData';
+
+export { scoreValue } from './weekData';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const TRACK_MARKS_PER_DAY = 3;
@@ -42,10 +44,6 @@ export function mondayOf(day: string): string {
 
 export function toShowcaseTeam(team: TeamRef): ShowcaseTeam {
   return { name: team.name, imageUrl: team.image_url };
-}
-
-export function scoreValue(value: unknown): number | null {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 export function matchTitle(home: string, away: string): string {
@@ -139,40 +137,7 @@ export function liveInterest(match: HomeLiveMatch): number | null {
 }
 
 export function extractGoals(match: HomeMatch): MatchStripGoal[] {
-  const steps = match.events
-    .filter(
-      (event) => event.event_type === 'goal' && Number.isFinite(event.minute) && event.minute >= 0,
-    )
-    .sort((a, b) => a.minute - b.minute || (a.minute_added ?? 0) - (b.minute_added ?? 0));
-  let home = 0;
-  let away = 0;
-  const goals: MatchStripGoal[] = [];
-  for (const event of steps) {
-    const nextHome = scoreValue(event.score_home);
-    const nextAway = scoreValue(event.score_away);
-    if (nextHome === null || nextAway === null) {
-      const side =
-        event.team_id === match.summary.home_team.id
-          ? 'home'
-          : event.team_id === match.summary.away_team.id
-            ? 'away'
-            : undefined;
-      if (!side || event.is_own_goal) continue;
-      goals.push({ minute: event.minute, extra: event.minute_added, side });
-      if (side === 'home') home += 1;
-      else away += 1;
-      continue;
-    }
-    const side =
-      nextHome === home + 1 && nextAway === away
-        ? 'home'
-        : nextAway === away + 1 && nextHome === home
-          ? 'away'
-          : undefined;
-    home = nextHome;
-    away = nextAway;
-    if (side) goals.push({ minute: event.minute, extra: event.minute_added, side });
-  }
+  const goals = goalSteps(match.summary, match.events);
   const last = goals.at(-1);
   if (
     last &&

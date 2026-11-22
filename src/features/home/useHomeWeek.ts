@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/bridge';
 import { isCompetitionVisibleWith, useModules } from '../../lib/modules';
+import { retainResource } from '../../lib/resourceHealth';
 import { getUserTimezone } from '../football/storage';
 import type { MatchSummary } from '../football/types';
 import {
@@ -54,8 +55,7 @@ export interface HomeWeekData {
 interface WeekState {
   matches: Record<string, WeekMatch>;
   events: Record<string, WeekEventState>;
-  seasonMatches: Record<string, MatchSummary[]>;
-  seasonLoading: Record<string, boolean>;
+  seasons: Record<string, SeasonState>;
   errors: WeekError[];
   fetchedAt: string | null;
   stale: boolean;
@@ -63,12 +63,18 @@ interface WeekState {
   eventsTotal: number;
 }
 
+interface SeasonState {
+  matches: MatchSummary[] | null;
+  fetchedAt: string | null;
+  stale: boolean;
+  loading: boolean;
+}
+
 function emptyState(): WeekState {
   return {
     matches: {},
     events: {},
-    seasonMatches: {},
-    seasonLoading: {},
+    seasons: {},
     errors: [],
     fetchedAt: null,
     stale: false,
@@ -85,6 +91,24 @@ function messageOf(error: unknown): string {
 
 function calendarDay(now: number, timeZone: string): string {
   return localDayKey(now, timeZone);
+}
+
+function weekRequests(queue: ReturnType<typeof createTaskQueue>) {
+  let active = true;
+  const releases: Array<() => void> = [];
+  return {
+    alive: () => active,
+    load: (path: string) =>
+      queue.run(async () => {
+        if (!active) return null;
+        releases.push(retainResource('pitch', path));
+        return api('pitch', path);
+      }),
+    dispose: () => {
+      active = false;
+      releases.forEach((release) => release());
+    },
+  };
 }
 
 /**
@@ -111,18 +135,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
   const [state, setState] = useState<WeekState>(emptyState);
   const [retry, setRetry] = useState(0);
   const [queue] = useState(() => createTaskQueue(EVENTS_CONCURRENCY));
-  const generationRef = useRef(0);
-  const mountedRef = useRef(false);
-  const matchesRef = useRef(new Map<string, WeekMatch>());
-  const requestedSeasonsRef = useRef(new Set<string>());
   const reload = useCallback(() => setRetry((value) => value + 1), []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   useEffect(() => pruneWeekArchive(Date.now()), [today]);
 
@@ -130,11 +143,9 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
   // requested through the same pool as details, so the app never exceeds four
   // requests at once.
   useEffect(() => {
-    const generation = generationRef.current + 1;
-    generationRef.current = generation;
+    const { alive, load, dispose } = weekRequests(queue);
     const followed = new Set(followedIds);
-    matchesRef.current = new Map();
-    const alive = () => mountedRef.current && generationRef.current === generation;
+    const matchesById = new Map<string, WeekMatch>();
 
     setState((prev) => ({
       ...prev,
@@ -147,7 +158,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
       errors: prev.errors.filter((error) => error.scope === 'season'),
     }));
 
-    if (!followed.size) return;
+    if (!followed.size) return dispose;
 
     const addDay = (
       summaries: Parameters<typeof selectWeekMatches>[0],
@@ -155,7 +166,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
       stale: boolean,
     ) => {
       const selected = selectWeekMatches(summaries, followed, window);
-      for (const match of selected) matchesRef.current.set(match.summary.id, match);
+      for (const match of selected) matchesById.set(match.summary.id, match);
       setState((prev) => {
         const matches = { ...prev.matches };
         const events = { ...prev.events };
@@ -180,9 +191,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
 
     const loadDay = async (date: string) => {
       try {
-        const reply = await queue.run(async () =>
-          alive() ? api('pitch', `date/${date}?status=all`) : null,
-        );
+        const reply = await load(`date/${date}?status=all`);
         if (!alive() || !reply) return;
         const summaries = parseDateMatches(reply.payload);
         if (!summaries) throw new Error('Не удалось прочитать расписание.');
@@ -212,7 +221,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
     const dayTasks = window.utcDates.map((date) => loadDay(date));
     void Promise.allSettled(dayTasks).then(() => {
       if (!alive()) return;
-      const finished = orderFinishedForEvents(matchesRef.current.values());
+      const finished = orderFinishedForEvents(matchesById.values());
       const finishedIds = new Set(finished.map((match) => match.summary.id));
       setState((prev) => {
         const events = { ...prev.events };
@@ -233,8 +242,7 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
           }));
           continue;
         }
-        void queue
-          .run(async () => (alive() ? api('pitch', `matches/${id}/events`) : null))
+        void load(`matches/${id}/events`)
           .then((reply) => {
             if (!alive() || !reply) return;
             const events = parseEvents(reply.payload);
@@ -273,46 +281,81 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
           });
       }
     });
+    return dispose;
   }, [windowKey, followedKey, queue, retry]);
 
-  // Season matches: one request per league, never repeated on rerenders. The
-  // interest model computes the table before each match from these rows.
+  // Keep prior seasons visible during refresh and account for their own freshness.
   useEffect(() => {
+    const { alive, load, dispose } = weekRequests(queue);
+    setState((prev) => ({
+      ...prev,
+      seasons: Object.fromEntries(
+        followedIds.map((leagueId) => [
+          leagueId,
+          {
+            matches: null,
+            fetchedAt: null,
+            stale: false,
+            ...prev.seasons[leagueId],
+            loading: true,
+          },
+        ]),
+      ),
+      errors: prev.errors.filter((error) => error.scope !== 'season'),
+    }));
     for (const leagueId of followedIds) {
-      if (requestedSeasonsRef.current.has(leagueId)) continue;
-      requestedSeasonsRef.current.add(leagueId);
-      setState((prev) => ({
-        ...prev,
-        seasonLoading: { ...prev.seasonLoading, [leagueId]: true },
-        errors: prev.errors.filter((error) => error.scope !== 'season' || error.key !== leagueId),
-      }));
-      void queue
-        .run(() => api('pitch', `leagues/${leagueId}/matches?status=all`))
+      void load(`leagues/${leagueId}/matches?status=all`)
         .then((reply) => {
+          if (!alive() || !reply) return;
           const matches = parseSeasonMatches(reply.payload);
           if (!matches) throw new Error('Не удалось прочитать матчи турнира.');
-          if (!mountedRef.current) return;
           setState((prev) => ({
             ...prev,
-            seasonMatches: { ...prev.seasonMatches, [leagueId]: matches },
-            seasonLoading: { ...prev.seasonLoading, [leagueId]: false },
-            fetchedAt: earlierFetchedAt(prev.fetchedAt, reply.fetchedAt),
-            stale: prev.stale || reply.stale,
+            seasons: {
+              ...prev.seasons,
+              [leagueId]: {
+                matches,
+                fetchedAt: reply.fetchedAt,
+                stale: reply.stale,
+                loading: false,
+              },
+            },
           }));
         })
         .catch((error) => {
-          if (!mountedRef.current) return;
-          requestedSeasonsRef.current.delete(leagueId);
+          if (!alive()) return;
           const message = messageOf(error);
           setState((prev) => ({
             ...prev,
-            seasonLoading: { ...prev.seasonLoading, [leagueId]: false },
+            seasons: {
+              ...prev.seasons,
+              [leagueId]: {
+                ...prev.seasons[leagueId]!,
+                stale: prev.seasons[leagueId]?.fetchedAt != null,
+                loading: false,
+              },
+            },
             errors: appendError(prev.errors, { scope: 'season', key: leagueId, message }),
           }));
         });
     }
+    return dispose;
   }, [followedKey, queue, retry]);
 
+  const seasonMatches = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(state.seasons).flatMap(([id, season]) =>
+          season.matches ? [[id, season.matches]] : [],
+        ),
+      ),
+    [state.seasons],
+  );
+  const seasons = Object.values(state.seasons);
+  const fetchedAt = seasons.reduce(
+    (oldest, season) => (season.fetchedAt ? earlierFetchedAt(oldest, season.fetchedAt) : oldest),
+    state.fetchedAt,
+  );
   const days = useMemo(
     () => buildWeekDays(window, Object.values(state.matches), timeZone),
     [window, state.matches, timeZone],
@@ -323,17 +366,17 @@ export function useHomeWeek(now: number, weekStart?: string, enabled = true): Ho
   );
   const loading =
     state.datesPending > 0 ||
-    Object.values(state.seasonLoading).some(Boolean) ||
+    seasons.some((season) => season.loading) ||
     Object.values(state.events).some((event) => event.status === 'pending');
 
   return {
     days,
     events: state.events,
-    seasonMatches: state.seasonMatches,
+    seasonMatches,
     progress,
     errors: state.errors,
-    fetchedAt: state.fetchedAt,
-    stale: state.stale,
+    fetchedAt,
+    stale: state.stale || seasons.some((season) => season.stale),
     loading,
     timezone: timeZone,
     reload,

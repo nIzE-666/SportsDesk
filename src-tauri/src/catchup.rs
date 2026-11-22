@@ -44,6 +44,7 @@ const RETRY_MS: i64 = 5 * MINUTE;
 const STARTUP_DELAY: Duration = Duration::from_secs(12);
 const TICK: Duration = Duration::from_secs(60);
 const MAX_ITEMS: usize = 60;
+const MISSING_SCORE: &str = " · счёт недоступен";
 pub const FOOTBALL: &str = "football";
 pub const F1: &str = "f1";
 const SCHEDULE_PATH: &str = "current.json?limit=100";
@@ -157,7 +158,7 @@ pub fn football_events(scan: &DayScan, cfg: &PollConfig, window: &Window) -> Out
             score_label(m)
         } else {
             out.incomplete = true;
-            format!("{} · счёт недоступен", match_label(m))
+            format!("{}{MISSING_SCORE}", match_label(m))
         };
         out.events.push(Event {
             id: format!("football|end|{}", m.id),
@@ -377,28 +378,52 @@ pub fn apply_outcome(
 ) -> Applied {
     let mut incomplete = outcome.incomplete;
     let mut inserted = Vec::new();
+    let mut confirmed = Vec::new();
+    let mut updated = 0;
     for event in outcome.events {
         match cache.insert_event(&event, now) {
             Ok(true) => inserted.push(event),
+            Ok(false)
+                if source == FOOTBALL
+                    && event.kind == "end"
+                    && !event.body.ends_with(MISSING_SCORE) =>
+            {
+                match cache.complete_football_result(&event, MISSING_SCORE) {
+                    Ok(changed) => {
+                        updated += usize::from(changed);
+                        confirmed.push(event);
+                    }
+                    Err(_) => incomplete = true,
+                }
+            }
             Ok(false) => {}
             Err(_) => incomplete = true,
         }
     }
-    let count = inserted.len();
-    let advanced = !incomplete && cache.set_sync_cursor(source, window.to, now).is_ok();
+    let count = inserted.len() + updated;
     let mut summary_changed = false;
     if to_summary {
-        let existing = cache
+        let mut existing = cache
             .catchup_summary()
             .ok()
             .flatten()
             .and_then(|text| serde_json::from_str::<Summary>(&text).ok());
-        if let Some(next) = merge_summary(existing, source, window, inserted, incomplete) {
-            if let Ok(text) = serde_json::to_string(&next) {
-                summary_changed = cache.set_catchup_summary(Some(&text), now).is_ok();
+        if let Some(summary) = &mut existing {
+            for item in &mut summary.items {
+                if item.body.ends_with(MISSING_SCORE) {
+                    if let Some(event) = confirmed.iter().find(|event| event.id == item.id) {
+                        item.body.clone_from(&event.body);
+                    }
+                }
             }
         }
+        if let Some(next) = merge_summary(existing, source, window, inserted, incomplete) {
+            summary_changed = serde_json::to_string(&next)
+                .is_ok_and(|text| cache.set_catchup_summary(Some(&text), now).is_ok());
+            incomplete |= !summary_changed;
+        }
     }
+    let advanced = !incomplete && cache.set_sync_cursor(source, window.to, now).is_ok();
     Applied {
         inserted: count,
         summary_changed,
@@ -727,6 +752,35 @@ mod tests {
         assert_eq!(applied.inserted, 0);
         assert!(!applied.summary_changed);
         assert!(cache.catchup_summary().unwrap().is_none());
+    }
+
+    #[test]
+    fn catchup_completes_an_existing_score_in_both_lists_without_unreading_it() {
+        let cache = Cache::open_in_memory();
+        let w = window();
+        let final_result = end_event("m1");
+        let mut pending = final_result.clone();
+        pending.body = format!("Arsenal — Chelsea{MISSING_SCORE}");
+        let first = Outcome {
+            events: vec![pending.clone()],
+            incomplete: true,
+        };
+        assert!(!apply_outcome(&cache, FOOTBALL, &w, first, true, w.to).advanced);
+        cache.mark_events_read(&[pending.id]).unwrap();
+
+        let complete = Outcome {
+            events: vec![final_result.clone()],
+            incomplete: false,
+        };
+        assert!(apply_outcome(&cache, FOOTBALL, &w, complete, true, w.to).advanced);
+        let events = cache.list_events(w.to).unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].body, final_result.body);
+        assert!(events[0].read);
+        let summary: Summary =
+            serde_json::from_str(&cache.catchup_summary().unwrap().unwrap()).unwrap();
+        assert_eq!(summary.items.len(), 1);
+        assert_eq!(summary.items[0].body, final_result.body);
     }
 
     #[test]
