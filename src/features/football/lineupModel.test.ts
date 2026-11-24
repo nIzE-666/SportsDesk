@@ -116,3 +116,108 @@ it('handles absent lineups and malformed lists without inventing a formation or 
   >[1];
   expect(buildPitchTeam({ id: 'home', name: 'Home' }, data, []).starters).toHaveLength(1);
 });
+
+it('attaches goals, assists, own goals and cards by ID and unambiguous surname without confusing duplicates', () => {
+  const team = buildPitchTeam(
+    { id: 'home', name: 'Barcelona' },
+    {
+      starters: [
+        player('p1', { name: 'Lamine Yamal' }),
+        player('p2', { name: 'Joan García' }),
+        player('p3', { name: 'Eric García' }),
+      ],
+      subs: [player('p4', { name: 'Ferran Torres' })],
+    },
+    [
+      {
+        team_id: 'home',
+        player: { id: 'p1', name: 'Lamine Yamal' },
+        stats: [
+          {
+            key: 'top_stats',
+            title: 'Top stats',
+            stats: {
+              Goals: { key: 'goals', stat: { type: 'integer', value: 2 } },
+              Assists: { key: 'assists', stat: { type: 'integer', value: 1 } },
+            },
+          },
+        ],
+      },
+    ],
+    false,
+    [
+      {
+        event_type: 'goal',
+        minute: 12,
+        team_id: 'home',
+        player: { id: 'p1', name: 'Lamine Yamal' },
+      },
+      {
+        event_type: 'goal',
+        minute: 55,
+        team_id: 'home',
+        is_penalty: true,
+        player: { name: 'Yamal' },
+      },
+      {
+        event_type: 'yellowcard',
+        minute: 40,
+        team_id: 'home',
+        player: { name: 'García' },
+      },
+      {
+        event_type: 'yellowcard',
+        minute: 70,
+        team_id: 'home',
+        player: { id: 'p3', name: 'Eric García' },
+      },
+      {
+        event_type: 'goal',
+        minute: 88,
+        team_id: 'home',
+        player: { name: 'Ferran Torres' },
+      },
+    ],
+  );
+  expect(team.starters[0]?.events).toMatchObject({
+    goals: 2,
+    penaltyGoals: 1,
+    assists: 1,
+    yellowCards: 0,
+  });
+  // Ambiguous surname "García" must NOT attach to either player without exact name or ID
+  expect(team.starters[1]?.events.yellowCards).toBe(0);
+  expect(team.starters[2]?.events.yellowCards).toBe(1);
+  expect(team.subs[0]?.events.goals).toBe(1);
+});
+
+it('matches cross-source live assists, substitutions and initialed names (M. Salah, H. Son)', () => {
+  const team = buildPitchTeam(
+    { id: 'home', name: 'Test FC' },
+    {
+      starters: [player('p1', { name: 'Mohamed Salah' }), player('p2', { name: 'Son Heung-Min' })],
+      subs: [player('p3', { name: 'Darwin Núñez' })],
+    },
+    [],
+    false,
+    [
+      {
+        event_type: 'goal',
+        minute: 31,
+        team_id: 'home',
+        player: { name: 'M. Salah' },
+        assist_player: { name: 'H. Son' },
+      },
+      {
+        event_type: 'substitution',
+        minute: 74,
+        team_id: 'home',
+        player: { name: 'M. Salah' },
+        related_player: { name: 'Darwin Núñez' },
+      },
+    ],
+  );
+  expect(team.starters[0]?.events).toMatchObject({ goals: 1, subbedOffMinute: 74 });
+  expect(team.starters[1]?.events).toMatchObject({ assists: 1 });
+  expect(team.subs[0]?.events).toMatchObject({ subbedOnMinute: 74 });
+});

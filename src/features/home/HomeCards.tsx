@@ -34,21 +34,31 @@ export interface MatchOpening {
   hideInterest: boolean;
 }
 
+const weekdayFmtCache = new Map<string, Intl.DateTimeFormat>();
+const dateFmtCache = new Map<string, Intl.DateTimeFormat>();
+const clockFmtCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(
+  cache: Map<string, Intl.DateTimeFormat>,
+  timezone: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  let fmt = cache.get(timezone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat('ru-RU', { ...options, timeZone: timezone });
+    cache.set(timezone, fmt);
+  }
+  return fmt;
+}
+
 export const shortWeekday = (start: number, timezone: string) =>
-  new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: timezone }).format(start);
+  getFormatter(weekdayFmtCache, timezone, { weekday: 'short' }).format(start);
 export const shortDate = (start: number, timezone: string) =>
-  new Intl.DateTimeFormat('ru-RU', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: timezone,
-  }).format(start);
+  getFormatter(dateFmtCache, timezone, { weekday: 'short', day: 'numeric', month: 'short' }).format(
+    start,
+  );
 const localClock = (start: number, timezone: string) =>
-  new Intl.DateTimeFormat('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: timezone,
-  }).format(start);
+  getFormatter(clockFmtCache, timezone, { hour: '2-digit', minute: '2-digit' }).format(start);
 
 function titleOf(match: HomeMatch): string {
   return matchTitle(match.summary.home_team.name, match.summary.away_team.name);

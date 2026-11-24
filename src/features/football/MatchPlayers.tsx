@@ -166,7 +166,7 @@ export function PlayersTab({
     <div className="players-grid">
       {entries.map((entry) => (
         <PlayerCard
-          key={entry.player.id}
+          key={`${entry.team_id}:${entry.player.id}`}
           entry={entry}
           detail={detail}
           onClick={() => setSelectedId(entry.player.id)}
@@ -174,6 +174,15 @@ export function PlayersTab({
       ))}
     </div>
   );
+}
+
+function canonicalNumber(entry: PlayerMatchEntry, keys: string[]): number | null {
+  for (const k of keys) {
+    const cell = findStatCell(entry, k);
+    const v = cell?.stat?.value;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
 }
 
 function PlayerCard({
@@ -185,11 +194,20 @@ function PlayerCard({
   detail: MatchDetail;
   onClick: () => void;
 }) {
-  const rating = numericStat(entry, 'Рейтинг');
-  const ratingAlt = rating ?? numericStat(entry, 'Rating');
-  const minutes = numericStat(entry, 'Сыграно минут') ?? numericStat(entry, 'Minutes played');
-  const goals = numericStat(entry, 'Голы') ?? numericStat(entry, 'Goals');
-  const assists = numericStat(entry, 'Ассисты') ?? numericStat(entry, 'Assists');
+  const ratingAlt =
+    canonicalNumber(entry, ['rating_title', 'rating']) ??
+    numericStat(entry, 'Рейтинг') ??
+    numericStat(entry, 'Rating');
+  const minutes =
+    canonicalNumber(entry, ['minutes_played', 'minutes']) ??
+    numericStat(entry, 'Сыграно минут') ??
+    numericStat(entry, 'Minutes played');
+  const goals =
+    canonicalNumber(entry, ['goals']) ?? numericStat(entry, 'Голы') ?? numericStat(entry, 'Goals');
+  const assists =
+    canonicalNumber(entry, ['assists']) ??
+    numericStat(entry, 'Ассисты') ??
+    numericStat(entry, 'Assists');
   const teamName = playerTeamName(entry, detail);
 
   return (

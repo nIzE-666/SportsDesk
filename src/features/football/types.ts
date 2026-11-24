@@ -131,6 +131,8 @@ export interface MatchEvent {
   period?: string;
   team_id?: string;
   player?: { id?: string; name?: string; image_url?: string | null };
+  assist_player?: { id?: string; name?: string };
+  related_player?: { id?: string; name?: string };
   score_home?: number | null;
   score_away?: number | null;
   is_own_goal?: boolean;

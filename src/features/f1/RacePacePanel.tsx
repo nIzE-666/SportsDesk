@@ -31,8 +31,13 @@ import './racePace.css';
 
 const driverName = (d: OpenF1Driver | undefined) =>
   d?.full_name || [d?.first_name, d?.last_name].filter(Boolean).join(' ') || 'Пилот';
-const duration = (n: number | null | undefined) =>
-  n == null ? '—' : `${Math.floor(n / 60)}:${(n % 60).toFixed(3).padStart(6, '0')}`;
+const duration = (n: number | null | undefined) => {
+  if (n == null || !Number.isFinite(n) || n < 0) return '—';
+  const totalMs = Math.round(n * 1000);
+  const mins = Math.floor(totalMs / 60_000);
+  const secs = ((totalMs % 60_000) / 1000).toFixed(3).padStart(6, '0');
+  return `${mins}:${secs}`;
+};
 const seconds = (n: number | null | undefined) =>
   n == null
     ? '—'
@@ -386,14 +391,14 @@ export function RacePacePanel({
                       <td>{r.lapNumber}</td>
                       <td>{duration(r.a.durationSeconds)}</td>
                       <td>
-                        {r.a.compound ?? '—'}
+                        {r.a.compound ? compoundName(r.a.compound) : '—'}
                         {r.a.pitIn ? ' · заезд' : ''}
                         {r.a.pitOut ? ' · выезд' : ''}
                         {r.a.pitLaneSeconds !== null ? ` · пит-лейн ${r.a.pitLaneSeconds} с` : ''}
                       </td>
                       <td>{duration(r.b.durationSeconds)}</td>
                       <td>
-                        {r.b.compound ?? '—'}
+                        {r.b.compound ? compoundName(r.b.compound) : '—'}
                         {r.b.pitIn ? ' · заезд' : ''}
                         {r.b.pitOut ? ' · выезд' : ''}
                         {r.b.pitLaneSeconds !== null ? ` · пит-лейн ${r.b.pitLaneSeconds} с` : ''}

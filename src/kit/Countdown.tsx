@@ -17,6 +17,55 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const DAY = 24 * 60 * MINUTE;
 
+const sharedClockListeners = new Set<() => void>();
+let sharedClockTimer: number | null = null;
+let sharedVisibilityAttached = false;
+
+function emitSharedTick() {
+  for (const listener of sharedClockListeners) listener();
+}
+
+function stopSharedClock() {
+  if (sharedClockTimer !== null) {
+    window.clearInterval(sharedClockTimer);
+    sharedClockTimer = null;
+  }
+}
+
+function startSharedClock() {
+  if (sharedClockTimer !== null || sharedClockListeners.size === 0) return;
+  if (document.visibilityState === 'hidden') return;
+  sharedClockTimer = window.setInterval(emitSharedTick, SECOND);
+}
+
+function onSharedVisibility() {
+  if (document.visibilityState === 'hidden') {
+    stopSharedClock();
+  } else {
+    emitSharedTick();
+    startSharedClock();
+  }
+}
+
+function subscribeSharedSecond(listener: () => void): () => void {
+  sharedClockListeners.add(listener);
+  if (!sharedVisibilityAttached) {
+    document.addEventListener('visibilitychange', onSharedVisibility);
+    sharedVisibilityAttached = true;
+  }
+  startSharedClock();
+  return () => {
+    sharedClockListeners.delete(listener);
+    if (sharedClockListeners.size === 0) {
+      stopSharedClock();
+      if (sharedVisibilityAttached) {
+        document.removeEventListener('visibilitychange', onSharedVisibility);
+        sharedVisibilityAttached = false;
+      }
+    }
+  };
+}
+
 /** «1 день», «2 дня», «5 дней» — the Russian plural for whole days. */
 export function pluralDays(count: number): string {
   const mod10 = count % 10;
@@ -99,30 +148,9 @@ export function Countdown({
   const remaining = targetMs - current;
 
   useEffect(() => {
-    let timer: number | null = null;
     const tick = () => setCurrent((nowRef.current ?? Date.now)());
-    const stop = () => {
-      if (timer !== null) {
-        window.clearInterval(timer);
-        timer = null;
-      }
-    };
-    const start = () => {
-      stop();
-      tick();
-      timer = window.setInterval(tick, SECOND);
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') stop();
-      else start();
-    };
-    if (document.visibilityState === 'hidden') tick();
-    else start();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      stop();
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
+    tick();
+    return subscribeSharedSecond(tick);
   }, []);
 
   if (!Number.isFinite(targetMs)) return null;

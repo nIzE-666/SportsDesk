@@ -173,18 +173,25 @@ function pushLiveScoreIncident(
   period: string,
   home: TeamRef,
   away: TeamRef,
+  assistFromSibling?: { id?: string; name?: string },
 ): void {
   const nested = asArray(entry.Incs).filter(isRecord);
   if (nested.length > 0) {
+    const assistChild = nested.find((c) => asInt(c.IT) === 63);
+    const assistName = assistChild ? liveScorePlayerName(assistChild) : undefined;
+    const assistId = assistChild
+      ? (asString(assistChild.Pid) ?? asString(assistChild.ID) ?? asString(assistChild.Aid))
+      : undefined;
+    const assist = assistName ? { id: assistId, name: assistName } : undefined;
     for (const child of nested) {
-      pushLiveScoreIncident(out, child, period, home, away);
+      pushLiveScoreIncident(out, child, period, home, away, assist);
     }
     return;
   }
   const code = asInt(entry.IT);
   const minute = asInt(entry.Min);
   if (code === null || minute === null || minute < 0) return;
-  // IT=63 is an assist attached inside a goal Incs[] pair; skip duplicate row in timeline.
+  // IT=63 is an assist attached inside a goal Incs[] pair; already attached to the goal event.
   if (code === 63) return;
 
   let eventType: string | null = null;
@@ -202,7 +209,9 @@ function pushLiveScoreIncident(
     eventType = 'penalty';
   } else if (code === 43) {
     eventType = 'yellowcard';
-  } else if (code === 44 || code === 45) {
+  } else if (code === 44) {
+    eventType = 'second_yellow';
+  } else if (code === 45) {
     eventType = 'redcard';
   } else if (code === 62) {
     eventType = 'substitution';
@@ -212,7 +221,7 @@ function pushLiveScoreIncident(
   const side = asInt(entry.Nm);
   const teamId = side === 1 ? home.id : side === 2 ? away.id : undefined;
   const playerName = liveScorePlayerName(entry);
-  const playerId = asString(entry.ID) ?? asString(entry.Aid);
+  const playerId = asString(entry.Pid) ?? asString(entry.ID) ?? asString(entry.Aid);
   const scoreArr = asArray(entry.Sc);
   const scoreHome = scoreArr.length >= 2 ? asInt(scoreArr[0]) : null;
   const scoreAway = scoreArr.length >= 2 ? asInt(scoreArr[1]) : null;
@@ -225,6 +234,7 @@ function pushLiveScoreIncident(
     period,
     team_id: teamId,
     player: playerName ? { id: playerId, name: playerName } : undefined,
+    assist_player: eventType === 'goal' && !isOwnGoal ? assistFromSibling : undefined,
     score_home: scoreHome,
     score_away: scoreAway,
     is_penalty: isPenalty || undefined,
@@ -516,17 +526,24 @@ export function parseEspnMatchSummary(
     }
     if (!eventType) continue;
 
-    const firstParticipant = asArray(item.participants).find(isRecord);
-    const athlete =
-      firstParticipant && isRecord(firstParticipant.athlete) ? firstParticipant.athlete : null;
-    const playerName = asString(athlete?.displayName) ?? asString(athlete?.shortName);
-    const playerId = asString(athlete?.id);
+    const participants = asArray(item.participants).filter(isRecord);
+    const firstAthlete =
+      participants[0] && isRecord(participants[0].athlete) ? participants[0].athlete : null;
+    const secondAthlete =
+      participants[1] && isRecord(participants[1].athlete) ? participants[1].athlete : null;
+    const playerName = asString(firstAthlete?.displayName) ?? asString(firstAthlete?.shortName);
+    const playerId = asString(firstAthlete?.id);
+    const secondName = asString(secondAthlete?.displayName) ?? asString(secondAthlete?.shortName);
+    const secondId = asString(secondAthlete?.id);
+    const secondRef = secondName ? { id: secondId, name: secondName } : undefined;
     eventsList.push({
       event_type: eventType,
       minute: parsedClock.minute,
       minute_added: parsedClock.added,
       team_id: matchSideId(item.team),
       player: playerName ? { id: playerId, name: playerName } : undefined,
+      assist_player: eventType === 'goal' && !isOwnGoal ? secondRef : undefined,
+      related_player: eventType === 'substitution' ? secondRef : undefined,
       is_penalty: isPenalty || undefined,
       is_own_goal: isOwnGoal || undefined,
     });
@@ -561,12 +578,13 @@ export function parseEspnMatchSummary(
       const h = hm.get(espnName);
       const a = am.get(espnName);
       if (h === undefined && a === undefined) return null;
-      const suffix = formatType === 'percentage' && h && !h.endsWith('%') ? '%' : '';
+      const fmtVal = (v: string | undefined) =>
+        v === undefined ? '0' : formatType === 'percentage' && !v.endsWith('%') ? `${v}%` : v;
       return {
         key,
         title,
-        home: h !== undefined ? `${h}${suffix}` : '0',
-        away: a !== undefined ? `${a}${suffix}` : '0',
+        home: fmtVal(h),
+        away: fmtVal(a),
         format_type: formatType,
       };
     };

@@ -92,20 +92,23 @@
   position: absolute;
   inset: -2px;
   border-radius: var(--radius-md);
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
   pointer-events: none;
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+  will-change: transform, opacity;
   animation: ambient-pulse 2.4s ease-out infinite;
 }
 .ambient-toggle.calm.playing::after {
   animation: none;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 @keyframes ambient-pulse {
   from {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+    transform: scale(1);
+    opacity: 0.85;
   }
   to {
-    box-shadow: 0 0 0 9px transparent;
+    transform: scale(1.26);
+    opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

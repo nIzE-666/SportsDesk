@@ -95,18 +95,29 @@ export function MiniWindow() {
     let stop: (() => void) | undefined;
     if (isTauriRuntime())
       void import('@tauri-apps/api/event').then(async (mod) => {
-        const off = await mod.listen('sportsdesk://live-feed', () => void load());
+        const off = await mod.listen('sportsdesk://live-feed', () => {
+          if (document.visibilityState !== 'hidden') void load();
+        });
         if (mounted.current) stop = off;
         else off();
       });
-    const timer = window.setInterval(() => void load(true), REFRESH_MS);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'hidden') void load(true);
+    }, REFRESH_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
     // Rust-поллер обновил данные в фоне — подтягиваем сразу.
-    const onPing = () => void load();
+    const onPing = () => {
+      if (document.visibilityState !== 'hidden') void load();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('sportsdesk-live-refresh', onPing);
     return () => {
       mounted.current = false;
       stop?.();
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('sportsdesk-live-refresh', onPing);
     };
   }, [load]);

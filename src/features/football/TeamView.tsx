@@ -19,6 +19,7 @@ import { SourceLine } from '../../components/SourceLine';
 import { formatHumanDate } from '../../lib/humanDate';
 import { migrateClubTab, type ClubTab } from '../../lib/navigation';
 import { countRu, MATCHES, pluralRu } from '../../lib/plural';
+import { useNow } from '../../lib/useNow';
 import { useViewState } from '../../lib/useViewState';
 import { viewState } from '../../lib/viewState';
 import { spoilerKey, useResultHidden, useSpoilerSet } from '../spoilers/spoilerStore';
@@ -378,7 +379,7 @@ function ClubPage({
     () => computeHistory(teamMatches, team.id, team.name),
     [teamMatches, team.id, team.name],
   );
-  const now = Date.now();
+  const now = useNow();
   const snapshot = useMemo(
     () => clubSnapshot(teamMatches, team.id, now),
     [teamMatches, team.id, now],

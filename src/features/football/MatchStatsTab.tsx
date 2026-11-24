@@ -41,9 +41,13 @@ export function MatchStatsTab({
     'ExtraTime',
     'PenaltyShootout',
   ];
+  const periodRank = (name: string) => {
+    const idx = periodOrder.indexOf(name);
+    return idx < 0 ? 99 : idx;
+  };
   const periods = payload.periods
     .slice()
-    .sort((a, b) => periodOrder.indexOf(a.period) - periodOrder.indexOf(b.period));
+    .sort((a, b) => periodRank(a.period) - periodRank(b.period));
   const home = detail.home_team,
     away = detail.away_team;
   const groups = [...(period?.groups ?? [])].sort((a, b) => {

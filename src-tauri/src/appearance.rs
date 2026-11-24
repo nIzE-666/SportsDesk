@@ -36,7 +36,7 @@ fn apply(app: &AppHandle, scheme: &str) -> Result<(), String> {
             .set_background_color(Some(if light {
                 Color(243, 246, 251, 255)
             } else {
-                Color(11, 16, 28, 255)
+                Color(24, 24, 24, 255)
             }))
             .map_err(|_| "Не удалось применить фон окна.")?;
     }

@@ -184,18 +184,34 @@ export function HomeView({
       setReminders(toggleHomeReminder(item, now)),
     isReminderDeliverable,
   };
-  const visibleMatches = matches.filter(({ leagueId }) => leagueIds.includes(leagueId));
-  const live = showFootball
-    ? selectLiveMatches(
-        liveData.matches.filter(({ leagueId }) => leagueId && leagueIds.includes(leagueId)),
-        visibleMatches,
-      )
-    : [];
-  const hiddenUnmatched = [...spoilerIds].some((key) => key.startsWith('football:'));
+  const visibleMatches = useMemo(
+    () => matches.filter(({ leagueId }) => leagueIds.includes(leagueId)),
+    [matches, leagueIds],
+  );
+  const live = useMemo(
+    () =>
+      showFootball
+        ? selectLiveMatches(
+            liveData.matches.filter(({ leagueId }) => leagueId && leagueIds.includes(leagueId)),
+            visibleMatches,
+          )
+        : [],
+    [showFootball, liveData.matches, leagueIds, visibleMatches],
+  );
+  const hiddenUnmatched = useMemo(
+    () => [...spoilerIds].some((key) => key.startsWith('football:')),
+    [spoilerIds],
+  );
   const from = localMidnightUtc(shiftDayKey(today, -7), timezone);
   const through = localMidnightUtc(shiftDayKey(today, 8), timezone);
-  const best = selectBest(visibleMatches, from, now).slice(0, 12);
-  const upcoming = selectUpcoming(visibleMatches, now, through);
+  const best = useMemo(
+    () => selectBest(visibleMatches, from, now).slice(0, 12),
+    [visibleMatches, from, now],
+  );
+  const upcoming = useMemo(
+    () => selectUpcoming(visibleMatches, now, through),
+    [visibleMatches, now, through],
+  );
   const upcomingSessions = f1.sessions.filter(
     (session) =>
       session.start > now &&

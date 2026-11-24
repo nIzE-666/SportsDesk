@@ -431,7 +431,7 @@ export function Session({
                         key={`${s.stint_number ?? start}-${i}`}
                         className={`f1-stint-seg f1-tyre f1-tyre--${tyreClass(s.compound)}`}
                         style={{ '--stint-grow': width } as F1Style}
-                        title={`${s.compound ?? 'Compound?'} · круги ${start}–${end}`}
+                        title={`${compoundLabel(s.compound) || 'Состав неизвестен'} · круги ${start}–${end}`}
                       >
                         {compoundLabel(s.compound)}
                       </div>

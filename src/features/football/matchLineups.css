@@ -128,7 +128,7 @@
   left: var(--pitch-x);
   top: var(--pitch-y);
   transform: translate(-50%, -50%);
-  width: 64px;
+  width: 78px;
   height: auto;
   min-height: 0;
   display: grid;
@@ -207,9 +207,106 @@
   place-items: center;
   border-radius: var(--radius-round);
 }
+.pitch-ev-goals {
+  position: absolute;
+  top: -5px;
+  left: -10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+.pitch-ev-ball {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pitch-ev-ball em {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: var(--text-12);
+  font-style: normal;
+  font-weight: var(--weight-bold);
+  line-height: 14px;
+  text-align: center;
+  transform: scale(0.82);
+}
+.pitch-ev-ball.own em {
+  background: var(--color-loss);
+}
+.pitch-ball-svg {
+  display: block;
+  flex-shrink: 0;
+  border-radius: var(--radius-round);
+  box-shadow: var(--shadow-1);
+}
+.pitch-ev-corner {
+  position: absolute;
+  bottom: -2px;
+  right: -10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+.pitch-ev-assist {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: var(--radius-round);
+  background: var(--color-team-home);
+  color: var(--color-bg);
+  font-size: var(--text-12);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  box-shadow: var(--shadow-1);
+  transform: scale(0.85);
+}
+.pitch-ev-assist.inline {
+  min-width: 16px;
+  height: 16px;
+  box-shadow: none;
+  transform: scale(0.88);
+}
+.pitch-ev-card {
+  display: inline-block;
+  width: 9px;
+  height: 13px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1);
+  flex-shrink: 0;
+}
+.pitch-ev-card.inline {
+  width: 8px;
+  height: 12px;
+  box-shadow: none;
+}
+.pitch-ev-card.yellow {
+  background: var(--color-tyre-medium);
+  border: 1px solid var(--color-bg);
+}
+.pitch-ev-card.red {
+  background: var(--color-live);
+  border: 1px solid var(--color-bg);
+}
+.pitch-ev-card.second-yellow {
+  background: linear-gradient(135deg, var(--color-tyre-medium) 50%, var(--color-live) 50%);
+  border: 1px solid var(--color-bg);
+}
 .lineup-pitch .pitch-player-name {
   display: block;
-  max-width: 64px;
+  max-width: 78px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -258,6 +355,50 @@
   align-items: center;
   gap: var(--space-8);
   flex-wrap: wrap;
+}
+.pitch-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pitch-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
+  margin: 0 var(--space-4);
+}
+.rated-lineup-title {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rated-lineup-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rated-ev-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-12);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+.rated-ev-goal.own {
+  color: var(--color-loss);
+}
+.rated-ev-sub {
+  font-size: var(--text-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+.rated-ev-sub.on {
+  color: var(--color-win);
+}
+.rated-ev-sub.off {
+  color: var(--color-loss);
 }
 .pitch-caption {
   display: flex;

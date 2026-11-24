@@ -120,3 +120,43 @@ it('does not display another match or reversed teams and handles unpublished lin
     expect(host.textContent).toContain('Составы пока не опубликованы');
   }
 });
+
+it('renders goal balls, assist badges and cards on the pitch and lineup lists', async () => {
+  await act(async () =>
+    root.render(
+      <FavoritesProvider>
+        <MatchLineups
+          detail={detail}
+          payload={lineup}
+          entries={entries}
+          events={[
+            {
+              event_type: 'goal',
+              minute: 18,
+              team_id: 'home',
+              player: { id: 'shared', name: 'Хозяин' },
+            },
+            {
+              event_type: 'goal',
+              minute: 64,
+              team_id: 'home',
+              player: { id: 'shared', name: 'Хозяин' },
+            },
+            {
+              event_type: 'yellowcard',
+              minute: 72,
+              team_id: 'away',
+              player: { id: 'shared', name: 'Гость' },
+            },
+          ]}
+        />
+      </FavoritesProvider>,
+    ),
+  );
+  const homePlayer = host.querySelector('.pitch-player.home');
+  const awayPlayer = host.querySelector('.pitch-player.away');
+  expect(homePlayer?.querySelector('.pitch-ev-ball svg')).not.toBeNull();
+  expect(homePlayer?.querySelector('.pitch-ev-ball em')?.textContent).toBe('2');
+  expect(awayPlayer?.querySelector('.pitch-ev-card.yellow')).not.toBeNull();
+  expect(host.querySelector('.pitch-legend .lineup-rating.unknown')?.textContent).toBe('—');
+});

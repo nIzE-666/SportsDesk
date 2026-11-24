@@ -446,7 +446,7 @@ function XgChart({
         <g key={v}>
           <path className="analysis-grid" d={`M40 ${y(v)}H560`} />
           <text x="32" y={y(v) + 4} textAnchor="end">
-            {decimal(v)}
+            {formatAxisScale(v)}
           </text>
         </g>
       ))}

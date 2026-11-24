@@ -652,6 +652,7 @@ export function MatchDetailView({
                     detail={detail}
                     payload={effectiveLineups}
                     entries={loaded.players}
+                    events={effectiveEvents?.events}
                     error={effectiveLineups ? undefined : optionalErrors.lineups}
                     playersError={optionalErrors.players}
                     playersLoading={optionalLoading.players}
@@ -754,7 +755,12 @@ function Overview({
   const eventsList = events?.events ?? [];
   const goals = eventsList.filter((e) => e.event_type === 'goal');
   const cards = eventsList.filter(
-    (e) => e.event_type === 'yellowcard' || e.event_type === 'redcard',
+    (e) =>
+      e.event_type === 'yellowcard' ||
+      e.event_type === 'yellow_card' ||
+      e.event_type === 'redcard' ||
+      e.event_type === 'red_card' ||
+      e.event_type === 'second_yellow',
   );
   const allPeriod = stats?.periods?.find((p) => p.period === 'All');
   const allGroups: StatGroup[] = allPeriod?.groups ?? [];
@@ -827,7 +833,10 @@ function Overview({
                       ? detail.away_team.name
                       : '—'}
                 </span>
-                <span>{g.player?.name ?? '—'}</span>
+                <span>
+                  {g.player?.name ?? '—'}
+                  {g.assist_player?.name ? ` (пас: ${g.assist_player.name})` : ''}
+                </span>
                 {g.is_penalty && <Badge>пенальти</Badge>}
                 {g.is_own_goal && <Badge>автогол</Badge>}
               </li>
@@ -899,7 +908,10 @@ function labelEvent(type: string): string {
   const map: Record<string, string> = {
     goal: 'Гол',
     yellowcard: 'Жёлтая',
+    yellow_card: 'Жёлтая',
     redcard: 'Красная',
+    red_card: 'Красная',
+    second_yellow: '2-я жёлтая',
     substitution: 'Замена',
     penalty: 'Пенальти',
     own_goal: 'Автогол',

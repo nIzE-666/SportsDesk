@@ -253,7 +253,7 @@
 }
 
 .showcase .ui-pitch-track--track .ui-pitch-track__week-future {
-  filter: drop-shadow(0 0 6px var(--showcase-accent-glow));
+  opacity: 0.96;
 }
 
 .showcase .ui-pitch-track--track .ui-pitch-track__kerb-base,
@@ -417,11 +417,10 @@
   will-change: transform;
   backface-visibility: hidden;
   transition: scale 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
-  animation: ui-showcase-float 6s ease-in-out infinite;
 }
 
 .showcase .ui-showcase-hero__crest--away {
-  animation-delay: -3s;
+  top: 9%;
 }
 
 .showcase .ui-showcase-hero:hover .ui-showcase-hero__crest {

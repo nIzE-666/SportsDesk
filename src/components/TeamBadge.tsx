@@ -52,6 +52,7 @@ export function TeamBadge({ name, imageUrl, size = 28, side }: TeamBadgeProps) {
       className="team-badge"
       style={geometry}
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => setBroken(true)}
     />
   );

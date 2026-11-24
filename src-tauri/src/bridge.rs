@@ -490,9 +490,8 @@ fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
             return 60 * 1000;
         }
     }
-    if source == "pitch"
-        && p.starts_with("matches/")
-        && [
+    if source == "pitch" && p.starts_with("matches/") {
+        let is_subresource = [
             "/players",
             "/stats",
             "/lineups",
@@ -501,9 +500,16 @@ fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
             "/momentum",
         ]
         .iter()
-        .any(|part| p.contains(part))
-    {
-        return 60 * 1000;
+        .any(|part| p.contains(part));
+        let is_finished = payload
+            .get("data")
+            .unwrap_or(payload)
+            .get("status")
+            .and_then(|v| v.as_str())
+            .is_some_and(|state| crate::sports::status(&[state]) == "finished");
+        if is_subresource || !is_finished {
+            return 60 * 1000;
+        }
     }
     if p.contains("matches")
         || p.contains("results")

@@ -1091,7 +1091,7 @@ img {
   text-wrap: balance;
   letter-spacing: -0.02em;
 }
-.app-root[data-theme] h1 {
+.app-root[data-theme] h1:not(.shell-page-title) {
   font-size: var(--text-32);
   line-height: 36px;
   font-weight: 700;

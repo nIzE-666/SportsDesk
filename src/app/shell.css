@@ -168,7 +168,9 @@
 
 .shell-page-title-switcher {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  min-width: 0;
   overflow: visible;
 }
 
@@ -176,6 +178,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -184,6 +187,8 @@
   height: auto;
   min-height: 0;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: var(--space-4);
   border: 0;
   background: none;
@@ -201,6 +206,13 @@
   color: inherit;
 }
 
+.competition-switcher-trigger .ui-button__label {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.competition-switcher-trigger .ui-button__label > span,
 .competition-switcher-trigger > span {
   overflow: hidden;
   text-overflow: ellipsis;
