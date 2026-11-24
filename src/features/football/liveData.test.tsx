@@ -432,7 +432,7 @@ describe('useLiveMatches', () => {
     expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toEqual([]);
   });
 
-  it('loads the day on mount and the live sheet every sixty seconds while a match qualifies', async () => {
+  it('loads the day on mount and the live sheet every twenty seconds while a match qualifies', async () => {
     vi.setSystemTime(new Date('2026-11-14T15:01:00Z'));
     vi.mocked(api).mockImplementation(async (source, path) => {
       if (source === 'livescore' && path.startsWith('date/')) return reply(HOOK_LIVE);
@@ -443,9 +443,9 @@ describe('useLiveMatches', () => {
     expect(calledPaths('livescore')).toContain('date/soccer/20261115/9?MD=1');
     expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toHaveLength(1);
     expect(latest?.matches.some((match) => match.state === 'live')).toBe(true);
-    await advance(60_000);
+    await advance(20_000);
     expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toHaveLength(2);
-    await advance(60_000);
+    await advance(20_000);
     expect(calledPaths('livescore').filter((path) => path.startsWith('live/'))).toHaveLength(3);
   });
 
@@ -627,10 +627,10 @@ describe('useLiveMatches', () => {
       score: { home: 2, away: 1 },
     });
 
-    // At +60s, the match disappears from /live/soccer/.
+    // At +20s, the match disappears from /live/soccer/.
     // Day sheet refreshes immediately without waiting an hour, and while date/ lags at 65' 1:0,
     // the visible match keeps 85' and 2:1 instead of regressing or inventing a finished status.
-    await advance(60_000);
+    await advance(20_000);
     expect(liveCalls).toBe(2);
     expect(dayCalls).toBe(2);
     expect(latest?.matches[0]).toMatchObject({
@@ -640,8 +640,8 @@ describe('useLiveMatches', () => {
       score: { home: 2, away: 1 },
     });
 
-    // At +120s, the next live check sees the match still unconfirmed and refreshes date/, which now confirms FT 2:1.
-    await advance(60_000);
+    // At +40s, the next live check sees the match still unconfirmed and refreshes date/, which now confirms FT 2:1.
+    await advance(20_000);
     expect(liveCalls).toBe(3);
     expect(dayCalls).toBe(3);
     expect(latest?.matches[0]).toMatchObject({

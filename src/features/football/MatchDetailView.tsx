@@ -26,6 +26,14 @@ import { SpoilerToggle } from '../spoilers/SpoilerToggle';
 import { PredictionPanel } from '../games/PredictionPanel';
 import '../spoilers/spoilers.css';
 import { formatHumanDateTime } from '../../lib/humanDate';
+import {
+  fetchLiveMatchSnapshot,
+  isMatchPotentiallyLive,
+  resolveLiveMatchRef,
+  type LiveMatchCommentaryItem,
+  type LiveMatchSnapshot,
+  type ResolvedLiveMatchRef,
+} from './liveMatchDetail';
 import { formatUpdatedAt, getUserTimezone } from './storage';
 import type {
   EventsPayload,
@@ -250,6 +258,62 @@ export function MatchDetailView({
   const tabRef = useRef<MatchTab>(tab);
   tabRef.current = tab;
   const [liveAt, setLiveAt] = useState<string | null>(null);
+  const [liveSnap, setLiveSnap] = useState<LiveMatchSnapshot | null>(null);
+  const liveRef = useRef<ResolvedLiveMatchRef | null>(null);
+  const liveInFlight = useRef(false);
+  const detailRef = useRef<MatchDetail | null>(null);
+  detailRef.current = loaded.detail;
+  const hasPitchLineupsRef = useRef(false);
+  hasPitchLineupsRef.current = Boolean(loaded.lineups?.home?.starters?.length);
+
+  useEffect(() => {
+    setLiveSnap(null);
+    liveRef.current = null;
+    liveInFlight.current = false;
+  }, [matchId]);
+
+  const refreshLiveCenter = useCallback(
+    async (automatic: boolean) => {
+      const base = detailRef.current;
+      if (!base || !isMatchPotentiallyLive(base, Date.now()) || liveInFlight.current) return;
+      const requestId = reqRef.current;
+      liveInFlight.current = true;
+      try {
+        let resolved = liveRef.current;
+        if (!resolved) {
+          resolved = await resolveLiveMatchRef(base, timezone, new Date(), automatic);
+          if (!mounted.current || requestId !== reqRef.current) return;
+          liveRef.current = resolved;
+        }
+        if (!resolved) return;
+        const snap = await fetchLiveMatchSnapshot(base, resolved, {
+          automatic,
+          includeStats: true,
+          includeLineups: !hasPitchLineupsRef.current,
+        });
+        if (!mounted.current || requestId !== reqRef.current || !snap) return;
+        setLiveSnap(snap);
+        if (snap.fetchedAt) setLiveAt(snap.fetchedAt);
+      } catch {
+        /* keep previous live snapshot when free feed temporarily fails */
+      } finally {
+        liveInFlight.current = false;
+      }
+    },
+    [timezone],
+  );
+
+  const potentiallyLive = isMatchPotentiallyLive(loaded.detail, Date.now());
+  useEffect(() => {
+    if (!potentiallyLive) return;
+    void refreshLiveCenter(true);
+    const timer = window.setInterval(() => {
+      void refreshLiveCenter(true);
+    }, 20_000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [potentiallyLive, matchId, refreshLiveCenter]);
   useEffect(() => {
     if (!isTauriRuntime()) return; // dev-браузер: обычная загрузка без слежения
     let stop: (() => void) | null = null;
@@ -317,6 +381,7 @@ export function MatchDetailView({
     const requestId = reqRef.current;
     const automatic = !manualChanged;
     const currentTab = tabRef.current;
+    void refreshLiveCenter(automatic);
     void loadOptional('events', automatic).catch(() => undefined);
     if (!automatic || currentTab === 'stats') void loadOptional('stats', automatic);
     if (!automatic || currentTab === 'lineups') {
@@ -349,15 +414,47 @@ export function MatchDetailView({
     return () => {
       active = false;
     };
-  }, [liveTick, manualTick, matchId, loadOptional]);
+  }, [liveTick, manualTick, matchId, loadOptional, refreshLiveCenter]);
 
-  const detail = loaded.detail;
+  const pitchFinished =
+    loaded.detail !== null && classifyMatchStatus(loaded.detail.status) === 'finished';
+  const useLiveOverlay = Boolean(liveSnap && loaded.detail && !pitchFinished);
+  const detail: MatchDetail | null =
+    loaded.detail && useLiveOverlay && liveSnap
+      ? {
+          ...loaded.detail,
+          status: liveSnap.status,
+          score_home: liveSnap.scoreHome ?? loaded.detail.score_home,
+          score_away: liveSnap.scoreAway ?? loaded.detail.score_away,
+        }
+      : loaded.detail;
+  const effectiveEvents: EventsPayload | null =
+    useLiveOverlay &&
+    liveSnap?.events &&
+    (liveSnap.events.events.length > 0 || !loaded.events?.events.length)
+      ? liveSnap.events
+      : loaded.events;
+  const effectiveStats: StatsPayload | null =
+    useLiveOverlay && liveSnap?.stats && !loaded.stats?.periods?.length
+      ? liveSnap.stats
+      : loaded.stats;
+  const effectiveLineups: LineupsPayload | null =
+    useLiveOverlay && liveSnap?.lineups && !loaded.lineups?.home?.starters?.length
+      ? liveSnap.lineups
+      : loaded.lineups;
+  const liveCommentary: LiveMatchCommentaryItem[] =
+    useLiveOverlay && liveSnap ? liveSnap.commentary : [];
   const tacticsOn = modules.tactics;
   const activeTab: MatchTab = tab;
   const sourceEntries = [
     ...Object.values(sources),
+    ...(useLiveOverlay && liveSnap
+      ? [{ fetchedAt: liveSnap.fetchedAt, stale: liveSnap.stale }]
+      : []),
     ...(activeTab === 'analysis' && analysisSource ? [analysisSource] : []),
   ];
+  const sourceIds =
+    useLiveOverlay && liveSnap ? (['pitch', liveSnap.source] as const) : (['pitch'] as const);
   const datedSources = sourceEntries
     .map((source) => source.fetchedAt)
     .filter((date): date is string => !!date && Number.isFinite(Date.parse(date)))
@@ -449,13 +546,20 @@ export function MatchDetailView({
                 {detail.score_home ?? '—'} : {detail.score_away ?? '—'}
               </HiddenScore>
             </strong>
-            <Badge>{matchStatusLabel(detail.status)}</Badge>
-            {classifyMatchStatus(detail.status) === 'live' && isTauriRuntime() && (
-              <Badge variant="live">
-                <Radio size={10} className="watch-spin-slow" /> следим{' '}
-                {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
-              </Badge>
-            )}
+            <Badge>
+              {useLiveOverlay && liveSnap?.minute
+                ? liveSnap.minute === 'HT'
+                  ? 'Перерыв'
+                  : liveSnap.minute
+                : matchStatusLabel(detail.status)}
+            </Badge>
+            {classifyMatchStatus(detail.status) === 'live' &&
+              (isTauriRuntime() || useLiveOverlay) && (
+                <Badge variant="live">
+                  <Radio size={10} className="watch-spin-slow" /> следим{' '}
+                  {liveAt ? `· обновлено ${formatUpdatedAt(liveAt, timezone)}` : '· автообновление'}
+                </Badge>
+              )}
           </div>
           <div className="md-side away">
             <span className="md-team-name" title={detail.away_team.name}>
@@ -514,9 +618,10 @@ export function MatchDetailView({
               {activeTab === 'overview' && (
                 <Overview
                   detail={detail}
-                  events={loaded.events}
-                  eventsError={optionalErrors.events}
-                  stats={loaded.stats}
+                  events={effectiveEvents}
+                  eventsError={effectiveEvents ? undefined : optionalErrors.events}
+                  stats={effectiveStats}
+                  commentary={liveCommentary}
                   timezone={timezone}
                 />
               )}
@@ -535,9 +640,9 @@ export function MatchDetailView({
                   <TacticsBoard
                     key={matchId}
                     detail={detail}
-                    payload={loaded.lineups}
-                    loading={optionalLoading.lineups}
-                    error={optionalErrors.lineups}
+                    payload={effectiveLineups}
+                    loading={optionalLoading.lineups && !effectiveLineups}
+                    error={effectiveLineups ? undefined : optionalErrors.lineups}
                   />
                 </div>
               )}
@@ -545,9 +650,9 @@ export function MatchDetailView({
                 <>
                   <MatchLineups
                     detail={detail}
-                    payload={loaded.lineups}
+                    payload={effectiveLineups}
                     entries={loaded.players}
-                    error={optionalErrors.lineups}
+                    error={effectiveLineups ? undefined : optionalErrors.lineups}
                     playersError={optionalErrors.players}
                     playersLoading={optionalLoading.players}
                     onOpenTactics={tacticsOn ? () => setBoardOpen(true) : undefined}
@@ -568,8 +673,8 @@ export function MatchDetailView({
               )}
               {activeTab === 'stats' && (
                 <MatchStatsTab
-                  payload={loaded.stats}
-                  error={optionalErrors.stats}
+                  payload={effectiveStats}
+                  error={effectiveStats ? undefined : optionalErrors.stats}
                   detail={detail}
                 />
               )}
@@ -588,7 +693,7 @@ export function MatchDetailView({
       </SpoilerGate>
       <SourceLine
         role="status"
-        sources={['pitch']}
+        sources={sourceIds}
         fetchedAt={oldestSource}
         oldest
         stale={sourceEntries.some((source) => source.stale)}
@@ -636,12 +741,14 @@ function Overview({
   events,
   eventsError,
   stats,
+  commentary = [],
   timezone,
 }: {
   detail: MatchDetail;
   events: EventsPayload | null;
   eventsError?: string;
   stats: StatsPayload | null;
+  commentary?: LiveMatchCommentaryItem[];
   timezone: string;
 }) {
   const eventsList = events?.events ?? [];
@@ -735,16 +842,30 @@ function Overview({
           <EmptyState tone="error" title="События недоступны" message={eventsError} />
         ) : !events ? (
           <EmptyState message="События матча пока недоступны." />
-        ) : events.events.length === 0 ? (
+        ) : eventsList.length === 0 ? (
           <EmptyState message="Лента событий пуста." />
         ) : (
           <ul className="event-list">
-            {events.events.map((ev, i) => (
+            {eventsList.map((ev, i) => (
               <EventRow key={i} ev={ev} detail={detail} />
             ))}
           </ul>
         )}
       </Panel>
+
+      {commentary.length > 0 && (
+        <Panel className="md-events">
+          <PanelHeader title="Ход матча" />
+          <ul className="event-list">
+            {commentary.map((item, i) => (
+              <li key={i} className="event-row">
+                <span className="event-min">{item.minute || '—'}</span>
+                <span className="event-player">{item.text}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </div>
   );
 }

@@ -32,10 +32,12 @@ use tokio::time::sleep;
 use crate::bridge::{fetch_with_cache, AppStateInner};
 
 const BASE_TICK: Duration = Duration::from_secs(60);
+/// Faster background cadence while at least one tracked favourite match is live or starting soon.
+const LIVE_BASE_TICK: Duration = Duration::from_secs(20);
 const MAX_TICK: Duration = Duration::from_secs(15 * 60);
 const DEDUP_TTL_MS: i64 = 48 * 60 * 60 * 1000;
 /// Live match-detail refresh cadence.
-const WATCH_TICK: Duration = Duration::from_secs(60);
+const WATCH_TICK: Duration = Duration::from_secs(20);
 
 /// Every failure gets another bounded attempt, including errors classified as
 /// non-retryable for interactive requests. Settings changes can wake sooner.
@@ -226,6 +228,148 @@ pub struct LiveFeed {
     pub stale: bool,
     pub failure: Option<crate::bridge::ApiFailure>,
 }
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct LiveScoreOverlayRow {
+    home: String,
+    away: String,
+    eps: String,
+    finished: bool,
+    home_score: i64,
+    away_score: i64,
+}
+
+fn parse_livescore_int(value: Option<&Value>) -> Option<i64> {
+    match value? {
+        Value::Number(n) => n.as_i64(),
+        Value::String(s) => s.trim().parse::<i64>().ok(),
+        _ => None,
+    }
+}
+
+fn parse_livescore_live_snapshot(payload: &Value) -> Vec<LiveScoreOverlayRow> {
+    let mut rows = Vec::new();
+    let Some(stages) = payload.get("Stages").and_then(Value::as_array) else {
+        return rows;
+    };
+    for stage in stages {
+        let Some(events) = stage.get("Events").and_then(Value::as_array) else {
+            continue;
+        };
+        for ev in events {
+            let eps = ev
+                .get("Eps")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .unwrap_or("");
+            if eps.is_empty() || eps == "NS" {
+                continue;
+            }
+            let finished = matches!(eps, "FT" | "AET" | "AP");
+            let is_live = eps == "HT"
+                || eps
+                    .trim_end_matches('\'')
+                    .split('+')
+                    .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
+            if !finished && !is_live {
+                continue;
+            }
+            let home = ev
+                .get("T1")
+                .and_then(Value::as_array)
+                .and_then(|a| a.first())
+                .and_then(|t| t.get("Nm"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .unwrap_or("");
+            let away = ev
+                .get("T2")
+                .and_then(Value::as_array)
+                .and_then(|a| a.first())
+                .and_then(|t| t.get("Nm"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .unwrap_or("");
+            let (Some(home_score), Some(away_score)) = (
+                parse_livescore_int(ev.get("Tr1")),
+                parse_livescore_int(ev.get("Tr2")),
+            ) else {
+                continue;
+            };
+            if home.is_empty() || away.is_empty() {
+                continue;
+            }
+            rows.push(LiveScoreOverlayRow {
+                home: home.to_string(),
+                away: away.to_string(),
+                eps: eps.to_string(),
+                finished,
+                home_score,
+                away_score,
+            });
+        }
+    }
+    rows
+}
+
+fn teams_match_overlay(pitch_name: &str, live_name: &str) -> bool {
+    let live_slice = [live_name.to_string()];
+    let pitch_slice = [pitch_name.to_string()];
+    crate::sports::favorite_name(pitch_name, &live_slice)
+        || crate::sports::favorite_name(live_name, &pitch_slice)
+}
+
+fn match_in_live_window(m: &FlatMatch, now: i64) -> bool {
+    let status = crate::sports::status(&[
+        m.status.as_deref().unwrap_or(""),
+        m.status_text.as_deref().unwrap_or(""),
+    ]);
+    if status == "live" {
+        return true;
+    }
+    if matches!(status, "finished" | "cancelled" | "postponed") {
+        return false;
+    }
+    let Some(kickoff) = m.time.as_deref().and_then(parse_time_ms) else {
+        return false;
+    };
+    now >= kickoff - 15 * 60_000 && now <= kickoff + 210 * 60_000
+}
+
+fn overlay_livescore_rows(
+    matches: &mut [FlatMatch],
+    live_rows: &[LiveScoreOverlayRow],
+    fetched_at: &mut HashMap<String, i64>,
+    fetched_ms: i64,
+) -> usize {
+    let mut updated = 0usize;
+    for m in matches.iter_mut() {
+        let status = crate::sports::status(&[m.status.as_deref().unwrap_or("")]);
+        if matches!(status, "finished" | "cancelled" | "postponed") {
+            continue;
+        }
+        let (Some(home), Some(away)) = (m.home.as_deref(), m.away.as_deref()) else {
+            continue;
+        };
+        let Some(row) = live_rows
+            .iter()
+            .find(|r| teams_match_overlay(home, &r.home) && teams_match_overlay(away, &r.away))
+        else {
+            continue;
+        };
+        m.status = Some(if row.finished {
+            "finished".into()
+        } else {
+            "inprogress".into()
+        });
+        m.status_text = Some(row.eps.clone());
+        m.home_score = Some(Value::from(row.home_score));
+        m.away_score = Some(Value::from(row.away_score));
+        fetched_at.insert(m.id.clone(), fetched_ms);
+        updated += 1;
+    }
+    updated
+}
+
 pub(crate) fn pitch_match(value: &Value) -> Option<FlatMatch> {
     let team = |side: &str, field: &str| {
         value
@@ -1690,6 +1834,34 @@ impl Poller {
             .filter(|m| !batch.ambiguous.contains(&m.id) && !favorite_ids(m, &cfg).is_empty())
             .cloned()
             .collect();
+        // PitchAPI only reports not_started/finished; when a favourite match is in its
+        // live window, overlay real-time score, minute and inprogress state from LiveScore.
+        let now = now_ms();
+        if matches.iter().any(|m| match_in_live_window(m, now)) {
+            if let Ok(live_reply) = fetch_with_cache(
+                self.state.clone(),
+                "livescore".into(),
+                "live/soccer/0?MD=1".into(),
+            )
+            .await
+            {
+                let live_rows = parse_livescore_live_snapshot(&live_reply.payload);
+                if !live_rows.is_empty() {
+                    let fetched_ms = parse_time_ms(&live_reply.fetched_at).unwrap_or(now);
+                    if overlay_livescore_rows(
+                        &mut matches,
+                        &live_rows,
+                        &mut batch.fetched_at,
+                        fetched_ms,
+                    ) > 0
+                    {
+                        for updated in &matches {
+                            batch.matches.insert(updated.id.clone(), updated.clone());
+                        }
+                    }
+                }
+            }
+        }
         matches.sort_by_key(|m| m.time.clone().unwrap_or_default());
         if self.revision() != revision {
             return Ok(());
@@ -2003,7 +2175,18 @@ pub fn start(app: AppHandle, poller: Arc<Poller>) {
             let revision = poller.revision.load(Ordering::Relaxed);
             match poller.tick(&app).await {
                 Ok(()) => {
-                    pause = retry_delay(pause, BASE_TICK, MAX_TICK, None);
+                    let now = now_ms();
+                    let active_live = poller
+                        .live_feed()
+                        .matches
+                        .iter()
+                        .any(|m| match_in_live_window(m, now));
+                    let target = if active_live {
+                        LIVE_BASE_TICK
+                    } else {
+                        BASE_TICK
+                    };
+                    pause = retry_delay(pause, target, MAX_TICK, None);
                 }
                 Err(error) => {
                     pause = retry_delay(pause, BASE_TICK, MAX_TICK, Some(&error));
@@ -3016,5 +3199,63 @@ mod tests {
         assert!(path_is_blocked(blocked, 3, now));
         assert!(!path_is_blocked(blocked, 3, now + MAX_TICK));
         assert!(!path_is_blocked(blocked, 4, now));
+    }
+
+    #[test]
+    fn livescore_overlay_updates_live_scores_without_overwriting_finished_matches() {
+        let payload = serde_json::json!({
+            "Stages": [{
+                "Events": [
+                    {
+                        "Eps": "67'",
+                        "T1": [{ "Nm": "Arsenal" }],
+                        "T2": [{ "Nm": "Chelsea" }],
+                        "Tr1": "2",
+                        "Tr2": "1"
+                    },
+                    {
+                        "Eps": "NS",
+                        "T1": [{ "Nm": "Everton" }],
+                        "T2": [{ "Nm": "Fulham" }],
+                        "Tr1": "0",
+                        "Tr2": "0"
+                    }
+                ]
+            }]
+        });
+        let rows = parse_livescore_live_snapshot(&payload);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].eps, "67'");
+        assert_eq!(rows[0].home_score, 2);
+        assert_eq!(rows[0].away_score, 1);
+
+        let mut matches = vec![
+            FlatMatch {
+                id: "m_live".into(),
+                home: Some("Arsenal".into()),
+                away: Some("Chelsea".into()),
+                status: Some("not_started".into()),
+                ..FlatMatch::default()
+            },
+            FlatMatch {
+                id: "m_done".into(),
+                home: Some("Arsenal".into()),
+                away: Some("Chelsea".into()),
+                status: Some("finished".into()),
+                home_score: Some(Value::from(3)),
+                away_score: Some(Value::from(0)),
+                ..FlatMatch::default()
+            },
+        ];
+        let mut fetched_at = HashMap::new();
+        let updated = overlay_livescore_rows(&mut matches, &rows, &mut fetched_at, 123_456);
+        assert_eq!(updated, 1);
+        assert_eq!(matches[0].status.as_deref(), Some("inprogress"));
+        assert_eq!(matches[0].status_text.as_deref(), Some("67'"));
+        assert_eq!(matches[0].home_score, Some(Value::from(2)));
+        assert_eq!(matches[0].away_score, Some(Value::from(1)));
+        assert_eq!(fetched_at.get("m_live"), Some(&123_456));
+        assert_eq!(matches[1].status.as_deref(), Some("finished"));
+        assert_eq!(matches[1].home_score, Some(Value::from(3)));
     }
 }

@@ -46,7 +46,8 @@ export interface UseLiveMatchesResult extends LiveData {
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_INTERVAL_MS = HOUR_MS;
-const LIVE_INTERVAL_MS = MINUTE_MS;
+const LIVE_INTERVAL_MS = 20_000;
+const BACKOFF_BASE_MS = MINUTE_MS;
 const STARTING_SOON_MS = 15 * MINUTE_MS;
 const RECENT_KICKOFF_MS = 150 * MINUTE_MS;
 const MAX_BACKOFF_MS = 15 * MINUTE_MS;
@@ -365,7 +366,7 @@ export function needsLiveUpdates(
 }
 
 function backoffMs(failures: number): number {
-  return Math.min(MAX_BACKOFF_MS, LIVE_INTERVAL_MS * 2 ** Math.max(0, failures - 1));
+  return Math.min(MAX_BACKOFF_MS, BACKOFF_BASE_MS * 2 ** Math.max(0, failures - 1));
 }
 
 interface SheetMeta {

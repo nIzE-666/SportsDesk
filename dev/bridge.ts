@@ -148,7 +148,18 @@ function reserveOpenF1(): Promise<void> {
 }
 
 export function ttlFor(source: string, path: string, payload: unknown): number {
-  if (source === 'livescore') return path.startsWith('live/') ? 30_000 : 10 * 60 * 1000;
+  if (source === 'livescore') {
+    if (
+      path.startsWith('live/') ||
+      path.startsWith('scoreboard/') ||
+      path.startsWith('incidents/') ||
+      path.startsWith('statistics/')
+    ) {
+      return 15_000;
+    }
+    if (path.startsWith('lineups/')) return 60_000;
+    return 10 * 60 * 1000;
+  }
   const p = path.toLowerCase();
   if (source === 'pitch' && p.startsWith('date/')) return pitchDateCacheTtl(path, payload);
   if (source === 'pitch' && p.startsWith('matches/')) return 60_000;
@@ -157,8 +168,11 @@ export function ttlFor(source: string, path: string, payload: unknown): number {
   if (source === 'sportscore' && (p.includes('premier-league') || p.includes('spanish-la-liga'))) {
     return 15 * 60 * 1000;
   }
+  if (source === 'espn' && p.includes('/summary')) {
+    return 15 * 1000;
+  }
   if (source === 'espn' && (p.includes('scoreboard') || p.includes('matches'))) {
-    return 60 * 1000;
+    return 20 * 1000;
   }
   if (source === 'sportscore' && p.includes('match')) return 60 * 1000;
   if (payload && typeof payload === 'object' && 'live' in payload) return 60 * 1000;
@@ -235,10 +249,14 @@ function validLiveScoreOffset(value: string): boolean {
 
 /** Mirrors `valid_livescore_path` in `src-tauri/src/bridge.rs`. */
 function validLiveScorePath(path: string): boolean {
-  const match = /^(?:date\/soccer\/(\d{8})\/(-?\d+)|live\/soccer\/(-?\d+))\?MD=1$/.exec(path);
-  if (!match) return false;
-  const date = match[1];
-  return (!date || validCompactDate(date)) && validLiveScoreOffset((match[3] ?? match[2])!);
+  const listMatch = /^(?:date\/soccer\/(\d{8})\/(-?\d+)|live\/soccer\/(-?\d+))\?MD=1$/.exec(path);
+  if (listMatch) {
+    const date = listMatch[1];
+    return (
+      (!date || validCompactDate(date)) && validLiveScoreOffset((listMatch[3] ?? listMatch[2])!)
+    );
+  }
+  return /^(?:scoreboard|incidents|statistics|lineups)\/soccer\/\d{1,24}$/.test(path);
 }
 
 /**

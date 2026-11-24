@@ -198,17 +198,31 @@ fn valid_livescore_offset(value: &str) -> bool {
         .is_ok_and(|offset| (-12..=14).contains(&offset))
 }
 
-/// LiveScore's public app API is only consumed through these two fixed endpoints.
+fn valid_livescore_event_id(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 24 && value.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// LiveScore's public app API is consumed only through its date/live lists and
+/// numeric soccer match-detail endpoints (scoreboard, incidents, statistics, lineups).
 fn valid_livescore_path(path: &str) -> bool {
-    let Some(rest) = path.strip_suffix("?MD=1") else {
+    if let Some(rest) = path.strip_suffix("?MD=1") {
+        let parts: Vec<&str> = rest.split('/').collect();
+        return match parts.as_slice() {
+            ["date", "soccer", date, offset] => {
+                valid_compact_date(date) && valid_livescore_offset(offset)
+            }
+            ["live", "soccer", offset] => valid_livescore_offset(offset),
+            _ => false,
+        };
+    }
+    if path.contains('?') {
         return false;
-    };
-    let parts: Vec<&str> = rest.split('/').collect();
+    }
+    let parts: Vec<&str> = path.split('/').collect();
     match parts.as_slice() {
-        ["date", "soccer", date, offset] => {
-            valid_compact_date(date) && valid_livescore_offset(offset)
+        ["scoreboard" | "incidents" | "statistics" | "lineups", "soccer", eid] => {
+            valid_livescore_event_id(eid)
         }
-        ["live", "soccer", offset] => valid_livescore_offset(offset),
         _ => false,
     }
 }
@@ -422,8 +436,14 @@ fn pitch_date_ttl(path: &str, payload: &Value, now: i64) -> i64 {
 
 fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
     if source == "livescore" {
-        return if path.starts_with("live/") {
-            30_000
+        return if path.starts_with("live/")
+            || path.starts_with("scoreboard/")
+            || path.starts_with("incidents/")
+            || path.starts_with("statistics/")
+        {
+            15_000
+        } else if path.starts_with("lineups/") {
+            60_000
         } else {
             10 * 60_000
         };
@@ -451,8 +471,11 @@ fn ttl_ms(source: &str, path: &str, payload: &Value) -> i64 {
     if source == "sportscore" && (p.contains("premier-league") || p.contains("spanish-la-liga")) {
         return 15 * 60 * 1000;
     }
+    if source == "espn" && p.contains("/summary") {
+        return 15 * 1000;
+    }
     if source == "espn" && (p.contains("scoreboard") || p.contains("matches")) {
-        return 60 * 1000;
+        return 20 * 1000;
     }
     if source == "sportscore" && p.contains("match") {
         return 60 * 1000;
@@ -1440,7 +1463,7 @@ mod acceptance_tests {
     }
 
     #[test]
-    fn livescore_accepts_only_its_date_and_live_paths() {
+    fn livescore_accepts_only_its_date_live_and_detail_paths() {
         for path in [
             "date/soccer/20261108/-12?MD=1",
             "date/soccer/20261108/0?MD=1",
@@ -1448,6 +1471,10 @@ mod acceptance_tests {
             "live/soccer/-12?MD=1",
             "live/soccer/0?MD=1",
             "live/soccer/14?MD=1",
+            "scoreboard/soccer/1873661",
+            "incidents/soccer/1873661",
+            "statistics/soccer/1873661",
+            "lineups/soccer/1873661",
         ] {
             assert!(build_url("livescore", path).is_ok(), "{path}");
         }
@@ -1475,23 +1502,42 @@ mod acceptance_tests {
             "live/soccer/9.0?MD=1",
             "live/soccer/9/extra?MD=1",
             "live/rugby/9?MD=1",
+            "incidents/soccer/abc",
+            "incidents/soccer/1873661?foo=1",
+            "incidents/rugby/1873661",
+            "statistics/soccer/",
         ] {
             assert!(build_url("livescore", path).is_err(), "{path}");
         }
     }
 
     #[test]
-    fn livescore_cache_is_ten_minutes_for_days_and_thirty_seconds_for_live() {
+    fn livescore_and_espn_live_cache_ttls_support_realtime_updates() {
         let empty = serde_json::json!({});
         assert_eq!(
             ttl_ms("livescore", "date/soccer/20261108/9?MD=1", &empty),
             600_000
         );
-        assert_eq!(ttl_ms("livescore", "live/soccer/9?MD=1", &empty), 30_000);
-        // The new source's rule does not leak into the other sources.
+        assert_eq!(ttl_ms("livescore", "live/soccer/9?MD=1", &empty), 15_000);
+        assert_eq!(
+            ttl_ms("livescore", "incidents/soccer/1873661", &empty),
+            15_000
+        );
+        assert_eq!(
+            ttl_ms("livescore", "statistics/soccer/1873661", &empty),
+            15_000
+        );
+        assert_eq!(
+            ttl_ms("livescore", "lineups/soccer/1873661", &empty),
+            60_000
+        );
         assert_eq!(
             ttl_ms("espn", "eng.1/scoreboard?dates=20261108", &empty),
-            60_000
+            20_000
+        );
+        assert_eq!(
+            ttl_ms("espn", "eng.1/summary?event=401879233", &empty),
+            15_000
         );
     }
 
