@@ -472,10 +472,30 @@ function XgChart({
     </svg>
   );
 }
+function formatAxisScale(value: number): string {
+  return Number.isInteger(value) ? String(value) : decimal(value);
+}
+
+function formatPressureMinute(minute: number): string {
+  const rounded = Math.round(minute);
+  if (rounded > 90 && rounded < 105) return `90+${rounded - 90}′`;
+  return `${rounded}′`;
+}
+
 function PressureChart({ data, detail }: { data: PressureData; detail: MatchDetail }) {
   const end = Math.max(90, ...data.points.map((p) => p.minute));
+  const endRounded = Math.round(end);
+  const ticks =
+    endRounded >= 100
+      ? [0, 45, 90, endRounded]
+      : endRounded > 90
+        ? [0, 45, endRounded]
+        : [0, 45, 90];
   // Use the published scale unchanged; no invented normalisation or interpolated gaps.
   const scale = Math.max(1, ...data.points.map((p) => Math.abs(p.value)));
+  const left = 48;
+  const plotWidth = 512;
+  const xAt = (minute: number) => left + (minute / end) * plotWidth;
   return (
     <>
       <svg
@@ -484,31 +504,36 @@ function PressureChart({ data, detail }: { data: PressureData; detail: MatchDeta
         role="img"
         aria-label={`Давление: ${detail.home_team.name} выше нуля, ${detail.away_team.name} ниже нуля; численные значения в раскрываемой таблице`}
       >
-        <path className="analysis-grid" d="M40 76H560" />
-        <text x="32" y="26" textAnchor="end">
-          {decimal(scale)}
+        <path className="analysis-grid" d={`M${left} 76H${left + plotWidth}`} />
+        <text x={left - 8} y="26" textAnchor="end">
+          {formatAxisScale(scale)}
         </text>
-        <text x="32" y="80" textAnchor="end">
+        <text x={left - 8} y="80" textAnchor="end">
           0
         </text>
-        <text x="32" y="138" textAnchor="end">
-          {decimal(-scale)}
+        <text x={left - 8} y="138" textAnchor="end">
+          {formatAxisScale(-scale)}
         </text>
         {data.points.map((p) => (
           <line
             key={p.minute}
             className={`analysis-pressure-bar ${p.value >= 0 ? 'home' : 'away'}`}
-            x1={40 + (p.minute / end) * 520}
-            x2={40 + (p.minute / end) * 520}
+            x1={xAt(p.minute)}
+            x2={xAt(p.minute)}
             y1="76"
             y2={76 - (p.value / scale) * 58}
           >
-            <title>{`${p.minute}′ · ${p.value}`}</title>
+            <title>{`${formatPressureMinute(p.minute)} · ${p.value}`}</title>
           </line>
         ))}
-        {[0, 45, 90, ...(end > 90 ? [end] : [])].map((v) => (
-          <text key={v} x={40 + (v / end) * 520} y="164" textAnchor="middle">
-            {v}′
+        {ticks.map((v, idx) => (
+          <text
+            key={v}
+            x={xAt(Math.min(v, end))}
+            y="164"
+            textAnchor={idx === ticks.length - 1 ? 'end' : 'middle'}
+          >
+            {formatPressureMinute(v)}
           </text>
         ))}
       </svg>

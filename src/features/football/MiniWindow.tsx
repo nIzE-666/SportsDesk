@@ -176,8 +176,8 @@ export function MiniWindow() {
               key={`${m.home}-${m.away}-${i}`}
               size="compact"
               competition={m.competition ?? undefined}
-              home={{ name: m.home ?? '—' }}
-              away={{ name: m.away ?? '—' }}
+              home={{ name: m.home ?? '—', imageUrl: m.home_image_url ?? null }}
+              away={{ name: m.away ?? '—', imageUrl: m.away_image_url ?? null }}
               time={
                 kickOff
                   ? kickOff.time

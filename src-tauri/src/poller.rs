@@ -207,6 +207,10 @@ pub struct FlatMatch {
     #[serde(default)]
     pub away: Option<String>,
     #[serde(default)]
+    pub home_image_url: Option<String>,
+    #[serde(default)]
+    pub away_image_url: Option<String>,
+    #[serde(default)]
     pub home_score: Option<Value>,
     #[serde(default)]
     pub away_score: Option<Value>,
@@ -384,6 +388,8 @@ pub(crate) fn pitch_match(value: &Value) -> Option<FlatMatch> {
         away_id: team("away_team", "id")?,
         home: team("home_team", "name"),
         away: team("away_team", "name"),
+        home_image_url: team("home_team", "image_url"),
+        away_image_url: team("away_team", "image_url"),
         home_score: value.get("score_home").cloned(),
         away_score: value.get("score_away").cloned(),
         status: value
@@ -1802,9 +1808,17 @@ impl Poller {
                 .await
             {
                 let data = reply.payload.get("data").unwrap_or(&reply.payload);
+                let league_name = data
+                    .get("league")
+                    .and_then(|l| l.get("name"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
                 if let Some(list) = data.get("matches").and_then(Value::as_array) {
                     for value in list {
-                        if let Some(m) = pitch_match(value) {
+                        if let Some(mut m) = pitch_match(value) {
+                            if m.competition.is_none() {
+                                m.competition = league_name.clone();
+                            }
                             if m.time
                                 .as_deref()
                                 .and_then(parse_time_ms)

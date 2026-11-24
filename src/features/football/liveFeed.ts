@@ -13,6 +13,8 @@ export interface LiveMatch {
   away_id: string;
   home?: string;
   away?: string;
+  home_image_url?: string | null;
+  away_image_url?: string | null;
   home_score?: number | null;
   away_score?: number | null;
   status?: string;
@@ -47,7 +49,8 @@ export async function loadLiveFeed(automatic = false): Promise<LiveFeed> {
     ...replies,
   ]) {
     const data = reply.payload?.data ?? reply.payload;
-    for (const m of (data?.matches ?? []) as MatchSummary[]) {
+    const leagueName = typeof data?.league?.name === 'string' ? data.league.name : undefined;
+    for (const m of (data?.matches ?? []) as (MatchSummary & { league?: { name?: string } })[]) {
       const favorite = (t: MatchSummary['home_team']) =>
         matchesFavoriteIdentity(t, teams, 'pitch') ||
         names
@@ -66,11 +69,14 @@ export async function loadLiveFeed(automatic = false): Promise<LiveFeed> {
         away_id: m.away_team.id,
         home: m.home_team.name,
         away: m.away_team.name,
+        home_image_url: m.home_team.image_url ?? null,
+        away_image_url: m.away_team.image_url ?? null,
         home_score: m.score_home,
         away_score: m.score_away,
         status: m.status,
         status_text: m.status_text,
         time: m.time_utc,
+        competition: m.league?.name ?? leagueName,
       });
     }
   }

@@ -129,9 +129,8 @@
   position: relative;
   z-index: var(--layer-header);
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--color-surface-1) 92%, transparent);
+  background: var(--color-surface-1);
   border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(12px);
 }
 
 .shell-header-bar {

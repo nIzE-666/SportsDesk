@@ -270,6 +270,7 @@
 .showcase .ui-showcase-hero {
   position: relative;
   isolation: isolate;
+  contain: layout paint;
   min-height: 316px;
   overflow: hidden;
   border-radius: var(--radius-lg);
@@ -361,10 +362,17 @@
   position: absolute;
   z-index: 1;
   inset: 0;
-  background: linear-gradient(105deg, transparent 42%, var(--showcase-shine) 50%, transparent 58%);
-  background-position: 100% 0;
-  background-size: 250% 100%;
+  overflow: hidden;
   clip-path: polygon(17% 0, 100% 0, 100% 100%, 4% 100%);
+  pointer-events: none;
+}
+
+.showcase .ui-showcase-hero__shine::before {
+  position: absolute;
+  inset: 0 -60%;
+  background: linear-gradient(105deg, transparent 43%, var(--showcase-shine) 50%, transparent 57%);
+  content: '';
+  will-change: transform;
   animation: ui-showcase-shine 9s ease-in-out infinite;
 }
 
@@ -404,8 +412,10 @@
 .showcase .ui-showcase-hero__crest {
   position: absolute;
   top: 9%;
-  filter: drop-shadow(0 14px 20px var(--showcase-crest-shadow));
+  filter: drop-shadow(0 10px 14px var(--showcase-crest-shadow));
   transform: translateX(-50%);
+  will-change: transform;
+  backface-visibility: hidden;
   transition: scale 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
   animation: ui-showcase-float 6s ease-in-out infinite;
 }
@@ -909,7 +919,17 @@
   height: 12px;
   border-radius: var(--radius-round);
   background: var(--showcase-now);
+  box-shadow: 0 0 12px 2px var(--showcase-now-glow);
   transform: translate(-50%, -50%);
+}
+
+.showcase .ui-week-track__now-dot::after {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--showcase-now);
+  content: '';
+  will-change: transform, opacity;
   animation: ui-showcase-pulse 2.4s ease-in-out infinite;
 }
 
@@ -1691,37 +1711,35 @@
 @keyframes ui-showcase-pulse {
   0%,
   100% {
-    box-shadow:
-      0 0 0 4px var(--showcase-now-glow),
-      0 0 14px 2px var(--showcase-now-glow);
+    opacity: 0.75;
+    transform: scale(0.95);
   }
 
   50% {
-    box-shadow:
-      0 0 0 9px transparent,
-      0 0 24px 5px var(--showcase-now-glow);
+    opacity: 0;
+    transform: scale(1.75);
   }
 }
 
 @keyframes ui-showcase-float {
   0%,
   100% {
-    translate: 0 0;
+    transform: translate3d(-50%, 0, 0);
   }
 
   50% {
-    translate: 0 -5px;
+    transform: translate3d(-50%, -5px, 0);
   }
 }
 
 @keyframes ui-showcase-shine {
   0%,
   62% {
-    background-position: 100% 0;
+    transform: translate3d(-45%, 0, 0);
   }
 
   100% {
-    background-position: 0% 0;
+    transform: translate3d(45%, 0, 0);
   }
 }
 
